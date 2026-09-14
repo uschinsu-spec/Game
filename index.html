@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate"/>
   <title>Thanh Vân Tiên Vực - Ulala Edition</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260914-map-editor-v8"/>
+  <link rel="manifest" href="./manifest.webmanifest?v=20260915-placeholder-v1"/>
   <link rel="stylesheet" href="./style.css?v=20260914-ulala-view-v12"/>
   <link rel="stylesheet" href="./assets/ui/ui-icons.css?v=20260914-ulala-view-v12"/>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -16,264 +16,103 @@
   <script src="./assets/ui/ui-icons.js?v=20260914-map-editor-v8"></script>
 </head>
 <body>
-  <!-- MOBILE VIEWPORT CONTAINER (AUTO DESKTOP SIMULATOR) -->
   <div id="gameApp">
     <canvas id="renderCanvas"></canvas>
-
     <div id="hud">
-      <!-- ====================================================================
-           1. ULALA TOP HEADER: AVATAR, CP BOX, REALM & CURRENCIES
-           ==================================================================== -->
       <header class="ulala-header">
-        <!-- Player Shield & CP -->
         <section class="ulala-profile">
           <div class="ulala-avatar-frame">
             <img class="ulala-avatar-img" data-ui-icon="portrait" alt="Nhân vật"/>
             <div class="ulala-class-badge" title="Hệ Phái Kiếm Tu">🗡️</div>
             <div id="playerLevelBadge" class="ulala-level-badge">1</div>
           </div>
-
           <div class="ulala-info-stack">
-            <!-- Combat Power CP -->
-            <div class="ulala-cp-box">
-              <div class="ulala-cp-icon">⚡</div>
-              <span class="ulala-cp-label">CP</span>
-              <b id="totalPower" class="ulala-cp-value">120</b>
-            </div>
-
-            <!-- Name & Realm -->
-            <div class="ulala-name-line">
-              <strong>Linh Phong</strong>
-              <span id="realmLabel" class="ulala-realm-tag">Luyện Khí · 1</span>
-            </div>
-
-            <!-- Health Bar -->
+            <div class="ulala-cp-box"><div class="ulala-cp-icon">⚡</div><span class="ulala-cp-label">CP</span><b id="totalPower" class="ulala-cp-value">120</b></div>
+            <div class="ulala-name-line"><strong>Linh Phong</strong><span id="realmLabel" class="ulala-realm-tag">Luyện Khí · 1</span></div>
             <div class="ulala-hp-gauge"><i style="width:100%"></i></div>
           </div>
         </section>
-
-        <!-- Currencies (Shells & Starfish) -->
         <section class="ulala-currencies">
-          <div class="ulala-currency-pill">
-            <img data-ui-icon="coin" alt="Linh thạch"/>
-            <span id="coinCount">0</span>
-            <button class="ulala-btn-plus">+</button>
-          </div>
-          <div class="ulala-currency-pill">
-            <img data-ui-icon="jade" alt="Tiên ngọc"/>
-            <span id="jadeCount">0</span>
-            <button class="ulala-btn-plus">+</button>
-          </div>
+          <div class="ulala-currency-pill"><img data-ui-icon="coin" alt="Linh thạch"/><span id="coinCount">0</span><button class="ulala-btn-plus">+</button></div>
+          <div class="ulala-currency-pill"><img data-ui-icon="jade" alt="Tiên ngọc"/><span id="jadeCount">0</span><button class="ulala-btn-plus">+</button></div>
         </section>
       </header>
 
-      <!-- ====================================================================
-           2. ULALA STAGE TRACKER (10-STEP SEGMENTED CHEST PROGRESS)
-           ==================================================================== -->
       <section class="ulala-stage-tracker">
-        <div class="ulala-stage-name">
-          <b id="idleStage">Thanh Vân Sơn 1</b>
-          <span id="stageCounter">0/10</span>
-        </div>
-
+        <div class="ulala-stage-name"><b id="idleStage">Thanh Vân Sơn 1</b><span id="stageCounter">0/10</span></div>
         <div class="ulala-track-wrap">
           <div id="stageSegments" class="ulala-segments-bar">
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
-            <i class="ulala-segment"></i>
+            <i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i>
+            <i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i><i class="ulala-segment"></i>
           </div>
           <div id="stageChest" class="ulala-chest-badge" title="Rương Ải">🎁</div>
         </div>
-
-        <div class="ulala-loot-stats">
-          <span id="expRate">EXP +18/p</span>
-          <span id="goldRate">Đá +8/p</span>
-        </div>
-
-        <!-- 360° Xianxia Monster Radar Compass -->
+        <div class="ulala-loot-stats"><span id="expRate">EXP +18/p</span><span id="goldRate">Đá +8/p</span></div>
         <div id="monsterRadar" class="ulala-radar-compass" title="La Bàn Yêu Khí (Radar Quái Vật)">
-          <div class="radar-scan-line"></div>
-          <div class="radar-player-dot"></div>
-          <div id="radarBlips" class="radar-blips-container"></div>
-          <span id="radarMobCount" class="radar-count-tag">0 Yêu</span>
+          <div class="radar-scan-line"></div><div class="radar-player-dot"></div><div id="radarBlips" class="radar-blips-container"></div><span id="radarMobCount" class="radar-count-tag">0 Yêu</span>
         </div>
       </section>
 
-      <!-- Quick Actions on Right -->
       <aside class="ulala-side-actions">
-        <button id="quickBattleBtn" class="ulala-side-btn" title="Đấu Nhanh 2h">
-          <span>⚡</span>
-          <small>Nhanh</small>
-        </button>
-        <button id="mapBtn" class="ulala-side-btn" title="Bản Đồ">
-          <span>🗺️</span>
-          <small>Bản đồ</small>
-        </button>
-        <button id="logBtn" class="ulala-side-btn" title="Chiến Báo">
-          <span>📜</span>
-          <small>Chiến báo</small>
-        </button>
-        <button id="zoomToggleBtn" class="ulala-side-btn" title="Đổi Góc Nhìn Camera (Gần / Vừa / Xa / Siêu Toàn Cảnh)">
-          <span>🔭</span>
-          <small id="zoomLevelTag">Zoom 24m</small>
-        </button>
+        <button id="quickBattleBtn" class="ulala-side-btn" title="Đấu Nhanh 2h"><span>⚡</span><small>Nhanh</small></button>
+        <button id="mapBtn" class="ulala-side-btn" title="Bản Đồ"><span>🗺️</span><small>Bản đồ</small></button>
+        <button id="logBtn" class="ulala-side-btn" title="Chiến Báo"><span>📜</span><small>Chiến báo</small></button>
+        <button id="zoomToggleBtn" class="ulala-side-btn" title="Đổi Góc Nhìn Camera"><span>🔭</span><small id="zoomLevelTag">Zoom 24m</small></button>
       </aside>
 
-      <!-- ====================================================================
-           3. TARGET MONSTER / BOSS HEALTH BAR (TOP-MIDDLE)
-           ==================================================================== -->
       <section id="targetPanel" class="ulala-boss-plate">
-        <div class="ulala-boss-meta">
-          <span id="targetElement" class="ulala-element-badge">🌲 Mộc 8</span>
-          <strong id="targetName" class="ulala-boss-name">Yêu Thú</strong>
-        </div>
+        <div class="ulala-boss-meta"><span id="targetElement" class="ulala-element-badge">🌲 Mộc 8</span><strong id="targetName" class="ulala-boss-name">Yêu Thú</strong></div>
         <div class="ulala-boss-hp-track"><i id="targetHp" style="width:100%"></i></div>
       </section>
 
-      <!-- ====================================================================
-           4. ULALA BOSS CHALLENGE DRUM (RIGHT ACTION BUTTON)
-           ==================================================================== -->
-      <button id="bossChallenge" class="ulala-boss-drum">
-        <span class="icon">🥁</span>
-        <span class="label">BOSS</span>
-      </button>
+      <button id="bossChallenge" class="ulala-boss-drum"><span class="icon">🥁</span><span class="label">BOSS</span></button>
 
-      <!-- ====================================================================
-           5. ULALA SIGNATURE 4-SLOT SKILL DECK & CAST BAR
-           ==================================================================== -->
       <section class="ulala-skill-deck-wrap">
-        <!-- Cast Energy Progress Bar -->
-        <div class="ulala-cast-gauge">
-          <i id="castGauge"></i>
-        </div>
-
-        <!-- 4 Skill Slots -->
+        <div class="ulala-cast-gauge"><i id="castGauge"></i></div>
         <div id="skillDeck" class="ulala-skills-row">
-          <div class="ulala-skill-card active" data-skill-idx="0">
-            <span class="ulala-skill-order">1</span>
-            <span class="ulala-skill-lv">Lv.1</span>
-            <img data-ui-icon="skill" alt="Thanh Vân"/>
-            <span class="name">Thanh Vân</span>
-          </div>
-          <div class="ulala-skill-card" data-skill-idx="1">
-            <span class="ulala-skill-order">2</span>
-            <span class="ulala-skill-lv">Lv.1</span>
-            <img data-ui-icon="artifact" alt="Hộ Thể"/>
-            <span class="name">Hộ Thể</span>
-          </div>
-          <div class="ulala-skill-card" data-skill-idx="2">
-            <span class="ulala-skill-order">3</span>
-            <span class="ulala-skill-lv">Lv.1</span>
-            <img data-ui-icon="seal" alt="Thiên Lôi"/>
-            <span class="name">Thiên Lôi</span>
-          </div>
-          <div class="ulala-skill-card" data-skill-idx="3">
-            <span class="ulala-skill-order">4</span>
-            <span class="ulala-skill-lv">Lv.1</span>
-            <img data-ui-icon="battle" alt="Vạn Kiếm"/>
-            <span class="name">Vạn Kiếm</span>
-          </div>
+          <div class="ulala-skill-card active" data-skill-idx="0"><span class="ulala-skill-order">1</span><span class="ulala-skill-lv">Lv.1</span><img data-ui-icon="skill" alt="Thanh Vân"/><span class="name">Thanh Vân</span></div>
+          <div class="ulala-skill-card" data-skill-idx="1"><span class="ulala-skill-order">2</span><span class="ulala-skill-lv">Lv.1</span><img data-ui-icon="artifact" alt="Hộ Thể"/><span class="name">Hộ Thể</span></div>
+          <div class="ulala-skill-card" data-skill-idx="2"><span class="ulala-skill-order">3</span><span class="ulala-skill-lv">Lv.1</span><img data-ui-icon="seal" alt="Thiên Lôi"/><span class="name">Thiên Lôi</span></div>
+          <div class="ulala-skill-card" data-skill-idx="3"><span class="ulala-skill-order">4</span><span class="ulala-skill-lv">Lv.1</span><img data-ui-icon="battle" alt="Vạn Kiếm"/><span class="name">Vạn Kiếm</span></div>
         </div>
       </section>
 
-      <!-- ====================================================================
-           6. ULALA 5-TAB STONE NAVIGATION DOCK (BOTTOM MASTER)
-           ==================================================================== -->
       <nav class="ulala-dock">
-        <button class="ulala-dock-tab" data-panel="gear">
-          <div class="ulala-red-dot"></div>
-          <img data-ui-icon="gear" alt="Trang bị"/>
-          <span>Trang bị</span>
-        </button>
-        <button class="ulala-dock-tab" data-panel="skills">
-          <div class="ulala-red-dot"></div>
-          <img data-ui-icon="skill" alt="Công pháp"/>
-          <span>Công pháp</span>
-        </button>
-        <button class="ulala-dock-tab main-tab active" data-panel="battle">
-          <div class="ulala-main-orb">
-            <img data-ui-icon="battle" alt="Chiến đấu"/>
-          </div>
-          <span>Chiến đấu</span>
-        </button>
-        <button class="ulala-dock-tab" data-panel="pet">
-          <img data-ui-icon="pet" alt="Linh thú"/>
-          <span>Linh thú</span>
-        </button>
-        <button class="ulala-dock-tab" data-panel="cultivate">
-          <img data-ui-icon="cultivate" alt="Tu luyện"/>
-          <span>Tu luyện</span>
-        </button>
+        <button class="ulala-dock-tab" data-panel="gear"><div class="ulala-red-dot"></div><img data-ui-icon="gear" alt="Trang bị"/><span>Trang bị</span></button>
+        <button class="ulala-dock-tab" data-panel="skills"><div class="ulala-red-dot"></div><img data-ui-icon="skill" alt="Công pháp"/><span>Công pháp</span></button>
+        <button class="ulala-dock-tab main-tab active" data-panel="battle"><div class="ulala-main-orb"><img data-ui-icon="battle" alt="Chiến đấu"/></div><span>Chiến đấu</span></button>
+        <button class="ulala-dock-tab" data-panel="pet"><img data-ui-icon="pet" alt="Linh thú"/><span>Linh thú</span></button>
+        <button class="ulala-dock-tab" data-panel="cultivate"><img data-ui-icon="cultivate" alt="Tu luyện"/><span>Tu luyện</span></button>
       </nav>
-
-      <!-- OFFLINE REWARD POPUP -->
       <section id="offlineReward" class="offline-reward"></section>
     </div>
   </div>
 
   <script>
-    document.querySelectorAll('[data-ui-icon]').forEach(el => {
-      const p = window.UI_ICONS && window.UI_ICONS[el.dataset.uiIcon];
-      if (p) el.src = p;
-    });
-
+    document.querySelectorAll('[data-ui-icon]').forEach(el => { const p = window.UI_ICONS && window.UI_ICONS[el.dataset.uiIcon]; if (p) el.src = p; });
     const VERSION_KEY = 'tu-tien-build-version';
     async function checkForGameUpdate() {
       try {
         const r = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
-        const d = await r.json();
-        const v = String(d.version || '');
-        const l = localStorage.getItem(VERSION_KEY);
-        if (!l) localStorage.setItem(VERSION_KEY, v);
-        else if (v && l !== v) {
-          localStorage.setItem(VERSION_KEY, v);
-          location.reload();
-        }
+        const d = await r.json(); const v = String(d.version || ''); const l = localStorage.getItem(VERSION_KEY);
+        if (!l) localStorage.setItem(VERSION_KEY, v); else if (v && l !== v) { localStorage.setItem(VERSION_KEY, v); location.reload(); }
       } catch (_) {}
     }
     checkForGameUpdate();
-
-    if ('serviceWorker' in navigator) {
-      addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=20260914-birchtree-asset-v31', { updateViaCache: 'none' })
-          .then(r => r.update())
-          .catch(() => {});
-      });
-    }
+    if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js?v=20260915-placeholder-v1', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
   </script>
-  <script src="./game.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/terrain/tex_01_Grass_Lush.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/flora_loader.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_birchtree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_normaltree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_pinetree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_mapletree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_palmtree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_deadtree_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_bush_flowers.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_flower_1_clump.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_grass_large_extruded.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_grass_small.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_petals_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_rock_1.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/flora/asset_rock_3.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/environment/world/enhanced-world.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/THON TRAN/thon_tran_loader.js?v=20260915-thontran-v1"></script>
-  <script src="./assets/environment/world/village-safezone.js?v=20260915-thontran-v1"></script>
-  <script src="./assets/characters/rigged-player.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/enemies/enemy-registry.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/enemies/enemy-animation.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/enemies/enemy-loader.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/enemies/ultimate-monsters.js?v=20260914-standalone-v40"></script>
-  <script src="./idle-adventure.js?v=20260914-standalone-v40"></script>
-  <script src="./progression-systems.js?v=20260914-standalone-v40"></script>
-  <script src="./mobile-runtime.js?v=20260914-standalone-v40"></script>
+  <script src="./game.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/environment/terrain/tex_01_Grass_Lush.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/placeholders/world-placeholders.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/environment/world/enhanced-world.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/environment/world/village-safezone.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/characters/rigged-player.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/enemies/enemy-registry.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/enemies/enemy-animation.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/enemies/enemy-loader.js?v=20260915-placeholder-v1"></script>
+  <script src="./assets/enemies/ultimate-monsters.js?v=20260915-placeholder-v1"></script>
+  <script src="./idle-adventure.js?v=20260915-placeholder-v1"></script>
+  <script src="./progression-systems.js?v=20260915-placeholder-v1"></script>
+  <script src="./mobile-runtime.js?v=20260915-placeholder-v1"></script>
 </body>
 </html>
