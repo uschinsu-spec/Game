@@ -1,287 +1,58 @@
-// ============================================================================
-// THANH VÂN TIÊN VỰC - ĐẠI THÔN LÀNG BÌNH AN (EXPANDED 10X VILLAGE SAFE ZONE)
-// Scientific Medieval Xianxia Village Layout from assets/THON TRAN/
-// Safe Zone Radius: 52.0m (Diameter > 104m) | Central Open Plaza: Radius 18.0m
-// ============================================================================
+// Procedural village safe-zone placeholders. No THON TRAN asset dependencies.
 (()=>{
   const scene = BABYLON.EngineStore.LastCreatedScene;
-  if (!scene) return;
+  if (!scene || !window.PlaceholderAssets) return;
 
-  const prevNode = scene.getTransformNodeByName('PeacefulVillageRoot');
-  if (prevNode) prevNode.dispose();
+  const prev = scene.getTransformNodeByName('PeacefulVillageRoot');
+  if (prev) prev.dispose();
+  const root = new BABYLON.TransformNode('PeacefulVillageRoot', scene);
+  const P = window.PlaceholderAssets;
+  const SAFE_ZONE_RADIUS = 52;
 
-  const villageRoot = new BABYLON.TransformNode('PeacefulVillageRoot', scene);
-  villageRoot.position.set(0, 0, 0);
-
-  const SAFE_ZONE_RADIUS = 52.0;
   window.PEACEFUL_VILLAGE_SAFE_ZONE = {
     radius: SAFE_ZONE_RADIUS,
-    center: new BABYLON.Vector3(0, 0, 0),
-    isInside: (pos) => {
-      if (!pos) return false;
-      return Math.hypot(pos.x, pos.z) <= SAFE_ZONE_RADIUS;
-    }
+    center: new BABYLON.Vector3(0,0,0),
+    isInside: pos => !!pos && Math.hypot(pos.x, pos.z) <= SAFE_ZONE_RADIUS
   };
 
-  // ---------------------------------------------------------------------------
-  // 1. CENTRAL OPEN PLAZA FORMATION & 52M GOLDEN BARRIER
-  // ---------------------------------------------------------------------------
-  // Central Respawn Formation at (0, 0, 0)
-  const spawnCircleMat = new BABYLON.StandardMaterial('SpawnFormationMat', scene);
-  spawnCircleMat.diffuseColor = BABYLON.Color3.FromHexString('#38bdf8');
-  spawnCircleMat.emissiveColor = BABYLON.Color3.FromHexString('#0284c7');
-  spawnCircleMat.alpha = 0.60;
+  const plazaMat = P.makeMat(scene, 'PlaceholderPlazaMat', '#b89d78');
+  const plaza = BABYLON.MeshBuilder.CreateCylinder('PlaceholderVillagePlaza', { height: 0.08, diameter: 32, tessellation: 48 }, scene);
+  plaza.parent = root; plaza.position.y = 0.035; plaza.material = plazaMat; plaza.isPickable = false;
 
-  const spawnFormation = BABYLON.MeshBuilder.CreateDisc('SpawnFormation', { radius: 3.5, tessellation: 36 }, scene);
-  spawnFormation.parent = villageRoot;
-  spawnFormation.position.set(0, 0.04, 0);
-  spawnFormation.rotation.x = Math.PI / 2;
-  spawnFormation.material = spawnCircleMat;
+  const roadMat = P.makeMat(scene, 'PlaceholderRoadMat', '#9c866b');
+  const roads = [
+    [0,0,5,0.05,86], [0,0,86,0.05,5]
+  ];
+  roads.forEach((d,i)=>{
+    const r = BABYLON.MeshBuilder.CreateBox('PlaceholderRoad_'+i,{width:d[2],height:d[3],depth:d[4]},scene);
+    r.parent=root;r.position.y=0.03;r.material=roadMat;r.isPickable=false;
+  });
 
-  // Outer Golden Safe Zone Barrier Circle (Radius 52.0m)
-  const barrierMat = new BABYLON.StandardMaterial('SafeZoneBarrierMat', scene);
-  barrierMat.diffuseColor = BABYLON.Color3.FromHexString('#fbbf24');
-  barrierMat.emissiveColor = BABYLON.Color3.FromHexString('#f59e0b');
-  barrierMat.alpha = 0.32;
-  barrierMat.backFaceCulling = false;
+  const houses = [
+    [0,34,0,1.35],[-34,7,Math.PI/2,1.1],[34,7,-Math.PI/2,1.1],[-25,-25,.55,1],[25,-25,-.55,1]
+  ];
+  houses.forEach((h,i)=>P.createHouse(scene,root,'PlaceholderHouse_'+i,h[0],h[1],h[2],h[3]));
 
-  const barrierRing = BABYLON.MeshBuilder.CreateTorus('SafeZoneBarrierRing', { diameter: SAFE_ZONE_RADIUS * 2, thickness: 0.35, tessellation: 96 }, scene);
-  barrierRing.parent = villageRoot;
-  barrierRing.position.set(0, 0.15, 0);
-  barrierRing.material = barrierMat;
-
-  // ---------------------------------------------------------------------------
-  // 2. ASYNC BUILD 4 SCIENTIFIC DISTRICTS FROM THÔN TRẤN ASSETS
-  // ---------------------------------------------------------------------------
-  async function buildExpandedVillage() {
-    if (!window.ThonTranLoader) {
-      setTimeout(buildExpandedVillage, 300);
-      return;
-    }
-
-    const pieces = [];
-
-    // =========================================================================
-    // DISTRICT 1: NORTH DISTRICT - TIÊN DUYÊN PHỦ (DINH THỰ TRƯỞNG THÔN)
-    // Position: Z: +28m to +42m
-    // =========================================================================
-    // Main North Mansion (Tòa Nhà Chính 2 Gian)
-    pieces.push(
-      // Front Facade
-      { id: 'Wall_Plaster_Door_Round', x: 0, y: 0, z: 34.0, ry: 0 },
-      { id: 'Door_2_Round', x: 0, y: 0, z: 34.0, ry: 0 },
-      { id: 'Wall_Plaster_Window_Wide_Round', x: -3.0, y: 0, z: 34.0, ry: 0 },
-      { id: 'Wall_Plaster_Window_Wide_Round', x: 3.0, y: 0, z: 34.0, ry: 0 },
-      { id: 'Wall_Plaster_Straight', x: -6.0, y: 0, z: 34.0, ry: 0 },
-      { id: 'Wall_Plaster_Straight', x: 6.0, y: 0, z: 34.0, ry: 0 },
-
-      // Side Walls
-      { id: 'Wall_Plaster_Straight', x: -7.5, y: 0, z: 38.0, ry: Math.PI / 2 },
-      { id: 'Wall_Plaster_Straight', x: -7.5, y: 0, z: 42.0, ry: Math.PI / 2 },
-      { id: 'Wall_Plaster_Straight', x: 7.5, y: 0, z: 38.0, ry: -Math.PI / 2 },
-      { id: 'Wall_Plaster_Straight', x: 7.5, y: 0, z: 42.0, ry: -Math.PI / 2 },
-
-      // Back Wall
-      { id: 'Wall_Plaster_Straight', x: 0, y: 0, z: 44.0, ry: Math.PI },
-      { id: 'Wall_Plaster_Straight', x: -4.0, y: 0, z: 44.0, ry: Math.PI },
-      { id: 'Wall_Plaster_Straight', x: 4.0, y: 0, z: 44.0, ry: Math.PI },
-
-      // Roofs & Towers
-      { id: 'Roof_RoundTiles_8x14', x: 0, y: 3.5, z: 39.0, ry: 0 },
-      { id: 'Roof_Tower_RoundTiles', x: 6.5, y: 6.5, z: 34.5, ry: 0 },
-      { id: 'Prop_Chimney', x: -4.5, y: 5.2, z: 37.0, ry: 0 },
-      { id: 'Prop_Vine5', x: 3.2, y: 0, z: 34.1, ry: 0 },
-      { id: 'Prop_Vine6', x: -3.2, y: 0, z: 34.1, ry: 0 },
-
-      // Balconies
-      { id: 'Balcony_Cross_Straight', x: 0, y: 3.2, z: 34.2, ry: 0 },
-      { id: 'Balcony_Cross_Straight', x: -2.0, y: 3.2, z: 34.2, ry: 0 },
-      { id: 'Balcony_Cross_Straight', x: 2.0, y: 3.2, z: 34.2, ry: 0 },
-
-      // North Courtyard Garden
-      { id: 'Prop_Wagon', x: 9.5, y: 0, z: 31.0, ry: -0.4 },
-      { id: 'Prop_Crate', x: 8.5, y: 0, z: 32.5, ry: 0.2 },
-      { id: 'Prop_Brick1', x: -8.5, y: 0, z: 32.0, ry: 0 }
-    );
-
-    // =========================================================================
-    // DISTRICT 2: WEST DISTRICT - DƯỢC THẢO QUÁN & TIÊN Y ĐƯỜNG
-    // Position: X: -28m to -45m, Z: -6m to +12m
-    // =========================================================================
-    // Main Pharmacy House
-    pieces.push(
-      { id: 'Wall_UnevenBrick_Door_Flat', x: -32.0, y: 0, z: 0, ry: Math.PI / 2 },
-      { id: 'Door_1_Flat', x: -32.0, y: 0, z: 0, ry: Math.PI / 2 },
-      { id: 'Wall_UnevenBrick_Window_Wide_Flat', x: -32.0, y: 0, z: 4.0, ry: Math.PI / 2 },
-      { id: 'Wall_UnevenBrick_Window_Thin_Round', x: -32.0, y: 0, z: -4.0, ry: Math.PI / 2 },
-      { id: 'Wall_UnevenBrick_Straight', x: -36.0, y: 0, z: 6.0, ry: 0 },
-      { id: 'Wall_UnevenBrick_Straight', x: -36.0, y: 0, z: -6.0, ry: Math.PI },
-      { id: 'Wall_UnevenBrick_Straight', x: -40.0, y: 0, z: 0, ry: -Math.PI / 2 },
-      { id: 'Roof_RoundTiles_6x10', x: -36.0, y: 3.4, z: 0, ry: Math.PI / 2 },
-      { id: 'Prop_Chimney2', x: -38.5, y: 4.6, z: 2.0, ry: 0 },
-
-      // Herbal Storage Shed
-      { id: 'Wall_Plaster_Door_Flat', x: -34.0, y: 0, z: 16.0, ry: Math.PI / 3 },
-      { id: 'Door_1_Round', x: -34.0, y: 0, z: 16.0, ry: Math.PI / 3 },
-      { id: 'Wall_Plaster_Straight', x: -38.0, y: 0, z: 18.0, ry: Math.PI / 3 },
-      { id: 'Roof_RoundTiles_6x6', x: -36.0, y: 3.2, z: 17.0, ry: Math.PI / 3 },
-
-      // Props & Herb Carts
-      { id: 'Prop_Wagon', x: -27.0, y: 0, z: -4.0, ry: 0.8 },
-      { id: 'Prop_Crate', x: -28.5, y: 0, z: 3.0, ry: -0.3 },
-      { id: 'Prop_Crate', x: -28.0, y: 0, z: 4.2, ry: 0.5 },
-      { id: 'Prop_Vine1', x: -31.9, y: 0, z: 2.0, ry: Math.PI / 2 },
-      { id: 'Prop_Vine2', x: -31.9, y: 0, z: -2.0, ry: Math.PI / 2 }
-    );
-
-    // =========================================================================
-    // DISTRICT 3: EAST DISTRICT - LINH KIẾM LÒ RÈN & KHO VŨ KHÍ
-    // Position: X: +28m to +45m, Z: -6m to +12m
-    // =========================================================================
-    // Main Blacksmith Forge
-    pieces.push(
-      { id: 'Wall_Plaster_Door_Flat', x: 32.0, y: 0, z: 0, ry: -Math.PI / 2 },
-      { id: 'Door_4_Flat', x: 32.0, y: 0, z: 0, ry: -Math.PI / 2 },
-      { id: 'Wall_Plaster_Window_Wide_Flat', x: 32.0, y: 0, z: 4.0, ry: -Math.PI / 2 },
-      { id: 'Wall_Plaster_Window_Wide_Flat2', x: 32.0, y: 0, z: -4.0, ry: -Math.PI / 2 },
-      { id: 'Wall_Plaster_Straight', x: 36.0, y: 0, z: 6.0, ry: 0 },
-      { id: 'Wall_Plaster_Straight', x: 36.0, y: 0, z: -6.0, ry: Math.PI },
-      { id: 'Wall_Plaster_Straight', x: 40.0, y: 0, z: 0, ry: Math.PI / 2 },
-      { id: 'Roof_RoundTiles_6x10', x: 36.0, y: 3.4, z: 0, ry: -Math.PI / 2 },
-      { id: 'Prop_Chimney', x: 38.5, y: 4.8, z: 2.5, ry: 0 },
-
-      // Armory Storage House
-      { id: 'Wall_UnevenBrick_Door_Round', x: 34.0, y: 0, z: 16.0, ry: -Math.PI / 3 },
-      { id: 'Door_2_Flat', x: 34.0, y: 0, z: 16.0, ry: -Math.PI / 3 },
-      { id: 'Wall_UnevenBrick_Straight', x: 38.0, y: 0, z: 18.0, ry: -Math.PI / 3 },
-      { id: 'Roof_RoundTiles_6x6', x: 36.0, y: 3.2, z: 17.0, ry: -Math.PI / 3 },
-
-      // Forge Ore Carts, Bricks & Metal Fences
-      { id: 'Prop_Wagon', x: 27.0, y: 0, z: -3.0, ry: -0.7 },
-      { id: 'Prop_Brick1', x: 29.0, y: 0, z: 4.0, ry: 0.2 },
-      { id: 'Prop_Brick2', x: 29.5, y: 0, z: 5.2, ry: -0.4 },
-      { id: 'Prop_Brick3', x: 28.0, y: 0, z: -5.0, ry: 0.6 },
-      { id: 'Prop_MetalFence_Simple', x: 26.0, y: 0, z: 10.0, ry: 0 },
-      { id: 'Prop_MetalFence_Simple', x: 26.0, y: 0, z: 13.0, ry: 0 }
-    );
-
-    // =========================================================================
-    // DISTRICT 4: SOUTH MAIN GATEWAY - TIÊN MÔN ĐẠI LỘ
-    // Position: Z: -36m to -50m
-    // =========================================================================
-    // West Guard Tower & Wall
-    pieces.push(
-      { id: 'Wall_Plaster_Straight', x: -10.0, y: 0, z: -42.0, ry: 0 },
-      { id: 'Wall_Plaster_Straight', x: -14.0, y: 0, z: -42.0, ry: 0 },
-      { id: 'Roof_Tower_RoundTiles', x: -16.0, y: 4.5, z: -42.0, ry: 0 },
-
-      // East Guard Tower & Wall
-      { id: 'Wall_Plaster_Straight', x: 10.0, y: 0, z: -42.0, ry: 0 },
-      { id: 'Wall_Plaster_Straight', x: 14.0, y: 0, z: -42.0, ry: 0 },
-      { id: 'Roof_Tower_RoundTiles', x: 16.0, y: 4.5, z: -42.0, ry: 0 }
-    );
-
-    // =========================================================================
-    // CROSS PATHWAYS (ĐƯỜNG LÁT GẠCH CHỮ THẬP NỐI 4 PHƯƠNG)
-    // =========================================================================
-    // North Road (Z: 4m -> 26m)
-    for (let z = 6; z <= 24; z += 4) {
-      pieces.push(
-        { id: 'Floor_RedBrick', x: -1.2, y: 0.02, z: z, ry: 0 },
-        { id: 'Floor_RedBrick', x: 1.2, y: 0.02, z: z, ry: 0 }
-      );
-    }
-    // South Road (Z: -6m -> -38m)
-    for (let z = -6; z >= -36; z -= 4) {
-      pieces.push(
-        { id: 'Floor_RedBrick', x: -1.2, y: 0.02, z: z, ry: 0 },
-        { id: 'Floor_RedBrick', x: 1.2, y: 0.02, z: z, ry: 0 }
-      );
-    }
-    // West Road (X: -6m -> -26m)
-    for (let x = -6; x >= -24; x -= 4) {
-      pieces.push(
-        { id: 'Floor_UnevenBrick', x: x, y: 0.02, z: -1.0, ry: Math.PI / 2 },
-        { id: 'Floor_UnevenBrick', x: x, y: 0.02, z: 1.0, ry: Math.PI / 2 }
-      );
-    }
-    // East Road (X: 6m -> 26m)
-    for (let x = 6; x <= 24; x += 4) {
-      pieces.push(
-        { id: 'Floor_UnevenBrick', x: x, y: 0.02, z: -1.0, ry: Math.PI / 2 },
-        { id: 'Floor_UnevenBrick', x: x, y: 0.02, z: 1.0, ry: Math.PI / 2 }
-      );
-    }
-
-    // =========================================================================
-    // PERIMETER FENCE SYSTEM (CHU VI HÀNG RÀO BÁN KÍNH 50.5m)
-    // =========================================================================
-    const FENCE_RADIUS = 50.5;
-    const NUM_FENCES = 40;
-    for (let i = 0; i < NUM_FENCES; i++) {
-      // Leave open gaps for:
-      // - South Main Gate: angles around 270 deg (i = 29, 30, 31)
-      // - North Gate: angles around 90 deg (i = 9, 10, 11)
-      // - East Gate: angles around 0 deg (i = 0, 1)
-      // - West Gate: angles around 180 deg (i = 19, 20, 21)
-      if (
-        (i >= 29 && i <= 31) ||
-        (i >= 9 && i <= 11) ||
-        (i >= 0 && i <= 1) ||
-        (i >= 19 && i <= 21)
-      ) continue;
-
-      const angle = (i / NUM_FENCES) * Math.PI * 2;
-      const fx = Math.cos(angle) * FENCE_RADIUS;
-      const fz = Math.sin(angle) * FENCE_RADIUS;
-      const fenceType = (i % 2 === 0) ? 'Prop_WoodenFence_Extension1' : 'Prop_WoodenFence_Extension2';
-
-      pieces.push({
-        id: fenceType,
-        x: fx,
-        y: 0,
-        z: fz,
-        ry: -angle + Math.PI / 2
-      });
-    }
-
-    // Shadow Caster
-    const shadowGen = window.GameRuntime && window.GameRuntime.shadow;
-
-    // Load and place all pieces efficiently
-    for (const p of pieces) {
-      try {
-        const api = await window.ThonTranLoader.loadAsset(p.id);
-        if (api) {
-          const inst = api.createInstance('Village_' + p.id, villageRoot, scene);
-          inst.position.set(p.x, p.y, p.z);
-          inst.rotation.y = p.ry;
-          if (p.scale) inst.scaling.setAll(p.scale);
-
-          if (shadowGen && !p.id.startsWith('Floor_')) {
-            inst.getChildMeshes(false).forEach(m => shadowGen.addShadowCaster(m));
-          }
-        }
-      } catch (err) {
-        console.warn('[ExpandedVillage] Error placing piece:', p.id, err);
-      }
-    }
-
-    console.info('Đại Thôn Làng Bình An 10X: Đã quy hoạch & dựng xong toàn bộ 4 phân khu và quảng trường trung tâm!');
+  // Four gate openings remain clear. Fences occupy the rest of the perimeter.
+  const fenceCount = 44;
+  for (let i=0;i<fenceCount;i++) {
+    const a=(i/fenceCount)*Math.PI*2;
+    const deg=((a*180/Math.PI)+360)%360;
+    const nearGate = [0,90,180,270].some(g => Math.abs((((deg-g)+540)%360)-180) < 11);
+    if (nearGate) continue;
+    const x=Math.cos(a)*49.5, z=Math.sin(a)*49.5;
+    P.createFence(scene,root,'PlaceholderFence_'+i,x,z,-a+Math.PI/2,1.15);
   }
 
-  buildExpandedVillage();
-
-  // Gentle barrier floating effect
-  let t = 0;
-  scene.onBeforeRenderObservable.add(() => {
-    t += 0.012;
-    if (barrierRing) {
-      barrierRing.rotation.y += 0.002;
-      barrierMat.alpha = 0.28 + Math.sin(t) * 0.08;
-    }
-    if (spawnFormation) {
-      spawnCircleMat.alpha = 0.50 + Math.sin(t * 1.5) * 0.15;
-    }
+  const gateMat=P.makeMat(scene,'PlaceholderGateWood','#6d3e2b');
+  [[0,-49.5,0],[0,49.5,Math.PI],[49.5,0,-Math.PI/2],[-49.5,0,Math.PI/2]].forEach((g,i)=>{
+    const n=new BABYLON.TransformNode('PlaceholderVillageGate_'+i,scene);n.parent=root;n.position.set(g[0],0,g[1]);n.rotation.y=g[2];
+    [-3.2,3.2].forEach((x,j)=>{const p=BABYLON.MeshBuilder.CreateBox('VillageGatePost_'+i+'_'+j,{width:.55,height:5.5,depth:.55},scene);p.parent=n;p.position.set(x,2.75,0);p.material=gateMat;p.isPickable=false;});
+    const b=BABYLON.MeshBuilder.CreateBox('VillageGateBeam_'+i,{width:7.4,height:.65,depth:.7},scene);b.parent=n;b.position.y=5.1;b.material=gateMat;b.isPickable=false;
   });
+
+  const formationMat=P.makeMat(scene,'PlaceholderFormationMat','#38bdf8'); formationMat.emissiveColor=BABYLON.Color3.FromHexString('#087ea4'); formationMat.alpha=.55;
+  const formation=BABYLON.MeshBuilder.CreateTorus('SpawnFormation',{diameter:5.8,thickness:.18,tessellation:40},scene);formation.parent=root;formation.position.y=.08;formation.material=formationMat;
+
+  console.info('[Village] Procedural placeholder village active; THON TRAN pack removed.');
 })();
