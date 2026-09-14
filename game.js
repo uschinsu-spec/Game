@@ -4,16 +4,27 @@ const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.58,.7
 const hemi=new BABYLON.HemisphericLight('sky',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.88;const sun=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.5,-1,.4),scene);sun.position=new BABYLON.Vector3(20,30,-20);sun.intensity=1.1;
 const shadow=new BABYLON.ShadowGenerator(1024,sun);shadow.useBlurExponentialShadowMap=true;shadow.blurKernel=18;
 
-// Low third-person MMORPG camera matching the supplied reference:
-// character low/center, long forward view, visible horizon and scenery.
-const CAM_BETA=1.16;
-const CAM_RADIUS_DEFAULT=17;
-const CAM_RADIUS_MIN=9;
-const CAM_RADIUS_MAX=30;
-const CAM_LOOK_AHEAD=3.2;
+// Fixed third-person MMORPG camera matching the reference composition:
+// camera stays behind the player on screen, character sits low/center,
+// joystick movement is screen-relative, and the camera does NOT spin every time the character turns.
+const CAM_ALPHA=Math.PI/2;
+const CAM_BETA=1.12;
+const CAM_RADIUS_DEFAULT=18;
+const CAM_RADIUS_MIN=10;
+const CAM_RADIUS_MAX=31;
+const CAM_LOOK_AHEAD=4.4;
+const CAM_TARGET_HEIGHT=1.45;
 let cameraRadius=CAM_RADIUS_DEFAULT;
-const camera=new BABYLON.ArcRotateCamera('camera',-Math.PI/2,CAM_BETA,cameraRadius,new BABYLON.Vector3(0,1.35,0),scene);
-camera.inputs.clear();camera.panningSensibility=0;camera.lowerRadiusLimit=CAM_RADIUS_MIN;camera.upperRadiusLimit=CAM_RADIUS_MAX;camera.lowerBetaLimit=CAM_BETA;camera.upperBetaLimit=CAM_BETA;camera.fov=.72;camera.minZ=.1;camera.maxZ=180;
+const camera=new BABYLON.ArcRotateCamera('camera',CAM_ALPHA,CAM_BETA,cameraRadius,new BABYLON.Vector3(0,CAM_TARGET_HEIGHT,-CAM_LOOK_AHEAD),scene);
+camera.inputs.clear();
+camera.panningSensibility=0;
+camera.lowerRadiusLimit=CAM_RADIUS_MIN;
+camera.upperRadiusLimit=CAM_RADIUS_MAX;
+camera.lowerBetaLimit=CAM_BETA;
+camera.upperBetaLimit=CAM_BETA;
+camera.fov=.66;
+camera.minZ=.1;
+camera.maxZ=180;
 
 const mat=(name,color)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.08,.08,.08);return m};
 const groundMat=mat('stone','#7e8994'),rockMat=mat('rock','#596b70'),woodMat=mat('wood','#553b2d'),roofMat=mat('roof','#273e45'),goldMat=mat('gold','#c9a95b'),redMat=mat('enemy','#9f3e38'),whiteMat=mat('robe','#d9e4ec'),blueMat=mat('armor','#294d73'),darkMat=mat('hair','#17202b'),bladeMat=mat('blade','#9bdcff'),horseMat=mat('horse','#5b4031');
@@ -38,18 +49,32 @@ let vy=0,onGround=true,attackT=0,skillT=0;const anim=document.getElementById('an
 function pulse(type){if(type==='attack')attackT=.32;else skillT=.55}document.getElementById('attack').onclick=()=>pulse('attack');document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>pulse('skill'));document.getElementById('jump').onclick=()=>{if(onGround){vy=5.2;onGround=false}};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==='weapon'){weaponKind=1-weaponKind;sword(weaponKind)}if(a==='armor'){armorKind=1-armorKind;armor.material=armorKind?goldMat:blueMat}if(a==='mount'){mounted=!mounted;if(mounted&&!mount){mount=createMount()}bodyRoot.position.y=mounted?1.75:0;if(mount)mount.setEnabled(mounted);b.textContent=mounted?'Xuống ngựa':'Cưỡi ngựa'}if(a==='beast')spawnBeast();equip.textContent=`${weaponKind?'Tiên kiếm':'Thanh kiếm'} • ${armorKind?'Kim Vân giáp':'Thanh Vân giáp'}${mounted?' • Đang cưỡi':''}`});
 
-function normalizeAngle(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a}
-scene.onBeforeRenderObservable.add(()=>{const dt=Math.min(.033,engine.getDeltaTime()/1000);let x=joy.x+(keys.d?1:0)-(keys.a?1:0),z=joy.y+(keys.s?1:0)-(keys.w?1:0),l=Math.hypot(x,z);if(l>1){x/=l;z/=l}const speed=mounted?6.5:4;const moving=Math.abs(x)+Math.abs(z)>.05;
-if(moving){const viewForward=camera.target.subtract(camera.position);viewForward.y=0;if(viewForward.lengthSquared()<.001)viewForward.set(0,0,-1);viewForward.normalize();const viewRight=new BABYLON.Vector3(-viewForward.z,0,viewForward.x);const dir=viewRight.scale(x).add(viewForward.scale(-z));if(dir.lengthSquared()>.001)dir.normalize();player.position.addInPlace(dir.scale(speed*dt));player.rotation.y=Math.atan2(dir.x,dir.z);const t=performance.now()*.012*(mounted?1.5:1);armL.rotation.x=Math.sin(t)*.55;armR.rotation.x=-Math.sin(t)*.55;legL.rotation.x=-Math.sin(t)*.55;legR.rotation.x=Math.sin(t)*.55}else{armL.rotation.x*=.82;armR.rotation.x*=.82;legL.rotation.x*=.82;legR.rotation.x*=.82}
-if(!onGround){player.position.y+=vy*dt;vy-=12*dt;if(player.position.y<=0){player.position.y=0;vy=0;onGround=true}}if(attackT>0){attackT-=dt;armR.rotation.z=-1.5*Math.sin((.32-attackT)/.32*Math.PI)}if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}
+scene.onBeforeRenderObservable.add(()=>{
+const dt=Math.min(.033,engine.getDeltaTime()/1000);
+let x=joy.x+(keys.d?1:0)-(keys.a?1:0),z=joy.y+(keys.s?1:0)-(keys.w?1:0),l=Math.hypot(x,z);if(l>1){x/=l;z/=l}
+const speed=mounted?6.5:4;const moving=Math.abs(x)+Math.abs(z)>.05;
+if(moving){
+  // Screen-relative controls: joystick up always moves toward the top of the screen,
+  // left/right always move left/right on screen. Character turns independently of camera.
+  const dir=new BABYLON.Vector3(x,0,z);
+  if(dir.lengthSquared()>.001)dir.normalize();
+  player.position.addInPlace(dir.scale(speed*dt));
+  player.rotation.y=Math.atan2(dir.x,dir.z);
+  const t=performance.now()*.012*(mounted?1.5:1);armL.rotation.x=Math.sin(t)*.55;armR.rotation.x=-Math.sin(t)*.55;legL.rotation.x=-Math.sin(t)*.55;legR.rotation.x=Math.sin(t)*.55;
+}else{armL.rotation.x*=.82;armR.rotation.x*=.82;legL.rotation.x*=.82;legR.rotation.x*=.82}
+if(!onGround){player.position.y+=vy*dt;vy-=12*dt;if(player.position.y<=0){player.position.y=0;vy=0;onGround=true}}
+if(attackT>0){attackT-=dt;armR.rotation.z=-1.5*Math.sin((.32-attackT)/.32*Math.PI)}
+if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);
+if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}
 
-// Chase the character from behind while preserving the reference's low viewing angle.
-const forward=new BABYLON.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
-const desiredAlpha=-player.rotation.y-Math.PI/2;
-const alphaDelta=normalizeAngle(desiredAlpha-camera.alpha);
-camera.alpha+=alphaDelta*Math.min(1,dt*7);
-camera.beta=CAM_BETA;camera.radius=cameraRadius;
-const desiredTarget=player.position.add(forward.scale(CAM_LOOK_AHEAD)).add(new BABYLON.Vector3(0,mounted?2.4:1.45,0));
-camera.target=BABYLON.Vector3.Lerp(camera.target,desiredTarget,Math.min(1,dt*7));
-anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`});
+// Fixed yaw and fixed pitch, with a forward look-ahead so the character remains low on screen.
+camera.alpha=CAM_ALPHA;
+camera.beta=CAM_BETA;
+camera.radius=cameraRadius;
+const desiredTarget=player.position.add(new BABYLON.Vector3(0,mounted?2.25:CAM_TARGET_HEIGHT,-CAM_LOOK_AHEAD));
+camera.target=BABYLON.Vector3.Lerp(camera.target,desiredTarget,Math.min(1,dt*9));
+
+anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');
+document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`;
+});
 engine.runRenderLoop(()=>scene.render());addEventListener('resize',()=>engine.resize());
