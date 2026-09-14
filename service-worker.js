@@ -1,6 +1,7 @@
-const SW_VERSION = '20260914-sync-v42';
+const SW_VERSION = 'auto-update-v1';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
+
 const CORE = [
   './',
   './index.html',
@@ -48,34 +49,65 @@ const CORE = [
   './version.json'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CORE_CACHE).then(c => c.addAll(CORE)).catch(() => {}));
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CORE_CACHE)
+      .then(cache => cache.addAll(CORE))
+      .catch(() => {})
+  );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil((async () => {
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(n => n !== CORE_CACHE && n !== RUNTIME_CACHE).map(n => caches.delete(n)));
+    await Promise.all(
+      names
+        .filter(name => name !== CORE_CACHE && name !== RUNTIME_CACHE)
+        .map(name => caches.delete(name))
+    );
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('fetch', e => {
-  const r = e.request;
-  if (r.method !== 'GET') return;
-  const u = new URL(r.url);
-  if (u.origin === self.location.origin && (u.pathname.endsWith('/version.json') || r.mode === 'navigate')) {
-    e.respondWith(fetch(new Request(r, { cache: 'no-store' })).catch(() => caches.match(r, { ignoreSearch: true })));
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+async function networkFirst(request) {
+  const url = new URL(request.url);
+  try {
+    // Revalidate with the browser/CDN HTTP cache. Unchanged large assets can return 304,
+    // while changed files are downloaded and replace the Service Worker cache entry.
+    const response = await fetch(new Request(request, { cache: 'no-cache' }));
+    if (response && response.ok) {
+      const cache = await caches.open(url.origin === self.location.origin ? CORE_CACHE : RUNTIME_CACHE);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (_) {
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) return cached;
+    throw _;
+  }
+}
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // This tiny file is the update signal and must always come from the network.
+  if (url.origin === self.location.origin && url.pathname.endsWith('/version.json')) {
+    event.respondWith(
+      fetch(new Request(request, { cache: 'no-store' }))
+        .catch(() => caches.match(request, { ignoreSearch: true }))
+    );
     return;
   }
-  e.respondWith(
-    caches.match(r, { ignoreSearch: true }).then(c => c || fetch(r).then(async x => {
-      if (x && x.ok) {
-        const cache = await caches.open(u.origin === self.location.origin ? CORE_CACHE : RUNTIME_CACHE);
-        cache.put(r, x.clone());
-      }
-      return x;
-    }))
-  );
+
+  // Network-first keeps GAME current automatically after every push, but still
+  // falls back to the local cache when offline or when GitHub Pages is unreachable.
+  event.respondWith(networkFirst(request));
 });
