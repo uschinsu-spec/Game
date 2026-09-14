@@ -96,6 +96,14 @@
           <span id="expRate">EXP +18/p</span>
           <span id="goldRate">Đá +8/p</span>
         </div>
+
+        <!-- 360° Xianxia Monster Radar Compass -->
+        <div id="monsterRadar" class="ulala-radar-compass" title="La Bàn Yêu Khí (Radar Quái Vật)">
+          <div class="radar-scan-line"></div>
+          <div class="radar-player-dot"></div>
+          <div id="radarBlips" class="radar-blips-container"></div>
+          <span id="radarMobCount" class="radar-count-tag">0 Yêu</span>
+        </div>
       </section>
 
       <!-- Quick Actions on Right -->
@@ -111,6 +119,10 @@
         <button id="logBtn" class="ulala-side-btn" title="Chiến Báo">
           <span>📜</span>
           <small>Chiến báo</small>
+        </button>
+        <button id="zoomToggleBtn" class="ulala-side-btn" title="Đổi Góc Nhìn Camera (Gần / Vừa / Xa / Siêu Toàn Cảnh)">
+          <span>🔭</span>
+          <small id="zoomLevelTag">Zoom 24m</small>
         </button>
       </aside>
 
@@ -248,13 +260,20 @@
   <script src="./assets/environment/flora/asset_bush_flowers.js?v=20260914-standalone-v40"></script>
   <script src="./assets/environment/flora/asset_flower_1_clump.js?v=20260914-standalone-v40"></script>
   <script src="./assets/environment/flora/asset_grass_large_extruded.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/environment/flora/asset_grass_small.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/environment/flora/asset_petals_1.js?v=20260914-standalone-v40"></script>
   <script src="./assets/environment/flora/asset_rock_1.js?v=20260914-standalone-v40"></script>
   <script src="./assets/environment/flora/asset_rock_3.js?v=20260914-standalone-v40"></script>
   <script src="./assets/environment/world/enhanced-world.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/THON TRAN/thon_tran_loader.js?v=20260915-thontran-v1"></script>
+  <script src="./assets/environment/world/village-safezone.js?v=20260915-thontran-v1"></script>
   <script src="./assets/characters/rigged-player.js?v=20260914-standalone-v40"></script>
-  <script src="./assets/enemies/ultimate-monsters.js?v=20260914-standalone-v34"></script>
-  <script src="./idle-adventure.js?v=20260914-standalone-v34"></script>
-  <script src="./progression-systems.js?v=20260914-standalone-v34"></script>
-  <script src="./mobile-runtime.js?v=20260914-standalone-v34"></script>
+  <script src="./assets/enemies/enemy-registry.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/enemies/enemy-animation.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/enemies/enemy-loader.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/enemies/ultimate-monsters.js?v=20260914-standalone-v40"></script>
+  <script src="./idle-adventure.js?v=20260914-standalone-v40"></script>
+  <script src="./progression-systems.js?v=20260914-standalone-v40"></script>
+  <script src="./mobile-runtime.js?v=20260914-standalone-v40"></script>
 </body>
 </html>

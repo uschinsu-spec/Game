@@ -1,4 +1,4 @@
-const SW_VERSION = 'auto-update-v1';
+const SW_VERSION = 'auto-update-v20260914-real-enemies-v2';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
 
@@ -39,8 +39,16 @@ const CORE = [
   './assets/ui/icons/seal.svg',
   './assets/ui/icons/cultivate.svg',
   './assets/environment/world/enhanced-world.js',
+  './assets/THON TRAN/thon_tran_loader.js',
+  './assets/environment/world/village-safezone.js',
   './assets/characters/rigged-player.js',
+  './assets/enemies/enemy-registry.js',
+  './assets/enemies/enemy-animation.js',
+  './assets/enemies/enemy-loader.js',
   './assets/enemies/ultimate-monsters.js',
+  './assets/enemies/blob/cactoro.glb',
+  './assets/enemies/flying/dragon.glb',
+  './assets/enemies/big/demon.glb',
   './game.js',
   './idle-adventure.js',
   './progression-systems.js',

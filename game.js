@@ -41,16 +41,16 @@ shadow.darkness = 0.32; // Soft gentle shadows, never pitch black
 shadow.bias = 0.002;
 shadow.normalBias = 0.01;
 
-const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, 0.92, 50.0, new BABYLON.Vector3(0, 0.4, 0), scene);
+const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, 1.02, 23.5, new BABYLON.Vector3(0, 0.6, 0), scene);
 camera.inputs.clear();
 camera.panningSensibility = 0;
-camera.lowerBetaLimit = 0.92;
-camera.upperBetaLimit = 0.92;
-camera.lowerRadiusLimit = 16.0;
-camera.upperRadiusLimit = 95.0;
-camera.fov = 0.85;
+camera.lowerBetaLimit = 0.90;
+camera.upperBetaLimit = 1.20;
+camera.lowerRadiusLimit = 6.0;   // Close-up inspection
+camera.upperRadiusLimit = 220.0; // Epic ultra-wide open world zoom
+camera.fov = 0.50; // Isometric-like lens: Keeps monster sizes stable without extreme perspective distortion
 camera.minZ = 0.1;
-camera.maxZ = 2000;
+camera.maxZ = 3000;
 
 // Default Mobile Post-Processing Pipeline (FXAA Antialiasing + Xianxia Bloom)
 let pipeline = null;

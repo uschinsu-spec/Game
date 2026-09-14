@@ -188,17 +188,32 @@
   // ---------------------------------------------------------------------------
   // 360° ARENA MONSTER WAVE SPAWNER
   // ---------------------------------------------------------------------------
+  // 360° ARENA MONSTER WAVE SPAWNER (EXPANDED 10X VILLAGE SAFE ZONE 52M)
+  // ---------------------------------------------------------------------------
+  const SAFE_ZONE_RADIUS = 52.0;
+  const isPlayerInSafeZone = () => Math.hypot(player.position.x, player.position.z) <= SAFE_ZONE_RADIUS;
+
+  let lastSafeZoneState = true;
+
   function spawnArenaMonster(isBoss = false) {
     if (!window.ArenaMonsterEngine) return;
     spawnSerial++;
     const entry = window.ArenaMonsterEngine.chooseCatalogEntry(isBoss, state.stage, spawnSerial);
     if (!entry) return;
 
-    // Pick random angle in 360 degrees around player
+    // Ensure monsters always spawn in the outer wilderness outside the expanded 52m village
     const angle = Math.random() * Math.PI * 2;
-    const dist = isBoss ? 35.0 : (28.0 + Math.random() * 8.0);
+    const minWildernessDist = SAFE_ZONE_RADIUS + 6.0; // >= 58.0m from village center
+    
+    let spawnCenter = player.position;
+    // If player is inside village, spawn around the village outer wilderness
+    if (isPlayerInSafeZone()) {
+      spawnCenter = new BABYLON.Vector3(0, 0, 0);
+    }
 
-    const monster = window.ArenaMonsterEngine.spawnMonster3D(entry, isBoss, angle, dist, state.stage, player.position);
+    const dist = isBoss ? (SAFE_ZONE_RADIUS + 12.0) : (minWildernessDist + Math.random() * 12.0);
+
+    const monster = window.ArenaMonsterEngine.spawnMonster3D(entry, isBoss, angle, dist, state.stage, spawnCenter);
     if (monster) {
       activeMonsters.push(monster);
       if (isBoss && targetPanel) {
@@ -328,6 +343,12 @@
     monster.hp -= amount;
     monster.hurtTimer = 0.2;
 
+    if (monster.playAnim && !monster.isDying) {
+      monster.playAnim('hit', false, 1.3, () => {
+        if (!monster.isDying) monster.playAnim(monster.currentState || 'walk', true);
+      });
+    }
+
     // Update floating 3D HP bar above head
     if (monster.hpFill) {
       const pct = Math.max(0, monster.hp / monster.maxHp);
@@ -352,6 +373,10 @@
     monster.isDying = true;
     const wasBoss = monster.isBoss;
 
+    if (monster.playAnim) {
+      monster.playAnim('die', false);
+    }
+
     if (wasBoss) {
       const cleared = state.stage;
       state.stage++;
@@ -367,30 +392,38 @@
       dispatchEvent(new CustomEvent('idle:mobWin', { detail: { stage: state.stage, kills } }));
     }
 
-    // Shrink and remove monster mesh
+    // Smooth death fade out & cleanup
     setTimeout(() => {
       const idx = activeMonsters.indexOf(monster);
       if (idx >= 0) activeMonsters.splice(idx, 1);
       if (monster.root) monster.root.dispose();
-    }, 350);
+    }, 700);
 
     save();
     refresh();
   }
 
   function hitPlayer(amount) {
+    // 🛡️ Absolute Immunity inside Village Safe Zone
+    if (isPlayerInSafeZone()) {
+      return;
+    }
+
     playerHp = Math.max(0, playerHp - amount);
     if (playerHpBar) playerHpBar.style.width = `${playerHp}%`;
     if (playerHp <= 0) {
-      // Revive in center
+      // 💫 Revive player back at Village Center Spawn Point (0, 0, 0)
+      player.position.set(0, 0, 0);
       playerHp = maxPlayerHp;
       if (playerHpBar) playerHpBar.style.width = '100%';
       if (isBossBattle) {
         isBossBattle = false;
         if (targetPanel) targetPanel.classList.remove('show');
-        toast('⚔️ Bị Yêu Vương đánh bại! Rút lui hồi phục sinh lực.');
+        toast('⚔️ Bị Yêu Vương đánh bại! Đã hồi sinh tại Thôn Làng.');
+      } else {
+        toast('💫 Hồi sinh an toàn tại Trận Pháp Thôn Làng!');
       }
-      // Reset wave
+      // Reset wave to outer wilderness
       for (const m of activeMonsters) if (m.root) m.root.dispose();
       activeMonsters = [];
     }
@@ -489,8 +522,9 @@
       if (initialPinchDist > 6) {
         const zoomRatio = currentDist / initialPinchDist;
         const newRadius = initialPinchCamRadius / zoomRatio;
-        // Smoothly clamp camera radius between 16m (close-up) and 95m (epic open world view)
-        camera.radius = Math.max(16.0, Math.min(95.0, newRadius));
+        // Smoothly clamp camera radius between 8m (close-up) and 200m (epic ultra-wide open world view)
+        camera.radius = Math.max(8.0, Math.min(200.0, newRadius));
+        updateZoomTag(camera.radius);
       }
       return;
     }
@@ -543,13 +577,47 @@
     }
   };
 
-  window.addEventListener('pointerup', releaseJoystick, { passive: true });
-  window.addEventListener('pointercancel', releaseJoystick, { passive: true });
+  function updateZoomTag(radius) {
+    const tag = document.getElementById('zoomLevelTag');
+    if (tag) {
+      if (radius < 24) tag.textContent = 'Gần 18m';
+      else if (radius < 50) tag.textContent = 'Vừa 36m';
+      else if (radius < 110) tag.textContent = 'Xa 75m';
+      else tag.textContent = 'Siêu Xa 160m';
+    }
+  }
 
-  // Mouse Wheel Zoom Support (Desktop / Testing)
+  // 1-Click Quick Zoom Presets: 18m -> 36m -> 75m -> 160m
+  const zoomPresets = [18.0, 36.0, 75.0, 160.0];
+  let currentZoomIdx = 0;
+  const zoomToggleBtn = document.getElementById('zoomToggleBtn');
+  if (zoomToggleBtn) {
+    zoomToggleBtn.onclick = () => {
+      currentZoomIdx = (currentZoomIdx + 1) % zoomPresets.length;
+      const targetRadius = zoomPresets[currentZoomIdx];
+      if (camera) {
+        // Smooth transition animation
+        const startRadius = camera.radius;
+        const startTime = performance.now();
+        const duration = 280; // ms
+        const animStep = (now) => {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+          camera.radius = startRadius + (targetRadius - startRadius) * ease;
+          updateZoomTag(camera.radius);
+          if (progress < 1) requestAnimationFrame(animStep);
+        };
+        requestAnimationFrame(animStep);
+      }
+      toast(`🔭 Góc Nhìn Camera: ${targetRadius}m`);
+    };
+  }
+
+  // Mouse Wheel Zoom Support (Desktop / Testing) - Range 8.0m to 200.0m
   window.addEventListener('wheel', (e) => {
     if (camera) {
-      camera.radius = Math.max(16.0, Math.min(95.0, camera.radius + e.deltaY * 0.05));
+      camera.radius = Math.max(8.0, Math.min(200.0, camera.radius + e.deltaY * 0.08));
+      updateZoomTag(camera.radius);
     }
   }, { passive: true });
 
@@ -621,6 +689,17 @@
       player.position.x = nextPosX;
       player.position.z = nextPosZ;
 
+      // Safe Zone boundary enter/exit notification
+      const currentInSafe = isPlayerInSafeZone();
+      if (currentInSafe !== lastSafeZoneState) {
+        lastSafeZoneState = currentInSafe;
+        if (currentInSafe) {
+          toast('🛡️ Đã vào Khu An Toàn (Thôn Làng Bình An)');
+        } else {
+          toast('⚔️ Đã rời thôn — Tiến vào Rừng Săn Yêu!');
+        }
+      }
+
       // Face direction of movement
       const moveAngle = Math.atan2(moveX, moveZ);
       if (window.setPlayerTargetAngle) {
@@ -661,10 +740,10 @@
       const dz = player.position.z - m.root.position.z;
       const dist = Math.hypot(dx, dz);
 
-      // Leash wrap: If player dashes far away (> 75m), wrap monster in front to maintain action at 60 FPS
-      if (dist > 75) {
+      // Leash wrap: If player dashes far away (> 110m), wrap monster in front to maintain action at 60 FPS
+      if (dist > 110) {
         const wrapAng = Math.random() * Math.PI * 2;
-        const wrapDist = 32.0;
+        const wrapDist = SAFE_ZONE_RADIUS + 8.0;
         m.root.position.x = player.position.x + Math.cos(wrapAng) * wrapDist;
         m.root.position.z = player.position.z + Math.sin(wrapAng) * wrapDist;
         continue;
@@ -673,22 +752,70 @@
       // Face player
       m.root.rotation.y = Math.atan2(dx, dz);
 
-      if (dist > 1.45) {
+      const atkRange = m.attackRange || (m.isBoss ? 2.8 : 2.0);
+      const playerInSafe = isPlayerInSafeZone();
+
+      if (dist > atkRange) {
         // Walk towards player
         const moveStep = m.speed * dt;
-        m.root.position.x += (dx / dist) * moveStep;
-        m.root.position.z += (dz / dist) * moveStep;
-        // Walking bob animation
-        m.root.position.y = 0.5 + Math.abs(Math.sin(now * 0.008 * m.speed)) * 0.15;
+        let nextX = m.root.position.x + (dx / dist) * moveStep;
+        let nextZ = m.root.position.z + (dz / dist) * moveStep;
+
+        // 🛡️ Safe Zone Barrier: Monsters CANNOT step into the village (radius <= SAFE_ZONE_RADIUS)
+        const nextDistToCenter = Math.hypot(nextX, nextZ);
+        if (nextDistToCenter < SAFE_ZONE_RADIUS) {
+          nextX = (nextX / (nextDistToCenter || 1)) * SAFE_ZONE_RADIUS;
+          nextZ = (nextZ / (nextDistToCenter || 1)) * SAFE_ZONE_RADIUS;
+        }
+
+        m.root.position.x = nextX;
+        m.root.position.z = nextZ;
+        
+        if (m.category === 'flying') {
+          m.root.position.y = 1.8 + Math.sin(now * 0.003) * 0.25;
+        } else {
+          m.root.position.y = 0;
+        }
+
+        // If monster is blocked at safe zone barrier and player is deep inside, idle & growl
+        const isBlockedAtBarrier = Math.abs(Math.hypot(nextX, nextZ) - SAFE_ZONE_RADIUS) < 0.2 && playerInSafe;
+        if (isBlockedAtBarrier) {
+          if (m.currentState !== 'idle' && m.playAnim) {
+            m.currentState = 'idle';
+            m.playAnim('idle', true);
+          }
+        } else {
+          if (m.currentState !== 'walk' && m.playAnim) {
+            m.currentState = 'walk';
+            m.playAnim('walk', true);
+          }
+        }
       } else {
-        // Melee Combat Attack Range
-        m.root.position.y = 0.5;
-        if (now - m.lastAttack > m.attackCooldown * 1000) {
+        // In Attack Range
+        if (m.category === 'flying') {
+          m.root.position.y = 1.8 + Math.sin(now * 0.003) * 0.25;
+        } else {
+          m.root.position.y = 0;
+        }
+
+        // Monsters cannot attack if player is safely inside village barrier
+        if (!playerInSafe && (now - m.lastAttack > m.attackCooldown * 1000)) {
           m.lastAttack = now;
+          m.currentState = 'attack';
+          if (m.playAnim) {
+            m.playAnim('attack', false, 1.1, () => {
+              if (!m.isDying) {
+                m.currentState = 'idle';
+                m.playAnim('idle', true);
+              }
+            });
+          }
           hitPlayer(m.isBoss ? (7 + state.stage * 0.3) : (2.0 + state.stage * 0.1));
-          // Attack lunge animation
-          m.root.position.x += (dx / dist) * 0.3;
-          m.root.position.z += (dz / dist) * 0.3;
+        } else if (playerInSafe) {
+          if (m.currentState !== 'idle' && m.playAnim) {
+            m.currentState = 'idle';
+            m.playAnim('idle', true);
+          }
         }
       }
 
@@ -721,6 +848,44 @@
 
     // Pet floating gentle animation
     petRoot.position.y = 0.25 + Math.sin(now * 0.004) * 0.06;
+
+    // -------------------------------------------------------------------------
+    // 360° Realtime Monster Radar Compass Blips Update
+    // -------------------------------------------------------------------------
+    const radarBlipsEl = document.getElementById('radarBlips');
+    const radarCountEl = document.getElementById('radarMobCount');
+    if (radarBlipsEl) {
+      const RADAR_MAX_DIST = 75.0; // 75m world radius (covering expanded 52m village + wilderness)
+      const RADAR_RADIUS_PX = 30.0; // 30px visual radius
+      let blipsHtml = '';
+      let liveCount = 0;
+
+      for (let i = 0; i < activeMonsters.length; i++) {
+        const m = activeMonsters[i];
+        if (!m.root || m.isDying) continue;
+        liveCount++;
+
+        const dx = m.root.position.x - player.position.x;
+        const dz = m.root.position.z - player.position.z;
+        const dist = Math.hypot(dx, dz);
+        
+        // Normalized clamp
+        const clampedDist = Math.min(dist, RADAR_MAX_DIST);
+        const ratio = clampedDist / RADAR_MAX_DIST;
+        const angle = Math.atan2(dx, dz); // Relative to camera/player
+
+        const px = 36 + Math.sin(angle) * (ratio * RADAR_RADIUS_PX);
+        const py = 36 - Math.cos(angle) * (ratio * RADAR_RADIUS_PX);
+
+        const typeClass = m.isBoss ? 'boss' : (m.role === 'elite' ? 'elite' : 'mob');
+        blipsHtml += `<div class="radar-blip ${typeClass}" style="left:${px.toFixed(1)}px;top:${py.toFixed(1)}px;"></div>`;
+      }
+
+      radarBlipsEl.innerHTML = blipsHtml;
+      if (radarCountEl) {
+        radarCountEl.textContent = isBossBattle ? '👑 Boss' : `${liveCount} Yêu`;
+      }
+    }
   });
 
   setInterval(save, 10000);

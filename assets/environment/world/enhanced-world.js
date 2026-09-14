@@ -157,16 +157,15 @@
   const matTorii = new BABYLON.StandardMaterial('pTorii', scene); matTorii.diffuseColor = BABYLON.Color3.FromHexString('#d93829');
   const matCrystal = new BABYLON.StandardMaterial('pCryst', scene); matCrystal.diffuseColor = BABYLON.Color3.FromHexString('#38bdf8'); matCrystal.emissiveColor = BABYLON.Color3.FromHexString('#0284c7');
 
-  // Landmark Coords (Exploring hubs at various quadrants)
+  // Landmark Coords (Exploring hubs in outer wilderness)
   const hubs = [
-    { x: 0, z: 0, type: 'central_grove' },
-    { x: 75, z: 85, type: 'shrine' },
-    { x: -90, z: 120, type: 'pine_forest' },
-    { x: 130, z: -95, type: 'sakura_garden' },
-    { x: -110, z: -130, type: 'crystal_monolith' },
-    { x: 180, z: 160, type: 'ancient_ruins' },
-    { x: -200, z: 60, type: 'stone_circle' },
-    { x: 60, z: -220, type: 'pine_forest' }
+    { x: 85, z: 95, type: 'shrine' },
+    { x: -95, z: 125, type: 'pine_forest' },
+    { x: 135, z: -105, type: 'sakura_garden' },
+    { x: -115, z: -135, type: 'crystal_monolith' },
+    { x: 185, z: 165, type: 'ancient_ruins' },
+    { x: -205, z: 65, type: 'stone_circle' },
+    { x: 65, z: -225, type: 'pine_forest' }
   ];
 
   hubs.forEach((hub, hIdx) => {
@@ -192,79 +191,97 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 3B. AUTHENTIC 3D FLORA & FORESTS (THIN INSTANCES: 2 DRAW CALLS PER SPECIES)
+  // ---------------------------------------------------------------------------
+  // 3B. AUTHENTIC 3D FLORA & FORESTS IN OUTER WILDERNESS (OUTSIDE VILLAGE RADIUS >= 58m)
+  // Zero environment flora inside the village — 100% THON TRAN architecture only!
   // ---------------------------------------------------------------------------
   const floraGroup = new BABYLON.TransformNode('WorldFloraGroup', scene);
   floraGroup.parent = root;
 
-  // 1. Birch Trees
+  // 1. Birch Trees (Flanking outer wilderness ridges)
   const birchApi = window.FloraAssetRegistry?.['BirchTree_1'] || window.BirchTree;
   if (birchApi && birchApi.createThinForest) {
     const birchPlacements = [
-      { x: 16, y: 0, z: 18, s: 1.45, rot: 0.5 }, { x: -18, y: 0, z: 16, s: 1.55, rot: 1.9 },
-      { x: 22, y: 0, z: -15, s: 1.4, rot: 3.4 }, { x: -20, y: 0, z: -20, s: 1.6, rot: 4.6 },
-      { x: 28, y: 0, z: 5, s: 1.5, rot: 2.2 }, { x: -28, y: 0, z: 8, s: 1.35, rot: 0.8 },
-      { x: 10, y: 0, z: -28, s: 1.6, rot: 5.2 }, { x: -12, y: 0, z: 28, s: 1.45, rot: 2.9 },
-      { x: 65, y: 0, z: 80, s: 1.6, rot: 1.4 }, { x: 85, y: 0, z: 95, s: 1.5, rot: 2.8 }
+      { x: -58.0, y: 0, z: 45.0, s: 1.5, rot: 0.5 }, { x: 62.0, y: 0, z: 42.0, s: 1.6, rot: 1.9 },
+      { x: -65.0, y: 0, z: -48.0, s: 1.55, rot: 3.4 }, { x: 68.0, y: 0, z: -52.0, s: 1.6, rot: 4.6 },
+      { x: -75.0, y: 0, z: 65.0, s: 1.7, rot: 2.2 }, { x: 78.0, y: 0, z: 70.0, s: 1.75, rot: 0.8 },
+      { x: -82.0, y: 0, z: -78.0, s: 1.8, rot: 5.2 }, { x: 85.0, y: 0, z: -76.0, s: 1.65, rot: 2.9 },
+      { x: -95.0, y: 0, z: 20.0, s: 1.85, rot: 1.4 }, { x: 98.0, y: 0, z: -15.0, s: 1.8, rot: 2.8 },
+      { x: 120.0, y: 0, z: 110.0, s: 2.0, rot: 3.1 }, { x: -125.0, y: 0, z: -115.0, s: 2.0, rot: 4.2 }
     ];
-    birchApi.createThinForest(scene, birchPlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
+    birchApi.createThinForest(scene, birchPlacements, { parent: floraGroup, freeze: true, maxDistance: 450 });
   }
 
-  // 2. Normal Forest Trees
-  const normalTreeApi = window.FloraAssetRegistry?.['NormalTree_1'];
-  if (normalTreeApi && normalTreeApi.createThinForest) {
-    const normalPlacements = [
-      { x: 45, y: 0, z: 40, s: 1.3, rot: 0.8 }, { x: 52, y: 0, z: -35, s: 1.4, rot: 2.1 },
-      { x: -50, y: 0, z: 45, s: 1.35, rot: 4.2 }, { x: -45, y: 0, z: -55, s: 1.25, rot: 1.5 },
-      { x: 70, y: 0, z: -60, s: 1.45, rot: 3.1 }, { x: -65, y: 0, z: -75, s: 1.4, rot: 5.0 }
-    ];
-    normalTreeApi.createThinForest(scene, normalPlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
-  }
-
-  // 3. Pine Trees on Ridges
-  const pineApi = window.FloraAssetRegistry?.['PineTree_1'];
-  if (pineApi && pineApi.createThinForest) {
-    const pinePlacements = [
-      { x: 80, y: 0, z: 120, s: 1.5, rot: 1.2 }, { x: 95, y: 0, z: 140, s: 1.6, rot: 3.7 },
-      { x: -90, y: 0, z: 110, s: 1.55, rot: 0.4 }, { x: -115, y: 0, z: 135, s: 1.65, rot: 2.9 },
-      { x: 120, y: 0, z: -110, s: 1.5, rot: 4.8 }, { x: -130, y: 0, z: -125, s: 1.6, rot: 1.8 }
-    ];
-    pineApi.createThinForest(scene, pinePlacements, { parent: floraGroup, freeze: true, maxDistance: 350 });
-  }
-
-  // 4. Autumn Maple Trees
+  // 2. Autumn Maple Trees (Vibrant warm foliage in outer forest)
   const mapleApi = window.FloraAssetRegistry?.['MapleTree_1'];
   if (mapleApi && mapleApi.createThinForest) {
     const maplePlacements = [
-      { x: 35, y: 0, z: -45, s: 1.3, rot: 1.7 }, { x: -38, y: 0, z: -40, s: 1.35, rot: 3.5 },
-      { x: 42, y: 0, z: 65, s: 1.25, rot: 5.1 }, { x: -48, y: 0, z: 70, s: 1.4, rot: 0.9 }
+      { x: -62.0, y: 0, z: 15.0, s: 1.45, rot: 1.7 }, { x: 65.0, y: 0, z: -20.0, s: 1.5, rot: 3.5 },
+      { x: -70.0, y: 0, z: -60.0, s: 1.6, rot: 5.1 }, { x: 72.0, y: 0, z: 58.0, s: 1.55, rot: 0.9 },
+      { x: -88.0, y: 0, z: 85.0, s: 1.75, rot: 2.6 }, { x: 92.0, y: 0, z: -88.0, s: 1.8, rot: 4.4 },
+      { x: -110.0, y: 0, z: 50.0, s: 1.9, rot: 1.1 }, { x: 115.0, y: 0, z: -45.0, s: 1.9, rot: 3.8 }
     ];
-    mapleApi.createThinForest(scene, maplePlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
+    mapleApi.createThinForest(scene, maplePlacements, { parent: floraGroup, freeze: true, maxDistance: 450 });
   }
 
-  // 5. Bushes & Flowers
-  const bushApi = window.FloraAssetRegistry?.['Bush_Flowers'];
+  // 3. Normal Forest Trees (Deep green outer canopy)
+  const normalTreeApi = window.FloraAssetRegistry?.['NormalTree_1'];
+  if (normalTreeApi && normalTreeApi.createThinForest) {
+    const normalPlacements = [
+      { x: -68.0, y: 0, z: 38.0, s: 1.5, rot: 0.8 }, { x: 70.0, y: 0, z: 25.0, s: 1.55, rot: 2.1 },
+      { x: -76.0, y: 0, z: -35.0, s: 1.6, rot: 4.2 }, { x: 78.0, y: 0, z: -65.0, s: 1.5, rot: 1.5 },
+      { x: 95.0, y: 0, z: 80.0, s: 1.75, rot: 3.1 }, { x: -98.0, y: 0, z: -92.0, s: 1.7, rot: 5.0 },
+      { x: 130.0, y: 0, z: 40.0, s: 2.0, rot: 2.4 }, { x: -135.0, y: 0, z: -30.0, s: 2.0, rot: 4.7 }
+    ];
+    normalTreeApi.createThinForest(scene, normalPlacements, { parent: floraGroup, freeze: true, maxDistance: 450 });
+  }
+
+  // 4. Pine Trees (Majestic mountain pines on outer ridges)
+  const pineApi = window.FloraAssetRegistry?.['PineTree_1'];
+  if (pineApi && pineApi.createThinForest) {
+    const pinePlacements = [
+      { x: -80.0, y: 0, z: 90.0, s: 1.8, rot: 1.2 }, { x: 85.0, y: 0, z: 88.0, s: 1.85, rot: 3.7 },
+      { x: -92.0, y: 0, z: -85.0, s: 1.9, rot: 0.4 }, { x: 90.0, y: 0, z: -95.0, s: 1.8, rot: 2.9 },
+      { x: -140.0, y: 0, z: 130.0, s: 2.2, rot: 4.8 }, { x: 145.0, y: 0, z: -135.0, s: 2.2, rot: 1.8 },
+      { x: 160.0, y: 0, z: 120.0, s: 2.3, rot: 0.9 }, { x: -165.0, y: 0, z: -120.0, s: 2.3, rot: 3.6 }
+    ];
+    pineApi.createThinForest(scene, pinePlacements, { parent: floraGroup, freeze: true, maxDistance: 500 });
+  }
+
+  // 5. Blooming Flower Bushes (Outer forest borders)
+  const bushApi = window.FloraAssetRegistry?.['Bush_Flowers'] || window.FloraAssetRegistry?.['Bush'];
   if (bushApi && bushApi.createThinForest) {
     const bushPlacements = [
-      { x: 12, y: 0, z: 14, s: 1.1, rot: 0.4 }, { x: -14, y: 0, z: 12, s: 1.15, rot: 2.3 },
-      { x: 18, y: 0, z: -10, s: 1.05, rot: 4.1 }, { x: -15, y: 0, z: -14, s: 1.2, rot: 1.2 },
-      { x: 22, y: 0, z: 24, s: 1.1, rot: 3.6 }, { x: -24, y: 0, z: 22, s: 1.15, rot: 5.4 }
+      { x: -59.0, y: 0, z: 28.0, s: 1.25, rot: 0.4 }, { x: 61.0, y: 0, z: 22.0, s: 1.3, rot: 2.3 },
+      { x: -64.0, y: 0, z: -25.0, s: 1.2, rot: 4.1 }, { x: 66.0, y: 0, z: -30.0, s: 1.35, rot: 1.2 },
+      { x: -78.0, y: 0, z: 52.0, s: 1.4, rot: 3.6 }, { x: 80.0, y: 0, z: 48.0, s: 1.3, rot: 5.4 }
     ];
-    bushApi.createThinForest(scene, bushPlacements, { parent: floraGroup, freeze: true, maxDistance: 200 });
+    bushApi.createThinForest(scene, bushPlacements, { parent: floraGroup, freeze: true, maxDistance: 350 });
   }
 
-  // 6. Natural Rocks
+  // 6. Natural Weathered Rocks (Outer wilderness boulders)
   const rockApi = window.FloraAssetRegistry?.['Rock_1'];
   if (rockApi && rockApi.createThinForest) {
     const rockPlacements = [
-      { x: 20, y: 0, z: 12, s: 1.2, rot: 1.1 }, { x: -22, y: 0, z: 10, s: 1.35, rot: 3.2 },
-      { x: 14, y: 0, z: -22, s: 1.1, rot: 4.9 }, { x: -18, y: 0, z: -25, s: 1.25, rot: 2.0 },
-      { x: 55, y: 0, z: 60, s: 1.6, rot: 0.7 }, { x: -60, y: 0, z: -70, s: 1.8, rot: 3.8 }
+      { x: -60.0, y: 0, z: -15.0, s: 1.6, rot: 1.1 }, { x: 63.0, y: 0, z: 12.0, s: 1.7, rot: 3.2 },
+      { x: -72.0, y: 0, z: 60.0, s: 1.8, rot: 4.9 }, { x: 75.0, y: 0, z: -55.0, s: 1.85, rot: 2.0 },
+      { x: -95.0, y: 0, z: -70.0, s: 2.2, rot: 0.7 }, { x: 100.0, y: 0, z: 65.0, s: 2.3, rot: 3.8 }
     ];
-    rockApi.createThinForest(scene, rockPlacements, { parent: floraGroup, freeze: true, maxDistance: 250 });
+    rockApi.createThinForest(scene, rockPlacements, { parent: floraGroup, freeze: true, maxDistance: 380 });
   }
 
-  console.info('🌲 [Enhanced-World] Đã nạp thành công hệ sinh thái 3D Thực vật & Cây cối (Thin Instances 60 FPS)!');
+  // 7. Wild Flower Clumps (Wilderness meadows)
+  const flowerApi = window.FloraAssetRegistry?.['Flower_1_Clump'] || window.FloraAssetRegistry?.['Flower_1'];
+  if (flowerApi && flowerApi.createThinForest) {
+    const flowerPlacements = [
+      { x: -57.0, y: 0, z: 35.0, s: 1.2, rot: 0.9 }, { x: 59.0, y: 0, z: 18.0, s: 1.25, rot: 2.7 },
+      { x: -62.0, y: 0, z: -40.0, s: 1.15, rot: 4.5 }, { x: 64.0, y: 0, z: -22.0, s: 1.3, rot: 1.6 },
+      { x: -80.0, y: 0, z: 68.0, s: 1.4, rot: 3.4 }, { x: 82.0, y: 0, z: -60.0, s: 1.35, rot: 5.2 }
+    ];
+    flowerApi.createThinForest(scene, flowerPlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
+  }
+
+  console.info('🌲 [Enhanced-World] Rừng cây & đá hoang dã đã được dời ra ngoài ranh giới thôn (R >= 58m)!');
 
   // ---------------------------------------------------------------------------
   // 4. FLOATING SPIRIT PARTICLES (DYNAMICALLY DRIFT AROUND PLAYER)
@@ -441,11 +458,14 @@
 
         // Spawn custom placed items
         items.forEach((item) => {
-          const itemNode = new BABYLON.TransformNode('GamePlaced_' + item.id, scene);
+          // Keep village clean & 100% THON TRAN architecture (ignore environment assets inside R < 54m)
+          if (Math.hypot(item.x, item.z) < 54.0) return;
+
+          const itemNode = new BABYLON.TransformNode('CustomMap_' + item.id, scene);
           itemNode.parent = root;
-          itemNode.position.set(item.x, item.y || 0.02, item.z);
+          itemNode.position.set(item.x, item.y || 0, item.z);
+          itemNode.rotation.y = item.rot || 0;
           itemNode.scaling.setAll(item.scale || 1.0);
-          itemNode.rotation.y = item.rotY || 0;
 
           if (item.modelId === 'ProcBirch' && window.BIRCH_TREE_3D_DATA) {
             const tree = window.BIRCH_TREE_3D_DATA.spawnInstance('Birch_GP_' + item.id, itemNode, scene);
