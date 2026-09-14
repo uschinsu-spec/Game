@@ -15,15 +15,25 @@
     return m;
   };
 
-  const skinMat  = mat('Chibi_Skin', '#f4cfb2');
-  const skin2Mat = mat('Chibi_SkinShade', '#e9b894');
+  const skinMat  = mat('Chibi_Skin', '#f6d3ba');
+  const skin2Mat = mat('Chibi_SkinShade', '#e8b994');
+  const blushMat = mat('Chibi_Blush', '#f29aa6', '#4a1016', 0.05);
+  blushMat.alpha = 0.42;
+  const lipMat   = mat('Chibi_Lip', '#b95669', '#351019', 0.08);
   const robeMat  = mat('Chibi_Robe', '#d9eefc');
   const robe2Mat = mat('Chibi_RobeBlue', '#4b90d8', '#0b2742');
   const trimMat  = mat('Chibi_Trim', '#f1d58a', '#43330d');
   const beltMat  = mat('Chibi_Belt', '#23314a');
-  const hairMat  = mat('Chibi_Hair', '#161924');
-  const bootMat  = mat('Chibi_Boot', '#263044');
-  const eyeMat   = mat('Chibi_Eye', '#182236');
+  const hairMat  = mat('Chibi_Hair', '#101522', '#050812', 0.28);
+  const hairHiMat= mat('Chibi_HairHighlight', '#263b5a', '#0b2035', 0.22);
+  const hairBlueMat=mat('Chibi_HairBlue', '#4c91c8', '#123b63', 0.18);
+  const eyeWhiteMat = mat('Chibi_EyeWhite', '#fdfefe', '#101820', 0.35);
+  const irisMat   = mat('Chibi_Iris', '#4f9ee8', '#194b7f', 0.45);
+  const pupilMat  = mat('Chibi_Pupil', '#111a2c', '#05070c', 0.25);
+  const eyeGlowMat= mat('Chibi_EyeGlow', '#d7f3ff', '#80cfff', 0.55);
+  const browMat   = mat('Chibi_Brow', '#151b2a');
+  const markMat   = mat('Chibi_ImmortalMark', '#6fc7ff', '#2b78bb', 0.30);
+  const bootMat   = mat('Chibi_Boot', '#263044');
   const bladeMat = mat('Chibi_Blade', '#bff5ff', '#1aa6d9', 0.35);
   const hiltMat  = mat('Chibi_Hilt', '#d5b55e', '#493a10');
 
@@ -80,26 +90,98 @@
   belt.scaling.z = 0.76;
   const beltOrn = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_BeltOrn',{diameter:0.17,segments:10},scene), hips, new BABYLON.Vector3(0,0.34,-0.38), trimMat);
 
-  const head = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Head',{diameter:0.72,segments:20},scene), headBone, new BABYLON.Vector3(0,0.10,0), skinMat);
-  head.scaling.set(1.00,1.05,0.94);
-  const earL = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Ear_L',{diameter:0.13,segments:8},scene), headBone, new BABYLON.Vector3(-0.35,0.10,0), skin2Mat);
-  const earR = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Ear_R',{diameter:0.13,segments:8},scene), headBone, new BABYLON.Vector3(0.35,0.10,0), skin2Mat);
-  earL.scaling.z = earR.scaling.z = 0.55;
+  // -------- Premium chibi face --------
+  const head = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Head',{diameter:0.75,segments:28},scene), headBone, new BABYLON.Vector3(0,0.10,0), skinMat);
+  head.scaling.set(1.02,1.05,0.95);
+  const earL = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Ear_L',{diameter:0.13,segments:10},scene), headBone, new BABYLON.Vector3(-0.36,0.09,0), skin2Mat);
+  const earR = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Ear_R',{diameter:0.13,segments:10},scene), headBone, new BABYLON.Vector3(0.36,0.09,0), skin2Mat);
+  earL.scaling.z = earR.scaling.z = 0.52;
 
-  // Hair cap + topknot + side locks
-  const hairCap = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_HairCap',{diameter:0.71,segments:18,slice:0.60},scene), headBone, new BABYLON.Vector3(0,0.23,0.03), hairMat);
-  hairCap.rotation.x = Math.PI;
-  const topknot = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Topknot',{diameter:0.25,segments:12},scene), headBone, new BABYLON.Vector3(0,0.56,0.02), hairMat);
-  topknot.scaling.y = 1.22;
-  const crown = meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_Crown',{height:0.17,diameterTop:0.09,diameterBottom:0.14,tessellation:8},scene), headBone, new BABYLON.Vector3(0,0.72,0.02), trimMat);
-  const lockL = meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_HairLock_L',{height:0.50,diameter:0.09,tessellation:8},scene), headBone, new BABYLON.Vector3(-0.27,-0.10,0.06), hairMat);
-  const lockR = meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_HairLock_R',{height:0.50,diameter:0.09,tessellation:8},scene), headBone, new BABYLON.Vector3(0.27,-0.10,0.06), hairMat);
+  const makeEye = (side)=>{
+    const x=side*0.135;
+    const eyeRoot=bone(side<0?'Face_Eye_L':'Face_Eye_R',headBone,x,0.14,-0.345);
+    const sclera=meshPart(BABYLON.MeshBuilder.CreateSphere((side<0?'EyeWhite_L':'EyeWhite_R'),{diameter:0.145,segments:18},scene),eyeRoot,new BABYLON.Vector3(0,0,0),eyeWhiteMat);
+    sclera.scaling.set(1.0,1.18,0.28);
+    const iris=meshPart(BABYLON.MeshBuilder.CreateSphere((side<0?'Iris_L':'Iris_R'),{diameter:0.093,segments:16},scene),eyeRoot,new BABYLON.Vector3(0,-0.004,-0.037),irisMat);
+    iris.scaling.z=.24;
+    const pupil=meshPart(BABYLON.MeshBuilder.CreateSphere((side<0?'Pupil_L':'Pupil_R'),{diameter:0.050,segments:12},scene),eyeRoot,new BABYLON.Vector3(0,-0.002,-0.058),pupilMat);
+    pupil.scaling.z=.18;
+    const glint1=meshPart(BABYLON.MeshBuilder.CreateSphere((side<0?'EyeGlint1_L':'EyeGlint1_R'),{diameter:0.027,segments:8},scene),eyeRoot,new BABYLON.Vector3(-0.018,0.024,-0.071),eyeGlowMat);
+    const glint2=meshPart(BABYLON.MeshBuilder.CreateSphere((side<0?'EyeGlint2_L':'EyeGlint2_R'),{diameter:0.013,segments:6},scene),eyeRoot,new BABYLON.Vector3(0.022,-0.018,-0.072),eyeGlowMat);
+    glint1.scaling.z=glint2.scaling.z=.22;
+    const lid=meshPart(BABYLON.MeshBuilder.CreateTorus((side<0?'UpperLid_L':'UpperLid_R'),{diameter:0.145,thickness:0.010,tessellation:24,arc:0.48},scene),eyeRoot,new BABYLON.Vector3(0,0.016,-0.078),browMat);
+    lid.rotation.x=Math.PI/2; lid.rotation.z=side<0?0.03:-0.03;
+    const lash=meshPart(BABYLON.MeshBuilder.CreateBox((side<0?'Lash_L':'Lash_R'),{width:0.066,height:0.010,depth:0.010},scene),eyeRoot,new BABYLON.Vector3(side*0.048,0.035,-0.079),browMat);
+    lash.rotation.z=side<0?-0.16:0.16;
+    return eyeRoot;
+  };
+  const eyeRootL=makeEye(-1), eyeRootR=makeEye(1);
 
-  // Face points toward -Z (camera/battle front convention)
-  const eyeL = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Eye_L',{diameter:0.075,segments:8},scene), headBone, new BABYLON.Vector3(-0.13,0.14,-0.335), eyeMat);
-  const eyeR = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Eye_R',{diameter:0.075,segments:8},scene), headBone, new BABYLON.Vector3(0.13,0.14,-0.335), eyeMat);
-  eyeL.scaling.z = eyeR.scaling.z = 0.35;
-  const nose = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Nose',{diameter:0.055,segments:8},scene), headBone, new BABYLON.Vector3(0,0.055,-0.356), skin2Mat);
+  const browL=meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_Brow_L',{width:0.12,height:0.018,depth:0.014},scene),headBone,new BABYLON.Vector3(-0.14,0.245,-0.344),browMat);
+  const browR=meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_Brow_R',{width:0.12,height:0.018,depth:0.014},scene),headBone,new BABYLON.Vector3(0.14,0.245,-0.344),browMat);
+  browL.rotation.z=-0.10; browR.rotation.z=0.10;
+
+  const nose = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Nose',{diameter:0.048,segments:10},scene), headBone, new BABYLON.Vector3(0,0.055,-0.373), skin2Mat);
+  nose.scaling.set(.8,.85,.45);
+  const mouth=meshPart(BABYLON.MeshBuilder.CreateTorus('Chibi_Mouth',{diameter:0.095,thickness:0.009,tessellation:20,arc:0.42},scene),headBone,new BABYLON.Vector3(0,-0.035,-0.382),lipMat);
+  mouth.rotation.x=Math.PI/2; mouth.rotation.z=Math.PI;
+  const blushL=meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Blush_L',{diameter:0.115,segments:10},scene),headBone,new BABYLON.Vector3(-0.235,0.015,-0.333),blushMat);
+  const blushR=meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_Blush_R',{diameter:0.115,segments:10},scene),headBone,new BABYLON.Vector3(0.235,0.015,-0.333),blushMat);
+  blushL.scaling.set(1,.45,.20); blushR.scaling.set(1,.45,.20);
+
+  // Immortal forehead sigil: central gem + wing strokes.
+  const mark=meshPart(BABYLON.MeshBuilder.CreatePolyhedron('Chibi_ForeheadMark',{type:0,size:0.055},scene),headBone,new BABYLON.Vector3(0,0.315,-0.335),markMat);
+  mark.scaling.set(.55,1.15,.18); mark.rotation.z=Math.PI/4;
+  const markL=meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_ForeheadMark_L',{width:.065,height:.012,depth:.010},scene),headBone,new BABYLON.Vector3(-.052,.300,-.346),markMat);
+  const markR=meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_ForeheadMark_R',{width:.065,height:.012,depth:.010},scene),headBone,new BABYLON.Vector3(.052,.300,-.346),markMat);
+  markL.rotation.z=-.55; markR.rotation.z=.55;
+
+  // -------- Layered Chinese xianxia hair --------
+  const hairRoot=bone('Hair_Root',headBone,0,0.17,0.02);
+  const hairCap = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_HairCap',{diameter:0.76,segments:26,slice:0.62},scene), hairRoot, new BABYLON.Vector3(0,0.08,0.035), hairMat);
+  hairCap.rotation.x = Math.PI; hairCap.scaling.set(1.03,1.00,.96);
+  const hairBack=meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_HairBack',{diameter:0.69,segments:22},scene),hairRoot,new BABYLON.Vector3(0,-0.02,0.19),hairMat);
+  hairBack.scaling.set(.92,1.12,.56);
+
+  const bang=(name,x,y,z,sx,sy,rz,matl=hairMat)=>{
+    const b=meshPart(BABYLON.MeshBuilder.CreateSphere(name,{diameter:.27,segments:14},scene),hairRoot,new BABYLON.Vector3(x,y,z),matl);
+    b.scaling.set(sx,sy,.26); b.rotation.z=rz; return b;
+  };
+  bang('Hair_Bang_C',0,.13,-.305,.42,1.18,0,hairHiMat);
+  bang('Hair_Bang_L1',-.115,.13,-.292,.48,1.16,.34,hairMat);
+  bang('Hair_Bang_R1',.115,.13,-.292,.48,1.16,-.34,hairMat);
+  bang('Hair_Bang_L2',-.225,.08,-.245,.40,1.10,.50,hairHiMat);
+  bang('Hair_Bang_R2',.225,.08,-.245,.40,1.10,-.50,hairHiMat);
+
+  const sideLock=(name,x,rz)=>{
+    const r=bone(name,hairRoot,x,-0.11,-0.02); r.rotation.z=rz;
+    const s1=meshPart(BABYLON.MeshBuilder.CreateCylinder(name+'_A',{height:.42,diameterTop:.075,diameterBottom:.12,tessellation:10},scene),r,new BABYLON.Vector3(0,-.15,0),hairMat);
+    const s2=meshPart(BABYLON.MeshBuilder.CreateCylinder(name+'_B',{height:.34,diameterTop:.035,diameterBottom:.09,tessellation:10},scene),r,new BABYLON.Vector3(0,-.46,.02),hairHiMat);
+    s2.rotation.z=-rz*.35; return r;
+  };
+  const lockL=sideLock('Chibi_HairLock_L',-.30,.10);
+  const lockR=sideLock('Chibi_HairLock_R',.30,-.10);
+
+  const topknotRoot=bone('Hair_Topknot',hairRoot,0,.40,.05);
+  const bun=meshPart(BABYLON.MeshBuilder.CreateTorus('Chibi_HairBun',{diameter:.27,thickness:.095,tessellation:24},scene),topknotRoot,new BABYLON.Vector3(0,.03,0),hairMat);
+  bun.rotation.x=Math.PI/2;
+  const knotCore=meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_TopknotCore',{diameter:.21,segments:16},scene),topknotRoot,new BABYLON.Vector3(0,.04,0),hairHiMat);
+  knotCore.scaling.y=1.2;
+  const crown=meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_Crown',{height:.20,diameterTop:.075,diameterBottom:.14,tessellation:8},scene),topknotRoot,new BABYLON.Vector3(0,.20,0),trimMat);
+  const crownGem=meshPart(BABYLON.MeshBuilder.CreatePolyhedron('Chibi_CrownGem',{type:0,size:.07},scene),topknotRoot,new BABYLON.Vector3(0,.29,-.015),markMat);
+  crownGem.rotation.z=Math.PI/4; crownGem.scaling.z=.55;
+
+  const tailRoot=bone('Hair_LongTail',hairRoot,0,.00,.26);
+  tailRoot.rotation.x=.08;
+  const hairTails=[];
+  for(let i=0;i<5;i++){
+    const x=(i-2)*.075;
+    const seg=meshPart(BABYLON.MeshBuilder.CreateCylinder('Hair_Tail_'+i,{height:.66,diameterTop:.035,diameterBottom:.105,tessellation:9},scene),tailRoot,new BABYLON.Vector3(x,-.34,.05+Math.abs(i-2)*.02),i%2?hairHiMat:hairMat);
+    seg.rotation.z=(i-2)*.035; hairTails.push(seg);
+  }
+  const ribbonL=meshPart(BABYLON.MeshBuilder.CreateBox('Hair_Ribbon_L',{width:.055,height:.56,depth:.018},scene),topknotRoot,new BABYLON.Vector3(-.11,-.22,.03),hairBlueMat);
+  const ribbonR=meshPart(BABYLON.MeshBuilder.CreateBox('Hair_Ribbon_R',{width:.055,height:.56,depth:.018},scene),topknotRoot,new BABYLON.Vector3(.11,-.22,.03),hairBlueMat);
+  ribbonL.rotation.z=.12; ribbonR.rotation.z=-.12;
 
   // Arms: sleeves + forearms + hands
   const sleeveL = meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_UpperArm_L',{height:0.50,diameterTop:0.25,diameterBottom:0.32,tessellation:12},scene), armUL, new BABYLON.Vector3(-0.22,0,0), robe2Mat);
@@ -124,7 +206,6 @@
   const shoulderR = meshPart(BABYLON.MeshBuilder.CreateSphere('Chibi_ShoulderArmor_R',{diameter:0.29,segments:10},scene), clavR, new BABYLON.Vector3(0.08,0,0), trimMat);
   shoulderL.scaling.set(1.2,0.60,1.0); shoulderR.scaling.set(1.2,0.60,1.0);
 
-  // Sword socket on right hand, so future GLB/equipment can reuse this named socket
   const weaponSocket = bone('Socket_Weapon_R', handR, 0.10,0,0);
   weaponSocket.rotation.z = -Math.PI/2;
   const swordRoot = bone('Chibi_SwordRoot', weaponSocket, 0,0,0);
@@ -132,12 +213,10 @@
   const guard = meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_SwordGuard',{width:0.28,height:0.06,depth:0.09},scene), swordRoot, new BABYLON.Vector3(0,0.07,0), hiltMat);
   const handle = meshPart(BABYLON.MeshBuilder.CreateCylinder('Chibi_SwordHandle',{height:0.26,diameter:0.065,tessellation:8},scene), swordRoot, new BABYLON.Vector3(0,-0.09,0), beltMat);
 
-  // Back scabbard / secondary socket for later equipment system
   const backSocket = bone('Socket_BackWeapon', chest, 0.34,0.08,0.17);
   backSocket.rotation.z = -0.28;
   const scabbard = meshPart(BABYLON.MeshBuilder.CreateBox('Chibi_Scabbard',{width:0.11,height:1.05,depth:0.08},scene), backSocket, new BABYLON.Vector3(0,-0.05,0), beltMat);
 
-  // Aura, lighter than old bubble so body is visible
   const auraMat = new BABYLON.StandardMaterial('Chibi_AuraMat', scene);
   auraMat.diffuseColor = BABYLON.Color3.FromHexString('#83e9ff');
   auraMat.emissiveColor = BABYLON.Color3.FromHexString('#128bb5');
@@ -153,13 +232,13 @@
 
   window.__RIGGED_PLAYER_ACTIVE__ = true;
   window.__PLAYER_FULL_BODY_RIG__ = true;
+  window.__PLAYER_PREMIUM_FACE_HAIR__ = true;
   window.PLAYER_MOTION_STATE = 'idle';
   window.PlayerRig = { root, hips, spine, chest, head:headBone, armUL,armUR,armLL,armLR,handL,handR,thighL,thighR,shinL,shinR,footL,footR, weaponSocket, backSocket };
 
   let targetAngle=0, attackClock=0, attackPrev=false;
   window.setPlayerTargetAngle = angle => { if (Number.isFinite(angle)) targetAngle=angle; };
 
-  // Projectile remains compatible with combat code
   const projectiles=[];
   const projMat=mat('Chibi_SwordProjectile','#a9f4ff','#168fbd',0.4);
   window.spawnSwordSlashProjectile=function(fromPos,toPos){
@@ -187,7 +266,10 @@
     player.rotation.y+=diff*Math.min(1,dt*12);
 
     aura.scaling.setAll(1+Math.sin(t*3.0)*0.025); qi.rotation.y=t*0.85;
-    lockL.rotation.z=Math.sin(t*2.1)*0.05; lockR.rotation.z=-Math.sin(t*2.0)*0.05;
+    lockL.rotation.z=.10+Math.sin(t*2.1)*0.035; lockR.rotation.z=-.10-Math.sin(t*2.0)*0.035;
+    ribbonL.rotation.x=Math.sin(t*2.6)*.08; ribbonR.rotation.x=-Math.sin(t*2.4)*.08;
+    tailRoot.rotation.z=Math.sin(t*1.75)*.025;
+    eyeRootL.rotation.y=Math.sin(t*.55)*.012; eyeRootR.rotation.y=Math.sin(t*.55)*.012;
 
     for(let i=projectiles.length-1;i>=0;i--){
       const p=projectiles[i]; p.life-=dt; p.mesh.position.addInPlace(p.dir.scale(p.speed*dt));
@@ -225,6 +307,7 @@
       armLL.rotation.x=0.10; armLR.rotation.x=0.10;
       footL.rotation.x=-c*0.12; footR.rotation.x=c*0.12;
       lockL.rotation.x=0.10+s*0.05; lockR.rotation.x=0.10-s*0.05;
+      tailRoot.rotation.x=.08+s*.025;
     } else {
       window.PLAYER_MOTION_STATE='idle';
       const b=Math.sin(t*2.7);
@@ -237,5 +320,5 @@
     attackPrev=attacking;
   });
 
-  console.info('[Player] Full-body chibi xianxia rig loaded: hands, feet, sockets and procedural animation ready.');
+  console.info('[Player] Full-body chibi xianxia rig loaded with premium face + layered Chinese xianxia hair.');
 })();
