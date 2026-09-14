@@ -10,14 +10,13 @@
   function box(name,opt,pos,mat,rotY=0){const m=BABYLON.MeshBuilder.CreateBox(name,opt,scene);m.position.copyFrom(pos);m.rotation.y=rotY;m.material=mat;return caster(m)}
   function cyl(name,opt,pos,mat){const m=BABYLON.MeshBuilder.CreateCylinder(name,opt,scene);m.position.copyFrom(pos);m.material=mat;return caster(m)}
   function sphere(name,opt,pos,mat){const m=BABYLON.MeshBuilder.CreateSphere(name,opt,scene);m.position.copyFrom(pos);m.material=mat;return caster(m)}
-  const oldNames=new Set(['PaintedGround','PaintedRoad','GrassPatch','PaintedMountain','PaintedFlower','PaintedMist','SpiritPeak','hall','curvedRoof','SectStep','GatePillar','SectGate','MountainMist','HeavenRoad']);
+  const oldNames=new Set(['PaintedGround','PaintedRoad','GrassPatch','PaintedMountain','PaintedFlower','PaintedMist','SpiritPeak','SpiritPond','hall','curvedRoof','SectStep','GatePillar','SectGate','MountainMist','HeavenRoad']);
   scene.meshes.forEach(m=>{if(oldNames.has(m.name))m.setEnabled(false)});
   const floor=BABYLON.MeshBuilder.CreateGround('EnhancedGround',{width:150,height:265,subdivisions:2},scene);floor.parent=root;floor.position.set(0,.015,-42);floor.material=grass;floor.receiveShadows=true;floor.isPickable=false;
   for(let i=0;i<12;i++){
     const side=i%2?1:-1,z=70-i*18;
     const terrace=box('TerrainTerrace',{width:48+((i*7)%15),height:.22,depth:15},new BABYLON.Vector3(side*41,.03,z),i%3?grassDark:grass,(i%2?-.04:.04));terrace.scaling.y=.7;
   }
-  // Natural earthen-stone trail: darker, narrower and broken up so it no longer reads as a white strip.
   const road=BABYLON.MeshBuilder.CreateGround('EnhancedRoad',{width:11.4,height:245,subdivisions:1},scene);road.parent=root;road.position.set(0,.055,-45);road.material=path;road.receiveShadows=true;road.isPickable=false;
   for(let i=0;i<58;i++){
     const z=73-i*4.05,x=Math.sin(i*.79)*1.65+(i%5-2)*.18;
