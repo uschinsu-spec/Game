@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Tu Tiên 3D Mobile Prototype</title>
-  <link rel="stylesheet" href="./style.css?v=20260914-4" />
+  <link rel="stylesheet" href="./style.css?v=20260914-5" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -28,7 +28,7 @@
     checkForGameUpdate();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForGameUpdate()});window.addEventListener('pageshow',checkForGameUpdate);setInterval(checkForGameUpdate,60000);
     if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{})})}
   </script>
-  <script src="./game.js?v=20260914-4"></script>
-  <script src="./camera-controls.js?v=20260914-4"></script>
+  <script src="./game.js?v=20260914-5"></script>
+  <script src="./camera-controls.js?v=20260914-5"></script>
 </body>
 </html>
