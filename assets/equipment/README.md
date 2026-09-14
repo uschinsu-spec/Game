@@ -1,0 +1,1 @@
+Thư mục asset trang bị. File mặc định trong manifest: robe.glb
