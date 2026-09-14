@@ -1,1 +1,0 @@
-Đặt model quái thường tại đây. Tên mặc định: `enemy.glb`.
