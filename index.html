@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="theme-color" content="#101722" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Tu Tiên 3D Mobile Prototype</title>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=20260914-1" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -55,6 +58,51 @@
     </section>
   </div>
 
-  <script src="./game.js"></script>
+  <script>
+    // Auto-update: always check GitHub Pages for a newer build when the game opens,
+    // when Safari returns to the foreground, and periodically while playing.
+    const VERSION_KEY = 'tu-tien-build-version';
+    async function checkForGameUpdate() {
+      try {
+        const response = await fetch('./version.json?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const remoteVersion = String(data.version || '');
+        if (!remoteVersion) return;
+        const localVersion = localStorage.getItem(VERSION_KEY);
+        if (!localVersion) {
+          localStorage.setItem(VERSION_KEY, remoteVersion);
+          return;
+        }
+        if (localVersion !== remoteVersion) {
+          localStorage.setItem(VERSION_KEY, remoteVersion);
+          const url = new URL(location.href);
+          url.searchParams.set('v', remoteVersion);
+          location.replace(url.toString());
+        }
+      } catch (_) {
+        // Offline / temporary network errors do not interrupt the current game.
+      }
+    }
+
+    checkForGameUpdate();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForGameUpdate();
+    });
+    window.addEventListener('pageshow', checkForGameUpdate);
+    setInterval(checkForGameUpdate, 60000);
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
+          .then(reg => reg.update())
+          .catch(() => {});
+      });
+    }
+  </script>
+  <script src="./game.js?v=20260914-1"></script>
 </body>
 </html>
