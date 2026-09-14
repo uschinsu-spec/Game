@@ -4,19 +4,46 @@ const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.58,.7
 const hemi=new BABYLON.HemisphericLight('sky',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.88;const sun=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.5,-1,.4),scene);sun.position=new BABYLON.Vector3(20,30,-20);sun.intensity=1.1;
 const shadow=new BABYLON.ShadowGenerator(1024,sun);shadow.useBlurExponentialShadowMap=true;shadow.blurKernel=18;
 
-// Fixed 2.5D isometric camera (VLTK1-like): no rotation, no zoom, always follows player.
+// Fixed-angle 2.5D isometric camera (VLTK1-like).
+// Angle stays locked, but player can zoom in/out with a two-finger pinch on mobile.
 const ISO_ALPHA=-Math.PI/4;
 const ISO_BETA=0.86;
-const ISO_RADIUS=18;
-const camera=new BABYLON.ArcRotateCamera('camera',ISO_ALPHA,ISO_BETA,ISO_RADIUS,new BABYLON.Vector3(0,1.1,0),scene);
+const ISO_RADIUS_DEFAULT=26;
+const ISO_RADIUS_MIN=13;
+const ISO_RADIUS_MAX=38;
+let cameraRadius=ISO_RADIUS_DEFAULT;
+const camera=new BABYLON.ArcRotateCamera('camera',ISO_ALPHA,ISO_BETA,cameraRadius,new BABYLON.Vector3(0,1.1,0),scene);
 camera.inputs.clear();
 camera.panningSensibility=0;
-camera.wheelPrecision=0;
-camera.lowerRadiusLimit=ISO_RADIUS;
-camera.upperRadiusLimit=ISO_RADIUS;
+camera.lowerRadiusLimit=ISO_RADIUS_MIN;
+camera.upperRadiusLimit=ISO_RADIUS_MAX;
 camera.lowerBetaLimit=ISO_BETA;
 camera.upperBetaLimit=ISO_BETA;
 camera.fov=0.62;
+
+// Mobile pinch zoom: spread fingers = zoom in, pinch fingers together = zoom out.
+let pinchStartDistance=0;
+let pinchStartRadius=cameraRadius;
+const touchDistance=(a,b)=>Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===2){
+    pinchStartDistance=touchDistance(e.touches[0],e.touches[1]);
+    pinchStartRadius=cameraRadius;
+    e.preventDefault();
+  }
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2&&pinchStartDistance>0){
+    const currentDistance=touchDistance(e.touches[0],e.touches[1]);
+    const scale=currentDistance/pinchStartDistance;
+    cameraRadius=BABYLON.Scalar.Clamp(pinchStartRadius/scale,ISO_RADIUS_MIN,ISO_RADIUS_MAX);
+    e.preventDefault();
+  }
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  if(e.touches.length<2)pinchStartDistance=0;
+},{passive:false});
+canvas.addEventListener('touchcancel',()=>{pinchStartDistance=0;},{passive:false});
 
 const mat=(name,color)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.08,.08,.08);return m};
 const groundMat=mat('stone','#7e8994'),rockMat=mat('rock','#596b70'),woodMat=mat('wood','#553b2d'),roofMat=mat('roof','#273e45'),goldMat=mat('gold','#c9a95b'),redMat=mat('enemy','#9f3e38'),whiteMat=mat('robe','#d9e4ec'),blueMat=mat('armor','#294d73'),darkMat=mat('hair','#17202b'),bladeMat=mat('blade','#9bdcff'),horseMat=mat('horse','#5b4031');
@@ -41,7 +68,7 @@ let vy=0,onGround=true,attackT=0,skillT=0;const anim=document.getElementById('an
 function pulse(type){if(type==='attack')attackT=.32;else skillT=.55}document.getElementById('attack').onclick=()=>pulse('attack');document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>pulse('skill'));document.getElementById('jump').onclick=()=>{if(onGround){vy=5.2;onGround=false}};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==='weapon'){weaponKind=1-weaponKind;sword(weaponKind)}if(a==='armor'){armorKind=1-armorKind;armor.material=armorKind?goldMat:blueMat}if(a==='mount'){mounted=!mounted;if(mounted&&!mount){mount=createMount()}bodyRoot.position.y=mounted?1.75:0;if(mount)mount.setEnabled(mounted);b.textContent=mounted?'Xuống ngựa':'Cưỡi ngựa'}if(a==='beast')spawnBeast();equip.textContent=`${weaponKind?'Tiên kiếm':'Thanh kiếm'} • ${armorKind?'Kim Vân giáp':'Thanh Vân giáp'}${mounted?' • Đang cưỡi':''}`});
 scene.onBeforeRenderObservable.add(()=>{const dt=Math.min(.033,engine.getDeltaTime()/1000);let x=joy.x+(keys.d?1:0)-(keys.a?1:0),z=joy.y+(keys.s?1:0)-(keys.w?1:0),l=Math.hypot(x,z);if(l>1){x/=l;z/=l}const speed=mounted?6.5:4;const moving=Math.abs(x)+Math.abs(z)>.05;if(moving){const camForward=new BABYLON.Vector3(Math.sin(ISO_ALPHA),0,Math.cos(ISO_ALPHA)).normalize();const camRight=new BABYLON.Vector3(camForward.z,0,-camForward.x);const dir=camRight.scale(x).add(camForward.scale(-z)).normalize();player.position.addInPlace(dir.scale(speed*dt));player.rotation.y=Math.atan2(dir.x,dir.z);const t=performance.now()*.012*(mounted?1.5:1);armL.rotation.x=Math.sin(t)*.55;armR.rotation.x=-Math.sin(t)*.55;legL.rotation.x=-Math.sin(t)*.55;legR.rotation.x=Math.sin(t)*.55}else{armL.rotation.x*=.82;armR.rotation.x*=.82;legL.rotation.x*=.82;legR.rotation.x*=.82}if(!onGround){player.position.y+=vy*dt;vy-=12*dt;if(player.position.y<=0){player.position.y=0;vy=0;onGround=true}}if(attackT>0){attackT-=dt;armR.rotation.z=-1.5*Math.sin((.32-attackT)/.32*Math.PI)}if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}
-// Locked isometric follow camera: angle and distance never change.
-camera.alpha=ISO_ALPHA;camera.beta=ISO_BETA;camera.radius=ISO_RADIUS;camera.target=BABYLON.Vector3.Lerp(camera.target,player.position.add(new BABYLON.Vector3(0,1.0,0)),dt*7);
+// Locked isometric follow camera: angle stays fixed; only distance changes through pinch zoom.
+camera.alpha=ISO_ALPHA;camera.beta=ISO_BETA;camera.radius=cameraRadius;camera.target=BABYLON.Vector3.Lerp(camera.target,player.position.add(new BABYLON.Vector3(0,1.0,0)),dt*7);
 anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`});
 engine.runRenderLoop(()=>scene.render());addEventListener('resize',()=>engine.resize());
