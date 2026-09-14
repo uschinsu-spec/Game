@@ -1,1 +1,0 @@
-Place combat and magic effect assets here.
