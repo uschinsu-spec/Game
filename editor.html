@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate"/>
+  <title>Thanh Vân 3D Map Studio Pro - Trình Thiết Kế Bản Đồ Chuyên Nghiệp</title>
+  <link rel="stylesheet" href="./editor-studio.css?v=20260914-birchtree-asset-v30"/>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+</head>
+<body>
+  <div id="studioApp">
+    <!-- 3D VIEWPORT -->
+    <div id="viewportContainer">
+      <canvas id="studioCanvas"></canvas>
+      
+      <!-- Viewport Overlay Badges -->
+      <div class="viewport-stats">
+        <span id="objCountBadge">📦 Vật thể: 0</span>
+        <span id="camModeBadge">🎥 Camera: Bay Tự Do</span>
+        <span id="gizmoModeBadge">🕹️ Gizmo: Di chuyển [W]</span>
+        <span id="fpsBadge">⚡ 60 FPS</span>
+      </div>
+
+      <!-- Quick Transform Toolbar (Viewport floating) -->
+      <div class="viewport-gizmo-bar">
+        <button id="gizmoTranslateBtn" class="gizmo-btn active" title="Di chuyển vật thể (Phím W)">✥ Di chuyển [W]</button>
+        <button id="gizmoRotateBtn" class="gizmo-btn" title="Xoay hướng vật thể (Phím E)">⟳ Xoay [E]</button>
+        <button id="gizmoScaleBtn" class="gizmo-btn" title="Phóng to / Thu nhỏ (Phím R)">⤢ Co giãn [R]</button>
+        <button id="gizmoDropGroundBtn" class="gizmo-btn" title="Cắm vật thể sát mặt đất (Phím End)">⬇ Chạm đất</button>
+      </div>
+
+      <!-- Quick Hint Overlay -->
+      <div class="viewport-hint">
+        💡 <b>W/E/R:</b> Chuyển Gizmo | <b>Ctrl+Z / Ctrl+Y:</b> Undo/Redo | <b>Ctrl+D:</b> Nhân bản | <b>Del:</b> Xóa | <b>Chuột phải:</b> Xoay Cam
+      </div>
+    </div>
+
+    <!-- TOP HEADER TOOLBAR -->
+    <header class="studio-header">
+      <div class="studio-brand">
+        <span class="brand-icon">🌲</span>
+        <div class="brand-text">
+          <h1>THANH VÂN MAP STUDIO PRO</h1>
+          <small>Trình Thiết Kế & Quản Lý Bản Đồ 3D Chuẩn Game Ulala</small>
+        </div>
+      </div>
+
+      <!-- Center History & Tools -->
+      <div class="studio-center-tools">
+        <button id="btnUndo" class="studio-tool-btn" title="Hoàn tác (Ctrl+Z)">↩️ Hoàn tác</button>
+        <button id="btnRedo" class="studio-tool-btn" title="Làm lại (Ctrl+Y)">↪️ Làm lại</button>
+        
+        <div class="tool-separator"></div>
+
+        <button id="camFreeBtn" class="studio-tool-btn active" title="Camera tự do 3D">🌐 3D Orbit</button>
+        <button id="camTopBtn" class="studio-tool-btn" title="Camera nhìn thẳng từ trên xuống (Top-down 2D)">📐 Mặt Bằng</button>
+        <button id="btnPreviewWalk" class="studio-tool-btn btn-preview" title="Xem thử góc nhìn nhân vật chạy thật trong game">🚶 Xem Thử Game</button>
+      </div>
+
+      <!-- Right Export & Sync Actions -->
+      <div class="studio-top-actions">
+        <!-- Nạp Asset Button -->
+        <button id="btnOpenAssetManager" class="studio-btn btn-asset-mgr" title="Mở Trình Quản Lý & Nạp Asset 3D / Texture">
+          <span>📁</span> NẠP ASSET (.GLB / Texture)
+        </button>
+
+        <button id="btnResetAll" class="studio-btn btn-danger" title="Xóa toàn bộ bản đồ làm lại từ đầu">
+          <span>🔄</span> Reset
+        </button>
+        <button id="btnExportJson" class="studio-btn" title="Tải file map_data.json về máy tính">
+          <span>📥</span> Xuất JSON
+        </button>
+        <button id="btnImportJson" class="studio-btn" title="Nạp file map_data.json từ máy">
+          <span>📤</span> Nạp JSON
+        </button>
+        <button id="btnApplyGame" class="studio-btn btn-apply" title="Lưu và áp dụng bản đồ này ngay vào game chính!">
+          <span>💾</span> ÁP DỤNG VÀO GAME
+        </button>
+        <a href="./index.html" target="_blank" class="studio-btn btn-play" title="Mở tab chơi game">
+          <span>▶️</span> Mở Game
+        </a>
+      </div>
+    </header>
+
+    <!-- LEFT SIDEBAR: TERRAIN, ATMOSPHERE & BRUSH CONFIG -->
+    <aside class="studio-sidebar-left">
+      <!-- Nav Tabs for Left Sidebar -->
+      <div class="sidebar-tab-header">
+        <button class="side-tab-btn active" data-tab="tab-terrain">🏞️ Địa Hình</button>
+        <button class="side-tab-btn" data-tab="tab-sky">☀️ Bầu Trời</button>
+        <button class="side-tab-btn" data-tab="tab-brush">🖌️ Cọ Vẽ</button>
+      </div>
+
+      <!-- Tab 1: Terrain & Road -->
+      <div id="tab-terrain" class="sidebar-tab-content active">
+        <div class="control-group">
+          <label>Chủ Đề Địa Hình (Presets 1-Click)</label>
+          <div class="preset-chips">
+            <button class="preset-chip active" data-preset="forest">🌲 Rừng Ngọc</button>
+            <button class="preset-chip" data-preset="autumn">🍁 Rừng Thu</button>
+            <button class="preset-chip" data-preset="sakura">🌸 Đào Hoa</button>
+            <button class="preset-chip" data-preset="desert">🏜️ Sa Mạc</button>
+            <button class="preset-chip" data-preset="snow">❄️ Tuyết Sơn</button>
+            <button class="preset-chip" data-preset="dark">🌋 Ma Vực</button>
+            <button class="preset-chip" data-preset="crystal">💎 Tiên Giới</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Màu Mặt Đất Nền</label>
+          <div class="color-picker-row">
+            <input id="groundColorInput" type="color" value="#48b336"/>
+            <span id="groundColorLabel">#48b336</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Bộ 20 Texture Mặt Đất PBR HD</label>
+          <div id="groundTexturePackList" class="preset-chips" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding:2px;">
+            <!-- Generated dynamically from GROUND_TEXTURES_PACK -->
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Texture Tùy Chỉnh Khác</label>
+          <div class="texture-assign-row">
+            <button id="btnChooseGroundTex" class="studio-btn" style="width:100%;font-size:10px;">🖼️ Nạp Thêm File Ảnh Khác (.png/.jpg)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Lối Đi / Con Đường (Road)</label>
+          <div class="toggle-row">
+            <span>Bật hiển thị con đường</span>
+            <input id="roadToggle" type="checkbox"/>
+          </div>
+        </div>
+
+        <div id="roadControlsWrapper" style="display:none;">
+          <div class="control-group">
+            <label>Chiều Rộng Lối Đi (<span id="trailWidthVal">3.4m</span>)</label>
+            <input id="trailWidthSlider" type="range" min="1.0" max="10" step="0.2" value="3.4"/>
+          </div>
+
+          <div class="control-group">
+            <label>Màu Lối Đi Đất</label>
+            <div class="color-picker-row">
+              <input id="trailColorInput" type="color" value="#735338"/>
+              <span id="trailColorLabel">#735338</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Đồi Núi & Địa Hình Hai Bên Sườn</label>
+          <div class="toggle-row">
+            <span>Đồi cỏ nhấp nhô ven biên</span>
+            <input id="hillsToggle" type="checkbox" checked/>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Rặng Núi Hùng Vĩ Phía Chân Trời</label>
+          <div class="toggle-row">
+            <span>Rặng núi xa (Distant Peaks)</span>
+            <input id="mountainsToggle" type="checkbox" checked/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Sky, Sun & Atmosphere -->
+      <div id="tab-sky" class="sidebar-tab-content">
+        <div class="control-group">
+          <label>Thời Điểm Trong Ngày (Time of Day)</label>
+          <div class="preset-chips">
+            <button class="sky-chip active" data-time="day">☀️ Ban Ngày</button>
+            <button class="sky-chip" data-time="sunset">🌇 Hoàng Hôn</button>
+            <button class="sky-chip" data-time="night">🌙 Đêm Sao</button>
+            <button class="sky-chip" data-time="mist">🌫️ Tiên Cảnh</button>
+            <button class="sky-chip" data-time="cyber">🔮 Huyền Ảo</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Màu Bầu Trời (Sky Color)</label>
+          <div class="color-picker-row">
+            <input id="skyColorInput" type="color" value="#6bcbf2"/>
+            <span id="skyColorLabel">#6bcbf2</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Góc Chiếu Ánh Nắng (Sun Angle: <span id="sunAngleVal">45°</span>)</label>
+          <input id="sunAngleSlider" type="range" min="0" max="360" step="5" value="45"/>
+        </div>
+
+        <div class="control-group">
+          <label>Cường Độ Ánh Sáng (<span id="sunIntensityVal">1.25x</span>)</label>
+          <input id="sunIntensitySlider" type="range" min="0.2" max="2.5" step="0.05" value="1.25"/>
+        </div>
+
+        <div class="control-group">
+          <label>Sương Mù Chân Trời (<span id="fogDistVal">165m</span>)</label>
+          <input id="fogDistSlider" type="range" min="40" max="350" step="5" value="165"/>
+        </div>
+
+        <div class="control-group">
+          <label>Hiệu Ứng Hạt Khí Quyển (Particles)</label>
+          <div class="preset-chips">
+            <button class="particle-chip active" data-pt="spores">🌾 Bồ Công Anh</button>
+            <button class="particle-chip" data-pt="fireflies">✨ Đom Đóm</button>
+            <button class="particle-chip" data-pt="petals">🌸 Cánh Hoa Đào</button>
+            <button class="particle-chip" data-pt="snow">❄️ Tuyết Rơi</button>
+            <button class="particle-chip" data-pt="none">🚫 Tắt</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Scatter Brush Tool -->
+      <div id="tab-brush" class="sidebar-tab-content">
+        <div class="control-group">
+          <label>Chế Độ Đặt Vật Thể</label>
+          <div class="preset-chips">
+            <button id="modeSingle" class="tool-chip active">📍 Đặt Từng Cái</button>
+            <button id="modeBrush" class="tool-chip">🖌️ Cọ Vẽ Rải Rừng</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Bán Kính Cọ Vẽ (Radius: <span id="brushRadiusVal">3.0m</span>)</label>
+          <input id="brushRadiusSlider" type="range" min="1.0" max="10.0" step="0.5" value="3.0"/>
+        </div>
+
+        <div class="control-group">
+          <label>Mật Độ Rải (Density: <span id="brushDensityVal">Medium</span>)</label>
+          <input id="brushDensitySlider" type="range" min="1" max="5" step="1" value="3"/>
+        </div>
+
+        <div class="control-group">
+          <label>Biến Động Kích Thước Ngẫu Nhiên</label>
+          <div class="toggle-row">
+            <span>Tự động đổi size (Random Scale)</span>
+            <input id="randomScaleToggle" type="checkbox" checked/>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Tự Động Xoay Hướng Ngẫu Nhiên</label>
+          <div class="toggle-row">
+            <span>Xoay tự nhiên (Random Rotation)</span>
+            <input id="randomRotToggle" type="checkbox" checked/>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Bắt Dính Lưới Tọa Độ (Grid Snap)</label>
+          <div class="preset-chips">
+            <button class="snap-chip active" data-snap="0">Tự do</button>
+            <button class="snap-chip" data-snap="0.5">0.5m</button>
+            <button class="snap-chip" data-snap="1.0">1.0m</button>
+            <button class="snap-chip" data-snap="2.0">2.0m</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT SIDEBAR: OBJECT INSPECTOR & HIERARCHY -->
+    <aside id="inspectorPanel" class="studio-sidebar-right">
+      <div class="sidebar-tab-header">
+        <button class="side-tab-btn active" data-tab="tab-inspector">🎯 Inspector</button>
+        <button class="side-tab-btn" data-tab="tab-hierarchy">📑 Danh Sách (<span id="hierCount">0</span>)</button>
+      </div>
+
+      <!-- Tab 1: Inspector -->
+      <div id="tab-inspector" class="sidebar-tab-content active">
+        <div id="inspectorEmptyState" class="empty-state">
+          <span>👆</span>
+          <p>Nhấp vào bất kỳ vật thể nào trên bản đồ để chọn và tinh chỉnh bằng 3D Gizmo hoặc thanh trượt.</p>
+        </div>
+
+        <div id="inspectorDetails" class="inspector-details" style="display:none;">
+          <div class="selected-badge">
+            <div>
+              <b id="insName">Cây Bạch Dương</b>
+              <small id="insId">#item_1</small>
+            </div>
+            <button id="insFocusBtn" class="btn-focus-cam" title="Di chuyển Camera tới vật thể">🎯 Xem</button>
+          </div>
+
+          <div class="control-group">
+            <label><span>Tọa Độ (Position X, Y, Z)</span></label>
+            <div class="coord-inputs-3row">
+              <div><span>X</span><input id="insPosX" type="number" step="0.2"/></div>
+              <div><span>Y</span><input id="insPosY" type="number" step="0.1"/></div>
+              <div><span>Z</span><input id="insPosZ" type="number" step="0.2"/></div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>Phóng to / Thu nhỏ (Scale: <b id="insScaleVal">1.2x</b>)</label>
+            <input id="insScale" type="range" min="0.2" max="4.0" step="0.05" value="1.2"/>
+          </div>
+
+          <div class="control-group">
+            <label>Góc Xoay 360° (Rotation Y: <b id="insRotVal">0°</b>)</label>
+            <input id="insRot" type="range" min="0" max="360" step="5" value="0"/>
+          </div>
+
+          <div class="inspector-action-buttons">
+            <button id="insBtnDup" class="studio-btn btn-dup">📋 Nhân Bản (Ctrl+D)</button>
+            <button id="insBtnDel" class="studio-btn btn-danger">🗑️ Xóa (Del)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Hierarchy List -->
+      <div id="tab-hierarchy" class="sidebar-tab-content">
+        <div class="hierarchy-search-bar">
+          <input id="hierarchySearchInput" type="text" placeholder="🔍 Tìm vật thể..."/>
+        </div>
+        <div id="hierarchyListContainer" class="hierarchy-list-scroll"></div>
+        <div class="hierarchy-footer">
+          <button id="btnDeleteAllSelected" class="studio-btn btn-danger" style="width:100%;font-size:10px;">🗑️ Xóa Tất Cả Vật Thể</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- BOTTOM PALETTE: COMPREHENSIVE ASSET LIBRARY -->
+    <footer class="studio-bottom-palette">
+      <div class="palette-header">
+        <div class="palette-tabs">
+          <button class="palette-tab active" data-cat="all">✨ Tất Cả (<span id="totalAssetCount">244</span>)</button>
+          <button class="palette-tab" data-cat="trees">🌲 Cây Cối (36)</button>
+          <button class="palette-tab" data-cat="flora">🌸 Hoa & Bụi Cỏ (23)</button>
+          <button class="palette-tab" data-cat="props">🪨 Đá & Đạo Cụ (9)</button>
+          <button class="palette-tab" data-cat="village">🏛️ Thôn Trấn (176)</button>
+          <button class="palette-tab" data-cat="custom">📁 Model Đã Nạp (<span id="customModelCount">0</span>)</button>
+        </div>
+
+        <div class="palette-search-box">
+          <input id="assetSearchInput" type="text" placeholder="🔍 Tìm kiếm asset..."/>
+        </div>
+      </div>
+
+      <div id="assetCatalogGrid" class="asset-catalog-grid"></div>
+    </footer>
+
+    <!-- ====================================================================
+         MODAL: TRÌNH QUẢN LÝ & NẠP ASSET 3D / TEXTURE TOÀN DIỆN
+         ==================================================================== -->
+    <div id="assetManagerModal" class="studio-modal-overlay">
+      <div class="studio-modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>📁</span>
+            <h3>Trình Quản Lý & Nạp Asset 3D / Texture</h3>
+          </div>
+          <button id="btnCloseAssetModal" class="modal-close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Dropzone Area -->
+          <div id="assetDropZone" class="asset-dropzone">
+            <div class="dropzone-icon">📥</div>
+            <h4>Kéo & Thả File 3D hoặc Texture vào đây</h4>
+            <p>Hỗ trợ file mô hình <b>.GLB, .glTF, .bin</b> và texture <b>.PNG, .JPG, .WEBP</b></p>
+            <div class="dropzone-buttons">
+              <button id="btnSelectFiles" class="studio-btn btn-accent">📂 Chọn File Từ Máy</button>
+              <button id="btnSelectFolder" class="studio-btn">📁 Chọn Cả Thư Mục (Folder)</button>
+            </div>
+          </div>
+
+          <!-- Section: Imported Asset Library List -->
+          <div class="imported-assets-section">
+            <div class="section-header-row">
+              <h4>📋 Danh Sách Asset Đã Nạp (<span id="modalAssetCount">0</span>)</h4>
+              <button id="btnClearCustomAssets" class="studio-btn btn-danger" style="font-size:10px;">🗑️ Xóa Toàn Bộ</button>
+            </div>
+
+            <div id="importedAssetsList" class="imported-grid-container">
+              <div class="no-custom-assets">Chưa có asset tùy chỉnh nào được nạp. Hãy bấm nút 'Chọn File' hoặc kéo thả file .GLB vào đây.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btnCloseModalBottom" class="studio-btn btn-play">Hoàn Tất</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Inputs for Studio Actions -->
+  <input id="hiddenFileInput" type="file" accept=".json" style="display:none;"/>
+  <input id="hiddenGltfInput" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp" multiple style="display:none;"/>
+  <input id="hiddenFolderInput" type="file" webkitdirectory directory multiple style="display:none;"/>
+  <input id="hiddenGroundTexInput" type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;"/>
+  <script src="./assets/environment/terrain/tex_01_Grass_Lush.js?v=20260914-standalone-v40"></script>
+  <script src="./assets/environment/flora/flora_loader.js?v=20260914-standalone-v40"></script>
+
+  <!-- 63 3D FLORA & ROCK ASSETS -->
+  <script src="./assets/environment/flora/asset_birchtree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_birchtree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_birchtree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_birchtree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_birchtree_5.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_bush.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_bush_flowers.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_bush_large.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_bush_large_flowers.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_bush_small.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_bush_small_flowers.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_deadtree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_5.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_6.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_7.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_8.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_9.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_deadtree_10.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_flower_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_1_clump.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_2_clump.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_3_clump.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_4_clump.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_flower_5_clump.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_grass_large.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_grass_large_extruded.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_grass_small.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_mapletree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_mapletree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_mapletree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_mapletree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_mapletree_5.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_normaltree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_normaltree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_normaltree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_normaltree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_normaltree_5.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_palmtree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_palmtree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_palmtree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_palmtree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_palmtree_5.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_petals_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_petals_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_petals_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_petals_4.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_pinetree_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_pinetree_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_pinetree_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_pinetree_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_pinetree_5.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_plant_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_plant_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_plant_flowers.js?v=20260914-v40"></script>
+
+  <script src="./assets/environment/flora/asset_rock_1.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_rock_2.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_rock_3.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_rock_4.js?v=20260914-v40"></script>
+  <script src="./assets/environment/flora/asset_rock_5.js?v=20260914-v40"></script>
+
+  <!-- 176 THÔN TRẤN MEDIEVAL VILLAGE MODULE LOADER -->
+  <script src="./assets/THON TRAN/thon_tran_loader.js?v=20260914-thontran-v41"></script>
+
+  <script src="./editor-studio.js?v=20260914-standalone-v41"></script>
+</body>
+</html>

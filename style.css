@@ -1,1 +1,1185 @@
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#77cce2;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff;overscroll-behavior:none}body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}button{font:inherit}#renderCanvas{width:100%;height:100%;display:block;touch-action:none;outline:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 1px 2px #0008}.player-block{position:absolute;left:max(9px,env(safe-area-inset-left));top:max(9px,env(safe-area-inset-top));width:190px;height:64px;display:flex;align-items:center;pointer-events:auto}.player-copy{margin-left:7px;width:126px}.player-copy strong{display:block;font-size:17px;line-height:18px}.level-line{font-size:10px;color:#fff7d6}.bar{height:9px;margin-top:4px;border-radius:8px;background:#30464dcc;overflow:hidden;border:1px solid #fff8;position:relative}.bar i{position:absolute;inset:0}.bar b{position:absolute;inset:0;text-align:center;font-size:6px;line-height:8px}.hp i{background:linear-gradient(90deg,#92ca3d,#b7e95a)}.mp i{background:linear-gradient(90deg,#d9b63b,#f6d95c)}.level-badge{position:absolute;left:47px;bottom:-5px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#38c719;border:2px solid #fff;font-weight:900;font-size:13px}.left-quick{position:absolute;left:max(17px,env(safe-area-inset-left));top:86px;display:flex;flex-direction:column;gap:8px}.left-quick button{pointer-events:auto;width:45px;height:45px;padding:0}.currency-bar{position:absolute;right:max(8px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));display:flex;gap:8px;pointer-events:auto}.currency-bar>div{height:34px;min-width:90px;border-radius:17px;background:#2d40469e;border:2px solid #fff8;display:flex;align-items:center;padding:0 4px 0 8px;gap:7px}.currency-bar span{flex:1;text-align:center;font-weight:800}.currency-bar button{width:27px;height:27px;border:0;border-radius:50%;background:#e6b84b;color:#fff;font-weight:900;font-size:18px}.right-banner{position:absolute;right:0;top:49px;width:145px;min-height:238px;padding:66px 10px 12px 22px;background:linear-gradient(165deg,rgba(222,83,70,.92),rgba(185,57,50,.94));clip-path:polygon(18% 0,100% 0,100% 88%,75% 100%,0 92%,7% 60%);filter:drop-shadow(-2px 3px 5px #0005)}.mini-map{position:absolute;right:7px;top:8px;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#b9d57a,#75a75b 55%,#477d50);border:4px solid #ead9a0;box-shadow:0 2px 8px #0005;display:grid;place-items:center;overflow:hidden}.mini-map:before{content:"";position:absolute;width:100px;height:7px;background:#eee3ad55;transform:rotate(-30deg)}.mini-map:after{content:"";position:absolute;width:7px;height:100px;background:#eee3ad44;transform:rotate(22deg)}.mini-map span{z-index:2;font-size:20px}.mini-map i{position:absolute;width:8px;height:8px;border-radius:50%;background:#f6dc63;left:19px;top:17px}.stage-copy b{display:block;font-size:13px;text-align:center}.stage-copy span{display:block;margin-top:6px;padding:4px 6px;border-radius:6px;background:#394744a3;font-size:9px}.stage-track{height:6px;margin-top:5px;border-radius:6px;background:#3e4744aa;overflow:hidden}.stage-track i{display:block;height:100%;background:#84d94d}.banner-actions{display:flex;gap:8px;justify-content:center;margin-top:10px}.banner-actions button{pointer-events:auto;border:0;background:transparent;color:#fff;text-shadow:0 2px 3px #0008}.banner-actions span{display:block;font-size:8px;margin-top:2px}.target-panel{position:absolute;left:50%;top:29%;transform:translateX(-50%) translateY(-4px);width:165px;text-align:center;opacity:0;transition:.16s}.target-panel.show{opacity:1;transform:translateX(-50%)}.target-panel strong{display:inline-block;padding:2px 10px;border-radius:10px;background:#233238bd;font-size:12px}.target-bar{height:8px;width:130px;margin:5px auto 0;background:#2a3238d9;border:1px solid #fff8;border-radius:8px;overflow:hidden}.target-bar i{display:block;height:100%;background:#e42f3c}.boss-challenge{pointer-events:auto;position:absolute;right:max(12px,env(safe-area-inset-right));top:57%;width:66px;height:74px;border:0;background:transparent;color:#fff;text-shadow:0 2px 3px #0008}.boss-challenge span{display:block;font-size:9px;font-weight:800;margin-top:2px}.boss-challenge:disabled{opacity:.55;filter:grayscale(.5)}.quick-battle{position:absolute;right:max(10px,env(safe-area-inset-right));top:69%;width:70px;text-align:center}.quick-battle span{display:block;font-size:10px}.auto-art{position:absolute;left:50%;bottom:114px;transform:translateX(-50%);padding:5px 11px;background:#213c3cbf;border-radius:11px;white-space:nowrap}.auto-art span{font-size:8px;color:#d3e7db;margin-right:5px}.auto-art b{font-size:10px;color:#ffe18b}.bottom-nav{pointer-events:auto;position:absolute;left:0;right:0;bottom:0;height:92px;padding:7px 5px max(8px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:linear-gradient(#f8f5edee,#ded8ccf4);border-top:3px solid #8d7862;box-shadow:0 -4px 12px #0004;text-shadow:none}.bottom-nav button{position:relative;border:0;background:transparent;color:#5b5148;font-weight:800;padding:0 2px}.bottom-nav button span{display:block;font-size:9px;margin-top:2px}.offline-reward{position:absolute;z-index:40;left:50%;top:48%;transform:translate(-50%,-50%);width:min(310px,84vw);padding:18px;border-radius:18px;background:#f7f1e5;color:#4a4036;text-shadow:none;display:none;flex-direction:column;gap:7px;text-align:center;pointer-events:auto;border:3px solid #c3a985;box-shadow:0 12px 35px #0007}.offline-reward.show{display:flex}.offline-reward strong{font-size:17px;color:#6e4e26}.offline-reward span{font-size:12px}.offline-reward button{border:0;border-radius:14px;padding:10px;background:#6ebd5c;color:#fff;font-weight:900}.system-modal{position:absolute;inset:0;z-index:50;background:#0008;display:none;align-items:flex-end;justify-content:center;pointer-events:auto;text-shadow:none}.system-modal.show{display:flex}.system-sheet{width:calc(100% - 12px);max-width:520px;max-height:76vh;background:#f3efe5;color:#493b2d;border:3px solid #a58e70;border-radius:20px 20px 0 0;overflow:auto}.system-sheet header{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:#e8e1d5;border-bottom:1px solid #baa990}.system-sheet header button{width:32px;height:32px;border:0;border-radius:50%;background:#7a6a57;color:#fff}.system-body{padding:16px}.system-summary{font-size:12px;line-height:1.5;background:#fff;border:1px solid #d1c5b2;border-radius:10px;padding:10px}.big-stat{font-size:26px;font-weight:900;text-align:center;color:#6b4d29;margin:16px 0}.system-body>button{width:100%;border:0;border-radius:12px;padding:10px;background:#e2b55b;color:#4b391f;font-weight:900;margin-top:8px}.pet-card{display:flex;gap:12px;align-items:center}.pet-orb{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:#8fcfca;border:3px solid #f0d285}.clatter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.clatter-grid i{height:64px;border-radius:10px;background:#9996;display:grid;place-items:center;font-style:normal}.clatter-grid i.open{background:#e5bd67;border:2px solid #8b6b34}.loot-toast{position:absolute;z-index:45;left:50%;top:27%;transform:translate(-50%,-10px);padding:8px 16px;background:#284b47ed;border:2px solid #d6b874;border-radius:12px;font-size:11px;opacity:0;transition:.18s}.loot-toast.show{opacity:1;transform:translate(-50%,0)}@media(max-width:390px){.player-block{transform:scale(.9);transform-origin:top left}.currency-bar{transform:scale(.88);transform-origin:top right}.right-banner{transform:scale(.92);transform-origin:top right}.bottom-nav{height:88px}}
+/* ==========================================================================
+   ULALA: IDLE ADVENTURE - 100% AUTHENTIC GAME UI RECREATION
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;800;900&family=Fredoka:wght@600;700&display=swap');
+
+:root {
+  --u-gold: #ffb82e;
+  --u-gold-light: #fff29a;
+  --u-gold-dark: #b8730e;
+  --u-orange: #ff681e;
+  --u-orange-dark: #ad3305;
+  --u-red: #f33838;
+  --u-green: #3ad37b;
+  --u-green-dark: #1b8a4a;
+  --u-blue: #32b5f5;
+  --u-blue-dark: #126fa0;
+  --u-stone-dark: #16222f;
+  --u-stone-mid: #25384d;
+  --u-stone-light: #3a536e;
+  --u-wood-dark: #422614;
+  --u-wood-mid: #6b4122;
+  --u-wood-light: #a46d3e;
+  --u-parchment: #f6ecd5;
+  --u-font-title: 'Fredoka', 'Outfit', system-ui, sans-serif;
+  --u-font-body: 'Outfit', system-ui, sans-serif;
+  --u-text-shadow: 0 2px 0 #000, 0 3px 4px rgba(0,0,0,0.85);
+  --u-text-shadow-sm: 0 1px 0 #000, 0 2px 3px rgba(0,0,0,0.8);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #1b2a3a 0%, #090e15 100%);
+  font-family: var(--u-font-body);
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+
+/* ==========================================================================
+   MOBILE VIEWPORT FRAME (100% NATIVE MOBILE SIMULATOR ON PC)
+   ========================================================================== */
+#gameApp {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 440px;
+  max-height: 100vh;
+  overflow: hidden;
+  background: #73d2eb;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
+}
+
+@media (min-width: 480px) and (min-height: 620px) {
+  #gameApp {
+    height: 96vh;
+    max-height: 900px;
+    border-radius: 40px;
+    border: 9px solid #1c2a38;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), 0 0 0 3px rgba(255, 255, 255, 0.15);
+  }
+}
+
+#renderCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   HUD MASTER CONTAINER
+   -------------------------------------------------------------------------- */
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   ULALA TOP HEADER: AVATAR, CP BOX, CURRENCIES
+   ========================================================================== */
+.ulala-header {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: auto;
+  z-index: 25;
+}
+
+/* Player Shield Profile */
+.ulala-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ulala-avatar-frame {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+.ulala-avatar-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid var(--u-gold);
+  background: linear-gradient(135deg, #ffd977 0%, #e88d1d 100%);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.6);
+  display: block;
+}
+
+.ulala-class-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #32c5ff, #0d7db3);
+  border: 2px solid #fff;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.ulala-level-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #58e692, #1b964e);
+  border: 2px solid #fff;
+  color: #fff;
+  font-family: var(--u-font-title);
+  font-size: 12px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* CP & Realm Info */
+.ulala-info-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ulala-cp-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #2d3e52 0%, #17222f 100%);
+  padding: 2px 10px 2px 6px;
+  border-radius: 16px;
+  border: 2px solid var(--u-gold);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.ulala-cp-icon {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(180deg, var(--u-gold), var(--u-orange));
+  border-radius: 50%;
+  border: 1px solid #fff;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.ulala-cp-label {
+  font-family: var(--u-font-title);
+  font-size: 10px;
+  font-weight: 900;
+  color: #ffdf78;
+  letter-spacing: 0.5px;
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+.ulala-cp-value {
+  font-family: var(--u-font-title);
+  font-size: 13px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.ulala-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ulala-name-line strong {
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: var(--u-text-shadow);
+  color: #fff;
+}
+
+.ulala-realm-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #bbf0ff;
+  background: rgba(0,0,0,0.45);
+  padding: 1px 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* HP Gauge */
+.ulala-hp-gauge {
+  width: 105px;
+  height: 7px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px #000;
+}
+
+.ulala-hp-gauge i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #38d672, #99f848);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+/* Currency Section */
+.ulala-currencies {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ulala-currency-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #283a4c 0%, #15222f 100%);
+  padding: 2px 3px 2px 7px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.ulala-currency-pill img {
+  width: 17px;
+  height: 17px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+.ulala-currency-pill span {
+  font-family: var(--u-font-title);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fff;
+  min-width: 42px;
+  text-align: right;
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+.ulala-btn-plus {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--u-gold), var(--u-orange));
+  border: 1px solid #fff;
+  color: #fff;
+  font-family: var(--u-font-title);
+  font-size: 12px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  box-shadow: 0 2px 0 var(--u-orange-dark);
+}
+
+/* ==========================================================================
+   ULALA STAGE PROGRESS & SEGMENTED CHEST TRACKER (TOP-CENTER / RIGHT)
+   ========================================================================== */
+.ulala-stage-tracker {
+  position: absolute;
+  top: max(74px, env(safe-area-inset-top) + 64px);
+  right: max(8px, env(safe-area-inset-right));
+  background: linear-gradient(180deg, rgba(38, 56, 75, 0.94) 0%, rgba(20, 32, 45, 0.94) 100%);
+  padding: 8px 10px;
+  border-radius: 18px;
+  border: 2px solid var(--u-gold);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 155px;
+}
+
+.ulala-stage-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ulala-stage-name b {
+  font-family: var(--u-font-title);
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--u-gold-light);
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+.ulala-stage-name span {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #92e0ff;
+}
+
+/* Segmented 10-Step Progress Track */
+.ulala-track-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ulala-segments-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.4);
+  display: flex;
+  padding: 1px;
+  gap: 2px;
+}
+
+.ulala-segment {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.2s;
+}
+
+.ulala-segment.active {
+  background: linear-gradient(180deg, #5df393, #22a953);
+  box-shadow: 0 0 4px #5df393;
+}
+
+/* Treasure Chest Badge */
+.ulala-chest-badge {
+  font-size: 16px;
+  line-height: 1;
+  filter: grayscale(0.8);
+  transition: all 0.25s;
+}
+
+.ulala-chest-badge.ready {
+  filter: none;
+  transform: scale(1.2);
+  animation: chestShake 1.2s infinite ease-in-out;
+}
+
+@keyframes chestShake {
+  0%, 100% { transform: scale(1.2) rotate(0); }
+  25% { transform: scale(1.3) rotate(-8deg); }
+  75% { transform: scale(1.3) rotate(8deg); }
+}
+
+.ulala-loot-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #e2f2ff;
+  background: rgba(0,0,0,0.3);
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+/* Quick Action Buttons on Right (Map, Fast Battle, Log) */
+.ulala-side-actions {
+  position: absolute;
+  right: max(8px, env(safe-area-inset-right));
+  top: max(162px, env(safe-area-inset-top) + 152px);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.ulala-side-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #32465c, #1a2736);
+  border: 2px solid var(--u-gold);
+  box-shadow: 0 3px 0 var(--u-gold-dark), 0 4px 8px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform 0.1s;
+}
+
+.ulala-side-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--u-gold-dark);
+}
+
+.ulala-side-btn span {
+  font-size: 14px;
+}
+
+.ulala-side-btn small {
+  font-size: 7px;
+  font-weight: 900;
+  color: var(--u-gold-light);
+  line-height: 1;
+}
+
+/* ==========================================================================
+   ULALA TARGET MONSTER BOSS BAR (TOP-MIDDLE)
+   ========================================================================== */
+.ulala-boss-plate {
+  position: absolute;
+  top: max(124px, env(safe-area-inset-top) + 114px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  background: linear-gradient(180deg, rgba(38, 56, 75, 0.95) 0%, rgba(20, 32, 45, 0.95) 100%);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 2px solid var(--u-orange);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: all 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  pointer-events: auto;
+  z-index: 22;
+  min-width: 170px;
+}
+
+.ulala-boss-plate.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ulala-boss-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ulala-element-badge {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #22a953, #116831);
+  border: 1px solid #75ffa9;
+  color: #fff;
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+.ulala-boss-name {
+  font-family: var(--u-font-title);
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: var(--u-text-shadow);
+}
+
+.ulala-boss-hp-track {
+  width: 145px;
+  height: 9px;
+  background: rgba(0,0,0,0.7);
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px #000;
+}
+
+.ulala-boss-hp-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff3636, #ffab23);
+  transition: width 0.15s ease;
+}
+
+/* ==========================================================================
+   ULALA SIGNATURE BOSS CHALLENGE DRUM (RIGHT ACTION BUTTON)
+   ========================================================================== */
+.ulala-boss-drum {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: 165px;
+  pointer-events: auto;
+  z-index: 26;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9538 0%, #d83d0c 75%, #881c03 100%);
+  border: 3.5px solid #fff;
+  box-shadow: 0 5px 0 var(--u-orange-dark), 0 8px 20px rgba(224, 68, 20, 0.6), inset 0 2px 4px rgba(255,255,255,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  animation: ulalaDrumBounce 1.6s infinite ease-in-out;
+  transition: transform 0.1s;
+}
+
+.ulala-boss-drum:active {
+  transform: translateY(3px) scale(0.95);
+  box-shadow: 0 2px 0 var(--u-orange-dark), 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.ulala-boss-drum span.icon {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  line-height: 1;
+}
+
+.ulala-boss-drum span.label {
+  font-family: var(--u-font-title);
+  font-size: 9.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: var(--u-text-shadow);
+  margin-top: 1px;
+}
+
+.ulala-boss-drum:disabled {
+  animation: none;
+  filter: grayscale(0.85);
+  opacity: 0.6;
+  box-shadow: 0 3px 0 #333;
+}
+
+@keyframes ulalaDrumBounce {
+  0%, 100% { transform: scale(1); box-shadow: 0 5px 0 var(--u-orange-dark), 0 8px 20px rgba(224, 68, 20, 0.6); }
+  50% { transform: scale(1.08); box-shadow: 0 5px 0 var(--u-orange-dark), 0 0 26px rgba(255, 110, 30, 0.9); }
+}
+
+/* ==========================================================================
+   ULALA SIGNATURE 4-SLOT SKILL DECK & CAST BAR (BOTTOM CENTER)
+   ========================================================================== */
+.ulala-skill-deck-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+  z-index: 24;
+}
+
+/* Cast Energy Progress Bar */
+.ulala-cast-gauge {
+  width: 220px;
+  height: 6px;
+  background: rgba(15, 25, 36, 0.85);
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.4);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.ulala-cast-gauge i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2fd8ff, #478bff);
+  box-shadow: 0 0 8px #2fd8ff;
+  transition: width 0.05s linear;
+}
+
+/* 4 Skill Cards */
+.ulala-skills-row {
+  display: flex;
+  gap: 7px;
+  background: linear-gradient(180deg, rgba(35, 52, 70, 0.95) 0%, rgba(18, 28, 40, 0.95) 100%);
+  padding: 6px 10px;
+  border-radius: 18px;
+  border: 2px solid var(--u-gold);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+}
+
+.ulala-skill-card {
+  position: relative;
+  width: 48px;
+  height: 54px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2c4157, #172433);
+  border: 2px solid rgba(255,255,255,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: all 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* Skill Index Stamp (1, 2, 3, 4) */
+.ulala-skill-order {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-family: var(--u-font-title);
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--u-gold-light);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Skill Level Badge */
+.ulala-skill-lv {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 7.5px;
+  font-weight: 900;
+  color: #a4e6ff;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ulala-skill-card img {
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+  margin-top: 4px;
+}
+
+.ulala-skill-card span.name {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #e0eeff;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+/* Active Glowing Skill Slot */
+.ulala-skill-card.active {
+  transform: translateY(-8px) scale(1.14);
+  background: linear-gradient(180deg, #ff9f2e, #e24e0f);
+  border-color: #fff;
+  box-shadow: 0 0 20px var(--u-gold), 0 6px 12px rgba(0,0,0,0.6);
+}
+
+.ulala-skill-card.active span.name {
+  color: #fff;
+  font-weight: 900;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+
+/* ==========================================================================
+   ULALA 5-TAB STONE & WOOD NAVIGATION DOCK (BOTTOM MASTER)
+   ========================================================================== */
+.ulala-dock {
+  position: absolute;
+  left: 50%;
+  bottom: max(6px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: calc(100% - 14px);
+  max-width: 420px;
+  height: 62px;
+  background: linear-gradient(180deg, #2b3d52 0%, #15202c 100%);
+  border-radius: 32px;
+  border: 2.5px solid var(--u-gold);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.15);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  padding: 0 4px;
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.ulala-dock-tab {
+  position: relative;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #8da9c7;
+  font-family: var(--u-font-title);
+  font-weight: 800;
+  font-size: 9px;
+  padding: 4px 0;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.ulala-dock-tab img {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.15s;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+}
+
+.ulala-dock-tab:active {
+  transform: scale(0.92);
+}
+
+.ulala-dock-tab.active, .ulala-dock-tab:hover {
+  color: var(--u-gold-light);
+}
+
+.ulala-dock-tab.active img {
+  transform: translateY(-2px);
+}
+
+/* Notification Red Dot */
+.ulala-red-dot {
+  position: absolute;
+  top: 2px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2a2a;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* Central Battle Tab (Raised Big Drum Button) */
+.ulala-dock-tab.main-tab {
+  position: relative;
+  top: -14px;
+}
+
+.ulala-dock-tab.main-tab .ulala-main-orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffaa2b 0%, #ee5c11 75%, #962804 100%);
+  border: 3.5px solid #fff;
+  box-shadow: 0 4px 0 var(--u-orange-dark), 0 8px 18px rgba(238, 92, 17, 0.6), inset 0 2px 4px rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+
+.ulala-dock-tab.main-tab .ulala-main-orb img {
+  width: 28px;
+  height: 28px;
+}
+
+.ulala-dock-tab.main-tab:active .ulala-main-orb {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--u-orange-dark), 0 3px 8px rgba(0,0,0,0.4);
+}
+
+.ulala-dock-tab.main-tab span {
+  color: #fff;
+  font-weight: 900;
+  text-shadow: var(--u-text-shadow-sm);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   FLOATING DAMAGE NUMBERS & TOASTS
+   ========================================================================== */
+.damage-number {
+  position: absolute;
+  font-family: var(--u-font-title);
+  font-weight: 900;
+  font-size: 20px;
+  color: #ffde43;
+  -webkit-text-stroke: 1px #000;
+  text-shadow: 0 2px 0 #000, 0 0 10px rgba(255, 150, 0, 0.9);
+  pointer-events: none;
+  z-index: 45;
+  animation: ulalaFloatDamage 0.75s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.damage-number.crit {
+  font-size: 26px;
+  color: #ff3344;
+  -webkit-text-stroke: 1.5px #000;
+  text-shadow: 0 2px 0 #000, 0 0 14px rgba(255, 0, 0, 0.95);
+}
+
+@keyframes ulalaFloatDamage {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  25% { transform: translate(-50%, -22px) scale(1.25); opacity: 1; }
+  100% { transform: translate(-50%, -55px) scale(1); opacity: 0; }
+}
+
+.loot-toast {
+  position: absolute;
+  z-index: 48;
+  left: 50%;
+  top: 25%;
+  transform: translate(-50%, -10px);
+  padding: 8px 18px;
+  background: linear-gradient(180deg, rgba(42, 60, 80, 0.96), rgba(20, 32, 45, 0.96));
+  border: 2px solid var(--u-gold);
+  border-radius: 16px;
+  font-family: var(--u-font-title);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  pointer-events: none;
+  text-shadow: var(--u-text-shadow-sm);
+}
+
+.loot-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ==========================================================================
+   OFFLINE REWARD POPUP (ULALA PREHISTORIC STONE/PARCHMENT CARD)
+   ========================================================================== */
+.offline-reward {
+  position: absolute;
+  z-index: 55;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: min(320px, 86vw);
+  padding: 22px;
+  border-radius: 26px;
+  background: var(--u-parchment);
+  color: #3b2a1a;
+  border: 4px solid var(--u-gold);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.offline-reward.show {
+  display: flex;
+  transform: translate(-50%, -50%) scale(1);
+  animation: ulalaPop 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.offline-reward strong {
+  font-family: var(--u-font-title);
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--u-wood-mid);
+}
+
+.offline-reward span {
+  font-size: 13.5px;
+  font-weight: 800;
+  background: #e8ded0;
+  padding: 7px;
+  border-radius: 12px;
+  border: 1px solid #d4bf9c;
+}
+
+.offline-reward button {
+  border: 0;
+  border-radius: 16px;
+  padding: 12px;
+  background: linear-gradient(180deg, #4ce291, #1e9955);
+  box-shadow: 0 4px 0 #136a3a;
+  color: #fff;
+  font-family: var(--u-font-title);
+  font-weight: 900;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.offline-reward button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #136a3a;
+}
+
+/* ==========================================================================
+   SYSTEM MODAL & BOTTOM SHEETS (ULALA STYLE)
+   ========================================================================== */
+.system-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.system-modal.show {
+  display: flex;
+}
+
+.system-sheet {
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  background: var(--u-parchment);
+  color: #3b2a1a;
+  border-radius: 28px 28px 0 0;
+  border: 3.5px solid #c9b18c;
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: ulalaSlideUp 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes ulalaSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.system-sheet header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, #ece1ce, #decbb0);
+  border-bottom: 2px solid #c9b18c;
+}
+
+.system-sheet header b {
+  font-family: var(--u-font-title);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--u-wood-dark);
+}
+
+.system-sheet header button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #8e7861;
+  color: #fff;
+  font-family: var(--u-font-title);
+  font-weight: 900;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+
+.system-body {
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.system-summary {
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: #ffffff;
+  border: 1.5px solid #d8c4a6;
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 600;
+  color: #5a4635;
+}
+
+.big-stat {
+  font-family: var(--u-font-title);
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--u-orange-dark);
+  background: #ebd8bf;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #d4bf9c;
+}
+
+.system-body > button {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 12px;
+  background: linear-gradient(180deg, var(--u-gold), var(--u-orange));
+  box-shadow: 0 4px 0 var(--u-orange-dark);
+  color: #fff;
+  font-family: var(--u-font-title);
+  font-weight: 900;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.system-body > button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--u-orange-dark);
+}
+
+.pet-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1.5px solid #d8c4a6;
+}
+
+.pet-orb {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #7fe8d2, #38c89b);
+  border: 3px solid var(--u-gold);
+  font-size: 26px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.clatter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.clatter-grid i {
+  height: 60px;
+  border-radius: 14px;
+  background: #dbd0be;
+  border: 2px dashed #b8a690;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 20px;
+}
+
+.clatter-grid i.open {
+  background: linear-gradient(180deg, #ffd778, #f5a938);
+  border: 2px solid #b36e15;
+  box-shadow: 0 3px 0 #b36e15;
+}
+
+/* ==========================================================================
+   VIRTUAL JOYSTICK (MOBILE TOUCH & DRAG CONTROLS)
+   ========================================================================== */
+.virtual-joystick-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  overflow: hidden;
+}
+
+.joystick-base {
+  position: absolute;
+  width: 124px;
+  height: 124px;
+  margin-left: -62px;
+  margin-top: -62px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.22) 0%, rgba(15, 23, 42, 0.65) 100%);
+  border: 2px solid rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 24px rgba(14, 165, 233, 0.4), inset 0 0 16px rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.joystick-base.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.joystick-knob {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #bae6fd 0%, #0284c7 65%, #0369a1 100%);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.9), inset 0 2px 5px rgba(255, 255, 255, 0.9);
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.joystick-ring {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(186, 230, 253, 0.45);
+  pointer-events: none;
+  animation: joystickSpin 12s linear infinite;
+}
+
+@keyframes joystickSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.joystick-arrows {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.j-arrow {
+  position: absolute;
+  font-size: 11px;
+  color: rgba(224, 242, 254, 0.75);
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
+}
+
+.j-up { top: 6px; left: 50%; transform: translateX(-50%); }
+.j-down { bottom: 6px; left: 50%; transform: translateX(-50%); }
+.j-left { left: 6px; top: 50%; transform: translateY(-50%); }
+.j-right { right: 6px; top: 50%; transform: translateY(-50%); }
