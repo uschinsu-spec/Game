@@ -1,4 +1,4 @@
-const SW_VERSION = '20260914-flora-ecosystem-v41';
+const SW_VERSION = '20260914-sync-v42';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
 const CORE = [
