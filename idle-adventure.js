@@ -9,7 +9,7 @@
   const progress=document.getElementById('stageProgress'),bossBtn=document.getElementById('bossChallenge'),offline=document.getElementById('offlineReward');
   const targetPanel=document.getElementById('targetPanel'),targetName=document.getElementById('targetName'),targetHp=document.getElementById('targetHp');
   const playerHpBar=document.querySelector('.hp i'),playerHpText=document.querySelector('.hp b'),artLabel=document.getElementById('autoArt');
-  let mode='run',enemy=null,enemyHp=0,enemyMax=0,playerHp=100,lastCast=0,lastEnemyAttack=0,lastBattleEnd=performance.now(),kills=0,bossScale=null;
+  let mode='run',enemy=null,enemyHp=0,enemyMax=0,playerHp=100,lastCast=0,lastEnemyAttack=0,lastBattleEnd=performance.now(),kills=0,bossScale=null,enemyDying=false;
   ['joystick','attack','jump','menuToggle','utilityTray'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});const oldSkills=document.querySelector('.portrait-skills');if(oldSkills)oldSkills.style.display='none';player.rotation.y=Math.PI;
   const zone=()=>zones[Math.floor((state.stage-1)/20)%zones.length],xpPerMin=()=>Math.floor(18+state.stage*2.4),stonesPerMin=()=>Math.floor(8+state.stage*1.15);
   const save=()=>{state.lastSeen=Date.now();localStorage.setItem(SAVE,JSON.stringify(state));};window.IdleCore={state,save};
@@ -18,10 +18,38 @@
   function offlineReward(){const now=Date.now(),seconds=Math.min(OFFLINE_CAP,Math.max(0,(now-(state.lastSeen||now))/1000));if(seconds<90)return;const xp=seconds*xpPerMin()/60,stones=seconds*stonesPerMin()/60;state.xp+=xp;state.stones+=stones;offline.innerHTML=`<strong>Bế quan ${Math.floor(seconds/3600)}g ${Math.floor(seconds%3600/60)}p</strong><span>+${Math.floor(xp).toLocaleString()} kinh nghiệm</span><span>+${Math.floor(stones).toLocaleString()} linh thạch</span><button>Nhận</button>`;offline.classList.add('show');offline.querySelector('button').onclick=()=>offline.classList.remove('show');save()}offlineReward();
   const petRoot=new BABYLON.TransformNode('SoloSpiritPet',scene);petRoot.parent=player;petRoot.position.set(-1.05,.15,.65);const petMat=mat('soloPet','#77c7cf');const petBody=BABYLON.MeshBuilder.CreateSphere('SoloPetBody',{diameter:.55,segments:8},scene);petBody.parent=petRoot;petBody.position.y=.45;petBody.material=petMat;const petHead=BABYLON.MeshBuilder.CreateSphere('SoloPetHead',{diameter:.38,segments:8},scene);petHead.parent=petRoot;petHead.position.set(0,.72,-.28);petHead.material=petMat;
   const demons=()=>scene.meshes.filter(m=>m.name==='Demon');function acquireEnemy(){let list=demons();if(!list.length)return null;let e=list.find(x=>!x.isEnabled())||list[0];e.setEnabled(true);e.metadata=e.metadata||{};return e}
-  function placeEnemy(isBoss){enemy=acquireEnemy();if(!enemy)return;const f=new BABYLON.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));enemy.position.copyFrom(player.position.add(f.scale(isBoss?8.2:7.2)));enemy.position.y=.8;bossScale=enemy.scaling.clone();enemy.scaling.setAll(isBoss?1.75:1);enemyMax=isBoss?(580+state.stage*68):(110+state.stage*13);enemyHp=enemyMax;playerHp=100;enemy.metadata.hp=enemyHp;enemy.metadata.maxHp=enemyMax;targetName.textContent=isBoss?'Yêu Vương':'Yêu Thú';targetHp.style.width='100%';targetPanel.classList.add('show');playerHpBar.style.width='100%';playerHpText.textContent='100 / 100';lastCast=lastEnemyAttack=performance.now()}
-  function endBattle(victory){const wasBoss=mode==='boss';if(enemy){if(bossScale)enemy.scaling.copyFrom(bossScale);enemy.setEnabled(false)}enemy=null;targetPanel.classList.remove('show');if(wasBoss){if(victory){const cleared=state.stage;state.stage++;kills=0;cultivate(90+state.stage*7,36+state.stage*2);dispatchEvent(new CustomEvent('idle:bossWin',{detail:{stage:cleared}}))}mode='run'}else if(victory){kills=Math.min(10,kills+1);cultivate(10+state.stage*1.2,4+state.stage*.55);dispatchEvent(new CustomEvent('idle:mobWin',{detail:{stage:state.stage,kills}}));mode='run'}else mode='run';lastBattleEnd=performance.now();save();refresh()}
-  function hitEnemy(amount){if(!enemy)return;enemyHp-=amount;targetHp.style.width=`${Math.max(0,enemyHp/enemyMax*100)}%`;attackT=.30;if(enemyHp<=0)endBattle(true)}function hitPlayer(amount){playerHp=Math.max(0,playerHp-amount);playerHpBar.style.width=`${playerHp}%`;playerHpText.textContent=`${Math.ceil(playerHp)} / 100`;if(playerHp<=0)endBattle(false)}
-  const arts=[{n:'Thanh Vân Kiếm',m:1},{n:'Hộ Thể Chân Khí',m:.78},{n:'Thiên Lôi Quyết',m:1.26},{n:'Vạn Kiếm Quy Tông',m:1.48}];let artIndex=0;function beginMob(){mode='mob';placeEnemy(false);refresh()}function beginBoss(){if(mode==='mob'&&enemy){if(bossScale)enemy.scaling.copyFrom(bossScale);enemy.setEnabled(false);enemy=null}mode='boss';placeEnemy(true);refresh()}bossBtn.onclick=beginBoss;
-  scene.onBeforeRenderObservable.add(()=>{const dt=Math.min(.033,engine.getDeltaTime()/1000),now=performance.now();player.rotation.y=Math.PI;if(mode==='run'){player.position.addInPlace(new BABYLON.Vector3(0,0,-1).scale(1.65*dt));if(player.position.z<-86)player.position.z=58;if(now-lastBattleEnd>1450)beginMob()}else if(enemy){if(now-lastCast>980){lastCast=now;const a=arts[artIndex++%arts.length];artLabel.textContent=a.n;const bonus=typeof window.getProgressionPower==='function'?window.getProgressionPower():0;hitEnemy((state.power+bonus)*a.m*.19)}if(enemy&&now-lastEnemyAttack>(mode==='boss'?1150:1450)){lastEnemyAttack=now;hitPlayer(mode==='boss'?(8+state.stage*.35):(2.6+state.stage*.12))}if(mode==='boss'&&now-lastBattleEnd>18000)endBattle(false)}petRoot.position.y=.15+Math.sin(now*.004)*.05;camera.inputs.clear();camera.alpha=Math.PI/2;camera.beta=1.15;camera.radius=19.2;camera.fov=.72;camera.lowerBetaLimit=1.15;camera.upperBetaLimit=1.15;camera.lowerRadiusLimit=19.2;camera.upperRadiusLimit=19.2;camera.target.copyFrom(player.position.add(new BABYLON.Vector3(0,1.35,-4.8)));refresh()});
+  function placeEnemy(isBoss){
+    enemy=acquireEnemy();if(!enemy)return;enemyDying=false;
+    const f=new BABYLON.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));enemy.position.copyFrom(player.position.add(f.scale(isBoss?8.2:7.2)));enemy.position.y=.8;bossScale=enemy.scaling.clone();enemy.scaling.setAll(isBoss?1.75:1);
+    enemyMax=isBoss?(580+state.stage*68):(110+state.stage*13);enemyHp=enemyMax;playerHp=100;enemy.metadata.hp=enemyHp;enemy.metadata.maxHp=enemyMax;
+    if(window.EnemySystem){window.EnemySystem.activate(enemy,isBoss,state.stage);window.EnemySystem.facePlayer(enemy,player);targetName.textContent=window.EnemySystem.getDisplayName(enemy,isBoss)}else targetName.textContent=isBoss?'Yêu Vương':'Yêu Thú';
+    targetHp.style.width='100%';targetPanel.classList.add('show');playerHpBar.style.width='100%';playerHpText.textContent='100 / 100';lastCast=lastEnemyAttack=performance.now();
+  }
+  function endBattle(victory){
+    const wasBoss=mode==='boss',victim=enemy;
+    if(victim){if(bossScale)victim.scaling.copyFrom(bossScale);if(window.EnemySystem)window.EnemySystem.deactivate(victim);victim.setEnabled(false)}
+    enemy=null;enemyDying=false;targetPanel.classList.remove('show');
+    if(wasBoss){if(victory){const cleared=state.stage;state.stage++;kills=0;cultivate(90+state.stage*7,36+state.stage*2);dispatchEvent(new CustomEvent('idle:bossWin',{detail:{stage:cleared}}))}mode='run'}else if(victory){kills=Math.min(10,kills+1);cultivate(10+state.stage*1.2,4+state.stage*.55);dispatchEvent(new CustomEvent('idle:mobWin',{detail:{stage:state.stage,kills}}));mode='run'}else mode='run';lastBattleEnd=performance.now();save();refresh();
+  }
+  function hitEnemy(amount){
+    if(!enemy||enemyDying)return;enemyHp-=amount;enemy.metadata.hp=enemyHp;targetHp.style.width=`${Math.max(0,enemyHp/enemyMax*100)}%`;attackT=.30;
+    if(enemyHp<=0){enemyDying=true;targetHp.style.width='0%';if(window.EnemySystem)window.EnemySystem.play(enemy,'death');const victim=enemy;setTimeout(()=>{if(enemy===victim&&enemyDying)endBattle(true)},620)}
+    else if(window.EnemySystem)window.EnemySystem.play(enemy,'hurt');
+  }
+  function hitPlayer(amount){playerHp=Math.max(0,playerHp-amount);playerHpBar.style.width=`${playerHp}%`;playerHpText.textContent=`${Math.ceil(playerHp)} / 100`;if(playerHp<=0)endBattle(false)}
+  const arts=[{n:'Thanh Vân Kiếm',m:1},{n:'Hộ Thể Chân Khí',m:.78},{n:'Thiên Lôi Quyết',m:1.26},{n:'Vạn Kiếm Quy Tông',m:1.48}];let artIndex=0;
+  function beginMob(){mode='mob';placeEnemy(false);refresh()}
+  function beginBoss(){if(mode==='mob'&&enemy){if(bossScale)enemy.scaling.copyFrom(bossScale);if(window.EnemySystem)window.EnemySystem.deactivate(enemy);enemy.setEnabled(false);enemy=null;enemyDying=false}mode='boss';placeEnemy(true);refresh()}bossBtn.onclick=beginBoss;
+  scene.onBeforeRenderObservable.add(()=>{
+    const dt=Math.min(.033,engine.getDeltaTime()/1000),now=performance.now();player.rotation.y=Math.PI;
+    if(mode==='run'){player.position.addInPlace(new BABYLON.Vector3(0,0,-1).scale(1.65*dt));if(player.position.z<-86)player.position.z=58;if(now-lastBattleEnd>1450)beginMob()}
+    else if(enemy&&!enemyDying){
+      if(window.EnemySystem)window.EnemySystem.facePlayer(enemy,player);
+      if(now-lastCast>980){lastCast=now;const a=arts[artIndex++%arts.length];artLabel.textContent=a.n;const bonus=typeof window.getProgressionPower==='function'?window.getProgressionPower():0;hitEnemy((state.power+bonus)*a.m*.19)}
+      if(enemy&&!enemyDying&&now-lastEnemyAttack>(mode==='boss'?1150:1450)){lastEnemyAttack=now;if(window.EnemySystem)window.EnemySystem.play(enemy,'attack');hitPlayer(mode==='boss'?(8+state.stage*.35):(2.6+state.stage*.12))}
+      if(mode==='boss'&&now-lastBattleEnd>18000)endBattle(false)
+    }
+    petRoot.position.y=.15+Math.sin(now*.004)*.05;camera.inputs.clear();camera.alpha=Math.PI/2;camera.beta=1.15;camera.radius=19.2;camera.fov=.72;camera.lowerBetaLimit=1.15;camera.upperBetaLimit=1.15;camera.lowerRadiusLimit=19.2;camera.upperRadiusLimit=19.2;camera.target.copyFrom(player.position.add(new BABYLON.Vector3(0,1.35,-4.8)));refresh()
+  });
   setInterval(save,10000);addEventListener('pagehide',save);refresh();
 })();
