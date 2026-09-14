@@ -12,18 +12,15 @@ const camera=new BABYLON.ArcRotateCamera('camera',Math.PI/2,1.15,19.2,new BABYLO
 camera.inputs.clear();camera.panningSensibility=0;camera.lowerBetaLimit=1.15;camera.upperBetaLimit=1.15;camera.lowerRadiusLimit=19.2;camera.upperRadiusLimit=19.2;camera.fov=.72;camera.minZ=.1;camera.maxZ=420;
 
 const mat=(name,color)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.06,.06,.06);return m};
-const goldMat=mat('gold','#d9b45d'),bladeMat=mat('blade','#9bdcff'),redMat=mat('enemyHost','#9f3e38');
+const goldMat=mat('gold','#d9b45d'),bladeMat=mat('blade','#9bdcff');
 
 const player=new BABYLON.TransformNode('PlayerRoot',scene);player.position.set(0,0,62);player.rotation.y=Math.PI;
 const bodyRoot=new BABYLON.TransformNode('SkeletonRoot',scene);bodyRoot.parent=player;
 let attackT=0;
 
-// Read-only compatibility bridge for cloth/hair sway. It does not own movement.
-const keys={};
-const joy={get x(){return 0},get y(){const s=window.PLAYER_MOTION_STATE;return s==='walk'||s==='run'?-1:0}};
-
-const enemyHost=BABYLON.MeshBuilder.CreateCylinder('Demon',{height:1.6,diameter:.7,tessellation:6},scene);
-enemyHost.position.set(0,.8,0);enemyHost.material=redMat;enemyHost.isVisible=false;enemyHost.setEnabled(false);enemyHost.metadata={enemySlot:0,spawnSerial:0};
+// Pure scene-graph anchor: no geometry, no material, no render cost, impossible to become visible.
+const enemyHost=new BABYLON.TransformNode('EnemyHost',scene);
+enemyHost.position.set(0,.8,0);enemyHost.setEnabled(false);enemyHost.metadata={enemySlot:0,spawnSerial:0};
 
 engine.runRenderLoop(()=>scene.render());
 window.addEventListener('resize',()=>engine.resize(),{passive:true});
