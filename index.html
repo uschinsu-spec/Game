@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Tu Tiên 3D Mobile Prototype</title>
-  <link rel="stylesheet" href="./style.css?v=20260914-1" />
+  <link rel="stylesheet" href="./style.css?v=20260914-2" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -59,8 +59,6 @@
   </div>
 
   <script>
-    // Auto-update: always check GitHub Pages for a newer build when the game opens,
-    // when Safari returns to the foreground, and periodically while playing.
     const VERSION_KEY = 'tu-tien-build-version';
     async function checkForGameUpdate() {
       try {
@@ -83,9 +81,7 @@
           url.searchParams.set('v', remoteVersion);
           location.replace(url.toString());
         }
-      } catch (_) {
-        // Offline / temporary network errors do not interrupt the current game.
-      }
+      } catch (_) {}
     }
 
     checkForGameUpdate();
@@ -103,6 +99,7 @@
       });
     }
   </script>
-  <script src="./game.js?v=20260914-1"></script>
+  <script src="./game.js?v=20260914-2"></script>
+  <script src="./camera-controls.js?v=20260914-2"></script>
 </body>
 </html>
