@@ -21,21 +21,19 @@ self.addEventListener('fetch',event=>{
   if(req.method!=='GET')return;
   const url=new URL(req.url);
 
-  // HTML + version stay network-first so new deployments are discovered immediately.
   if(url.origin===self.location.origin&&(url.pathname.endsWith('/version.json')||req.mode==='navigate')){
     event.respondWith((async()=>{
       try{
         const fresh=await fetch(new Request(req,{cache:'no-store'}));
         const cache=await caches.open(CORE_CACHE);cache.put(req,fresh.clone());
         return fresh;
-      }catch(_){return (await caches.match(req))||Response.error()}
+      }catch(_){return (await caches.match(req,{ignoreSearch:true}))||Response.error()}
     })());
     return;
   }
 
-  // Game code/assets use stale-while-revalidate: instant repeat loads, fresh cache in background.
   event.respondWith((async()=>{
-    const cached=await caches.match(req);
+    const cached=await caches.match(req,{ignoreSearch:true});
     const network=fetch(req).then(async res=>{
       if(res&&res.ok){const cache=await caches.open(url.origin===self.location.origin?CORE_CACHE:RUNTIME_CACHE);cache.put(req,res.clone())}
       return res;
