@@ -6,14 +6,14 @@
   const records=new WeakMap();
   const pick=(groups,keys)=>{for(const k of keys){const g=groups.find(x=>x.name&&x.name.toLowerCase().includes(k));if(g)return g}return null};
   const lists={mob:cfg.catalog.filter(x=>x.role==='mob'),elite:cfg.catalog.filter(x=>x.role==='elite'),boss:cfg.catalog.filter(x=>x.role==='boss')};
-  hosts.forEach((h,i)=>{h.metadata=h.metadata||{};h.metadata.enemySlot=i;h.setEnabled(false)});
+  hosts.forEach((h,i)=>{h.metadata=h.metadata||{};h.metadata.enemySlot=i;h.metadata.spawnSerial=0;h.setEnabled(false)});
 
   function choose(host,isBoss,stage){
-    const s=Math.max(1,stage||1),slot=host.metadata.enemySlot||0;
+    const s=Math.max(1,stage||1),slot=host.metadata.enemySlot||0,serial=host.metadata.spawnSerial||0;
     if(isBoss)return lists.boss[(s-1)%lists.boss.length];
-    const elite=s>=8&&((s+slot)%5===0);
+    const elite=s>=8&&((s+serial)%5===0);
     const pool=elite?lists.elite:lists.mob;
-    return pool[(s*3+slot)%pool.length];
+    return pool[(s*3+slot+serial)%pool.length];
   }
   function groupsFor(result){return (result.animationGroups||[]).filter(Boolean)}
   function mapClips(groups){return {
@@ -73,6 +73,7 @@
     if(!host)return null;
     host.metadata=host.metadata||{};
     const entry=choose(host,isBoss,stage);
+    if(!isBoss)host.metadata.spawnSerial=(host.metadata.spawnSerial||0)+1;
     host.metadata.enemyDisplayName=entry.name;
     host.metadata.enemyAssetId=entry.id;
     host.metadata.enemyIsBoss=!!isBoss;
