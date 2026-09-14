@@ -1,22 +1,45 @@
 const canvas = document.getElementById('renderCanvas');
-const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: false, adaptToDeviceRatio: true });
+// Configure high texture quality & anisotropic filtering
+if (typeof BABYLON !== 'undefined' && BABYLON.Texture) {
+  BABYLON.Texture.DEFAULT_ANISOTROPIC_FILTERING_LEVEL = 4;
+}
+
+const engine = new BABYLON.Engine(canvas, true, {
+  preserveDrawingBuffer: false,
+  stencil: false,
+  adaptToDeviceRatio: true,
+  antialias: true,
+  powerPreference: 'high-performance'
+});
 const scene = new BABYLON.Scene(engine);
-scene.clearColor = new BABYLON.Color4(0.60, 0.82, 0.88, 1);
+scene.clearColor = new BABYLON.Color4(0.55, 0.78, 0.88, 1);
 scene.fogMode = BABYLON.Scene.FOGMODE_NONE; // Disable fog so all distances are 100% crystal clear
 
+// Advanced Color Grading & ACES Tone Mapping for cinematic mobile rendering
+if (scene.imageProcessingConfiguration) {
+  scene.imageProcessingConfiguration.toneMappingEnabled = true;
+  scene.imageProcessingConfiguration.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  scene.imageProcessingConfiguration.exposure = 1.08;
+  scene.imageProcessingConfiguration.contrast = 1.12;
+  scene.imageProcessingConfiguration.vignetteEnabled = true;
+  scene.imageProcessingConfiguration.vignetteWeight = 1.2;
+  scene.imageProcessingConfiguration.vignetteColor = new BABYLON.Color4(0.04, 0.08, 0.12, 0.35);
+}
+
 const hemi = new BABYLON.HemisphericLight('sky', new BABYLON.Vector3(0, 1, 0), scene);
-hemi.intensity = 1.25;
-hemi.diffuse = new BABYLON.Color3(1.0, 1.0, 0.95);
-hemi.groundColor = new BABYLON.Color3(0.45, 0.65, 0.35);
+hemi.intensity = 1.28;
+hemi.diffuse = new BABYLON.Color3(1.0, 0.98, 0.92);
+hemi.groundColor = new BABYLON.Color3(0.42, 0.62, 0.38);
 
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-0.4, -1, 0.4), scene);
 sun.position.set(120, 200, -120);
-sun.intensity = 1.15;
+sun.intensity = 1.22;
 const shadow = new BABYLON.ShadowGenerator(1024, sun);
 shadow.useBlurExponentialShadowMap = true;
-shadow.blurKernel = 16;
-shadow.darkness = 0.28; // Soft gentle shadows, never pitch black
+shadow.blurKernel = 12;
+shadow.darkness = 0.32; // Soft gentle shadows, never pitch black
 shadow.bias = 0.002;
+shadow.normalBias = 0.01;
 
 const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, 0.92, 50.0, new BABYLON.Vector3(0, 0.4, 0), scene);
 camera.inputs.clear();
@@ -28,6 +51,22 @@ camera.upperRadiusLimit = 95.0;
 camera.fov = 0.85;
 camera.minZ = 0.1;
 camera.maxZ = 2000;
+
+// Default Mobile Post-Processing Pipeline (FXAA Antialiasing + Xianxia Bloom)
+let pipeline = null;
+try {
+  pipeline = new BABYLON.DefaultRenderingPipeline('MobilePostProcess', true, scene, [camera]);
+  pipeline.fxaaEnabled = true; // Smooth jagged polygon edges on mobile
+  pipeline.bloomEnabled = true;
+  pipeline.bloomThreshold = 0.78;
+  pipeline.bloomWeight = 0.28;
+  pipeline.bloomKernel = 32;
+  pipeline.bloomScale = 0.5;
+  pipeline.imageProcessingEnabled = true;
+  pipeline.samples = 1;
+} catch (e) {
+  console.warn('[GameRuntime] Post-processing pipeline fallback:', e);
+}
 
 const mat = (name, color) => {
   const m = new BABYLON.StandardMaterial(name, scene);
@@ -60,4 +99,4 @@ if (window.ResizeObserver && appContainer) {
 }
 window.addEventListener('resize', () => engine.resize(), { passive: true });
 
-window.GameRuntime = { engine, scene, player, camera, enemyHost };
+window.GameRuntime = { engine, scene, player, camera, enemyHost, shadow, pipeline };

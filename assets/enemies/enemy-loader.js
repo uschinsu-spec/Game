@@ -51,9 +51,17 @@
       const info      = global.EnemyRegistry ? global.EnemyRegistry.get(enemyId) : null;
       const modelPath = info ? info.modelPath : `./assets/enemies/big/${enemyId}.glb`;
 
+      let rootUrl = '';
+      let fileName = modelPath;
+      const lastSlash = modelPath.lastIndexOf('/');
+      if (lastSlash !== -1) {
+        rootUrl = modelPath.substring(0, lastSlash + 1);
+        fileName = modelPath.substring(lastSlash + 1);
+      }
+
       const promise = (async () => {
         try {
-          const container = await BABYLON.SceneLoader.LoadAssetContainerAsync('', modelPath, scene);
+          const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene, null, '.glb');
           containerCache.set(enemyId, container);
           return container;
         } catch (err) {
@@ -169,7 +177,7 @@
       const instance = container.instantiateModelsToScene(
         (name) => `${name}_${uid}`,
         false,
-        { doNotInstantiate: false }
+        { doNotInstantiate: true }
       );
 
       // ── Root transform ─────────────────────────────────────────────────
@@ -183,15 +191,15 @@
       // ── Parent visual meshes ───────────────────────────────────────────
       for (const rootMesh of instance.rootNodes) {
         rootMesh.parent = rootNode;
+        rootMesh.setEnabled(true);
       }
 
       // ── Visual mesh flags ──────────────────────────────────────────────
-      // checkCollisions = false  → capsule collider owns this
-      // receiveShadows           → NOT set here, EnemyShadowManager owns it
-      //                            (sets it via addShadowCaster() on near enemies)
       const visualMeshes = [];
       for (const rootMesh of instance.rootNodes) {
         rootMesh.getChildMeshes(false).forEach(m => {
+          m.setEnabled(true);
+          m.isVisible       = true;
           m.isPickable      = true;
           m.checkCollisions = false;
           if (!m.name.startsWith('HP_') && !m.name.startsWith('Collider_')) {

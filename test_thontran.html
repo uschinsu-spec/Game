@@ -96,9 +96,18 @@
 
   <script>
     const canvas = document.getElementById('renderCanvas');
-    const engine = new BABYLON.Engine(canvas, true);
+    if (typeof BABYLON !== 'undefined' && BABYLON.Texture) {
+      BABYLON.Texture.DEFAULT_ANISOTROPIC_FILTERING_LEVEL = 4;
+    }
+    const engine = new BABYLON.Engine(canvas, true, { adaptToDeviceRatio: true, antialias: true, powerPreference: 'high-performance' });
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.09, 0.14, 0.22, 1.0);
+    scene.clearColor = new BABYLON.Color4(0.08, 0.12, 0.20, 1.0);
+    if (scene.imageProcessingConfiguration) {
+      scene.imageProcessingConfiguration.toneMappingEnabled = true;
+      scene.imageProcessingConfiguration.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+      scene.imageProcessingConfiguration.exposure = 1.08;
+      scene.imageProcessingConfiguration.contrast = 1.12;
+    }
 
     // Orbit Camera
     const camera = new BABYLON.ArcRotateCamera('Cam', Math.PI / 2, 1.15, 8.0, new BABYLON.Vector3(0, 1.5, 0), scene);

@@ -73,13 +73,19 @@
       for (const ag of animationGroups) {
         if (!ag || !ag.name) continue;
 
-        this.animationGroups.set(ag.name.toLowerCase(), ag);
+        const rawName = ag.name.toLowerCase();
+        this.animationGroups.set(rawName, ag);
 
-        const noUidSuffix = ag.name.replace(/_\d+$/g, '').toLowerCase();
-        if (noUidSuffix !== ag.name.toLowerCase()) {
-          if (!this.animationGroups.has(noUidSuffix)) {
-            this.animationGroups.set(noUidSuffix, ag);
-          }
+        // Strip _enemy_<id>_<timestamp>_<random> suffix added by instantiateModelsToScene
+        const cleanName = ag.name.replace(/_enemy_[\s\S]*$/i, '').toLowerCase();
+        if (cleanName && !this.animationGroups.has(cleanName)) {
+          this.animationGroups.set(cleanName, ag);
+        }
+
+        // Also handle standard _\d+ numeric clone suffixes
+        const noNum = cleanName.replace(/_\d+$/g, '').toLowerCase();
+        if (noNum && !this.animationGroups.has(noNum)) {
+          this.animationGroups.set(noNum, ag);
         }
       }
 
