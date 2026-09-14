@@ -1,1 +1,0 @@
-Đặt model boss tại đây. Tên mặc định: `boss.glb`.
