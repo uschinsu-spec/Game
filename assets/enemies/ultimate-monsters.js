@@ -1,0 +1,79 @@
+(()=>{
+  const cfg=window.ULTIMATE_MONSTERS_CONFIG;
+  const scene=BABYLON.EngineStore.LastCreatedScene;
+  if(!cfg||!scene)return;
+  const hosts=scene.meshes.filter(m=>m.name==='Demon');
+  const records=new WeakMap();
+  const pick=(groups,keys)=>{for(const k of keys){const g=groups.find(x=>x.name&&x.name.toLowerCase().includes(k));if(g)return g}return null};
+  const lists={mob:cfg.catalog.filter(x=>x.role==='mob'),elite:cfg.catalog.filter(x=>x.role==='elite'),boss:cfg.catalog.filter(x=>x.role==='boss')};
+  hosts.forEach((h,i)=>{h.metadata=h.metadata||{};h.metadata.enemySlot=i;h.setEnabled(false)});
+
+  function choose(host,isBoss,stage){
+    const s=Math.max(1,stage||1),slot=host.metadata.enemySlot||0;
+    if(isBoss)return lists.boss[(s-1)%lists.boss.length];
+    const elite=s>=8&&((s+slot)%5===0);
+    const pool=elite?lists.elite:lists.mob;
+    return pool[(s*3+slot)%pool.length];
+  }
+  function groupsFor(result){return (result.animationGroups||[]).filter(Boolean)}
+  function mapClips(groups){return {
+    idle:pick(groups,['idle']),
+    walk:pick(groups,['walk','run','move']),
+    attack:pick(groups,['attack','bite','slash','punch','shoot','hit']),
+    hurt:pick(groups,['hurt','damage','hit']),
+    death:pick(groups,['death','die'])
+  }}
+  function stop(rec){Object.values(rec.clips||{}).forEach(g=>{try{if(g&&g.isPlaying)g.stop()}catch(_){}})}
+  function play(host,state){
+    const rec=records.get(host);if(!rec||!rec.ready)return;
+    const g=rec.clips[state]||rec.clips.idle;if(!g)return;
+    if(rec.state===state&&g.isPlaying)return;
+    stop(rec);rec.state=state;
+    try{g.start(!['attack','hurt','death'].includes(state),1,g.from,g.to,false)}catch(_){}
+  }
+  function disposeRecord(rec){
+    if(!rec)return;stop(rec);
+    (rec.groups||[]).forEach(g=>{try{g.dispose()}catch(_){}});
+    (rec.meshes||[]).slice().reverse().forEach(m=>{try{m.dispose()}catch(_){}});
+    try{rec.root&&rec.root.dispose()}catch(_){}
+  }
+  async function load(host,entry){
+    const old=records.get(host);if(old&&old.entry.id===entry.id)return old;
+    if(old)disposeRecord(old);
+    const rec={entry,ready:false,state:'',root:null,meshes:[],groups:[],clips:{}};records.set(host,rec);
+    host.visibility=1;
+    try{
+      const r=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.root,entry.file,scene);
+      if(records.get(host)!==rec){(r.meshes||[]).forEach(m=>m.dispose());return null}
+      const root=new BABYLON.TransformNode('UltimateMonster_'+entry.id,scene);root.parent=host;root.position.set(0,entry.y||-.78,0);root.scaling.setAll(entry.scale||1);root.rotation.y=Math.PI;
+      const imported=new Set(r.meshes||[]);
+      (r.meshes||[]).filter(m=>!m.parent||!imported.has(m.parent)).forEach(m=>m.parent=root);
+      (r.transformNodes||[]).filter(n=>!n.parent||(!imported.has(n.parent)&&!(r.transformNodes||[]).includes(n.parent))).forEach(n=>n.parent=root);
+      (r.meshes||[]).forEach(m=>{m.isPickable=false;m.receiveShadows=true;if(m.getTotalVertices&&m.getTotalVertices()>0)shadow.addShadowCaster(m)});
+      rec.root=root;rec.meshes=r.meshes||[];rec.groups=groupsFor(r);rec.clips=mapClips(rec.groups);rec.ready=true;
+      host.visibility=0;
+      play(host,'idle');
+      return rec;
+    }catch(err){
+      console.warn('Ultimate Monsters load failed, procedural enemy fallback:',entry.id,err);
+      rec.ready=false;host.visibility=1;return rec;
+    }
+  }
+  async function activate(host,isBoss,stage){
+    if(!host)return null;
+    host.metadata=host.metadata||{};
+    const entry=choose(host,isBoss,stage);
+    host.metadata.enemyDisplayName=entry.name;
+    host.metadata.enemyAssetId=entry.id;
+    host.metadata.enemyIsBoss=!!isBoss;
+    host.visibility=1;
+    const rec=await load(host,entry);
+    if(rec&&rec.ready)play(host,'idle');
+    return entry;
+  }
+  function deactivate(host){const rec=records.get(host);if(rec){stop(rec);rec.state=''}host.visibility=1}
+  function getDisplayName(host,isBoss){return host&&host.metadata&&host.metadata.enemyDisplayName||(isBoss?'Yêu Vương':'Yêu Thú')}
+  function facePlayer(host,target){if(!host||!target)return;const dx=target.position.x-host.position.x,dz=target.position.z-host.position.z;host.rotation.y=Math.atan2(dx,dz)}
+  window.EnemySystem={activate,deactivate,play,getDisplayName,facePlayer,catalog:cfg.catalog};
+  console.info('Quaternius Ultimate Monsters enemy system ready:',cfg.catalog.length,'monsters');
+})();
