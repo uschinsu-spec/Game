@@ -1,8 +1,8 @@
-// Mobile pinch zoom for the fixed third-person MMORPG camera.
+// Mobile pinch zoom for the third-person follow camera.
 (() => {
-  const ZOOM_MIN = 10;
-  const ZOOM_MAX = 31;
-  const ZOOM_DEFAULT = 18;
+  const ZOOM_MIN = 11;
+  const ZOOM_MAX = 32;
+  const ZOOM_DEFAULT = 19;
 
   cameraRadius = ZOOM_DEFAULT;
   camera.lowerRadiusLimit = ZOOM_MIN;
