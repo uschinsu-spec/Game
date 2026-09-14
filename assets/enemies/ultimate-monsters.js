@@ -29,7 +29,17 @@
     const g=rec.clips[state]||rec.clips.idle;if(!g)return;
     if(rec.state===state&&g.isPlaying)return;
     stop(rec);rec.state=state;
-    try{g.start(!['attack','hurt','death'].includes(state),1,g.from,g.to,false)}catch(_){}
+    const loop=!['attack','hurt','death'].includes(state);
+    try{
+      g.start(loop,1,g.from,g.to,false);
+      if(!loop&&state!=='death'&&g.onAnimationGroupEndObservable){
+        g.onAnimationGroupEndObservable.addOnce(()=>{
+          if(records.get(host)===rec&&rec.state===state&&host.isEnabled()){
+            rec.state='';play(host,'idle');
+          }
+        });
+      }
+    }catch(_){}
   }
   function disposeRecord(rec){
     if(!rec)return;stop(rec);
@@ -46,9 +56,9 @@
       const r=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.root,entry.file,scene);
       if(records.get(host)!==rec){(r.meshes||[]).forEach(m=>m.dispose());return null}
       const root=new BABYLON.TransformNode('UltimateMonster_'+entry.id,scene);root.parent=host;root.position.set(0,entry.y||-.78,0);root.scaling.setAll(entry.scale||1);root.rotation.y=Math.PI;
-      const imported=new Set(r.meshes||[]);
+      const imported=new Set(r.meshes||[]),nodes=r.transformNodes||[];
       (r.meshes||[]).filter(m=>!m.parent||!imported.has(m.parent)).forEach(m=>m.parent=root);
-      (r.transformNodes||[]).filter(n=>!n.parent||(!imported.has(n.parent)&&!(r.transformNodes||[]).includes(n.parent))).forEach(n=>n.parent=root);
+      nodes.filter(n=>!n.parent||(!imported.has(n.parent)&&!nodes.includes(n.parent))).forEach(n=>n.parent=root);
       (r.meshes||[]).forEach(m=>{m.isPickable=false;m.receiveShadows=true;if(m.getTotalVertices&&m.getTotalVertices()>0)shadow.addShadowCaster(m)});
       rec.root=root;rec.meshes=r.meshes||[];rec.groups=groupsFor(r);rec.clips=mapClips(rec.groups);rec.ready=true;
       host.visibility=0;
