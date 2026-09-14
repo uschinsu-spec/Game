@@ -222,71 +222,47 @@
     proceduralTemplates.set(id, node);
   }
 
-  // Helper to get 3D Flora API
-  function getFloraApi(id) {
-    if (window.FloraAssetRegistry) {
-      if (window.FloraAssetRegistry[id]) return window.FloraAssetRegistry[id];
-      const mapping = {
-        'ProcBirch': 'BirchTree_1',
-        'ProcPine': 'PineTree_1',
-        'ProcMaple': 'MapleTree_1',
-        'ProcNormalTree': 'NormalTree_1',
-        'ProcPalm': 'PalmTree_1',
-        'ProcDeadTree': 'DeadTree_1',
-        'ProcBush': 'Bush_Flowers',
-        'ProcFlowerClump': 'Flower_1_Clump',
-        'ProcGrass': 'Grass_Large_Extruded',
-        'ProcRock': 'Rock_1',
-        'ProcRockLarge': 'Rock_3'
-      };
-      const target = mapping[id];
-      if (target && window.FloraAssetRegistry[target]) return window.FloraAssetRegistry[target];
-    }
-    if (id === 'ProcBirch') return window.BirchTree;
-    return null;
-  }
-
-  // 1. Evergreen Pine (3D Model)
+  // 1. Evergreen Pine
   createProcTemplate('ProcPine', (root) => {
-    const api = getFloraApi('ProcPine');
-    if (api) api.createInstance('TmplPine', root, scene);
-    else {
-      const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 8.0, diameterTop: 0.4, diameterBottom: 0.9, tessellation: 8 }, scene);
-      trunk.position.y = 4.0; trunk.material = matDarkBark; trunk.parent = root;
-    }
+    const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 8.0, diameterTop: 0.4, diameterBottom: 0.9, tessellation: 8 }, scene);
+    trunk.position.y = 4.0; trunk.material = matDarkBark; trunk.parent = root;
+    [{ y: 5.0, d: 4.8, h: 3.2, m: matPineLeaf1 }, { y: 7.0, d: 4.0, h: 2.8, m: matPineLeaf2 }, { y: 8.8, d: 2.8, h: 2.4, m: matPineLeaf3 }].forEach((x, i) => {
+      const c = BABYLON.MeshBuilder.CreateCylinder('C' + i, { height: x.h, diameterTop: 0.1, diameterBottom: x.d, tessellation: 8 }, scene);
+      c.position.y = x.y; c.material = x.m; c.parent = root;
+    });
   });
 
-  // 2. White Birch (3D Model)
+  // 2. White Birch
   createProcTemplate('ProcBirch', (root) => {
-    const api = getFloraApi('ProcBirch');
-    if (api) api.createInstance('TmplBirch', root, scene);
+    const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 7.0, diameterTop: 0.35, diameterBottom: 0.6, tessellation: 8 }, scene);
+    trunk.position.y = 3.5; trunk.material = matBirchBark; trunk.parent = root;
+    [{ x: 0, y: 7.5, z: 0, s: 3.6 }, { x: 0.8, y: 6.2, z: 0.5, s: 2.6 }, { x: -0.8, y: 5.8, z: -0.6, s: 2.4 }].forEach((f, i) => {
+      const sp = BABYLON.MeshBuilder.CreateSphere('F' + i, { diameter: f.s, segments: 6 }, scene);
+      sp.position.set(f.x, f.y, f.z); sp.material = matOakLeaf; sp.parent = root;
+    });
   });
 
-  // 3. Autumn Maple (3D Model)
+  // 3. Autumn Maple
   createProcTemplate('ProcMaple', (root) => {
-    const api = getFloraApi('ProcMaple');
-    if (api) api.createInstance('TmplMaple', root, scene);
+    const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 6.5, diameterTop: 0.5, diameterBottom: 1.0, tessellation: 8 }, scene);
+    trunk.position.y = 3.25; trunk.material = matDarkBark; trunk.parent = root;
+    [{ x: 0, y: 7.0, z: 0, s: 3.8 }, { x: -1.2, y: 6.0, z: 0.7, s: 2.8 }, { x: 1.1, y: 6.2, z: -0.6, s: 2.7 }].forEach((f, i) => {
+      const sp = BABYLON.MeshBuilder.CreateSphere('F' + i, { diameter: f.s, segments: 6 }, scene);
+      sp.position.set(f.x, f.y, f.z); sp.material = matMapleLeaf; sp.parent = root;
+    });
   });
 
-  // 4. Normal Forest Tree (3D Model)
+  // 4. Normal Forest Tree
   createProcTemplate('ProcNormalTree', (root) => {
-    const api = getFloraApi('ProcNormalTree');
-    if (api) api.createInstance('TmplNormalTree', root, scene);
+    const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 6.8, diameterTop: 0.5, diameterBottom: 1.0, tessellation: 8 }, scene);
+    trunk.position.y = 3.4; trunk.material = matDarkBark; trunk.parent = root;
+    [{ x: 0, y: 7.2, z: 0, s: 4.2 }, { x: -1.0, y: 6.2, z: 0.8, s: 3.0 }, { x: 1.0, y: 6.0, z: -0.7, s: 2.9 }].forEach((f, i) => {
+      const sp = BABYLON.MeshBuilder.CreateSphere('F' + i, { diameter: f.s, segments: 6 }, scene);
+      sp.position.set(f.x, f.y, f.z); sp.material = matOakLeaf; sp.parent = root;
+    });
   });
 
-  // 5. Tropical Palm Tree (3D Model)
-  createProcTemplate('ProcPalm', (root) => {
-    const api = getFloraApi('ProcPalm');
-    if (api) api.createInstance('TmplPalm', root, scene);
-  });
-
-  // 6. Ancient Dead Tree (3D Model)
-  createProcTemplate('ProcDeadTree', (root) => {
-    const api = getFloraApi('ProcDeadTree');
-    if (api) api.createInstance('TmplDeadTree', root, scene);
-  });
-
-  // 7. Cherry Blossom Sakura
+  // 5. Cherry Blossom Sakura
   createProcTemplate('ProcSakura', (root) => {
     const trunk = BABYLON.MeshBuilder.CreateCylinder('T', { height: 6.0, diameterTop: 0.45, diameterBottom: 0.9, tessellation: 8 }, scene);
     trunk.position.y = 3.0; trunk.material = matDarkBark; trunk.parent = root;
@@ -297,37 +273,30 @@
     });
   });
 
-  // 8. Bush & Flowers (3D Model)
+  // 6. Bush
   createProcTemplate('ProcBush', (root) => {
-    const api = getFloraApi('ProcBush');
-    if (api) api.createInstance('TmplBush', root, scene);
+    const b = BABYLON.MeshBuilder.CreateSphere('B', { diameter: 2.0, segments: 6 }, scene);
+    b.position.y = 0.8; b.scaling.set(1.3, 0.75, 1.2); b.material = matBush; b.parent = root;
   });
 
-  // 9. Flower Clump (3D Model)
+  // 7. Flower Clump
   createProcTemplate('ProcFlowerClump', (root) => {
-    const api = getFloraApi('ProcFlowerClump');
-    if (api) api.createInstance('TmplFlower', root, scene);
+    const fls = [matFlBlue, matFlPurple, matFlPink, matFlYellow];
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * Math.PI * 2, ra = 0.6 + (i % 2) * 0.3;
+      const fl = BABYLON.MeshBuilder.CreateSphere('Fl' + i, { diameter: 0.42, segments: 4 }, scene);
+      fl.position.set(Math.cos(ang) * ra, 0.35 + (i % 3) * 0.15, Math.sin(ang) * ra);
+      fl.material = fls[i % fls.length]; fl.parent = root;
+    }
   });
 
-  // 10. 3D Grass Clump (3D Model)
-  createProcTemplate('ProcGrass', (root) => {
-    const api = getFloraApi('ProcGrass');
-    if (api) api.createInstance('TmplGrass', root, scene);
-  });
-
-  // 11. Natural Rock (3D Model)
+  // 8. Natural Rock
   createProcTemplate('ProcRock', (root) => {
-    const api = getFloraApi('ProcRock');
-    if (api) api.createInstance('TmplRock', root, scene);
+    const rock = BABYLON.MeshBuilder.CreatePolyhedron('R', { type: 2, size: 1.2 }, scene);
+    rock.position.y = 0.55; rock.scaling.set(1.3, 0.8, 1.15); rock.material = matRock; rock.parent = root;
   });
 
-  // 12. Large Rock (3D Model)
-  createProcTemplate('ProcRockLarge', (root) => {
-    const api = getFloraApi('ProcRockLarge');
-    if (api) api.createInstance('TmplRockLarge', root, scene);
-  });
-
-  // 13. Torii Gate (Cổng Torii)
+  // 9. Torii Gate (Cổng Torii)
   createProcTemplate('ProcTorii', (root) => {
     const pL = BABYLON.MeshBuilder.CreateCylinder('PL', { height: 7.0, diameter: 0.6 }, scene);
     pL.position.set(-2.5, 3.5, 0); pL.material = matTorii; pL.parent = root;
@@ -339,13 +308,13 @@
     beam.position.set(0, 5.8, 0); beam.material = matDarkBark; beam.parent = root;
   });
 
-  // 14. Crystal Spire
+  // 10. Crystal Spire
   createProcTemplate('ProcCrystal', (root) => {
     const spire = BABYLON.MeshBuilder.CreateCylinder('Cry', { height: 6.0, diameterTop: 0.1, diameterBottom: 1.4, tessellation: 6 }, scene);
     spire.position.y = 3.0; spire.material = matCrystal; spire.parent = root;
   });
 
-  // 15. Ancient Stone Arch
+  // 11. Ancient Stone Arch
   createProcTemplate('ProcArch', (root) => {
     const pL = BABYLON.MeshBuilder.CreateCylinder('AL', { height: 8.0, diameter: 1.2 }, scene);
     pL.position.set(-3.4, 4.0, 0); pL.material = matArch; pL.parent = root;
@@ -355,7 +324,7 @@
     top.position.set(0, 8.0, 0); top.rotation.x = Math.PI / 2; top.material = matArch; top.parent = root;
   });
 
-  // 16. Treasure Chest
+  // 12. Treasure Chest
   createProcTemplate('ProcChest', (root) => {
     const box = BABYLON.MeshBuilder.CreateBox('CBox', { width: 1.4, height: 0.8, depth: 0.9 }, scene);
     box.position.y = 0.4; box.material = matDarkBark; box.parent = root;
@@ -367,483 +336,19 @@
   // 5. ASSET CATALOG SPECIFICATIONS
   // ---------------------------------------------------------------------------
   const ASSET_CATALOG = [
-    {
-        "id": "BirchTree_1",
-        "name": "Bạch Dương 1",
-        "cat": "trees",
-        "icon": "🌳",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "BirchTree_2",
-        "name": "Bạch Dương 2",
-        "cat": "trees",
-        "icon": "🌳",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "BirchTree_3",
-        "name": "Bạch Dương 3",
-        "cat": "trees",
-        "icon": "🌳",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "BirchTree_4",
-        "name": "Bạch Dương 4",
-        "cat": "trees",
-        "icon": "🌳",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "BirchTree_5",
-        "name": "Bạch Dương 5",
-        "cat": "trees",
-        "icon": "🌳",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "Bush",
-        "name": "Bụi Cây",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "Bush_Flowers",
-        "name": "Bụi Cây Có Hoa",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "Bush_Large",
-        "name": "Bụi Cây Lớn",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "Bush_Large_Flowers",
-        "name": "Bụi Cây Lớn Có Hoa",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "Bush_Small",
-        "name": "Bụi Cây Nhỏ",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "Bush_Small_Flowers",
-        "name": "Bụi Cây Nhỏ Có Hoa",
-        "cat": "flora",
-        "icon": "🌺",
-        "defaultScale": 1.15
-    },
-    {
-        "id": "DeadTree_1",
-        "name": "Cổ Mộc Khô 1",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_10",
-        "name": "Cổ Mộc Khô 10",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_2",
-        "name": "Cổ Mộc Khô 2",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_3",
-        "name": "Cổ Mộc Khô 3",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_4",
-        "name": "Cổ Mộc Khô 4",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_5",
-        "name": "Cổ Mộc Khô 5",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_6",
-        "name": "Cổ Mộc Khô 6",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_7",
-        "name": "Cổ Mộc Khô 7",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_8",
-        "name": "Cổ Mộc Khô 8",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "DeadTree_9",
-        "name": "Cổ Mộc Khô 9",
-        "cat": "trees",
-        "icon": "🪵",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Flower_1",
-        "name": "Khóm Hoa 1",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_1_Clump",
-        "name": "Khóm Hoa 1 (Cụm)",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_2",
-        "name": "Khóm Hoa 2",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_2_Clump",
-        "name": "Khóm Hoa 2 (Cụm)",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_3_Clump",
-        "name": "Khóm Hoa 3 (Cụm)",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_4_Clump",
-        "name": "Khóm Hoa 4 (Cụm)",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Flower_5_Clump",
-        "name": "Khóm Hoa 5 (Cụm)",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Grass_Large",
-        "name": "Cỏ 3D Lớn",
-        "cat": "flora",
-        "icon": "🌱",
-        "defaultScale": 1.35
-    },
-    {
-        "id": "Grass_Large_Extruded",
-        "name": "Cỏ 3D Lớn Dày",
-        "cat": "flora",
-        "icon": "🌱",
-        "defaultScale": 1.35
-    },
-    {
-        "id": "Grass_Small",
-        "name": "Cỏ 3D Nhỏ",
-        "cat": "flora",
-        "icon": "🌱",
-        "defaultScale": 1.35
-    },
-    {
-        "id": "MapleTree_1",
-        "name": "Phong Mùa Thu 1",
-        "cat": "trees",
-        "icon": "🍁",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "MapleTree_2",
-        "name": "Phong Mùa Thu 2",
-        "cat": "trees",
-        "icon": "🍁",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "MapleTree_3",
-        "name": "Phong Mùa Thu 3",
-        "cat": "trees",
-        "icon": "🍁",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "MapleTree_4",
-        "name": "Phong Mùa Thu 4",
-        "cat": "trees",
-        "icon": "🍁",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "MapleTree_5",
-        "name": "Phong Mùa Thu 5",
-        "cat": "trees",
-        "icon": "🍁",
-        "defaultScale": 1.25
-    },
-    {
-        "id": "NormalTree_1",
-        "name": "Cây Rừng Cổ Thụ 1",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "NormalTree_2",
-        "name": "Cây Rừng Cổ Thụ 2",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "NormalTree_3",
-        "name": "Cây Rừng Cổ Thụ 3",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "NormalTree_4",
-        "name": "Cây Rừng Cổ Thụ 4",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "NormalTree_5",
-        "name": "Cây Rừng Cổ Thụ 5",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PalmTree_1",
-        "name": "Cây Cọ Nhiệt Đới 1",
-        "cat": "trees",
-        "icon": "🌴",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PalmTree_2",
-        "name": "Cây Cọ Nhiệt Đới 2",
-        "cat": "trees",
-        "icon": "🌴",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PalmTree_3",
-        "name": "Cây Cọ Nhiệt Đới 3",
-        "cat": "trees",
-        "icon": "🌴",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PalmTree_4",
-        "name": "Cây Cọ Nhiệt Đới 4",
-        "cat": "trees",
-        "icon": "🌴",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PalmTree_5",
-        "name": "Cây Cọ Nhiệt Đới 5",
-        "cat": "trees",
-        "icon": "🌴",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Petals_1",
-        "name": "Cánh Hoa Rơi 1",
-        "cat": "flora",
-        "icon": "🌸",
-        "defaultScale": 1.5
-    },
-    {
-        "id": "Petals_2",
-        "name": "Cánh Hoa Rơi 2",
-        "cat": "flora",
-        "icon": "🌸",
-        "defaultScale": 1.5
-    },
-    {
-        "id": "Petals_3",
-        "name": "Cánh Hoa Rơi 3",
-        "cat": "flora",
-        "icon": "🌸",
-        "defaultScale": 1.5
-    },
-    {
-        "id": "Petals_4",
-        "name": "Cánh Hoa Rơi 4",
-        "cat": "flora",
-        "icon": "🌸",
-        "defaultScale": 1.5
-    },
-    {
-        "id": "PineTree_1",
-        "name": "Thông Rừng 1",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PineTree_2",
-        "name": "Thông Rừng 2",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PineTree_3",
-        "name": "Thông Rừng 3",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PineTree_4",
-        "name": "Thông Rừng 4",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "PineTree_5",
-        "name": "Thông Rừng 5",
-        "cat": "trees",
-        "icon": "🌲",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Plant_1",
-        "name": "Cây Cảnh 1",
-        "cat": "flora",
-        "icon": "🌿",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Plant_2",
-        "name": "Cây Cảnh 2",
-        "cat": "flora",
-        "icon": "🌿",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Plant_Flowers",
-        "name": "Khóm Plant_Flowers",
-        "cat": "flora",
-        "icon": "🪻",
-        "defaultScale": 1.4
-    },
-    {
-        "id": "Rock_1",
-        "name": "Tảng Đá Tự Nhiên 1",
-        "cat": "props",
-        "icon": "🪨",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Rock_2",
-        "name": "Tảng Đá Tự Nhiên 2",
-        "cat": "props",
-        "icon": "🪨",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Rock_3",
-        "name": "Tảng Đá Tự Nhiên 3",
-        "cat": "props",
-        "icon": "🪨",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Rock_4",
-        "name": "Tảng Đá Tự Nhiên 4",
-        "cat": "props",
-        "icon": "🪨",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "Rock_5",
-        "name": "Tảng Đá Tự Nhiên 5",
-        "cat": "props",
-        "icon": "🪨",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "ProcSakura",
-        "name": "Đào Tiên Hồng",
-        "cat": "trees",
-        "icon": "🌸",
-        "defaultScale": 1.3
-    },
-    {
-        "id": "ProcTorii",
-        "name": "Cổng Torii Đỏ",
-        "cat": "props",
-        "icon": "⛩️",
-        "defaultScale": 1.0
-    },
-    {
-        "id": "ProcArch",
-        "name": "Cổng Vòm Cổ Đại",
-        "cat": "props",
-        "icon": "🏛️",
-        "defaultScale": 1.0
-    },
-    {
-        "id": "ProcCrystal",
-        "name": "Linh Thạch Pha Lê",
-        "cat": "props",
-        "icon": "💎",
-        "defaultScale": 1.2
-    },
-    {
-        "id": "ProcChest",
-        "name": "Rương Tiên Bảo",
-        "cat": "props",
-        "icon": "🎁",
-        "defaultScale": 1.0
-    }
-];
+    { id: 'ProcPine', name: 'Thông Xanh', cat: 'trees', icon: '🌲', defaultScale: 1.3 },
+    { id: 'ProcBirch', name: 'Bạch Dương', cat: 'trees', icon: '🌳', defaultScale: 1.25 },
+    { id: 'ProcMaple', name: 'Cây Phong Đỏ', cat: 'trees', icon: '🍁', defaultScale: 1.3 },
+    { id: 'ProcNormalTree', name: 'Cây Rừng Rậm', cat: 'trees', icon: '🌳', defaultScale: 1.3 },
+    { id: 'ProcSakura', name: 'Đào Tiên Hồng', cat: 'trees', icon: '🌸', defaultScale: 1.3 },
+    { id: 'ProcBush', name: 'Bụi Cỏ Thảo Mộc', cat: 'trees', icon: '🌿', defaultScale: 1.1 },
+    { id: 'ProcFlowerClump', name: 'Khóm Hoa Linh Khí', cat: 'trees', icon: '🌺', defaultScale: 1.1 },
+    { id: 'ProcRock', name: 'Tảng Đá Tự Nhiên', cat: 'props', icon: '🪨', defaultScale: 1.2 },
+    { id: 'ProcTorii', name: 'Cổng Torii Đỏ', cat: 'props', icon: '⛩️', defaultScale: 1.0 },
+    { id: 'ProcArch', name: 'Cổng Vòm Cổ Đại', cat: 'props', icon: '🏛️', defaultScale: 1.0 },
+    { id: 'ProcCrystal', name: 'Linh Thạch Pha Lê', cat: 'props', icon: '💎', defaultScale: 1.2 },
+    { id: 'ProcChest', name: 'Rương Tiên Bảo', cat: 'props', icon: '🎁', defaultScale: 1.0 }
+  ];
 
   // ---------------------------------------------------------------------------
   // 6. MAP DATA & UNDO/REDO HISTORY
@@ -898,8 +403,6 @@
   // ---------------------------------------------------------------------------
   // 7. SPAWN IN 3D WORLD
   // ---------------------------------------------------------------------------
-  // 7. SPAWN IN 3D WORLD
-  // ---------------------------------------------------------------------------
   function spawnItemInScene(item) {
     const node = new BABYLON.TransformNode('Placed_' + item.id, scene);
     node.parent = itemsContainer;
@@ -908,80 +411,55 @@
     node.rotation.y = item.rotY || 0;
     node.metadata = { item };
 
-    // 1. Check 3D Flora API
-    const floraApi = getFloraApi(item.modelId);
-    // 2. Check Thôn Trấn API
-    const thonTranApi = window.ThonTranRegistry ? window.ThonTranRegistry[item.modelId] : null;
-
-    if (floraApi) {
-      floraApi.createInstance('Flora_' + item.id, node, scene);
-    } else if (thonTranApi) {
-      thonTranApi.createInstance('TT_' + item.id, node, scene);
-    } else if (window.ThonTranLoader && window.ThonTranLoader.catalog && window.ThonTranLoader.catalog[item.modelId]) {
-      window.ThonTranLoader.loadAsset(item.modelId).then(api => {
-        if (api && !node.isDisposed()) {
-          api.createInstance('TT_' + item.id, node, scene);
-        }
-      });
-    } else if (window.FloraLoader && window.FloraLoader.catalog && window.FloraLoader.catalog[item.modelId]) {
-      window.FloraLoader.loadAsset(item.modelId).then(api => {
-        if (api && !node.isDisposed()) {
-          api.createInstance('Flora_' + item.id, node, scene);
-        }
-      });
-    } else {
-      // Check custom uploaded GLB or built-in procedural template
-      const tmpl = customGltfTemplates.get(item.modelId) || proceduralTemplates.get(item.modelId);
-      if (tmpl) {
-        for (const src of tmpl.getChildMeshes(false)) {
-          if (src.geometry) {
-            const cl = src.clone(src.name + '_' + item.id, node, false);
-            if (cl) {
-              cl.position.copyFrom(src.position);
-              cl.rotation.copyFrom(src.rotation);
-              cl.scaling.copyFrom(src.scaling);
-              if (src.rotationQuaternion) cl.rotationQuaternion = src.rotationQuaternion.clone();
-              cl.material = src.material;
-              cl.setEnabled(true);
-              cl.isVisible = true;
-              cl.isPickable = true;
-            }
+    // Check custom uploaded GLB or built-in procedural template
+    const tmpl = customGltfTemplates.get(item.modelId) || proceduralTemplates.get(item.modelId);
+    if (tmpl) {
+      for (const src of tmpl.getChildMeshes(false)) {
+        if (src.geometry) {
+          const cl = src.clone(src.name + '_' + item.id, node, false);
+          if (cl) {
+            cl.position.copyFrom(src.position);
+            cl.rotation.copyFrom(src.rotation);
+            cl.scaling.copyFrom(src.scaling);
+            if (src.rotationQuaternion) cl.rotationQuaternion = src.rotationQuaternion.clone();
+            cl.material = src.material;
+            cl.setEnabled(true);
+            cl.isPickable = false;
           }
         }
       }
     }
 
-    // Invisible pick box
-    const box = BABYLON.MeshBuilder.CreateBox('PickBox_' + item.id, { size: 2.2 }, scene);
-    box.position.y = 1.1;
-    box.parent = node;
-    box.isVisible = false;
-    box.isPickable = true;
+    // Interactive pointer bounds box
+    const hitBox = BABYLON.MeshBuilder.CreateBox('Hit_' + item.id, { size: 3.5 }, scene);
+    hitBox.position.y = 1.75;
+    hitBox.parent = node;
+    hitBox.visibility = 0.001;
+    hitBox.isPickable = true;
+    hitBox.metadata = { parentNode: node, item };
 
     return node;
   }
 
   function renderAll() {
-    if (itemsContainer) {
-      itemsContainer.dispose();
+    // Clear itemsContainer
+    while (itemsContainer.getChildren().length > 0) {
+      itemsContainer.getChildren()[0].dispose();
     }
-    itemsContainer = new BABYLON.TransformNode('StudioPlacedItems', scene);
-    itemsContainer.parent = worldRoot;
-    for (const it of placedItems) {
-      spawnItemInScene(it);
-    }
-    updateStatsBadges();
-    renderHierarchyList();
+    placedItems.forEach(item => spawnItemInScene(item));
+    updateStats();
   }
 
-  function updateStatsBadges() {
+  function updateStats() {
     const badge = document.getElementById('objCountBadge');
     if (badge) badge.textContent = `📦 Vật thể: ${placedItems.length}`;
     const hierCount = document.getElementById('hierCount');
     if (hierCount) hierCount.textContent = placedItems.length;
+    const el = document.getElementById('statAssetCount');
+    if (el) el.textContent = placedItems.length;
   }
 
-  // Load existing map or default
+  // Initial Map Load
   function initMap() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -996,30 +474,18 @@
       } catch (_) {}
     }
 
-    // Default aesthetic placement (Showcasing authentic 3D Birch Trees)
-    for (let z = 65; z >= -85; z -= 7.0) {
+    // Default placement using built-in procedural items
+    for (let z = 65; z >= -85; z -= 14.0) {
       const r1 = Math.abs(Math.sin(z * 19.3)) % 1;
-      const r2 = (r1 * 1.6) % 1;
       placedItems.push({
         id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
-        modelId: 'BirchTree_1',
-        x: (r2 > 0.5 ? -1 : 1) * (6.5 + r1 * 2.5),
+        modelId: r1 > 0.5 ? 'ProcPine' : 'ProcSakura',
+        x: (r1 > 0.5 ? -1 : 1) * (12.0 + r1 * 4.0),
         y: 0.02,
         z: z,
-        scale: 1.4 + r1 * 0.3,
+        scale: 1.3,
         rotY: Math.random() * Math.PI * 2
       });
-      if (r1 > 0.35) {
-        placedItems.push({
-          id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
-          modelId: (r2 > 0.5) ? 'Flower_1_Clump' : 'Bush_Flowers',
-          x: (r1 > 0.5 ? -1 : 1) * (3.5 + r2 * 1.5),
-          y: 0.02,
-          z: z + 1.2,
-          scale: 1.3,
-          rotY: Math.random() * Math.PI * 2
-        });
-      }
     }
     renderAll();
     pushHistory();
@@ -1030,36 +496,10 @@
   // ---------------------------------------------------------------------------
   // 8. ASSET CATALOG PALETTE UI & SEARCH
   // ---------------------------------------------------------------------------
-  let selectedAssetId = 'BirchTree_1';
+  let selectedAssetId = 'ProcPine';
   let activeCategory = 'all';
   const catalogGrid = document.getElementById('assetCatalogGrid');
   const assetSearchInput = document.getElementById('assetSearchInput');
-
-  // Asynchronously load Thôn Trấn 176 items into ASSET_CATALOG
-  async function loadThonTranCatalog() {
-    try {
-      const res = await fetch('./assets/THON TRAN/thon_tran_manifest.json');
-      if (res.ok) {
-        const manifest = await res.json();
-        for (const [id, item] of Object.entries(manifest)) {
-          ASSET_CATALOG.push({
-            id: id,
-            name: item.name,
-            cat: 'village',
-            subCat: item.category,
-            icon: item.icon || '🏛️',
-            defaultScale: 1.0
-          });
-        }
-        const totalBadge = document.getElementById('totalAssetCount');
-        if (totalBadge) totalBadge.textContent = ASSET_CATALOG.length;
-        renderCatalog(activeCategory, assetSearchInput?.value || '');
-      }
-    } catch (e) {
-      console.warn('Failed to fetch Thôn Trấn manifest:', e);
-    }
-  }
-  loadThonTranCatalog();
 
   function renderCatalog(cat, search = '') {
     if (!catalogGrid) return;
@@ -1074,12 +514,6 @@
       `;
       card.onclick = () => {
         selectedAssetId = item.id;
-        if (window.FloraLoader && window.FloraLoader.catalog && window.FloraLoader.catalog[item.id]) {
-          window.FloraLoader.loadAsset(item.id);
-        }
-        if (window.ThonTranLoader && window.ThonTranLoader.catalog && window.ThonTranLoader.catalog[item.id]) {
-          window.ThonTranLoader.loadAsset(item.id);
-        }
         document.querySelectorAll('.studio-asset-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
       };

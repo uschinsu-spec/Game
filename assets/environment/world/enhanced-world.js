@@ -192,79 +192,9 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 3B. AUTHENTIC 3D FLORA & FORESTS (THIN INSTANCES: 2 DRAW CALLS PER SPECIES)
+  // 3B. FLORA REMOVED FROM WORLD MAP AS REQUESTED
   // ---------------------------------------------------------------------------
-  const floraGroup = new BABYLON.TransformNode('WorldFloraGroup', scene);
-  floraGroup.parent = root;
-
-  // 1. Birch Trees
-  const birchApi = window.FloraAssetRegistry?.['BirchTree_1'] || window.BirchTree;
-  if (birchApi && birchApi.createThinForest) {
-    const birchPlacements = [
-      { x: 16, y: 0, z: 18, s: 1.45, rot: 0.5 }, { x: -18, y: 0, z: 16, s: 1.55, rot: 1.9 },
-      { x: 22, y: 0, z: -15, s: 1.4, rot: 3.4 }, { x: -20, y: 0, z: -20, s: 1.6, rot: 4.6 },
-      { x: 28, y: 0, z: 5, s: 1.5, rot: 2.2 }, { x: -28, y: 0, z: 8, s: 1.35, rot: 0.8 },
-      { x: 10, y: 0, z: -28, s: 1.6, rot: 5.2 }, { x: -12, y: 0, z: 28, s: 1.45, rot: 2.9 },
-      { x: 65, y: 0, z: 80, s: 1.6, rot: 1.4 }, { x: 85, y: 0, z: 95, s: 1.5, rot: 2.8 }
-    ];
-    birchApi.createThinForest(scene, birchPlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
-  }
-
-  // 2. Normal Forest Trees
-  const normalTreeApi = window.FloraAssetRegistry?.['NormalTree_1'];
-  if (normalTreeApi && normalTreeApi.createThinForest) {
-    const normalPlacements = [
-      { x: 45, y: 0, z: 40, s: 1.3, rot: 0.8 }, { x: 52, y: 0, z: -35, s: 1.4, rot: 2.1 },
-      { x: -50, y: 0, z: 45, s: 1.35, rot: 4.2 }, { x: -45, y: 0, z: -55, s: 1.25, rot: 1.5 },
-      { x: 70, y: 0, z: -60, s: 1.45, rot: 3.1 }, { x: -65, y: 0, z: -75, s: 1.4, rot: 5.0 }
-    ];
-    normalTreeApi.createThinForest(scene, normalPlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
-  }
-
-  // 3. Pine Trees on Ridges
-  const pineApi = window.FloraAssetRegistry?.['PineTree_1'];
-  if (pineApi && pineApi.createThinForest) {
-    const pinePlacements = [
-      { x: 80, y: 0, z: 120, s: 1.5, rot: 1.2 }, { x: 95, y: 0, z: 140, s: 1.6, rot: 3.7 },
-      { x: -90, y: 0, z: 110, s: 1.55, rot: 0.4 }, { x: -115, y: 0, z: 135, s: 1.65, rot: 2.9 },
-      { x: 120, y: 0, z: -110, s: 1.5, rot: 4.8 }, { x: -130, y: 0, z: -125, s: 1.6, rot: 1.8 }
-    ];
-    pineApi.createThinForest(scene, pinePlacements, { parent: floraGroup, freeze: true, maxDistance: 350 });
-  }
-
-  // 4. Autumn Maple Trees
-  const mapleApi = window.FloraAssetRegistry?.['MapleTree_1'];
-  if (mapleApi && mapleApi.createThinForest) {
-    const maplePlacements = [
-      { x: 35, y: 0, z: -45, s: 1.3, rot: 1.7 }, { x: -38, y: 0, z: -40, s: 1.35, rot: 3.5 },
-      { x: 42, y: 0, z: 65, s: 1.25, rot: 5.1 }, { x: -48, y: 0, z: 70, s: 1.4, rot: 0.9 }
-    ];
-    mapleApi.createThinForest(scene, maplePlacements, { parent: floraGroup, freeze: true, maxDistance: 300 });
-  }
-
-  // 5. Bushes & Flowers
-  const bushApi = window.FloraAssetRegistry?.['Bush_Flowers'];
-  if (bushApi && bushApi.createThinForest) {
-    const bushPlacements = [
-      { x: 12, y: 0, z: 14, s: 1.1, rot: 0.4 }, { x: -14, y: 0, z: 12, s: 1.15, rot: 2.3 },
-      { x: 18, y: 0, z: -10, s: 1.05, rot: 4.1 }, { x: -15, y: 0, z: -14, s: 1.2, rot: 1.2 },
-      { x: 22, y: 0, z: 24, s: 1.1, rot: 3.6 }, { x: -24, y: 0, z: 22, s: 1.15, rot: 5.4 }
-    ];
-    bushApi.createThinForest(scene, bushPlacements, { parent: floraGroup, freeze: true, maxDistance: 200 });
-  }
-
-  // 6. Natural Rocks
-  const rockApi = window.FloraAssetRegistry?.['Rock_1'];
-  if (rockApi && rockApi.createThinForest) {
-    const rockPlacements = [
-      { x: 20, y: 0, z: 12, s: 1.2, rot: 1.1 }, { x: -22, y: 0, z: 10, s: 1.35, rot: 3.2 },
-      { x: 14, y: 0, z: -22, s: 1.1, rot: 4.9 }, { x: -18, y: 0, z: -25, s: 1.25, rot: 2.0 },
-      { x: 55, y: 0, z: 60, s: 1.6, rot: 0.7 }, { x: -60, y: 0, z: -70, s: 1.8, rot: 3.8 }
-    ];
-    rockApi.createThinForest(scene, rockPlacements, { parent: floraGroup, freeze: true, maxDistance: 250 });
-  }
-
-  console.info('🌲 [Enhanced-World] Đã nạp thành công hệ sinh thái 3D Thực vật & Cây cối (Thin Instances 60 FPS)!');
+  // All flora thin instance assets (trees, bushes, flowers, rocks) have been removed.
 
   // ---------------------------------------------------------------------------
   // 4. FLOATING SPIRIT PARTICLES (DYNAMICALLY DRIFT AROUND PLAYER)
