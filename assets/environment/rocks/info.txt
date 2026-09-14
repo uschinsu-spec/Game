@@ -1,1 +1,0 @@
-Place rock and terrain assets in this folder.
