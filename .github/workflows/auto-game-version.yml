@@ -1,0 +1,44 @@
+name: Auto Game Version
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - version.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-game-version-main
+  cancel-in-progress: true
+
+jobs:
+  update-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate version.json from pushed commit
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::12}"
+          printf '{\n  "version": "%s"\n}\n' "$SHORT_SHA" > version.json
+
+      - name: Commit version signal
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          if git diff --cached --quiet; then
+            echo "version.json already current"
+            exit 0
+          fi
+          git commit -m "chore: auto update game version [skip ci]"
+          git push
