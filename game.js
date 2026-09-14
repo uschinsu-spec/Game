@@ -4,18 +4,19 @@ const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.58,.7
 const hemi=new BABYLON.HemisphericLight('sky',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.88;const sun=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.5,-1,.4),scene);sun.position=new BABYLON.Vector3(20,30,-20);sun.intensity=1.1;
 const shadow=new BABYLON.ShadowGenerator(1024,sun);shadow.useBlurExponentialShadowMap=true;shadow.blurKernel=18;
 
-// Third-person follow camera: camera always turns with the character's facing direction.
-const CAM_BETA=1.12;
-const CAM_RADIUS_DEFAULT=18;
-const CAM_RADIUS_MIN=10;
-const CAM_RADIUS_MAX=31;
-const CAM_LOOK_AHEAD=4.4;
-const CAM_TARGET_HEIGHT=1.45;
-const CAMERA_FOLLOW_SPEED=8.5;
-const TURN_SPEED=2.5;
+// Reference-style third-person camera:
+// camera yaw is locked to player yaw every frame so the player is always seen from the back.
+// A forward target offset keeps the full character low in the frame like the supplied screenshot.
+const CAM_BETA=1.08;
+const CAM_RADIUS_DEFAULT=19;
+const CAM_RADIUS_MIN=11;
+const CAM_RADIUS_MAX=32;
+const CAM_LOOK_AHEAD=6.4;
+const CAM_TARGET_HEIGHT=1.55;
+const TURN_SPEED=2.35;
 let cameraRadius=CAM_RADIUS_DEFAULT;
 const camera=new BABYLON.ArcRotateCamera('camera',Math.PI/2,CAM_BETA,cameraRadius,new BABYLON.Vector3(0,CAM_TARGET_HEIGHT,0),scene);
-camera.inputs.clear();camera.panningSensibility=0;camera.lowerRadiusLimit=CAM_RADIUS_MIN;camera.upperRadiusLimit=CAM_RADIUS_MAX;camera.lowerBetaLimit=CAM_BETA;camera.upperBetaLimit=CAM_BETA;camera.fov=.66;camera.minZ=.1;camera.maxZ=180;
+camera.inputs.clear();camera.panningSensibility=0;camera.lowerRadiusLimit=CAM_RADIUS_MIN;camera.upperRadiusLimit=CAM_RADIUS_MAX;camera.lowerBetaLimit=CAM_BETA;camera.upperBetaLimit=CAM_BETA;camera.fov=.64;camera.minZ=.1;camera.maxZ=180;
 
 const mat=(name,color)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.08,.08,.08);return m};
 const groundMat=mat('stone','#7e8994'),rockMat=mat('rock','#596b70'),woodMat=mat('wood','#553b2d'),roofMat=mat('roof','#273e45'),goldMat=mat('gold','#c9a95b'),redMat=mat('enemy','#9f3e38'),whiteMat=mat('robe','#d9e4ec'),blueMat=mat('armor','#294d73'),darkMat=mat('hair','#17202b'),bladeMat=mat('blade','#9bdcff'),horseMat=mat('horse','#5b4031');
@@ -41,7 +42,6 @@ joystick.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;
 let vy=0,onGround=true,attackT=0,skillT=0;const anim=document.getElementById('animState'),equip=document.getElementById('equipmentState');
 function pulse(type){if(type==='attack')attackT=.32;else skillT=.55}document.getElementById('attack').onclick=()=>pulse('attack');document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>pulse('skill'));document.getElementById('jump').onclick=()=>{if(onGround){vy=5.2;onGround=false}};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==='weapon'){weaponKind=1-weaponKind;sword(weaponKind)}if(a==='armor'){armorKind=1-armorKind;armor.material=armorKind?goldMat:blueMat}if(a==='mount'){mounted=!mounted;if(mounted&&!mount)mount=createMount();bodyRoot.position.y=mounted?1.75:0;if(mount)mount.setEnabled(mounted);b.textContent=mounted?'Xuống ngựa':'Cưỡi ngựa'}if(a==='beast')spawnBeast();equip.textContent=`${weaponKind?'Tiên kiếm':'Thanh kiếm'} • ${armorKind?'Kim Vân giáp':'Thanh Vân giáp'}${mounted?' • Đang cưỡi':''}`});
-function normalizeAngle(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a}
 
 scene.onBeforeRenderObservable.add(()=>{
   const dt=Math.min(.033,engine.getDeltaTime()/1000);
@@ -49,7 +49,7 @@ scene.onBeforeRenderObservable.add(()=>{
   let forward=-joy.y+(keys.w?1:0)-(keys.s?1:0);
   turn=BABYLON.Scalar.Clamp(turn,-1,1);forward=BABYLON.Scalar.Clamp(forward,-1,1);
 
-  // Tank/MMORPG controls: left/right rotates the character; up/down moves along its facing direction.
+  // Steering: left/right rotates the character; up/down moves in the exact facing direction.
   if(Math.abs(turn)>.04)player.rotation.y+=turn*TURN_SPEED*dt*(mounted?1.15:1);
   const moveSpeed=(mounted?6.5:4)*(forward<0?.72:1);
   const facing=new BABYLON.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
@@ -61,13 +61,13 @@ scene.onBeforeRenderObservable.add(()=>{
   if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);
   if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}
 
-  // Camera yaw follows the character, so turning the character also turns the whole view.
-  const desiredAlpha=-player.rotation.y-Math.PI/2;
-  const delta=normalizeAngle(desiredAlpha-camera.alpha);
-  camera.alpha+=delta*Math.min(1,dt*CAMERA_FOLLOW_SPEED);
-  camera.beta=CAM_BETA;camera.radius=cameraRadius;
-  const desiredTarget=player.position.add(facing.scale(CAM_LOOK_AHEAD)).add(new BABYLON.Vector3(0,mounted?2.25:CAM_TARGET_HEIGHT,0));
-  camera.target=BABYLON.Vector3.Lerp(camera.target,desiredTarget,Math.min(1,dt*CAMERA_FOLLOW_SPEED));
+  // IMPORTANT: no yaw lag. Camera rotates by exactly the same yaw as the player.
+  // This prevents side/front views while turning and keeps the whole back visible.
+  camera.alpha=-player.rotation.y-Math.PI/2;
+  camera.beta=CAM_BETA;
+  camera.radius=cameraRadius;
+  const targetHeight=mounted?2.35:CAM_TARGET_HEIGHT;
+  camera.target.copyFrom(player.position.add(facing.scale(CAM_LOOK_AHEAD)).add(new BABYLON.Vector3(0,targetHeight,0)));
 
   anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');
   document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`;
