@@ -1,0 +1,1 @@
+Thư mục asset vũ khí. File mặc định trong manifest: sword.glb
