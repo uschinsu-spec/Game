@@ -11,21 +11,46 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>Thanh Vân Tiên Vực</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260914-10"/>
-  <link rel="stylesheet" href="./style.css?v=20260914-10"/>
+  <link rel="manifest" href="./manifest.webmanifest?v=20260914-11"/>
+  <link rel="stylesheet" href="./style.css?v=20260914-11"/>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
   <canvas id="renderCanvas"></canvas>
   <div id="hud">
-    <section class="status-panel glass"><div class="portrait">仙</div><div class="status-copy"><div class="name-row"><strong>Linh Phong</strong><span>Lv.1</span></div><div class="bar hp"><i style="width:100%"></i><b>100 / 100</b></div><div class="bar mp"><i style="width:100%"></i><b>100 / 100</b></div></div></section>
-    <section class="quest glass"><strong>[Chính] Nhập Môn Tu Tiên</strong><span>• Tiến vào Thanh Vân Tiên Môn</span><span>• Khám phá linh sơn và tiên các</span></section>
-    <section class="minimap glass"><div class="mini-ring"><span>▲</span></div><b>Thanh Vân Tiên Vực</b><small id="coords">X: 0.0 Z: 0.0</small></section>
+    <section class="status-panel glass">
+      <div class="portrait">仙</div>
+      <div class="status-copy"><div class="name-row"><strong>Linh Phong</strong><span>Lv.1</span></div><div class="bar hp"><i style="width:100%"></i><b>100 / 100</b></div><div class="bar mp"><i style="width:100%"></i><b>100 / 100</b></div></div>
+    </section>
+
+    <section id="targetPanel" class="target-panel glass"><strong id="targetName">Ma Linh</strong><div class="target-bar"><i id="targetHp" style="width:100%"></i></div></section>
+
+    <section class="quest glass"><strong>[Chính] Nhập Môn Tu Tiên</strong><span>Tiến vào Thanh Vân Tiên Môn</span></section>
+
+    <section class="minimap glass"><div class="mini-ring"><span>▲</span></div><b>Thanh Vân</b><small id="coords">X: 0.0 Z: 0.0</small></section>
+
     <div id="joystick" class="joystick"><div id="stick"></div></div>
-    <section class="skills"><button class="skill" data-skill="1">⚡<small>Skill 1</small></button><button class="skill" data-skill="2">✦<small>Skill 2</small></button><button id="attack" class="skill attack">⚔<small>Đánh</small></button><button id="jump" class="skill">↑<small>Nhảy</small></button></section>
-    <section class="quickbar glass"><button data-action="weapon">Đổi vũ khí</button><button data-action="armor">Đổi giáp</button><button data-action="mount">Cưỡi ngựa</button><button data-action="beast">Linh thú</button></section>
+
+    <section class="skills portrait-skills">
+      <button class="skill s1" data-skill="1">⚡<small>Kiếm Khí</small></button>
+      <button class="skill s2" data-skill="2">✦<small>Liên Trảm</small></button>
+      <button class="skill s3" data-skill="3">☯<small>Pháp Trận</small></button>
+      <button id="attack" class="skill attack">⚔<small>Đánh</small></button>
+    </section>
+
+    <button id="jump" class="hidden-jump" aria-hidden="true">Nhảy</button>
+
+    <button id="menuToggle" class="menu-toggle glass">☰</button>
+    <section id="utilityTray" class="utility-tray glass">
+      <button data-action="weapon">⚔<span>Vũ khí</span></button>
+      <button data-action="armor">袍<span>Trang bị</span></button>
+      <button data-action="mount">馬<span>Tọa kỵ</span></button>
+      <button data-action="beast">✦<span>Linh thú</span></button>
+    </section>
+
     <section class="debug glass"><b id="animState">Idle</b><span id="equipmentState">Tiên bào • Tiên kiếm</span></section>
   </div>
+
   <script>
     const VERSION_KEY='tu-tien-build-version';
     async function checkForGameUpdate(){try{const response=await fetch('./version.json?t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'}});if(!response.ok)return;const data=await response.json();const remoteVersion=String(data.version||'');if(!remoteVersion)return;const localVersion=localStorage.getItem(VERSION_KEY);if(!localVersion){localStorage.setItem(VERSION_KEY,remoteVersion);return}if(localVersion!==remoteVersion){localStorage.setItem(VERSION_KEY,remoteVersion);const url=new URL(location.href);url.searchParams.set('v',remoteVersion);location.replace(url.toString())}}catch(_){}}
@@ -33,11 +58,12 @@
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForGameUpdate()});
     window.addEventListener('pageshow',checkForGameUpdate);
     setInterval(checkForGameUpdate,60000);
-    if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js?v=20260914-10',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{})})}
+    if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js?v=20260914-11',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{})})}
   </script>
-  <script src="./game.js?v=20260914-10"></script>
-  <script src="./character-v2.js?v=20260914-10"></script>
-  <script src="./camera-controls.js?v=20260914-10"></script>
-  <script src="./mobile-runtime.js?v=20260914-10"></script>
+  <script src="./game.js?v=20260914-11"></script>
+  <script src="./character-v2.js?v=20260914-11"></script>
+  <script src="./portrait-gameplay.js?v=20260914-11"></script>
+  <script src="./camera-controls.js?v=20260914-11"></script>
+  <script src="./mobile-runtime.js?v=20260914-11"></script>
 </body>
 </html>
