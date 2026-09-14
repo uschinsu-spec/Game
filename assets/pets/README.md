@@ -1,0 +1,1 @@
+Thư mục asset linh thú. File mặc định dùng trong manifest: spirit-pet.glb
