@@ -1,4 +1,4 @@
-const SW_VERSION = 'production-clean-v20260915-v1';
+const SW_VERSION = 'groundmove-v20260915-v2';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
 
