@@ -1,0 +1,12 @@
+{
+  "name": "Thanh Vân Tiên Vực",
+  "short_name": "Tu Tiên 3D",
+  "description": "Web game 3D tiên hiệp tối ưu cho điện thoại.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0c1420",
+  "theme_color": "#101722",
+  "lang": "vi"
+}
