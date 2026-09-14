@@ -65,13 +65,61 @@
     ring(new BABYLON.Vector3(base.x,.12,base.z),'#ffd65a',2.5,620,.11); setTimeout(()=>ring(new BABYLON.Vector3(base.x,.13,base.z),'#fff2a1',3.1,520,.06),90);
     for(let i=0;i<8;i++){ const a=i*Math.PI/4; const o=base.add(new BABYLON.Vector3(Math.cos(a)*1.2,Math.sin(i)*.12,Math.sin(a)*1.2)); orb(o,i%2?'#fff2a8':'#ffbf33',.22,430); }
   }
-  function thienLoi(){
-    const base=ppos(.9), target=base.add(forwardVec(4.2)); target.y=.3; skillLabel('THIÊN LÔI THẦN TRẢM','#b77cff'); flash(target,'#9c6cff',7,260);
-    const top=target.add(new BABYLON.Vector3(0,9,0));
-    for(let k=0;k<4;k++){
-      const pts=[top.clone()]; for(let i=1;i<7;i++){ const t=i/7; pts.push(BABYLON.Vector3.Lerp(top,target,t).add(new BABYLON.Vector3((Math.random()-.5)*.75,0,(Math.random()-.5)*.75))); } pts.push(target.clone()); tube(pts,k===0?'#ffffff':(k===1?'#b99cff':'#6ee7ff'),k===0?.10:.045,340);
+  function lightningPath(top,target,jitter=.8,segments=8){
+    const pts=[top.clone()];
+    for(let i=1;i<segments;i++){
+      const t=i/segments;
+      pts.push(BABYLON.Vector3.Lerp(top,target,t).add(new BABYLON.Vector3((Math.random()-.5)*jitter,0,(Math.random()-.5)*jitter)));
     }
-    orb(target,'#d8c4ff',1.0,420); ring(new BABYLON.Vector3(target.x,.12,target.z),'#9f7cff',2.8,520,.10); setTimeout(()=>ring(new BABYLON.Vector3(target.x,.13,target.z),'#69e5ff',4.1,500,.06),80);
+    pts.push(target.clone());
+    return pts;
+  }
+  function lightningBranch(origin, hex, spread=2.3, life=260){
+    const dir=new BABYLON.Vector3((Math.random()-.5)*spread,(Math.random()*.5+.15),(Math.random()-.5)*spread);
+    const end=origin.add(dir);
+    const mid=BABYLON.Vector3.Lerp(origin,end,.52).add(new BABYLON.Vector3((Math.random()-.5)*.45,.1,(Math.random()-.5)*.45));
+    tube([origin.clone(),mid,end],hex,.025,life);
+  }
+  function thienLoi(){
+    const base=ppos(.9), center=base.add(forwardVec(4.2)); center.y=.22;
+    skillLabel('THIÊN LÔI THẦN TRẢM','#b77cff');
+    flash(center,'#9c6cff',8.5,320);
+    ring(new BABYLON.Vector3(center.x,.11,center.z),'#7b5cff',3.0,620,.11);
+    setTimeout(()=>ring(new BABYLON.Vector3(center.x,.12,center.z),'#63e6ff',4.8,560,.07),70);
+    setTimeout(()=>ring(new BABYLON.Vector3(center.x,.13,center.z),'#d7c5ff',6.1,520,.045),145);
+
+    const strikes=[];
+    const mainCount=9;
+    for(let i=0;i<mainCount;i++){
+      const a=(i/mainCount)*Math.PI*2 + (Math.random()-.5)*.35;
+      const r=i===0?0:(.9 + Math.random()*2.4);
+      strikes.push(center.add(new BABYLON.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)));
+    }
+
+    strikes.forEach((target,idx)=>{
+      const delay=idx*42;
+      setTimeout(()=>{
+        const top=target.add(new BABYLON.Vector3((Math.random()-.5)*1.0,9+Math.random()*2.8,(Math.random()-.5)*1.0));
+        const mainHex=idx===0?'#ffffff':(idx%3===0?'#d8c6ff':(idx%2===0?'#7be8ff':'#ad7dff'));
+        tube(lightningPath(top,target,idx===0?1.0:.72,9),mainHex,idx===0?.12:.06,360);
+        if(idx===0){
+          tube(lightningPath(top.add(new BABYLON.Vector3(.45,.4,-.25)),target.add(new BABYLON.Vector3(-.15,0,.2)),.9,8),'#7be8ff',.055,320);
+          tube(lightningPath(top.add(new BABYLON.Vector3(-.5,.25,.35)),target.add(new BABYLON.Vector3(.18,0,-.18)),.9,8),'#bb8cff',.05,320);
+        }
+        for(let b=0;b<(idx===0?5:2);b++) lightningBranch(target, b%2?'#7be8ff':'#b990ff', idx===0?3.4:2.0,240);
+        orb(target,idx===0?'#efe6ff':'#cbbaff',idx===0?1.35:.72,350);
+        flash(target,idx===0?'#d8c6ff':'#7be8ff',idx===0?7:4.2,180);
+      },delay);
+    });
+
+    setTimeout(()=>{
+      for(let i=0;i<10;i++){
+        const a=i/10*Math.PI*2;
+        const p=center.add(new BABYLON.Vector3(Math.cos(a)*2.1,.15,Math.sin(a)*2.1));
+        lightningBranch(p,i%2?'#66e6ff':'#9c78ff',2.6,220);
+      }
+      orb(center,'#d8c4ff',1.5,430);
+    },170);
   }
   function vanKiem(){
     const base=ppos(1.0); skillLabel('VẠN KIẾM QUY TÔNG','#ff6b8d'); flash(base,'#ff4f86',8,320);
