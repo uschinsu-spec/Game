@@ -1,49 +1,18 @@
 const canvas=document.getElementById('renderCanvas');
 const engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:true,stencil:true,adaptToDeviceRatio:true});
-const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.58,.72,.84,1);scene.fogMode=BABYLON.Scene.FOGMODE_LINEAR;scene.fogStart=28;scene.fogEnd=70;scene.fogColor=new BABYLON.Color3(.58,.72,.84);
+const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.58,.72,.84,1);scene.fogMode=BABYLON.Scene.FOGMODE_LINEAR;scene.fogStart=55;scene.fogEnd=110;scene.fogColor=new BABYLON.Color3(.58,.72,.84);
 const hemi=new BABYLON.HemisphericLight('sky',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.88;const sun=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.5,-1,.4),scene);sun.position=new BABYLON.Vector3(20,30,-20);sun.intensity=1.1;
 const shadow=new BABYLON.ShadowGenerator(1024,sun);shadow.useBlurExponentialShadowMap=true;shadow.blurKernel=18;
 
 // Fixed-angle 2.5D isometric camera (VLTK1-like).
-// Angle stays locked, but player can zoom in/out with a two-finger pinch on mobile.
 const ISO_ALPHA=-Math.PI/4;
 const ISO_BETA=0.86;
-const ISO_RADIUS_DEFAULT=26;
-const ISO_RADIUS_MIN=13;
-const ISO_RADIUS_MAX=38;
+const ISO_RADIUS_DEFAULT=32;
+const ISO_RADIUS_MIN=14;
+const ISO_RADIUS_MAX=52;
 let cameraRadius=ISO_RADIUS_DEFAULT;
 const camera=new BABYLON.ArcRotateCamera('camera',ISO_ALPHA,ISO_BETA,cameraRadius,new BABYLON.Vector3(0,1.1,0),scene);
-camera.inputs.clear();
-camera.panningSensibility=0;
-camera.lowerRadiusLimit=ISO_RADIUS_MIN;
-camera.upperRadiusLimit=ISO_RADIUS_MAX;
-camera.lowerBetaLimit=ISO_BETA;
-camera.upperBetaLimit=ISO_BETA;
-camera.fov=0.62;
-
-// Mobile pinch zoom: spread fingers = zoom in, pinch fingers together = zoom out.
-let pinchStartDistance=0;
-let pinchStartRadius=cameraRadius;
-const touchDistance=(a,b)=>Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
-canvas.addEventListener('touchstart',e=>{
-  if(e.touches.length===2){
-    pinchStartDistance=touchDistance(e.touches[0],e.touches[1]);
-    pinchStartRadius=cameraRadius;
-    e.preventDefault();
-  }
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{
-  if(e.touches.length===2&&pinchStartDistance>0){
-    const currentDistance=touchDistance(e.touches[0],e.touches[1]);
-    const scale=currentDistance/pinchStartDistance;
-    cameraRadius=BABYLON.Scalar.Clamp(pinchStartRadius/scale,ISO_RADIUS_MIN,ISO_RADIUS_MAX);
-    e.preventDefault();
-  }
-},{passive:false});
-canvas.addEventListener('touchend',e=>{
-  if(e.touches.length<2)pinchStartDistance=0;
-},{passive:false});
-canvas.addEventListener('touchcancel',()=>{pinchStartDistance=0;},{passive:false});
+camera.inputs.clear();camera.panningSensibility=0;camera.lowerRadiusLimit=ISO_RADIUS_MIN;camera.upperRadiusLimit=ISO_RADIUS_MAX;camera.lowerBetaLimit=ISO_BETA;camera.upperBetaLimit=ISO_BETA;camera.fov=0.54;camera.minZ=.1;camera.maxZ=180;
 
 const mat=(name,color)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.08,.08,.08);return m};
 const groundMat=mat('stone','#7e8994'),rockMat=mat('rock','#596b70'),woodMat=mat('wood','#553b2d'),roofMat=mat('roof','#273e45'),goldMat=mat('gold','#c9a95b'),redMat=mat('enemy','#9f3e38'),whiteMat=mat('robe','#d9e4ec'),blueMat=mat('armor','#294d73'),darkMat=mat('hair','#17202b'),bladeMat=mat('blade','#9bdcff'),horseMat=mat('horse','#5b4031');
@@ -56,9 +25,9 @@ function part(name,type,opt,pos,material,parent=bodyRoot){let m=type==='box'?BAB
 const torso=part('Torso','box',{width:.72,height:1.05,depth:.38},new BABYLON.Vector3(0,1.55,0),whiteMat);const armor=part('ArmorSocket','box',{width:.86,height:.78,depth:.48},new BABYLON.Vector3(0,1.62,0),blueMat);const head=part('Head','sphere',{diameter:.48,segments:12},new BABYLON.Vector3(0,2.28,0),mat('skin','#d8b59a'));const hair=part('Hair','sphere',{diameter:.53,segments:10},new BABYLON.Vector3(0,2.38,.03),darkMat);hair.scaling.y=.72;
 const armL=part('ArmL','cylinder',{height:.9,diameter:.22,tessellation:8},new BABYLON.Vector3(-.52,1.55,0),whiteMat);const armR=part('ArmR','cylinder',{height:.9,diameter:.22,tessellation:8},new BABYLON.Vector3(.52,1.55,0),whiteMat);const legL=part('LegL','cylinder',{height:1.05,diameter:.27,tessellation:8},new BABYLON.Vector3(-.22,.58,0),darkMat);const legR=part('LegR','cylinder',{height:1.05,diameter:.27,tessellation:8},new BABYLON.Vector3(.22,.58,0),darkMat);
 const handSocket=new BABYLON.TransformNode('RightHandSocket',scene);handSocket.parent=bodyRoot;handSocket.position.set(.58,1.18,0);const backSocket=new BABYLON.TransformNode('BackSocket',scene);backSocket.parent=bodyRoot;backSocket.position.set(0,1.75,.25);const mountSocket=new BABYLON.TransformNode('MountSocket',scene);mountSocket.parent=player;
-function sword(kind=0){if(handSocket.getChildren().length)handSocket.getChildren().forEach(n=>n.dispose());const root=new BABYLON.TransformNode('Weapon',scene);root.parent=handSocket;root.rotation.z=-.2;const blade=part('Blade','box',{width:.09,height:1.3,depth:.04},new BABYLON.Vector3(0,-.55,0),kind?goldMat:bladeMat,root);part('Hilt','box',{width:.4,height:.08,depth:.09},new BABYLON.Vector3(0,.1,0),goldMat,root);return root}sword();
+function sword(kind=0){if(handSocket.getChildren().length)handSocket.getChildren().forEach(n=>n.dispose());const root=new BABYLON.TransformNode('Weapon',scene);root.parent=handSocket;root.rotation.z=-.2;part('Blade','box',{width:.09,height:1.3,depth:.04},new BABYLON.Vector3(0,-.55,0),kind?goldMat:bladeMat,root);part('Hilt','box',{width:.4,height:.08,depth:.09},new BABYLON.Vector3(0,.1,0),goldMat,root);return root}sword();
 let mounted=false,mount=null,weaponKind=0,armorKind=0,beast=null;
-function createMount(){const root=new BABYLON.TransformNode('HorseMount',scene);root.parent=mountSocket;const b=part('HorseBody','box',{width:.75,height:.85,depth:1.65},new BABYLON.Vector3(0,.9,0),horseMat,root);const neck=part('HorseNeck','cylinder',{height:.9,diameter:.42,tessellation:8},new BABYLON.Vector3(0,1.45,-.62),horseMat,root);neck.rotation.x=-.45;part('HorseHead','box',{width:.45,height:.45,depth:.7},new BABYLON.Vector3(0,1.82,-.95),horseMat,root);[-.28,.28].forEach(x=>[-.55,.55].forEach(z=>part('HorseLeg','cylinder',{height:.9,diameter:.15,tessellation:7},new BABYLON.Vector3(x,.35,z),horseMat,root)));return root}
+function createMount(){const root=new BABYLON.TransformNode('HorseMount',scene);root.parent=mountSocket;part('HorseBody','box',{width:.75,height:.85,depth:1.65},new BABYLON.Vector3(0,.9,0),horseMat,root);const neck=part('HorseNeck','cylinder',{height:.9,diameter:.42,tessellation:8},new BABYLON.Vector3(0,1.45,-.62),horseMat,root);neck.rotation.x=-.45;part('HorseHead','box',{width:.45,height:.45,depth:.7},new BABYLON.Vector3(0,1.82,-.95),horseMat,root);[-.28,.28].forEach(x=>[-.55,.55].forEach(z=>part('HorseLeg','cylinder',{height:.9,diameter:.15,tessellation:7},new BABYLON.Vector3(x,.35,z),horseMat,root)));return root}
 function spawnBeast(){if(beast){beast.dispose();beast=null;return}beast=new BABYLON.TransformNode('SpiritBeast',scene);const bm=mat('beastMat','#7fc6d5');part('BeastBody','sphere',{diameter:.75,segments:10},new BABYLON.Vector3(0,.65,0),bm,beast);part('BeastHead','sphere',{diameter:.5,segments:10},new BABYLON.Vector3(0,1,-.42),bm,beast);beast.position=player.position.add(new BABYLON.Vector3(-1,0,1.5))}
 for(let i=0;i<5;i++){const e=BABYLON.MeshBuilder.CreateCylinder('Demon',{height:1.6,diameter:.7,tessellation:8},scene);e.position.set(-8+i*4,.8,-4-Math.random()*4);e.material=redMat;shadow.addShadowCaster(e)}
 const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);let joy={x:0,y:0},joyId=null;const joystick=document.getElementById('joystick'),stick=document.getElementById('stick');
@@ -67,8 +36,5 @@ joystick.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;
 let vy=0,onGround=true,attackT=0,skillT=0;const anim=document.getElementById('animState'),equip=document.getElementById('equipmentState');
 function pulse(type){if(type==='attack')attackT=.32;else skillT=.55}document.getElementById('attack').onclick=()=>pulse('attack');document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>pulse('skill'));document.getElementById('jump').onclick=()=>{if(onGround){vy=5.2;onGround=false}};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==='weapon'){weaponKind=1-weaponKind;sword(weaponKind)}if(a==='armor'){armorKind=1-armorKind;armor.material=armorKind?goldMat:blueMat}if(a==='mount'){mounted=!mounted;if(mounted&&!mount){mount=createMount()}bodyRoot.position.y=mounted?1.75:0;if(mount)mount.setEnabled(mounted);b.textContent=mounted?'Xuống ngựa':'Cưỡi ngựa'}if(a==='beast')spawnBeast();equip.textContent=`${weaponKind?'Tiên kiếm':'Thanh kiếm'} • ${armorKind?'Kim Vân giáp':'Thanh Vân giáp'}${mounted?' • Đang cưỡi':''}`});
-scene.onBeforeRenderObservable.add(()=>{const dt=Math.min(.033,engine.getDeltaTime()/1000);let x=joy.x+(keys.d?1:0)-(keys.a?1:0),z=joy.y+(keys.s?1:0)-(keys.w?1:0),l=Math.hypot(x,z);if(l>1){x/=l;z/=l}const speed=mounted?6.5:4;const moving=Math.abs(x)+Math.abs(z)>.05;if(moving){const camForward=new BABYLON.Vector3(Math.sin(ISO_ALPHA),0,Math.cos(ISO_ALPHA)).normalize();const camRight=new BABYLON.Vector3(camForward.z,0,-camForward.x);const dir=camRight.scale(x).add(camForward.scale(-z)).normalize();player.position.addInPlace(dir.scale(speed*dt));player.rotation.y=Math.atan2(dir.x,dir.z);const t=performance.now()*.012*(mounted?1.5:1);armL.rotation.x=Math.sin(t)*.55;armR.rotation.x=-Math.sin(t)*.55;legL.rotation.x=-Math.sin(t)*.55;legR.rotation.x=Math.sin(t)*.55}else{armL.rotation.x*=.82;armR.rotation.x*=.82;legL.rotation.x*=.82;legR.rotation.x*=.82}if(!onGround){player.position.y+=vy*dt;vy-=12*dt;if(player.position.y<=0){player.position.y=0;vy=0;onGround=true}}if(attackT>0){attackT-=dt;armR.rotation.z=-1.5*Math.sin((.32-attackT)/.32*Math.PI)}if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}
-// Locked isometric follow camera: angle stays fixed; only distance changes through pinch zoom.
-camera.alpha=ISO_ALPHA;camera.beta=ISO_BETA;camera.radius=cameraRadius;camera.target=BABYLON.Vector3.Lerp(camera.target,player.position.add(new BABYLON.Vector3(0,1.0,0)),dt*7);
-anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`});
+scene.onBeforeRenderObservable.add(()=>{const dt=Math.min(.033,engine.getDeltaTime()/1000);let x=joy.x+(keys.d?1:0)-(keys.a?1:0),z=joy.y+(keys.s?1:0)-(keys.w?1:0),l=Math.hypot(x,z);if(l>1){x/=l;z/=l}const speed=mounted?6.5:4;const moving=Math.abs(x)+Math.abs(z)>.05;if(moving){const camForward=new BABYLON.Vector3(Math.sin(ISO_ALPHA),0,Math.cos(ISO_ALPHA)).normalize();const camRight=new BABYLON.Vector3(camForward.z,0,-camForward.x);const dir=camRight.scale(x).add(camForward.scale(-z)).normalize();player.position.addInPlace(dir.scale(speed*dt));player.rotation.y=Math.atan2(dir.x,dir.z);const t=performance.now()*.012*(mounted?1.5:1);armL.rotation.x=Math.sin(t)*.55;armR.rotation.x=-Math.sin(t)*.55;legL.rotation.x=-Math.sin(t)*.55;legR.rotation.x=Math.sin(t)*.55}else{armL.rotation.x*=.82;armR.rotation.x*=.82;legL.rotation.x*=.82;legR.rotation.x*=.82}if(!onGround){player.position.y+=vy*dt;vy-=12*dt;if(player.position.y<=0){player.position.y=0;vy=0;onGround=true}}if(attackT>0){attackT-=dt;armR.rotation.z=-1.5*Math.sin((.32-attackT)/.32*Math.PI)}if(skillT>0){skillT-=dt;const s=1+Math.sin((.55-skillT)/.55*Math.PI)*.15;player.scaling.setAll(s)}else player.scaling.setAll(1);if(beast){const target=player.position.add(new BABYLON.Vector3(-1.4,0,1.5));beast.position=BABYLON.Vector3.Lerp(beast.position,target,dt*3);beast.position.y=.15+Math.sin(performance.now()*.004)*.15}camera.alpha=ISO_ALPHA;camera.beta=ISO_BETA;camera.radius=cameraRadius;camera.target=BABYLON.Vector3.Lerp(camera.target,player.position.add(new BABYLON.Vector3(0,1.0,0)),dt*7);anim.textContent=attackT>0?'Attack':skillT>0?'Skill':!onGround?'Jump':moving?(mounted?'Ride Run':'Run'):(mounted?'Ride Idle':'Idle');document.getElementById('coords').textContent=`X: ${player.position.x.toFixed(1)} Z: ${player.position.z.toFixed(1)}`});
 engine.runRenderLoop(()=>scene.render());addEventListener('resize',()=>engine.resize());
