@@ -7,10 +7,6 @@
 
   const { player, camera, scene, engine } = runtime;
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-  // Disable the legacy window-level pointer controller in idle-adventure.js.
-  // It remains loaded for gameplay, but these capture-phase handlers stop pointer
-  // events before they reach its window listeners on mobile/touch devices.
   const coarse = matchMedia?.('(pointer: coarse)')?.matches ?? true;
   if (!coarse && navigator.maxTouchPoints < 1) return;
 
@@ -43,10 +39,16 @@
   ].join(',');
 
   const isInteractive = (target) => !!target?.closest?.(interactiveSelector);
+  const setMoving = (moving) => {
+    window.isPlayerMoving = !!moving;
+    if (!moving && window.PLAYER_MOTION_STATE === 'moving') window.PLAYER_MOTION_STATE = 'idle';
+    if (moving) window.PLAYER_MOTION_STATE = 'moving';
+  };
   const resetJoystick = () => {
     joyPointer = null;
     joyX = 0;
     joyZ = 0;
+    setMoving(false);
     base?.classList.remove('active');
     if (knob) knob.style.transform = 'translate(0px, 0px)';
   };
@@ -70,6 +72,7 @@
     const distance = Math.hypot(dx, dy);
     if (distance <= DEAD_ZONE) {
       joyX = joyZ = 0;
+      setMoving(false);
       if (knob) knob.style.transform = 'translate(0px, 0px)';
       return;
     }
@@ -79,6 +82,7 @@
     if (knob) knob.style.transform = `translate(${kx}px, ${ky}px)`;
     joyX = -kx / JOY_RADIUS;
     joyZ = ky / JOY_RADIUS;
+    setMoving(Math.hypot(joyX, joyZ) > 0.08);
   };
 
   const startPinch = () => {
@@ -89,19 +93,15 @@
     pinching = true;
     resetJoystick();
   };
-
   const updatePinch = () => {
     if (!pinching || pointers.size < 2) return;
     const pts = [...pointers.values()].slice(0, 2);
     const distance = Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
     camera.radius = clamp(pinchStartRadius * (pinchStartDistance / distance), MIN_ZOOM, MAX_ZOOM);
   };
-
   const swallow = (e) => {
     if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     }
   };
 
@@ -109,104 +109,53 @@
     if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
     if (isInteractive(e.target)) return;
     swallow(e);
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
     try { app.setPointerCapture(e.pointerId); } catch (_) {}
-
-    if (pointers.size >= 2) {
-      startPinch();
-      return;
-    }
-    pinching = false;
-    joyPointer = e.pointerId;
-    showJoystick(e.clientX, e.clientY);
-  }, { capture: true, passive: false });
+    if (pointers.size >= 2) { startPinch(); return; }
+    pinching = false; joyPointer = e.pointerId; showJoystick(e.clientX,e.clientY);
+  }, { capture:true, passive:false });
 
   app.addEventListener('pointermove', (e) => {
     if (!pointers.has(e.pointerId)) return;
     swallow(e);
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size >= 2 || pinching) {
-      if (!pinching) startPinch();
-      updatePinch();
-      return;
-    }
-    if (e.pointerId === joyPointer) updateJoystick(e.clientX, e.clientY);
-  }, { capture: true, passive: false });
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (pointers.size >= 2 || pinching) { if (!pinching) startPinch(); updatePinch(); return; }
+    if (e.pointerId === joyPointer) updateJoystick(e.clientX,e.clientY);
+  }, { capture:true, passive:false });
 
   const endPointer = (e) => {
     if (!pointers.has(e.pointerId)) return;
-    swallow(e);
-    pointers.delete(e.pointerId);
+    swallow(e); pointers.delete(e.pointerId);
     try { app.releasePointerCapture(e.pointerId); } catch (_) {}
-
-    if (pointers.size < 2) pinching = false;
-    if (pointers.size === 0) {
-      resetJoystick();
-      return;
-    }
-
-    // Do not instantly turn the remaining finger into movement after a pinch.
-    // Re-touch with one finger to start the joystick again; this avoids the
-    // common iPhone bug where releasing one pinch finger makes the player run.
+    if (pointers.size < 2) pinching=false;
     resetJoystick();
   };
+  app.addEventListener('pointerup',endPointer,{capture:true,passive:false});
+  app.addEventListener('pointercancel',endPointer,{capture:true,passive:false});
+  app.addEventListener('lostpointercapture',(e)=>{ pointers.delete(e.pointerId); if(pointers.size===0) resetJoystick(); if(pointers.size<2) pinching=false; },true);
 
-  app.addEventListener('pointerup', endPointer, { capture: true, passive: false });
-  app.addEventListener('pointercancel', endPointer, { capture: true, passive: false });
-  app.addEventListener('lostpointercapture', (e) => {
-    pointers.delete(e.pointerId);
-    if (pointers.size === 0) resetJoystick();
-    if (pointers.size < 2) pinching = false;
-  }, true);
-
-  // iOS gesture events are WebKit-specific. Blocking them prevents browser page
-  // magnification from competing with the game's own camera pinch zoom.
   for (const name of ['gesturestart','gesturechange','gestureend']) {
-    app.addEventListener(name, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }, { capture: true, passive: false });
+    app.addEventListener(name,(e)=>{e.preventDefault();e.stopPropagation();},{capture:true,passive:false});
   }
 
-  // Movement is applied separately from the legacy controller, camera-relative
-  // to the fixed isometric view so the joystick direction matches the screen.
   scene.onBeforeRenderObservable.add(() => {
-    const mag = Math.hypot(joyX, joyZ);
-    if (pinching || mag <= 0.08) return;
-    let x = joyX, z = joyZ;
-    if (mag > 1) { x /= mag; z /= mag; }
-    const dt = Math.min(0.033, engine.getDeltaTime() / 1000);
-    const speed = 8.8;
-    let nx = player.position.x + x * speed * dt;
-    let nz = player.position.z + z * speed * dt;
-    const radius = Math.hypot(nx, nz);
-    const maxRadius = 1200;
-    if (radius > maxRadius) {
-      nx = nx / radius * maxRadius;
-      nz = nz / radius * maxRadius;
-    }
-    player.position.x = nx;
-    player.position.z = nz;
-    window.isPlayerMoving = true;
-    window.PLAYER_MOTION_STATE = 'moving';
-    const angle = Math.atan2(x, z);
-    if (window.setPlayerTargetAngle) window.setPlayerTargetAngle(angle);
-    else player.rotation.y = angle;
+    const mag=Math.hypot(joyX,joyZ);
+    if (pinching || mag<=0.08) { if (!pinching) setMoving(false); return; }
+    let x=joyX,z=joyZ;
+    if(mag>1){x/=mag;z/=mag;}
+    const dt=Math.min(0.033,engine.getDeltaTime()/1000);
+    const speed=8.8;
+    let nx=player.position.x+x*speed*dt;
+    let nz=player.position.z+z*speed*dt;
+    const radius=Math.hypot(nx,nz), maxRadius=1200;
+    if(radius>maxRadius){nx=nx/radius*maxRadius;nz=nz/radius*maxRadius;}
+    player.position.x=nx; player.position.z=nz;
+    setMoving(true);
+    const angle=Math.atan2(x,z);
+    if(window.setPlayerTargetAngle)window.setPlayerTargetAngle(angle); else player.rotation.y=angle;
   });
 
-  window.addEventListener('blur', () => {
-    pointers.clear();
-    pinching = false;
-    resetJoystick();
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      pointers.clear();
-      pinching = false;
-      resetJoystick();
-    }
-  });
-
-  console.info('[MobileControlsFix] iPhone joystick + pinch zoom enabled');
+  window.addEventListener('blur',()=>{pointers.clear();pinching=false;resetJoystick();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){pointers.clear();pinching=false;resetJoystick();}});
+  console.info('[MobileControlsFix] iPhone joystick + pinch zoom + movement state reset enabled');
 })();
