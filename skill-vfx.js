@@ -1,4 +1,4 @@
-// THANH VAN TIEN VUC - ENEMY-TARGETED SKILL VFX V4
+// THANH VAN TIEN VUC - ENEMY-TARGETED SKILL VFX V5
 (()=>{
   const ready=()=>typeof BABYLON!=='undefined'&&typeof scene!=='undefined'&&typeof player!=='undefined';
   const junk=new Set();
@@ -18,20 +18,39 @@
   function boltPath(a,b,j=.7,s=8){const pts=[a.clone()];for(let i=1;i<s;i++){const t=i/s;pts.push(BABYLON.Vector3.Lerp(a,b,t).add(new BABYLON.Vector3((Math.random()-.5)*j,0,(Math.random()-.5)*j)))}pts.push(b.clone());return pts}
 
   function thanhVan(){const a=playerPos(),b=targetPos();label('THANH VÂN KIẾM','#5ee7ff');for(let i=-1;i<=1;i++){const off=new BABYLON.Vector3(i*.28,.08,i*.08);tube([a.add(off),BABYLON.Vector3.Lerp(a,b,.55).add(new BABYLON.Vector3(i*.3,.35,-i*.2)),b.add(off)],i===0?'#e8fdff':'#42dfff',i===0?.085:.045,300)}flash(b,'#62eaff',5,170);ring(b,'#67e8f9',1.9,420,.08);orb(b,'#c7f8ff',.65,300)}
-  function hoThe(){const b=targetPos();label('HỘ THỂ KIM QUANG','#ffd65a');flash(b,'#ffd24d',6,220);ring(b,'#ffd65a',2.2,500,.11);setTimeout(()=>ring(b,'#fff0a0',3.0,430,.06),70);for(let i=0;i<7;i++){const a=i/7*Math.PI*2,p=b.add(new BABYLON.Vector3(Math.cos(a)*1.15,.15+Math.sin(i)*.2,Math.sin(a)*1.15));tube([p,b],i%2?'#fff0a0':'#ffb92e',.035,280);orb(p,'#ffd86a',.22,260)}orb(b,'#fff3b0',.9,350)}
-  function thienLoi(){const c=targetPos();label('THIÊN LÔI THẦN TRẢM','#b77cff');ring(c,'#7b5cff',2.5,560,.1);setTimeout(()=>ring(c,'#64e7ff',3.8,500,.06),70);const count=11;for(let i=0;i<count;i++){setTimeout(()=>{const a=i/count*Math.PI*2,r=i===0?0:.45+Math.random()*1.9,t=c.add(new BABYLON.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)),top=t.add(new BABYLON.Vector3((Math.random()-.5)*.8,8.5+Math.random()*2.5,(Math.random()-.5)*.8));tube(boltPath(top,t,i===0?1:.7,9),i===0?'#ffffff':(i%2?'#a77cff':'#70e9ff'),i===0?.12:.055,340);for(let k=0;k<(i===0?4:2);k++){const e=t.add(new BABYLON.Vector3((Math.random()-.5)*2.2,.15+Math.random()*.4,(Math.random()-.5)*2.2));tube([t.clone(),BABYLON.Vector3.Lerp(t,e,.5).add(new BABYLON.Vector3((Math.random()-.5)*.4,.1,(Math.random()-.5)*.4)),e],k%2?'#70e9ff':'#b991ff',.024,220)}flash(t,i===0?'#d9c8ff':'#73e9ff',i===0?7:3.5,170);orb(t,i===0?'#eee8ff':'#c7b8ff',i===0?1.1:.5,300)},i*38)}
+
+  // Ho The is a PLAYER BUFF: premium layered golden aura, not an enemy hit VFX.
+  function hoThe(){
+    const c=player.position.clone(), body=playerPos(); label('HỘ THỂ KIM QUANG','#ffd65a'); flash(body,'#ffe47a',7,300);
+    // Three concentric ground halos with staggered expansion.
+    ring(c,'#ffbf2f',2.15,760,.13);
+    setTimeout(()=>ring(c,'#ffe786',2.9,720,.085),65);
+    setTimeout(()=>ring(c,'#fff6c7',3.65,650,.045),135);
+    // Translucent golden protective sphere around player.
+    const sm=mat('GoldenGuard','#ffd34f',.22,1.8), shield=BABYLON.MeshBuilder.CreateSphere('GoldenGuardSphere',{diameter:3.25,segments:20},scene);
+    shield.position=body.clone(); shield.scaling.y=.78; shield.material=sm; scale(shield,.55,1,16); fade(sm,48); later(shield,820); setTimeout(()=>dispose(sm),850);
+    // Two vertical rotating halo rings create a cultivation barrier silhouette.
+    for(let j=0;j<2;j++){
+      const hm=mat('GuardHalo',j?'#fff1a6':'#ffc83d',.72,1.9), h=BABYLON.MeshBuilder.CreateTorus('GuardHalo',{diameter:2.55+j*.34,thickness:j?.045:.07,tessellation:48},scene);
+      h.position=body.clone(); h.rotation.x=Math.PI/2.7; h.rotation.z=j?Math.PI/2:0; h.material=hm;
+      const a=new BABYLON.Animation('haloSpin','rotation.y',60,BABYLON.Animation.ANIMATIONTYPE_FLOAT,BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);a.setKeys([{frame:0,value:0},{frame:42,value:(j?1:-1)*Math.PI*2}]);scene.beginDirectAnimation(h,[a],0,42,true);
+      fade(hm,52); later(h,850); setTimeout(()=>dispose(hm),880);
+    }
+    // Golden spirit motes spiral upward around the player's body.
+    for(let i=0;i<12;i++){
+      const a=i/12*Math.PI*2, r=.85+(i%3)*.13, p=body.add(new BABYLON.Vector3(Math.cos(a)*r,-.55+(i%4)*.38,Math.sin(a)*r));
+      orb(p,i%3===0?'#fff8d2':(i%2?'#ffe179':'#ffbd32'),.16+(i%2)*.05,520+i*18);
+    }
+    // Brief golden pillars rising from the aura circle.
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2,start=c.add(new BABYLON.Vector3(Math.cos(a)*1.05,.08,Math.sin(a)*1.05)),end=start.add(new BABYLON.Vector3(0,1.8+(i%2)*.45,0));tube([start,end],i%2?'#fff2ad':'#ffd04a',.025,420)}
+    orb(body,'#fff0a0',.8,420);
+  }
+
+  function thienLoi(){const c=targetPos();label('THIÊN LÔI THẦN TRẢM','#b77cff');ring(c,'#7b5cff',2.5,560,.1);setTimeout(()=>ring(c,'#64e7ff',3.8,500,.06),70);const count=11;for(let i=0;i<count;i++){setTimeout(()=>{const a=i/count*Math.PI*2,r=i===0?0:.45+Math.random()*1.9,t=c.add(new BABYLON.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)),top=t.add(new BABYLON.Vector3((Math.random()-.5)*.8,8.5+Math.random()*2.5,(Math.random()-.5)*.8));tube(boltPath(top,t,i===0?1:.7,9),i===0?'#ffffff':(i%2?'#a77cff':'#70e9ff'),i===0?.12:.055,340);for(let k=0;k<(i===0?4:2);k++){const e=t.add(new BABYLON.Vector3((Math.random()-.5)*2.2,.15+Math.random()*.4,(Math.random()-.5)*2.2));tube([t.clone(),BABYLON.Vector3.Lerp(t,e,.5).add(new BABYLON.Vector3((Math.random()-.5)*.4,.1,(Math.random()-.5)*.4)),e],k%2?'#70e9ff':'#b991ff',.024,220)}flash(t,i===0?'#d9c8ff':'#73e9ff',i===0?7:3.5,170);orb(t,i===0?'#eee8ff':'#c7b8ff',i===0?1.1:.5,300)},i*38)}}
   function vanKiem(){const c=targetPos();label('VẠN KIẾM QUY TÔNG','#ff6b8d');flash(c,'#ff4f86',7,260);ring(c,'#ff5d85',2.8,580,.11);ring(c,'#d875ff',3.7,580,.055);const m=mat('sword','#fff1ff',.95,1.8);for(let i=0;i<14;i++){const a=i/14*Math.PI*2,start=c.add(new BABYLON.Vector3(Math.cos(a)*2.8,1.2+(i%3)*.25,Math.sin(a)*2.8)),r=new BABYLON.TransformNode('SpiritSword',scene);r.position=start;r.rotation.y=-a-Math.PI/2;const blade=BABYLON.MeshBuilder.CreateBox('Blade',{width:.06,height:.07,depth:1.1},scene);blade.parent=r;blade.material=m;const anim=new BABYLON.Animation('SwordDive','position',60,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);anim.setKeys([{frame:0,value:start},{frame:18,value:c.clone()}]);scene.beginDirectAnimation(r,[anim],0,18,false);later(r,360);later(blade,360)}setTimeout(()=>{fade(m,8);dispose(m);orb(c,'#ffd9ef',1.2,350)},330)}
 
   function lockSkillLv1(){document.querySelectorAll('.ulala-skill-lv').forEach(e=>{if(e.textContent!=='Lv.1')e.textContent='Lv.1'});const deck=document.getElementById('skillDeck');if(deck)new MutationObserver(()=>document.querySelectorAll('.ulala-skill-lv').forEach(e=>e.textContent='Lv.1')).observe(deck,{subtree:true,childList:true,characterData:true});}
-  function tuneEnemies(){
-    const eng=window.ArenaMonsterEngine;if(!eng||eng.__v4Tuned)return;eng.__v4Tuned=true;
-    if(Array.isArray(eng.catalog))eng.catalog.forEach(c=>{c.hpMult=(c.hpMult||1)*2.2;c.speed=(c.speed||2.4)*1.35;c.scale=(c.scale||1)*1.12;});
-    const original=eng.spawnMonster3D;
-    eng.spawnMonster3D=function(...args){const m=original.apply(this,args);if(!m)return m;m.speed*=1.18;m.attackCooldown=.9;m.maxHp=Math.round(m.maxHp*1.25);m.hp=m.maxHp;m.root.scaling.scaleInPlace(1.08);
-      let tries=0;const beautify=setInterval(()=>{tries++;for(const mesh of m.visualMeshes||[]){try{if(!mesh.__outlined){mesh.enableEdgesRendering();mesh.edgesWidth=1.2;mesh.edgesColor=new BABYLON.Color4(.03,.04,.07,.5);mesh.__outlined=true}if(mesh.material&&mesh.material.emissiveColor)mesh.material.emissiveColor=mesh.material.emissiveColor.add(new BABYLON.Color3(.035,.035,.035));}catch(_){}}if((m.visualMeshes&&m.visualMeshes.length)||tries>12)clearInterval(beautify)},120);
-      return m;};
-  }
-
+  function tuneEnemies(){const eng=window.ArenaMonsterEngine;if(!eng||eng.__v4Tuned)return;eng.__v4Tuned=true;if(Array.isArray(eng.catalog))eng.catalog.forEach(c=>{c.hpMult=(c.hpMult||1)*2.2;c.speed=(c.speed||2.4)*1.35;c.scale=(c.scale||1)*1.12;});const original=eng.spawnMonster3D;eng.spawnMonster3D=function(...args){const m=original.apply(this,args);if(!m)return m;m.speed*=1.18;m.attackCooldown=.9;m.maxHp=Math.round(m.maxHp*1.25);m.hp=m.maxHp;m.root.scaling.scaleInPlace(1.08);let tries=0;const beautify=setInterval(()=>{tries++;for(const mesh of m.visualMeshes||[]){try{if(!mesh.__outlined){mesh.enableEdgesRendering();mesh.edgesWidth=1.2;mesh.edgesColor=new BABYLON.Color4(.03,.04,.07,.5);mesh.__outlined=true}if(mesh.material&&mesh.material.emissiveColor)mesh.material.emissiveColor=mesh.material.emissiveColor.add(new BABYLON.Color3(.035,.035,.035));}catch(_){}}if((m.visualMeshes&&m.visualMeshes.length)||tries>12)clearInterval(beautify)},120);return m;};}
   const casts=[thanhVan,hoThe,thienLoi,vanKiem];
   function boot(){if(!ready()){setTimeout(boot,200);return}lockSkillLv1();tuneEnemies();const slots=[...document.querySelectorAll('.ulala-skill-card')];if(slots.length<4){setTimeout(boot,200);return}let last=-1,lock=false;const detect=()=>{const i=slots.findIndex(x=>x.classList.contains('active'));if(i<0||i===last||lock)return;last=i;lock=true;try{casts[i]?.()}catch(e){console.warn('SkillVFX',e)}setTimeout(()=>lock=false,100)};slots.forEach(s=>new MutationObserver(detect).observe(s,{attributes:true,attributeFilter:['class']}));window.SkillVFX={cast:i=>{try{casts[i]?.()}catch(_){}},targetPos};}
   boot();
