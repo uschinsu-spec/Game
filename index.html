@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#101722" />
+  <title>Tu Tiên 3D Mobile Prototype</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+
+  <div id="hud">
+    <section class="status-panel glass">
+      <div class="portrait">仙</div>
+      <div class="status-copy">
+        <div class="name-row"><strong>Linh Phong</strong><span>Lv.1</span></div>
+        <div class="bar hp"><i style="width:100%"></i><b>100 / 100</b></div>
+        <div class="bar mp"><i style="width:100%"></i><b>100 / 100</b></div>
+      </div>
+    </section>
+
+    <section class="quest glass">
+      <strong>[Chính] Nhập Môn Tu Tiên</strong>
+      <span>• Đến đài luyện công</span>
+      <span>• Thử thay vũ khí và linh thú</span>
+    </section>
+
+    <section class="minimap glass">
+      <div class="mini-ring"><span>▲</span></div>
+      <b>Thanh Vân Sơn</b>
+      <small id="coords">X: 0.0 Z: 0.0</small>
+    </section>
+
+    <div id="joystick" class="joystick"><div id="stick"></div></div>
+
+    <section class="skills">
+      <button class="skill" data-skill="1">⚡<small>Skill 1</small></button>
+      <button class="skill" data-skill="2">✦<small>Skill 2</small></button>
+      <button id="attack" class="skill attack">⚔<small>Đánh</small></button>
+      <button id="jump" class="skill">↑<small>Nhảy</small></button>
+    </section>
+
+    <section class="quickbar glass">
+      <button data-action="weapon">Đổi vũ khí</button>
+      <button data-action="armor">Đổi giáp</button>
+      <button data-action="mount">Cưỡi ngựa</button>
+      <button data-action="beast">Linh thú</button>
+    </section>
+
+    <section class="debug glass">
+      <b id="animState">Idle</b>
+      <span id="equipmentState">Kiếm • Thanh Vân giáp</span>
+    </section>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>
