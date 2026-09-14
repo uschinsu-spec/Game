@@ -1,7 +1,7 @@
-const SW_VERSION='20260914-10';
+const SW_VERSION='20260914-11';
 const CORE_CACHE=`tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE=`tu-tien-runtime-${SW_VERSION}`;
-const CORE=['./','./index.html','./style.css','./game.js','./character-v2.js','./camera-controls.js','./mobile-runtime.js','./manifest.webmanifest','./version.json'];
+const CORE=['./','./index.html','./style.css','./game.js','./character-v2.js','./portrait-gameplay.js','./camera-controls.js','./mobile-runtime.js','./manifest.webmanifest','./version.json'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CORE_CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}));
@@ -20,24 +20,9 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET')return;
   const url=new URL(req.url);
-
   if(url.origin===self.location.origin&&(url.pathname.endsWith('/version.json')||req.mode==='navigate')){
-    event.respondWith((async()=>{
-      try{
-        const fresh=await fetch(new Request(req,{cache:'no-store'}));
-        const cache=await caches.open(CORE_CACHE);cache.put(req,fresh.clone());
-        return fresh;
-      }catch(_){return (await caches.match(req,{ignoreSearch:true}))||Response.error()}
-    })());
+    event.respondWith((async()=>{try{const fresh=await fetch(new Request(req,{cache:'no-store'}));const cache=await caches.open(CORE_CACHE);cache.put(req,fresh.clone());return fresh}catch(_){return(await caches.match(req,{ignoreSearch:true}))||Response.error()}})());
     return;
   }
-
-  event.respondWith((async()=>{
-    const cached=await caches.match(req,{ignoreSearch:true});
-    const network=fetch(req).then(async res=>{
-      if(res&&res.ok){const cache=await caches.open(url.origin===self.location.origin?CORE_CACHE:RUNTIME_CACHE);cache.put(req,res.clone())}
-      return res;
-    }).catch(()=>null);
-    return cached||await network||Response.error();
-  })());
+  event.respondWith((async()=>{const cached=await caches.match(req,{ignoreSearch:true});const network=fetch(req).then(async res=>{if(res&&res.ok){const cache=await caches.open(url.origin===self.location.origin?CORE_CACHE:RUNTIME_CACHE);cache.put(req,res.clone())}return res}).catch(()=>null);return cached||await network||Response.error()})());
 });
