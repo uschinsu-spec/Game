@@ -5,6 +5,7 @@
   const clips={};
   const oldParts=[torso,armor,head,hair,armL,armR,legL,legR].filter(Boolean);
   const pick=(groups,names)=>{for(const n of names){const g=groups.find(x=>x.name.toLowerCase().includes(n.toLowerCase()));if(g)return g}return null};
+  const splitUrl=url=>{const i=url.lastIndexOf('/');return {root:url.slice(0,i+1),file:url.slice(i+1)}};
   function retarget(sourceGroups,skeleton){
     const bones=new Map(skeleton.bones.map(b=>[b.name,b]));
     const out=[];
@@ -31,7 +32,8 @@
   }
   async function boot(){
     try{
-      const c=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.characterUrl,'',scene);
+      const character=splitUrl(cfg.characterUrl);
+      const c=await BABYLON.SceneLoader.ImportMeshAsync('',character.root,character.file,scene);
       const skeleton=c.skeletons&&c.skeletons[0];
       if(!skeleton)throw new Error('missing skeleton');
       const root=c.meshes[0];root.name='ChibiPlayerRoot';root.parent=bodyRoot;root.rotation.y=Math.PI;root.scaling.set(cfg.scale.x,cfg.scale.y,cfg.scale.z);
@@ -40,10 +42,11 @@
       const ref=c.meshes.find(m=>m.skeleton===skeleton)||c.meshes[0];
       const hand=skeleton.bones.find(b=>b.name===cfg.sockets.rightHand);addSword(hand,ref);
       window.PLAYER_SOCKETS={head:headBone,rightHand:hand,leftHand:skeleton.bones.find(b=>b.name===cfg.sockets.leftHand),rightFoot:skeleton.bones.find(b=>b.name===cfg.sockets.rightFoot),leftFoot:skeleton.bones.find(b=>b.name===cfg.sockets.leftFoot),skeleton,referenceMesh:ref};
-      const a=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.animationUrl,'',scene);
+      const animation=splitUrl(cfg.animationUrl);
+      const a=await BABYLON.SceneLoader.ImportMeshAsync('',animation.root,animation.file,scene);
       const retargeted=retarget(a.animationGroups||[],skeleton);
       clips.idle=pick(retargeted,['idle_loop','idle']);clips.walk=pick(retargeted,['jog_fwd_loop','jog','walk']);clips.run=pick(retargeted,['sprint_loop','sprint','run']);clips.attack=pick(retargeted,['punch_cross','punch','attack']);clips.jump=pick(retargeted,['jump']);
-      a.animationGroups.forEach(g=>g.stop());a.meshes.forEach(m=>m.setEnabled(false));
+      (a.animationGroups||[]).forEach(g=>g.stop());(a.meshes||[]).forEach(m=>m.setEnabled(false));
       oldParts.forEach(m=>m.setEnabled(false));if(handSocket)handSocket.setEnabled(false);const fallback=scene.getTransformNodeByName('CultivatorRig');if(fallback)fallback.setEnabled(false);
       play('idle');
       scene.onBeforeRenderObservable.add(()=>{const f=Math.abs(-joy.y+(keys.w?1:0)-(keys.s?1:0)),t=Math.abs(joy.x+(keys.d?1:0)-(keys.a?1:0)),moving=(f>.05||t>.15)&&!mounted;if(attackT>0&&clips.attack)play('attack');else if(player.position.y>.08&&clips.jump)play('jump');else if(moving&&f>.72&&clips.run)play('run');else if(moving)play('walk');else play('idle')});
