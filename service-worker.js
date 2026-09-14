@@ -1,4 +1,4 @@
-const SW_VERSION = 'auto-update-v1';
+const SW_VERSION = 'ios-touch-v2';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
 
@@ -33,6 +33,7 @@ const CORE = [
   './idle-adventure.js',
   './progression-systems.js',
   './mobile-runtime.js',
+  './mobile-controls-fix.js',
   './manifest.webmanifest',
   './version.json'
 ];
@@ -65,8 +66,6 @@ self.addEventListener('message', event => {
 async function networkFirst(request) {
   const url = new URL(request.url);
   try {
-    // Revalidate with the browser/CDN HTTP cache. Unchanged large assets can return 304,
-    // while changed files are downloaded and replace the Service Worker cache entry.
     const response = await fetch(new Request(request, { cache: 'no-cache' }));
     if (response && response.ok) {
       const cache = await caches.open(url.origin === self.location.origin ? CORE_CACHE : RUNTIME_CACHE);
@@ -83,10 +82,8 @@ async function networkFirst(request) {
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
 
-  // This tiny file is the update signal and must always come from the network.
   if (url.origin === self.location.origin && url.pathname.endsWith('/version.json')) {
     event.respondWith(
       fetch(new Request(request, { cache: 'no-store' }))
@@ -95,7 +92,5 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network-first keeps GAME current automatically after every push, but still
-  // falls back to the local cache when offline or when GitHub Pages is unreachable.
   event.respondWith(networkFirst(request));
 });
