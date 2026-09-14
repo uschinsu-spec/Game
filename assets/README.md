@@ -1,28 +1,25 @@
 # Assets - Thanh Vân Tiên Vực
 
-Toàn bộ asset thay thế được đặt trong thư mục này. Game đọc đường dẫn từ `asset-manifest.js`.
+Runtime hiện chỉ giữ các asset/module thực sự đang dùng.
 
-## Cấu trúc
-- `characters/player/` - nhân vật chính (`player.glb`)
-- `characters/enemies/` - quái thường (`enemy.glb`)
-- `characters/bosses/` - boss (`boss.glb`)
-- `pets/` - linh thú (`spirit-pet.glb`)
-- `weapons/` - vũ khí (`sword.glb`)
-- `equipment/` - trang bị (`robe.glb`)
-- `environment/buildings/` - công trình
-- `environment/trees/` - cây, tre
-- `environment/rocks/` - đá
-- `environment/props/` - đạo cụ
-- `ui/icons/`, `ui/panels/`, `ui/buttons/` - giao diện
-- `effects/` - VFX 2D
-- `textures/` - texture map
-- `audio/` - nhạc và âm thanh
+## Player
+- `characters/player-rig-config.js`: URL model + animation + socket config.
+- `characters/rigged-player.js`: loader, skeleton, retarget animation, socket.
+- `characters/xianxia-player-style.js`: ngoại hình/phụ kiện tu tiên gắn vào rig.
 
-## Cách thay asset
-1. Upload file mới đúng tên vào thư mục tương ứng.
-2. Nếu dùng tên khác, chỉ sửa đường dẫn trong `asset-manifest.js`.
-3. GLB nên đặt origin ở chân nhân vật, +Y là hướng lên, kích thước nhân vật khoảng 1.7-1.9 đơn vị.
-4. UI ưu tiên WebP nền trong suốt.
-5. Khi file chưa tồn tại, game tiếp tục dùng mô hình procedural hiện tại để không bị lỗi.
+## Enemy
+- `enemies/ultimate-monsters-config.js`: catalog Quaternius Ultimate Monsters.
+- `enemies/ultimate-monsters.js`: model/animation/state enemy.
+- `enemies/ULTIMATE_MONSTERS.md`: nguồn và license.
 
-`asset-loader.js` là loader tập trung dùng cho các bản nâng cấp tiếp theo.
+## Environment
+- `environment/enhanced-world.js`: map Thanh Vân Sơn chính.
+- `environment/free-nature-assets.js`: cây/đá/prop CC0 tải runtime.
+- `environment/THIRD_PARTY_ASSETS.md`: nguồn và license.
+
+## UI
+- `ui/icons/*.svg`: icon đang sử dụng.
+- `ui/ui-icons.js`: ánh xạ icon.
+- `ui/ui-icons.css`: style icon/UI.
+
+Không còn `asset-manifest.js` hoặc `asset-loader.js` legacy. Mỗi hệ thống tự sở hữu config/loader của chính nó để tránh hai lớp asset registry chạy song song.
