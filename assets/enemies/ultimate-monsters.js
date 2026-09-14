@@ -6,7 +6,7 @@
   const records=new WeakMap();
   const pick=(groups,keys)=>{for(const k of keys){const g=groups.find(x=>x.name&&x.name.toLowerCase().includes(k));if(g)return g}return null};
   const lists={mob:cfg.catalog.filter(x=>x.role==='mob'),elite:cfg.catalog.filter(x=>x.role==='elite'),boss:cfg.catalog.filter(x=>x.role==='boss')};
-  hosts.forEach((h,i)=>{h.metadata=h.metadata||{};h.metadata.enemySlot=i;h.metadata.spawnSerial=0;h.setEnabled(false)});
+  hosts.forEach((h,i)=>{h.metadata=h.metadata||{};h.metadata.enemySlot=i;h.metadata.spawnSerial=0;h.isVisible=false;h.setEnabled(false)});
 
   function choose(host,isBoss,stage){
     const s=Math.max(1,stage||1),slot=host.metadata.enemySlot||0,serial=host.metadata.spawnSerial||0;
@@ -51,7 +51,7 @@
     const old=records.get(host);if(old&&old.entry.id===entry.id)return old;
     if(old)disposeRecord(old);
     const rec={entry,ready:false,state:'',root:null,meshes:[],groups:[],clips:{}};records.set(host,rec);
-    host.visibility=1;
+    host.isVisible=false;
     try{
       const r=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.root,entry.file,scene);
       if(records.get(host)!==rec){(r.meshes||[]).forEach(m=>m.dispose());return null}
@@ -61,12 +61,12 @@
       nodes.filter(n=>!n.parent||(!imported.has(n.parent)&&!nodes.includes(n.parent))).forEach(n=>n.parent=root);
       (r.meshes||[]).forEach(m=>{m.isPickable=false;m.receiveShadows=true;if(m.getTotalVertices&&m.getTotalVertices()>0)shadow.addShadowCaster(m)});
       rec.root=root;rec.meshes=r.meshes||[];rec.groups=groupsFor(r);rec.clips=mapClips(rec.groups);rec.ready=true;
-      host.visibility=0;
+      host.isVisible=false;
       play(host,'idle');
       return rec;
     }catch(err){
       console.warn('Ultimate Monsters load failed, procedural enemy fallback:',entry.id,err);
-      rec.ready=false;host.visibility=1;return rec;
+      rec.ready=false;host.isVisible=true;return rec;
     }
   }
   async function activate(host,isBoss,stage){
@@ -77,12 +77,12 @@
     host.metadata.enemyDisplayName=entry.name;
     host.metadata.enemyAssetId=entry.id;
     host.metadata.enemyIsBoss=!!isBoss;
-    host.visibility=1;
+    host.isVisible=false;
     const rec=await load(host,entry);
     if(rec&&rec.ready)play(host,'idle');
     return entry;
   }
-  function deactivate(host){const rec=records.get(host);if(rec){stop(rec);rec.state=''}host.visibility=1}
+  function deactivate(host){const rec=records.get(host);if(rec){stop(rec);rec.state=''}host.isVisible=false}
   function getDisplayName(host,isBoss){return host&&host.metadata&&host.metadata.enemyDisplayName||(isBoss?'Yêu Vương':'Yêu Thú')}
   function facePlayer(host,target){if(!host||!target)return;const dx=target.position.x-host.position.x,dz=target.position.z-host.position.z;host.rotation.y=Math.atan2(dx,dz)}
   window.EnemySystem={activate,deactivate,play,getDisplayName,facePlayer,catalog:cfg.catalog};
