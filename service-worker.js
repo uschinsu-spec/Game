@@ -1,14 +1,11 @@
-const SW_VERSION = 'placeholder-world-v20260915-v1';
+const SW_VERSION = 'production-clean-v20260915-v1';
 const CORE_CACHE = `tu-tien-core-${SW_VERSION}`;
 const RUNTIME_CACHE = `tu-tien-runtime-${SW_VERSION}`;
 
 const CORE = [
   './',
   './index.html',
-  './editor.html',
   './style.css',
-  './editor-studio.css',
-  './editor-studio.js',
   './assets/environment/terrain/tex_01_Grass_Lush.js',
   './assets/placeholders/world-placeholders.js',
   './assets/ui/ui-icons.js',
