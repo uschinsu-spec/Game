@@ -18,7 +18,10 @@ const player=new BABYLON.TransformNode('PlayerRoot',scene);player.position.set(0
 const bodyRoot=new BABYLON.TransformNode('SkeletonRoot',scene);bodyRoot.parent=player;
 let attackT=0;
 
-// One combat host is enough: solo gameplay only has one active target.
+// Read-only compatibility bridge for cloth/hair sway. It does not own movement.
+const keys={};
+const joy={get x(){return 0},get y(){const s=window.PLAYER_MOTION_STATE;return s==='walk'||s==='run'?-1:0}};
+
 const enemyHost=BABYLON.MeshBuilder.CreateCylinder('Demon',{height:1.6,diameter:.7,tessellation:6},scene);
 enemyHost.position.set(0,.8,0);enemyHost.material=redMat;enemyHost.isVisible=false;enemyHost.setEnabled(false);enemyHost.metadata={enemySlot:0,spawnSerial:0};
 
