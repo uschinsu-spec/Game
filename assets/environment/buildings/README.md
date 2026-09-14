@@ -1,1 +1,0 @@
-Thư mục asset công trình. File mẫu trong manifest: pavilion.glb
