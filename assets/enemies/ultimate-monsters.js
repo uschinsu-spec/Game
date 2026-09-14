@@ -55,7 +55,7 @@
     try{
       const r=await BABYLON.SceneLoader.ImportMeshAsync('',cfg.root,entry.file,scene);
       if(records.get(host)!==rec){(r.meshes||[]).forEach(m=>m.dispose());return null}
-      const root=new BABYLON.TransformNode('UltimateMonster_'+entry.id,scene);root.parent=host;root.position.set(0,entry.y||-.78,0);root.scaling.setAll(entry.scale||1);root.rotation.y=Math.PI;
+      const root=new BABYLON.TransformNode('UltimateMonster_'+entry.id,scene);root.parent=host;root.position.set(0,entry.y||-.78,0);root.scaling.setAll(entry.scale||1);root.rotation.y=0;
       const imported=new Set(r.meshes||[]),nodes=r.transformNodes||[];
       (r.meshes||[]).filter(m=>!m.parent||!imported.has(m.parent)).forEach(m=>m.parent=root);
       nodes.filter(n=>!n.parent||(!imported.has(n.parent)&&!nodes.includes(n.parent))).forEach(n=>n.parent=root);
