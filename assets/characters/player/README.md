@@ -1,1 +1,0 @@
-Đặt model nhân vật chính tại đây. Tên mặc định: `player.glb`.
