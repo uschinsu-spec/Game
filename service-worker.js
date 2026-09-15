@@ -1,7 +1,7 @@
 // GAME2 Phase 17 versioned PWA cache.
 importScripts('./core/build-id.js');
 const BUILD_ID=self.GAME2_BUILD_ID,PREFIX='game2-',SHELL=`${PREFIX}${BUILD_ID}-shell`,ASSETS=`${PREFIX}${BUILD_ID}-assets`;
-const SHELL_FILES=['./','./index.html','./style.css','./skill-vfx.css','./manifest.webmanifest','./assets/ui/ui-icons.css','./boot.js','./core/build-id.js','./core/build-manifest.js'];
+const SHELL_FILES=['./','./index.html','./assets/ui/style.css','./assets/ui/skill-vfx.css','./manifest.webmanifest','./assets/ui/ui-icons.css','./boot.js','./core/build-id.js','./core/build-manifest.js'];
 const CODE_RE=/\.(?:js|css|html|json|webmanifest)$/i,ASSET_RE=/\.(?:png|jpg|jpeg|webp|svg|woff2?|glb|gltf|bin)$/i;
 const normalized=req=>{const u=new URL(req.url);u.searchParams.delete('v');return new Request(u.toString(),{method:'GET',headers:req.headers,mode:req.mode,credentials:req.credentials,redirect:req.redirect})};
 self.addEventListener('install',e=>e.waitUntil((async()=>{const c=await caches.open(SHELL);await c.addAll(SHELL_FILES)})()));

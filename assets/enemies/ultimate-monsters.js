@@ -1,2 +1,0 @@
-// Deprecated arena adapter retained only for compatibility. GAME2 enemy runtime is EnemyDomain + EnemyRenderer + SpawnSystem + EncounterSystem.
-(()=>{'use strict';const s=window.GameServices||{};window.ArenaMonsterEngine={catalog:[],lists:{mob:[],elite:[],boss:[]},spawnMonster3D(){console.warn('[ArenaMonsterEngine] deprecated');return null},chooseCatalogEntry(){return null},updateVisualQuality(){},getRuntimeEntities:()=>s.enemyEntities?.alive?.()||[]};})();

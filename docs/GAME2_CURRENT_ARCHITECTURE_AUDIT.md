@@ -49,7 +49,7 @@ Babylon.js
   -> game.js
   -> terrain/environment scripts
   -> player rig/animation scripts
-  -> enemy registry/animation/loader/ultimate-monsters
+  -> enemy registry/animation/loader
   -> core/idle-progression-controller.js
   -> core/player-input-controller.js
   -> core/spawn-controller.js
@@ -475,7 +475,6 @@ Problems:
 | `assets/enemies/enemy-registry.js` | KEEP-METADATA + REFACTOR | Split asset metadata from GAME2 stat/archetype definitions. |
 | `assets/enemies/enemy-animation.js` | KEEP-BUT-REFACTOR | Renderer/animation service only. |
 | `assets/enemies/enemy-loader.js` | KEEP-BUT-REFACTOR | Retain cache/instantiate model; require stable entity IDs. |
-| `assets/enemies/ultimate-monsters.js` | REFACTOR | Asset/runtime adapter only; no Stage-based gameplay. |
 | `assets/environment/**` | KEEP-ASSET + REFACTOR | Convert global world builder into Zone asset/data builders. |
 | `mobile-runtime.js` | KEEP-ALGORITHMS + REFACTOR | PerformanceManager + Scheduler + metadata-driven culling. |
 | `mobile-controls-fix.js` | ADAPTER-TEMPORARY | Merge iOS guards into final InputSystem then remove. |

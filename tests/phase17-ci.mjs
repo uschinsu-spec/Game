@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8');
 const assert=(x,m)=>{if(!x)throw new Error(m)};
-const boot=read('boot.js'),sw=read('service-worker.js'),mobile=read('mobile-runtime.js'),bid=read('core/build-id.js'),manifest=JSON.parse(read('manifest.webmanifest'));
+const boot=read('boot.js'),sw=read('service-worker.js'),mobile=read('core/mobile-runtime.js'),bid=read('core/build-id.js'),manifest=JSON.parse(read('manifest.webmanifest'));
 assert(!boot.includes('?t=${Date.now()}')&&!boot.includes('Date.now()}`'),'boot uses Date.now cache bust');
 assert(boot.includes('BUILD_ID')&&boot.includes('TOTAL_BOOT_WEIGHT'),'weighted BUILD_ID boot missing');
 assert(!mobile.includes('setInterval('),'mobile-runtime setInterval regression');

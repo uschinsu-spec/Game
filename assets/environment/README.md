@@ -16,4 +16,4 @@ assets/environment/
 ## 🚀 Hướng dẫn mở rộng
 - Khi thêm texture đất/đá mới: đặt vào `assets/environment/terrain/`.
 - Thế giới game được dựng và tinh chỉnh trong `assets/environment/world/enhanced-world.js`.
-- Mô hình 3D tùy chỉnh (.GLB/.glTF) có thể nạp trực tiếp qua Editor Studio.
+- Mô hình 3D tùy chỉnh (.GLB/.glTF) được khai báo và quản lý trong hệ thống asset/enemy registry.
