@@ -1,6 +1,6 @@
 // ============================================================================
-// THANH VÂN TIÊN VỰC - 3D FANTASY MONSTER ARENA V3 MOBILE OPTIMIZED
-// Keep close enemies sharp while cutting unnecessary mobile GPU work.
+// THANH VÂN TIÊN VỰC - 3D FANTASY MONSTER ARENA V4
+// Logical animation states + resolver fallback for mixed GLB clip naming.
 // ============================================================================
 (()=>{
   const scene = BABYLON.EngineStore.LastCreatedScene;
@@ -18,20 +18,17 @@
     {
       id:'blob_cactoro', enemyId:'blob_cactoro', name:'Tiểu Xương Rồng (Thổ)', role:'mob', category:'blob',
       modelPath:'./assets/enemies/blob/cactoro.glb', hpMult:1.0, speed:1.15, scale:1.32, yOffset:0,
-      attackRange:2.2, attackAnim:'Bite_Front', walkAnim:'Walk', idleAnim:'Idle', hitAnim:'HitRecieve', deathAnim:'Death',
-      moveAnimSpeed:.72, attackAnimSpeed:.88
+      attackRange:2.2, moveAnimSpeed:.72, attackAnimSpeed:.88
     },
     {
       id:'flying_dragon', enemyId:'flying_dragon', name:'Thanh Lôi Hỏa Long (Lôi)', role:'elite', category:'flying',
       modelPath:'./assets/enemies/flying/dragon.glb', hpMult:2.4, speed:1.45, scale:1.42, yOffset:1.8,
-      attackRange:3.5, attackAnim:'Headbutt', walkAnim:'Fast_Flying', idleAnim:'Flying_Idle', hitAnim:'HitReact', deathAnim:'Death',
-      moveAnimSpeed:.68, attackAnimSpeed:.85
+      attackRange:3.5, moveAnimSpeed:.68, attackAnimSpeed:.85
     },
     {
       id:'big_demon', enemyId:'big_demon', name:'Hắc Dạ Ma Tôn (Ma Vực)', role:'boss', category:'big',
       modelPath:'./assets/enemies/big/demon.glb', hpMult:7.5, speed:.82, scale:1.7, yOffset:0,
-      attackRange:3.2, attackAnim:'Punch', walkAnim:'Walk', idleAnim:'Idle', hitAnim:'HitReact', deathAnim:'Death',
-      moveAnimSpeed:.62, attackAnimSpeed:.78
+      attackRange:3.2, moveAnimSpeed:.62, attackAnimSpeed:.78
     }
   ];
 
@@ -48,45 +45,32 @@
 
   const monstersRoot=new BABYLON.TransformNode('MonstersContainer',scene);
 
-  function setShadowState(monster, enabled){
-    if(!shadowGen || monster.category==='flying' || monster._shadowEnabled===enabled) return;
+  function setShadowState(monster,enabled){
+    if(!shadowGen||monster.category==='flying'||monster._shadowEnabled===enabled) return;
     monster._shadowEnabled=enabled;
     for(const mesh of monster.visualMeshes){
-      try{
-        if(enabled) shadowGen.addShadowCaster(mesh, false);
-        else shadowGen.removeShadowCaster(mesh, false);
-      }catch(_){ }
+      try{ if(enabled) shadowGen.addShadowCaster(mesh,false); else shadowGen.removeShadowCaster(mesh,false); }catch(_){ }
     }
   }
 
-  function setEdgeState(monster, enabled){
+  function setEdgeState(monster,enabled){
     if(monster._edgesEnabled===enabled) return;
     monster._edgesEnabled=enabled;
     for(const mesh of monster.visualMeshes){
       try{
-        if(enabled){
-          mesh.enableEdgesRendering();
-          mesh.edgesWidth=monster.isBoss?1.6:1.1;
-          mesh.edgesColor=new BABYLON.Color4(.05,.02,.08,.42);
-        }else{
-          mesh.disableEdgesRendering();
-        }
+        if(enabled){ mesh.enableEdgesRendering(); mesh.edgesWidth=monster.isBoss?1.6:1.1; mesh.edgesColor=new BABYLON.Color4(.05,.02,.08,.42); }
+        else mesh.disableEdgesRendering();
       }catch(_){ }
     }
   }
 
-  function updateVisualQuality(monster, distance){
-    if(!monster || !monster.root) return;
-    const important = monster.isBoss || monster.role==='elite';
-    const edges = important || distance <= EDGE_NEAR_DIST;
-    const shadows = monster.isBoss || distance <= SHADOW_NEAR_DIST;
-    const hpVisible = monster.isBoss || distance <= HP_NEAR_DIST;
-    setEdgeState(monster, edges);
-    setShadowState(monster, shadows);
-    if(monster.hpBarRoot && monster._hpVisible!==hpVisible){
-      monster._hpVisible=hpVisible;
-      monster.hpBarRoot.setEnabled(hpVisible);
-    }
+  function updateVisualQuality(monster,distance){
+    if(!monster||!monster.root) return;
+    const important=monster.isBoss||monster.role==='elite';
+    setEdgeState(monster,important||distance<=EDGE_NEAR_DIST);
+    setShadowState(monster,monster.isBoss||distance<=SHADOW_NEAR_DIST);
+    const hpVisible=monster.isBoss||distance<=HP_NEAR_DIST;
+    if(monster.hpBarRoot&&monster._hpVisible!==hpVisible){ monster._hpVisible=hpVisible; monster.hpBarRoot.setEnabled(hpVisible); }
   }
 
   function spawnMonster3D(entry,isBoss,angle,dist,stage,centerPos=null){
@@ -102,16 +86,9 @@
     hpBarRoot.parent=root;
     hpBarRoot.position.set(0,isBoss?3.1:(entry.category==='flying'?2.5:1.9),0);
     const hpBg=BABYLON.MeshBuilder.CreatePlane('HpBg_'+uid,{width:1.55,height:.2},scene);
-    hpBg.parent=hpBarRoot;
-    hpBg.material=hpBgMat;
-    hpBg.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-    hpBg.isPickable=false;
+    hpBg.parent=hpBarRoot; hpBg.material=hpBgMat; hpBg.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; hpBg.isPickable=false;
     const hpFill=BABYLON.MeshBuilder.CreatePlane('HpFill_'+uid,{width:1.48,height:.14},scene);
-    hpFill.parent=hpBarRoot;
-    hpFill.position.z=-.01;
-    hpFill.material=hpFillMat;
-    hpFill.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-    hpFill.isPickable=false;
+    hpFill.parent=hpBarRoot; hpFill.position.z=-.01; hpFill.material=hpFillMat; hpFill.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; hpFill.isPickable=false;
 
     const monsterObj={
       root,hpBarRoot,hpFill,id:entry.id,name:entry.name,role:entry.role,category:entry.category,isBoss,
@@ -119,13 +96,13 @@
       attackCooldown:1.35,lastAttack:0,hurtTimer:0,isDying:false,animCtrl:null,visualMeshes:[],currentState:'walk',entry,
       _shadowEnabled:false,_edgesEnabled:false,_hpVisible:true,_lastQualityDistance:Infinity,
       playAnim:function(name,loop=true,speed=1,onEnd=null){
-        if(!this.animCtrl)return;
-        const map={walk:entry.walkAnim,idle:entry.idleAnim,attack:entry.attackAnim,hit:entry.hitAnim,die:entry.deathAnim};
-        const actual=map[name]||name;
+        if(!this.animCtrl) return null;
+        let logical=name;
+        if(name==='walk'&&this.category==='flying') logical='flying';
         let animSpeed=speed;
-        if(name==='walk')animSpeed*=entry.moveAnimSpeed||.72;
-        if(name==='attack')animSpeed*=entry.attackAnimSpeed||.85;
-        this.animCtrl.play(actual,loop,animSpeed,onEnd);
+        if(name==='walk') animSpeed*=entry.moveAnimSpeed||.72;
+        if(name==='attack') animSpeed*=entry.attackAnimSpeed||.85;
+        return this.animCtrl.play(logical,loop,animSpeed,onEnd);
       },
       updateVisualQuality:function(distance){ updateVisualQuality(this,distance); }
     };
@@ -133,44 +110,33 @@
     (async()=>{
       try{
         const container=window.EnemyLoader?await window.EnemyLoader.loadModel(entry.enemyId,scene):null;
-        if(!container||root.isDisposed())return;
+        if(!container||root.isDisposed()) return;
         const instance=container.instantiateModelsToScene(name=>`${name}_${uid}`,false,{doNotInstantiate:true});
         for(const rootMesh of instance.rootNodes){
-          rootMesh.parent=root;
-          rootMesh.setEnabled(true);
+          rootMesh.parent=root; rootMesh.setEnabled(true);
           rootMesh.getChildMeshes(false).forEach(m=>{
-            m.setEnabled(true);
-            m.isVisible=true;
-            m.isPickable=false;
-            m.checkCollisions=false;
-            monsterObj.visualMeshes.push(m);
-            try{
-              if(m.material){
-                m.material.backFaceCulling=true;
-                if(typeof m.material.roughness==='number')m.material.roughness=Math.min(.9,Math.max(.45,m.material.roughness));
-              }
-            }catch(_){ }
+            m.setEnabled(true); m.isVisible=true; m.isPickable=false; m.checkCollisions=false; monsterObj.visualMeshes.push(m);
+            try{ if(m.material){ m.material.backFaceCulling=true; if(typeof m.material.roughness==='number') m.material.roughness=Math.min(.9,Math.max(.45,m.material.roughness)); } }catch(_){ }
           });
         }
         if(window.EnemyAnimationController){
           monsterObj.animCtrl=new window.EnemyAnimationController(instance.animationGroups);
-          monsterObj.playAnim('walk',true,1);
+          const start=monsterObj.playAnim('walk',true,1);
+          if(!start) monsterObj.playAnim('idle',true,1);
         }
-        updateVisualQuality(monsterObj, dist);
-      }catch(err){
-        console.error('[ArenaMonsters] model error',entry.id,err);
-      }
+        updateVisualQuality(monsterObj,dist);
+      }catch(err){ console.error('[ArenaMonsters] model error',entry.id,err); }
     })();
     return monsterObj;
   }
 
   function chooseCatalogEntry(isBoss,stage,serial){
-    if(isBoss)return lists.boss[0]||catalog[2];
+    if(isBoss) return lists.boss[0]||catalog[2];
     const s=Math.max(1,stage||1);
     const isElite=(s>=3&&serial%3===0)||(serial%4===0);
     return isElite?lists.elite[0]:lists.mob[0];
   }
 
   window.ArenaMonsterEngine={spawnMonster3D,chooseCatalogEntry,catalog,lists,updateVisualQuality};
-  console.info('Arena Monster Engine V3: mobile adaptive enemy visuals enabled.');
+  console.info('Arena Monster Engine V4: logical animation resolver enabled.');
 })();
