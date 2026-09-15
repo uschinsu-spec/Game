@@ -1,23 +1,18 @@
-// Player Animation Pro V6 - reliable authored full-body state machine
+// Player Animation Pro V7 - authored locomotion + lean + procedural spell poses
 (()=>{
  const scene=window.GameRuntime?.scene,player=window.GameRuntime?.player;if(!scene||!player)return;
- window.__PLAYER_ANIMATION_PRO_V6__=true;
- const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));let px=player.position.x,pz=player.position.z,speedSmooth=0,state='',locked='',lockUntil=0,attackPrev=false;
- const now=()=>performance.now()/1000;
- const ctl=()=>window.PlayerAnimationController;
+ window.__PLAYER_ANIMATION_PRO_V7__=true;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;let px=player.position.x,pz=player.position.z,speedSmooth=0,state='',locked='',lockUntil=0,attackPrev=false,lean=0,castAge=99,castSkill=0;
+ const now=()=>performance.now()/1000,ctl=()=>window.PlayerAnimationController;
  function trigger(name,fallback=.55){const c=ctl();if(!c?.clips?.[name])return false;const d=clamp(c.duration?.(name)||fallback,.18,1.5);locked=name;lockUntil=now()+d*.92;c.play(name,1,true);state=name;return true}
- window.triggerPlayerAttackAnimation=()=>trigger('attack',.62);
- window.triggerPlayerHitAnimation=()=>trigger('hit',.45);
+ window.triggerPlayerAttackAnimation=()=>trigger('attack',.62);window.triggerPlayerHitAnimation=()=>trigger('hit',.45);
+ window.triggerPlayerSpellPose=(skill=0,duration=.72)=>{castSkill=clamp(Number(skill)||0,0,3);castAge=0;locked='spell';lockUntil=now()+Math.max(.45,duration);const c=ctl();if(c?.clips?.attack)c.play('attack',.78,true);state='spell'};
  window.addEventListener('player-model-ready',()=>{state='';ctl()?.play('idle',1,true)});
- scene.onBeforeRenderObservable.add(()=>{
-  const dt=clamp(scene.getEngine().getDeltaTime()/1000,.001,.05),dx=player.position.x-px,dz=player.position.z-pz;px=player.position.x;pz=player.position.z;const raw=Math.hypot(dx,dz)/dt;speedSmooth+=(raw-speedSmooth)*(1-Math.exp(-14*dt));
-  const attacking=(typeof attackT!=='undefined'&&attackT>0);if(attacking&&!attackPrev)trigger('attack',.62);attackPrev=attacking;
-  if(!window.PLAYER_MODEL_READY||!ctl())return;
-  if(locked&&now()<lockUntil){window.PLAYER_ANIMATION_DEBUG={state:locked,speed:speedSmooth,locked:true};return}locked='';
-  const moving=!!window.isPlayerMoving||speedSmooth>.2;let next='idle';if(moving){if(speedSmooth>4.4&&ctl().clips.run)next='run';else if(ctl().clips.walk)next='walk';else if(ctl().clips.run)next='run'}
-  const ratio=next==='run'?clamp(speedSmooth/8.8,.8,1.3):next==='walk'?clamp(speedSmooth/4,.75,1.25):1;
-  if(next!==state){ctl().play(next,ratio,true);state=next}else if(ctl().current)ctl().current.speedRatio=ratio;
-  window.PLAYER_ANIMATION_STATE=next;window.PLAYER_MOTION_STATE=moving?'moving':next;window.PLAYER_ANIMATION_DEBUG={state:next,speed:speedSmooth,locked:false,mapped:Object.fromEntries(Object.entries(ctl().clips).map(([k,g])=>[k,g?.name||null]))};
- });
- console.info('[PlayerAnimationPro V6] full-body authored state machine active');
+ function rot(node,x,y,z,w){if(!node)return;if(node.rotationQuaternion){const q=BABYLON.Quaternion.FromEulerAngles(x,y,z);node.rotationQuaternion=BABYLON.Quaternion.Slerp(node.rotationQuaternion,q,w)}else{node.rotation.x=lerp(node.rotation.x,x,w);node.rotation.y=lerp(node.rotation.y,y,w);node.rotation.z=lerp(node.rotation.z,z,w)}}
+ function spellPose(dt){if(castAge>=.72)return;const r=window.PlayerRig;if(!r)return;const t=castAge/.72,p=Math.sin(Math.PI*clamp(t,0,1)),w=clamp(dt*13,0,1);if(castSkill===0){rot(r.armUL,-.75,0,-.85*p,w);rot(r.armUR,-1.05,0,.65*p,w);rot(r.armLL,-.55,0,-.25,w);rot(r.armLR,-.65,0,.2,w);rot(r.chest,-.08,0,.12*p,w)}else if(castSkill===1){rot(r.armUL,-1.15,0,-.55,w);rot(r.armUR,-1.15,0,.55,w);rot(r.armLL,-.75,0,-.2,w);rot(r.armLR,-.75,0,.2,w);rot(r.chest,-.12,0,0,w)}else if(castSkill===2){rot(r.armUL,-1.65,0,-.35,w);rot(r.armUR,-1.65,0,.35,w);rot(r.armLL,-.45,0,0,w);rot(r.armLR,-.45,0,0,w);rot(r.chest,-.15,0,0,w)}else{rot(r.armUL,-.55,0,-1.05,w);rot(r.armUR,-.55,0,1.05,w);rot(r.armLL,-.35,0,-.35,w);rot(r.armLR,-.35,0,.35,w);rot(r.chest,-.05,0,0,w)}}
+ scene.onBeforeRenderObservable.add(()=>{const dt=clamp(scene.getEngine().getDeltaTime()/1000,.001,.05),dx=player.position.x-px,dz=player.position.z-pz;px=player.position.x;pz=player.position.z;const raw=Math.hypot(dx,dz)/dt;speedSmooth+=(raw-speedSmooth)*(1-Math.exp(-14*dt));castAge+=dt;const attacking=(typeof attackT!=='undefined'&&attackT>0);if(attacking&&!attackPrev&&locked!=='spell')trigger('attack',.62);attackPrev=attacking;if(!window.PLAYER_MODEL_READY||!ctl())return;
+  const moving=!!window.isPlayerMoving||speedSmooth>.2,targetLean=moving?clamp(speedSmooth/8.8,0,1)*.20:0;lean+=(targetLean-lean)*(1-Math.exp(-10*dt));const visual=window.PlayerRig?.root;if(visual)visual.rotation.x=lerp(visual.rotation.x,lean,clamp(dt*10,0,1));
+  if(locked&&now()<lockUntil){if(locked==='spell')spellPose(dt);window.PLAYER_ANIMATION_DEBUG={state:locked,speed:speedSmooth,lean,castSkill};return}locked='';
+  let next='idle';if(moving){if(speedSmooth>4.4&&ctl().clips.run)next='run';else if(ctl().clips.walk)next='walk';else if(ctl().clips.run)next='run'}const ratio=next==='run'?clamp(speedSmooth/8.8,.8,1.3):next==='walk'?clamp(speedSmooth/4,.75,1.25):1;if(next!==state){ctl().play(next,ratio,true);state=next}else if(ctl().current)ctl().current.speedRatio=ratio;window.PLAYER_ANIMATION_STATE=next;window.PLAYER_MOTION_STATE=moving?'moving':next;window.PLAYER_ANIMATION_DEBUG={state:next,speed:speedSmooth,lean};
+ });console.info('[PlayerAnimationPro V7] run lean + spell poses active');
 })();
