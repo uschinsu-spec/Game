@@ -1,5 +1,16 @@
 // GAME2 Phase 17 stable bootstrap: BUILD_ID versioning + weighted stages.
 (async()=>{'use strict';
+ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const IOS_RECOVERY_KEY='GAME2_IOS_SW_RECOVERY_20260915_P1824';
+ if(isIOS&&!sessionStorage.getItem(IOS_RECOVERY_KEY)){
+   try{
+     sessionStorage.setItem(IOS_RECOVERY_KEY,'1');
+     const regs=('serviceWorker'in navigator)?await navigator.serviceWorker.getRegistrations():[];
+     await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+     if('caches'in window){for(const k of await caches.keys())if(k.startsWith('game2-'))await caches.delete(k)}
+     if(navigator.serviceWorker?.controller){const u=new URL(location.href);u.searchParams.set('iosfix','20260915-p18.24');location.replace(u.toString());return}
+   }catch(e){console.warn('[Boot] iOS cache recovery',e)}
+ }
  const {BUILD_ID,BOOT_STAGES,TOTAL_BOOT_WEIGHT}=await import('./core/build-manifest.js');
  window.GAME2_BUILD_ID=BUILD_ID;window.__GAME2_BOOT_MARKS__=window.__GAME2_BOOT_MARKS__||[];
  const mark=(stage,detail={})=>{const x={stage,at:performance.now(),...detail};window.__GAME2_BOOT_MARKS__.push(x);window.GameServices?.performanceTelemetry?.markBoot?.(stage,detail)};
@@ -7,12 +18,12 @@
  const msg=panel.querySelector('#boot-message'),bar=panel.querySelector('#boot-progress'),pct=panel.querySelector('#boot-percent'),retry=panel.querySelector('#boot-retry');retry.onclick=()=>location.reload();
  let completedWeight=0,failed=false,timer=null,swReg=null,reloading=false;
  const progress=(stage,fraction=0)=>{const p=Math.max(0,Math.min(1,(completedWeight+stage.weight*fraction)/TOTAL_BOOT_WEIGHT));msg.textContent=stage.label;bar.style.width=`${Math.round(p*100)}%`;pct.textContent=`${Math.round(p*100)}%`};
- const fail=r=>{if(failed)return;failed=true;clearTimeout(timer);retry.hidden=false;msg.textContent=`Không thể khởi động: ${r}`;bar.style.background='#ffd3d3';try{window.GameRuntime?.engine?.stopRenderLoop?.()}catch(_){}};
+ const fail=r=>{if(failed)return;failed=true;document.documentElement.dataset.gameBoot='failed';document.documentElement.dataset.gameBootError=String(r);clearTimeout(timer);retry.hidden=false;msg.textContent=`Không thể khởi động: ${r}`;bar.style.background='#ffd3d3';try{window.GameRuntime?.engine?.stopRenderLoop?.()}catch(_){}};
  const stableSrc=src=>/^https?:\/\//i.test(src)?src:`${src}${src.includes('?')?'&':'?'}v=${encodeURIComponent(BUILD_ID)}`;
- function load(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=stableSrc(src);s.async=false;const to=setTimeout(()=>reject(new Error('Quá thời gian tải tài nguyên')),25000);s.onload=()=>{clearTimeout(to);resolve()};s.onerror=()=>{clearTimeout(to);reject(new Error('Không tải được tài nguyên'))};document.head.appendChild(s)})}
- async function registerSW(){if(!('serviceWorker'in navigator))return null;try{const r=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none',scope:'./'});swReg=r;await r.update();return r}catch(e){console.warn('[Boot] SW',e);return null}}
+ function load(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=stableSrc(src);s.async=false;const to=setTimeout(()=>reject(new Error('Quá thời gian tải tài nguyên')),25000);s.onload=()=>{clearTimeout(to);resolve()};s.onerror=()=>{clearTimeout(to);reject(new Error(`Không tải được tài nguyên: ${src}`))};document.head.appendChild(s)})}
+ async function registerSW(){if(isIOS||!('serviceWorker'in navigator))return null;try{const r=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none',scope:'./'});swReg=r;await r.update();return r}catch(e){console.warn('[Boot] SW',e);return null}}
  async function activateWaitingWorker(){const w=swReg?.waiting;if(!w)return false;try{window.GameCore?.saveSystem?.flush?.();window.GameServices?.economyStore?.save?.();window.GameServices?.worldState?.save?.('PWA_UPDATE');w.postMessage({type:'SKIP_WAITING'});return true}catch(_){return false}}
- navigator.serviceWorker?.addEventListener?.('controllerchange',()=>{if(reloading||!window.GameServices?.runtimeLifecycle)return;reloading=true;window.GameServices.runtimeLifecycle.flush('SW_UPDATE');location.reload()});
+ navigator.serviceWorker?.addEventListener?.('controllerchange',()=>{if(isIOS||reloading||!window.GameServices?.runtimeLifecycle)return;reloading=true;window.GameServices.runtimeLifecycle.flush('SW_UPDATE');location.reload()});
  try{
    mark('BOOT_START',{buildId:BUILD_ID});
    registerSW();
@@ -36,7 +47,7 @@
    document.querySelectorAll('[data-ui-icon]').forEach(el=>{const p=window.UI_ICONS?.[el.dataset.uiIcon];if(p)el.src=p});window.GameServices.uiState?.refresh?.();
    const rt=window.GameRuntime;if(!rt)throw new Error('Thiếu GameRuntime');
    if(!s.events||!s.settings||!s.audio||!s.uiCommands||!s.uiState||!window.GameServices.ui||!s.storage||!s.transactions||!s.worldState||!s.worldStreaming||!window.GameServices.world||!window.GameServices.mapUI||!s.cultivation||!s.damage||!s.wallet||!s.inventory||!s.pets||!s.interactions||!s.quests||!s.npcs||!s.spawnSystem||!s.skills||!s.casts||!s.performanceTelemetry||!s.runtimeLifecycle)throw new Error('GAME2 Phase17 systems chưa khởi tạo đầy đủ');
-   mark('BOOT_READY',{buildId:BUILD_ID});bar.style.width='100%';pct.textContent='100%';msg.textContent='Sẵn sàng';
+   mark('BOOT_READY',{buildId:BUILD_ID});bar.style.width='100%';pct.textContent='100%';msg.textContent='Sẵn sàng';document.documentElement.dataset.gameBoot='ready';
    timer=setTimeout(()=>fail('Cảnh 3D chưa sẵn sàng'),30000);rt.scene.onAfterRenderObservable.addOnce(async()=>{if(failed)return;clearTimeout(timer);panel.style.display='none';mark('FIRST_FRAME');await activateWaitingWorker()});
  }catch(e){fail(e.message||String(e));console.error('[Boot]',e)}
 })();
