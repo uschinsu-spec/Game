@@ -3,9 +3,12 @@
 // Central Player, Isometric Top-Down Camera, 360-Degree Surrounding Monster Swarms
 // ============================================================================
 (()=>{
+  if (!window.GameRuntime) return;
+  const {scene, engine, player, camera} = window.GameRuntime;
+  function readSave(key) { try { const value = JSON.parse(localStorage.getItem(key) || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch (error) { console.warn('[Save] Cannot read', key, error); return {}; } }
   const SAVE = 'thanh-van-solo-idle-v2', OFFLINE_CAP = 12 * 3600;
-  const legacy = JSON.parse(localStorage.getItem('thanh-van-idle-v1') || '{}');
-  const state = Object.assign({ stage: 1, realm: 0, layer: 1, xp: 0, stones: 0, power: 120, lastSeen: Date.now() }, legacy, JSON.parse(localStorage.getItem(SAVE) || '{}'));
+  const legacy = readSave('thanh-van-idle-v1');
+  const state = Object.assign({ stage: 1, realm: 0, layer: 1, xp: 0, stones: 0, power: 120, lastSeen: Date.now() }, legacy, readSave(SAVE));
   const realms = ['Luyện Khí', 'Trúc Cơ', 'Kim Đan', 'Nguyên Anh', 'Hóa Thần', 'Luyện Hư', 'Hợp Thể', 'Đại Thừa', 'Độ Kiếp', 'Phi Thăng'];
   const zones = ['Thanh Vân Sơn', 'Trúc Hải', 'Vạn Yêu Cốc', 'Huyền Thiên Thành', 'Ma Vực', 'Thiên Kiếm Sơn'];
   
@@ -45,7 +48,7 @@
   const xpPerMin = () => Math.floor(18 + state.stage * 2.4);
   const stonesPerMin = () => Math.floor(8 + state.stage * 1.15);
 
-  const save = () => { state.lastSeen = Date.now(); localStorage.setItem(SAVE, JSON.stringify(state)); };
+  const save = () => { state.lastSeen = Date.now(); try { localStorage.setItem(SAVE, JSON.stringify(state)); } catch (error) { console.warn('[Save] Cannot persist progress', error); } };
   window.IdleCore = { state, save, refresh };
 
   // Floating Damage Numbers

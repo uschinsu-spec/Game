@@ -1,6 +1,8 @@
 // Mobile Visual Fidelity & Performance Manager
 // Provides crisp HD rendering, FXAA, Bloom, and dynamic adaptive quality.
 (() => {
+  if (!window.GameRuntime) return;
+  const {engine, scene, player} = window.GameRuntime;
   const DPR = Math.max(1, window.devicePixelRatio || 1);
   const cores = navigator.hardwareConcurrency || 4;
   const memory = navigator.deviceMemory || 4;
@@ -8,7 +10,9 @@
   
   // Storage key for player preference
   const PRESET_KEY = 'tu_tien_graphics_preset';
-  let currentPreset = localStorage.getItem(PRESET_KEY) || (isHighEnd ? 'ultra' : 'balanced');
+  let currentPreset = 'balanced';
+  try { currentPreset = localStorage.getItem(PRESET_KEY) || 'balanced'; } catch (_) {}
+  if (!['ultra', 'balanced', 'eco'].includes(currentPreset)) currentPreset = 'balanced';
 
   const PRESETS = {
     ultra: {
@@ -24,10 +28,10 @@
     balanced: {
       name: 'Cân Bằng',
       icon: '⚡',
-      scale: DPR >= 3 ? 1.15 : 1.05,
+      scale: 1.05,
       fxaa: true,
-      bloom: true,
-      shadowBlur: 10,
+      bloom: false,
+      shadowBlur: 6,
       aniso: 2,
       desc: 'Cân bằng hình ảnh đẹp và tiết kiệm pin'
     },
@@ -52,13 +56,13 @@
   function applyPreset(presetName, save = true) {
     if (!PRESETS[presetName]) presetName = 'balanced';
     currentPreset = presetName;
-    if (save) localStorage.setItem(PRESET_KEY, presetName);
+    if (save) { try { localStorage.setItem(PRESET_KEY, presetName); } catch (_) {} }
 
     const cfg = PRESETS[presetName];
     activeScale = cfg.scale;
     dynamicScale = activeScale;
 
-    if (window.engine) {
+    if (engine) {
       engine.setHardwareScalingLevel(dynamicScale);
       engine.resize();
     }
@@ -97,7 +101,7 @@
   ]);
 
   setTimeout(() => {
-    if (window.scene) {
+    if (scene) {
       for (const m of scene.meshes) {
         if (staticNames.has(m.name) && m.freezeWorldMatrix) {
           try { m.freezeWorldMatrix(); } catch (_) {}
@@ -114,7 +118,7 @@
   };
 
   const updateStreaming = () => {
-    if (!window.player || !window.scene) return;
+    if (!player || !scene) return;
     const px = player.position.x, pz = player.position.z;
     for (const m of scene.meshes) {
       const r = cull[m.name];
@@ -128,7 +132,7 @@
 
   // Dynamic Resolution / Thermal Protection
   const perfTimer = setInterval(() => {
-    if (document.hidden || !window.engine) return;
+    if (document.hidden || !engine) return;
     const fps = engine.getFps();
 
     // Auto degrade if dropping severely under 26 FPS for 3 checks
@@ -163,7 +167,7 @@
   // Pause rendering when tab is hidden to save mobile battery
   let running = true;
   document.addEventListener('visibilitychange', () => {
-    if (!window.engine || !window.scene) return;
+    if (!engine || !scene) return;
     if (document.hidden && running) {
       engine.stopRenderLoop();
       running = false;
@@ -226,10 +230,9 @@
     createHudGraphicsButton();
   }
 
-  window.addEventListener('pagehide', () => {
-    clearInterval(streamTimer);
-    clearInterval(perfTimer);
-  }, { once: true });
+  window.addEventListener('pagehide', (event) => {
+    if (!event.persisted) { clearInterval(streamTimer); clearInterval(perfTimer); }
+  });
 
   window.MobileGraphics = {
     presets: PRESETS,

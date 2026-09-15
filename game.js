@@ -4,13 +4,14 @@ if (typeof BABYLON !== 'undefined' && BABYLON.Texture) {
   BABYLON.Texture.DEFAULT_ANISOTROPIC_FILTERING_LEVEL = 4;
 }
 
-const engine = new BABYLON.Engine(canvas, true, {
+const engine = new BABYLON.Engine(canvas, false, {
   preserveDrawingBuffer: false,
   stencil: false,
-  adaptToDeviceRatio: true,
-  antialias: true,
+  adaptToDeviceRatio: false,
+  antialias: false,
   powerPreference: 'high-performance'
 });
+engine.setHardwareScalingLevel(1.05);
 const scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color4(0.55, 0.78, 0.88, 1);
 scene.fogMode = BABYLON.Scene.FOGMODE_NONE; // Disable fog so all distances are 100% crystal clear
@@ -55,9 +56,9 @@ camera.maxZ = 3000;
 // Default Mobile Post-Processing Pipeline (FXAA Antialiasing + Xianxia Bloom)
 let pipeline = null;
 try {
-  pipeline = new BABYLON.DefaultRenderingPipeline('MobilePostProcess', true, scene, [camera]);
+  pipeline = new BABYLON.DefaultRenderingPipeline('MobilePostProcess', false, scene, [camera]);
   pipeline.fxaaEnabled = true; // Smooth jagged polygon edges on mobile
-  pipeline.bloomEnabled = true;
+  pipeline.bloomEnabled = false;
   pipeline.bloomThreshold = 0.78;
   pipeline.bloomWeight = 0.28;
   pipeline.bloomKernel = 32;
@@ -91,7 +92,7 @@ enemyHost.position.set(0, 0.8, 0);
 enemyHost.setEnabled(false);
 enemyHost.metadata = { enemySlot: 0, spawnSerial: 0 };
 
-engine.runRenderLoop(() => scene.render());
+engine.runRenderLoop(() => { if (!document.hidden) scene.render(); });
 
 const appContainer = document.getElementById('gameApp');
 if (window.ResizeObserver && appContainer) {
