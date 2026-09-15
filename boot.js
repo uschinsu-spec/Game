@@ -1,7 +1,7 @@
 // Ordered startup: dependencies must succeed before gameplay is evaluated.
 (() => {
   'use strict';
-  const BUILD = '20260915-mobile-opt-v10';
+  const BUILD = '20260915-mobile-opt-v11';
   const v = `?v=${BUILD}`;
   const sources = [
     'https://cdn.babylonjs.com/babylon.js',
