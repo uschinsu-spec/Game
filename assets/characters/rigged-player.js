@@ -1,4 +1,4 @@
-// Rigged GLB Player V16 - model-rigged.glb integration
+// Rigged GLB Player V16.1 - production integration
 (()=>{
   const scene=window.GameRuntime?.scene;
   const player=window.GameRuntime?.player;
@@ -14,22 +14,22 @@
   window.PLAYER_MOTION_STATE='idle';
   window.PLAYER_ANIMATION_STATE='idle';
 
-  const MODEL_URL='./assets/characters/model-rigged.glb';
+  const MODEL_ROOT='./assets/characters/';
+  const MODEL_FILE='model-rigged.glb';
   const root=new BABYLON.TransformNode('XianxiaChibiRig',scene);
   root.parent=bodyRoot;
 
-  const nameKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  const findNode=(all,...candidates)=>{
-    const wanted=candidates.map(nameKey);
-    return all.find(n=>wanted.some(w=>nameKey(n.name)===w||nameKey(n.name).endsWith(w)))||null;
+  const key=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const findNode=(nodes,...names)=>{
+    const wanted=names.map(key);
+    return nodes.find(n=>wanted.some(w=>key(n.name)===w||key(n.name).endsWith(w)))||null;
   };
-  const stopAll=groups=>groups.forEach(g=>{try{g.stop();g.reset();}catch(_){}});
-  const findGroup=(groups,keys)=>{
-    const k=keys.map(nameKey);
-    return groups.find(g=>k.some(x=>nameKey(g.name).includes(x)))||null;
+  const findGroup=(groups,names)=>{
+    const wanted=names.map(key);
+    return groups.find(g=>wanted.some(w=>key(g.name).includes(w)))||null;
   };
 
-  let targetAngle=Number.isFinite(player.rotation.y)?player.rotation.y:0;
+  let targetAngle=Number.isFinite(player.rotation?.y)?player.rotation.y:0;
   window.setPlayerTargetAngle=angle=>{if(Number.isFinite(angle))targetAngle=angle;};
 
   const projectileMat=new BABYLON.StandardMaterial('PlayerSlashProjectileMat',scene);
@@ -41,47 +41,45 @@
   window.spawnSwordSlashProjectile=(origin,target,opts={})=>{
     if(!origin||!target)return null;
     const dir=target.subtract(origin);dir.y=0;
-    const len=dir.length();if(len<.001)return null;dir.normalize();
-    const m=BABYLON.MeshBuilder.CreateBox('PlayerSwordSlash',{width:.12,height:.72,depth:.04},scene);
-    m.material=projectileMat;m.isPickable=false;m.position.copyFrom(origin);m.position.y+=1.0;
-    m.rotation.y=Math.atan2(dir.x,dir.z);m.rotation.z=-.65;
-    const speed=Number(opts.speed)||18;projectiles.push({mesh:m,dir,speed,life:Number(opts.life)||.55});
-    return m;
+    if(dir.lengthSquared()<.000001)return null;
+    dir.normalize();
+    const mesh=BABYLON.MeshBuilder.CreateBox('PlayerSwordSlash',{width:.12,height:.72,depth:.04},scene);
+    mesh.material=projectileMat;mesh.isPickable=false;mesh.position.copyFrom(origin);mesh.position.y+=1;
+    mesh.rotation.y=Math.atan2(dir.x,dir.z);mesh.rotation.z=-.65;
+    projectiles.push({mesh,dir,speed:Number(opts.speed)||18,life:Number(opts.life)||.55});
+    return mesh;
   };
 
-  function attachAuxSockets(nodes){
-    const right=findNode(nodes,'WeaponSocket.R','WeaponSocketR','RightHandSocket','Hand.R','HandR');
-    const chest=findNode(nodes,'Chest','Spine2','UpperChest','Spine_02')||findNode(nodes,'Spine');
-    const back=new BABYLON.TransformNode('Socket_BackWeapon',scene);back.parent=chest||root;back.position.set(.18,.10,.14);back.rotation.set(0,0,-.28);
-    window.PlayerRig.weaponSocket=right||findNode(nodes,'Hand.R','HandR');
-    window.PlayerRig.backSocket=back;
-  }
+  const configureMesh=mesh=>{
+    if(!mesh||!mesh.getTotalVertices||mesh.getTotalVertices()<=0)return;
+    mesh.isPickable=false;mesh.receiveShadows=true;
+    if(shadow)shadow.addShadowCaster(mesh);
+  };
 
-  function configureMesh(mesh){
-    if(!mesh||mesh===root)return;
-    mesh.isPickable=false;
-    mesh.receiveShadows=true;
-    if(shadow&&mesh.getTotalVertices?.()>0)shadow.addShadowCaster(mesh);
-  }
-
-  BABYLON.SceneLoader.ImportMeshAsync('',MODEL_URL,'',scene).then(result=>{
+  // Babylon SceneLoader requires rootUrl and filename separately for reliable GLB plugin detection.
+  BABYLON.SceneLoader.ImportMeshAsync('',MODEL_ROOT,MODEL_FILE,scene).then(result=>{
     const importedRoots=result.meshes.filter(m=>!m.parent);
-    importedRoots.forEach(m=>{m.parent=root;});
-
-    // Normalize authored character to the existing gameplay footprint without touching PlayerRoot.
-    const renderMeshes=result.meshes.filter(m=>m.getTotalVertices&&m.getTotalVertices()>0);
+    importedRoots.forEach(m=>m.parent=root);
+    const renderMeshes=result.meshes.filter(m=>m.getTotalVertices?.()>0);
     renderMeshes.forEach(configureMesh);
-    let min=new BABYLON.Vector3(Number.POSITIVE_INFINITY,Number.POSITIVE_INFINITY,Number.POSITIVE_INFINITY);
-    let max=new BABYLON.Vector3(Number.NEGATIVE_INFINITY,Number.NEGATIVE_INFINITY,Number.NEGATIVE_INFINITY);
-    renderMeshes.forEach(m=>{m.computeWorldMatrix(true);const b=m.getBoundingInfo().boundingBox;min=BABYLON.Vector3.Minimize(min,b.minimumWorld);max=BABYLON.Vector3.Maximize(max,b.maximumWorld);});
-    const h=Math.max(.001,max.y-min.y);const desiredHeight=2.72;const s=desiredHeight/h;root.scaling.setAll(s);
-    root.position.y=-min.y*s;
+    if(!renderMeshes.length)throw new Error('GLB contains no renderable player mesh');
 
-    const nodes=[...result.transformNodes,...result.meshes];
+    // Normalize visual height only. PlayerRoot remains the gameplay/camera anchor.
+    let minY=Infinity,maxY=-Infinity;
+    renderMeshes.forEach(m=>{
+      m.computeWorldMatrix(true);
+      const b=m.getBoundingInfo().boundingBox;
+      minY=Math.min(minY,b.minimumWorld.y);maxY=Math.max(maxY,b.maximumWorld.y);
+    });
+    const authoredHeight=Math.max(.001,maxY-minY);
+    const scale=2.72/authoredHeight;
+    root.scaling.setAll(scale);
+    root.position.y=-minY*scale;
+
+    const nodes=[...(result.transformNodes||[]),...(result.meshes||[])];
     const hips=findNode(nodes,'Hips','mixamorig:Hips');
     const spine=findNode(nodes,'Spine','mixamorig:Spine');
     const chest=findNode(nodes,'Chest','Spine1','Spine2','UpperChest');
-    const neck=findNode(nodes,'Neck');
     const head=findNode(nodes,'Head');
     const armUL=findNode(nodes,'UpperArm.L','UpperArmL','LeftArm','mixamorig:LeftArm');
     const armUR=findNode(nodes,'UpperArm.R','UpperArmR','RightArm','mixamorig:RightArm');
@@ -96,40 +94,41 @@
     const footL=findNode(nodes,'Foot.L','FootL','LeftFoot','mixamorig:LeftFoot');
     const footR=findNode(nodes,'Foot.R','FootR','RightFoot','mixamorig:RightFoot');
     const weaponSocket=findNode(nodes,'WeaponSocket.R','WeaponSocketR','RightWeaponSocket')||handR;
-
-    window.PlayerRig={
-      root,hips,spine,chest,head,armUL,armUR,armLL,armLR,handL,handR,thighL,thighR,shinL,shinR,footL,footR,
-      weaponSocket,backSocket:null,modelRoot:importedRoots[0]||result.meshes[0]||root,skeletons:result.skeletons,animationGroups:result.animationGroups
-    };
-    attachAuxSockets(nodes);
+    const backParent=chest||spine||root;
+    const backSocket=new BABYLON.TransformNode('Socket_BackWeapon',scene);
+    backSocket.parent=backParent;backSocket.position.set(.18,.10,.14);backSocket.rotation.set(0,0,-.28);
 
     const groups=result.animationGroups||[];
     const clips={
-      idle:findGroup(groups,['idle']),
-      walk:findGroup(groups,['walk']),
-      run:findGroup(groups,['run']),
-      attack:findGroup(groups,['attack','slash','sword']),
-      hit:findGroup(groups,['hit','hurt','damage'])
+      idle:findGroup(groups,['idle']),walk:findGroup(groups,['walk']),run:findGroup(groups,['run']),
+      attack:findGroup(groups,['attack','slash','sword']),hit:findGroup(groups,['hit','hurt','damage'])
     };
-    const loop=new Set([clips.idle,clips.walk,clips.run].filter(Boolean));
-    groups.forEach(g=>{try{g.stop();g.reset();g.loopAnimation=loop.has(g);}catch(_){}});
+    const loops=new Set([clips.idle,clips.walk,clips.run].filter(Boolean));
+    groups.forEach(g=>{try{g.stop();g.reset();g.loopAnimation=loops.has(g);}catch(_){}});
+
+    window.PlayerRig={root,hips,spine,chest,head,armUL,armUR,armLL,armLR,handL,handR,thighL,thighR,shinL,shinR,footL,footR,weaponSocket,backSocket,modelRoot:importedRoots[0]||result.meshes[0]||root,skeletons:result.skeletons||[],animationGroups:groups};
     let current=null;
     const play=(name,speed=1)=>{
-      const g=clips[name];if(!g||g===current)return;
+      const g=clips[name];if(!g)return false;
+      if(g===current){g.speedRatio=speed;return true;}
       if(current){try{current.stop();}catch(_){}}
-      current=g;g.loopAnimation=loop.has(g);g.speedRatio=speed;
-      try{g.start(g.loopAnimation,speed,g.from,g.to,false);}catch(_){try{g.play(g.loopAnimation);}catch(__){}}
+      current=g;g.loopAnimation=loops.has(g);g.speedRatio=speed;
+      try{g.start(g.loopAnimation,speed,g.from,g.to,false);}catch(_){try{g.play(g.loopAnimation);}catch(__){return false;}}
       window.PLAYER_ANIMATION_STATE=name;
-      window.PLAYER_MOTION_STATE=name==='run'||name==='walk'?'moving':name;
+      window.PLAYER_MOTION_STATE=(name==='run'||name==='walk')?'moving':name;
+      return true;
     };
-    window.PlayerAnimationController={clips,play,stopAll:()=>stopAll(groups),get current(){return current;}};
+    window.PlayerAnimationController={clips,play,stopAll:()=>groups.forEach(g=>{try{g.stop();g.reset();}catch(_){}}),get current(){return current;}};
+    if(!clips.idle)console.warn('[RiggedPlayer V16.1] Idle clip not found',groups.map(g=>g.name));
     play('idle');
     window.PLAYER_MODEL_READY=true;
+    window.PLAYER_MODEL_DIAGNOSTICS={meshes:renderMeshes.length,skeletons:(result.skeletons||[]).length,animations:groups.map(g=>g.name),height:authoredHeight,scale,weaponSocket:weaponSocket?.name||null,backSocket:backSocket.name};
     window.dispatchEvent(new CustomEvent('player-model-ready'));
-    console.info('[RiggedPlayer V16] model-rigged.glb loaded with authored skeleton/animations.',Object.keys(clips).filter(k=>clips[k]));
+    console.info('[RiggedPlayer V16.1] GLB ready',window.PLAYER_MODEL_DIAGNOSTICS);
   }).catch(error=>{
+    window.PLAYER_MODEL_READY=false;
     window.PLAYER_MODEL_ERROR=String(error?.message||error);
-    console.error('[RiggedPlayer V16] Failed to load model-rigged.glb',error);
+    console.error('[RiggedPlayer V16.1] GLB load failed',error);
   });
 
   scene.onBeforeRenderObservable.add(()=>{
