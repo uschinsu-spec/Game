@@ -1,7 +1,7 @@
 // Ordered startup: dependencies must succeed before gameplay is evaluated.
 (() => {
   'use strict';
-  const BUILD = '20260915-mobile-opt-v9';
+  const BUILD = '20260915-mobile-opt-v10';
   const v = `?v=${BUILD}`;
   const sources = [
     'https://cdn.babylonjs.com/babylon.js',
@@ -67,7 +67,6 @@
   }
 
   async function boot() {
-    // Remove stale worker/cache ownership from older builds. The app currently boots network-first.
     try {
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
