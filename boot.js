@@ -1,7 +1,7 @@
-// Fast boot: ordered dependency groups + persistent cache with current build version.
+// Fast boot - single runtime path. Keep only systems actually used by the game.
 (() => {
   'use strict';
-  const BUILD = '20260915-player-bonefix-v23';
+  const BUILD = '20260915-runtime-unified-v24';
   const v = `?v=${BUILD}`;
   const groups = [
     ['https://cdn.babylonjs.com/babylon.js'],
@@ -9,11 +9,12 @@
     [`./assets/ui/ui-icons.js${v}`,`./game.js${v}`],
     [`./assets/environment/terrain/tex_01_Grass_Lush.js${v}`,`./assets/environment/world/enhanced-world.js${v}`],
     [`./assets/characters/rigged-player.js${v}`,`./assets/characters/player-animation-pro.js${v}`,`./assets/characters/player-upperbody-animation.js${v}`,`./assets/characters/player-combat-facing.js${v}`],
+    // Enemy runtime used by idle-adventure.js: registry + animation resolver + loader + arena adapter.
     [`./assets/enemies/enemy-registry.js${v}`,`./assets/enemies/enemy-animation.js${v}`,`./assets/enemies/enemy-loader.js${v}`,`./assets/enemies/ultimate-monsters.js${v}`],
     [`./idle-adventure.js${v}`,`./skill-vfx.js${v}`,`./progression-systems.js${v}`,`./mobile-runtime.js${v}`,`./mobile-controls-fix.js${v}`]
   ];
   const total=groups.reduce((n,g)=>n+g.length,0);let done=0,failed=false,timer;
-  const panel=document.createElement('section');panel.id='boot-status';panel.setAttribute('role','status');panel.style.cssText='position:fixed;inset:0;z-index:100000;background:#153b55;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font:16px system-ui';
+  const panel=document.createElement('section');panel.id='boot-status';panel.setAttribute('role','status');panel.style.cssText='position:fixed;inset:0;z-index:100000;background:#5aa8d6;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font:16px system-ui';
   const message=document.createElement('p'),retry=document.createElement('button');retry.textContent='Tải lại game';retry.hidden=true;retry.style.cssText='padding:12px 24px;font:inherit;border-radius:12px';retry.onclick=()=>location.reload();panel.append(message,retry);document.body.appendChild(panel);
   const status=()=>message.textContent=`Đang tải game ${Math.min(done,total)}/${total}`;
   const fail=reason=>{if(failed)return;failed=true;clearTimeout(timer);panel.style.display='flex';retry.hidden=false;message.textContent=`Không thể khởi động game: ${reason}. Bản ${BUILD}.`;try{window.GameRuntime?.engine?.stopRenderLoop()}catch(_){}};
