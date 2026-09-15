@@ -1,17 +1,14 @@
-// Self-healing service worker: cache namespace comes from version.json, never from a hardcoded vXX.
-const CACHE_PREFIX='tu-tien-';
-const CORE_FILES=['./','./index.html','./style.css','./skill-vfx.css','./assets/ui/ui-icons.js','./assets/ui/ui-icons.css','./assets/environment/terrain/tex_01_Grass_Lush.js','./assets/environment/world/enhanced-world.js','./assets/characters/rigged-player.js','./assets/characters/player-animation-pro.js','./assets/characters/player-upperbody-animation.js','./assets/characters/player-combat-facing.js','./assets/enemies/enemy-registry.js','./assets/enemies/enemy-animation.js','./assets/enemies/enemy-loader.js','./assets/enemies/ultimate-monsters.js','./game.js','./idle-adventure.js','./skill-vfx.js','./progression-systems.js','./mobile-runtime.js','./mobile-controls-fix.js','./manifest.webmanifest','./version.json'];
-let buildPromise=null;
-async function getBuild(force=false){
-  if(buildPromise&&!force)return buildPromise;
-  buildPromise=(async()=>{try{const r=await fetch(`./version.json?sw=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw new Error(String(r.status));const j=await r.json();return String(j.build||'unknown')}catch(e){console.warn('[SW] version fallback',e);return 'offline'}})();
-  return buildPromise;
-}
-async function cacheNames(force=false){const b=await getBuild(force);return{build:b,core:`${CACHE_PREFIX}core-${b}`,runtime:`${CACHE_PREFIX}runtime-${b}`}}
-self.addEventListener('install',e=>{e.waitUntil((async()=>{const n=await cacheNames(true);const c=await caches.open(n.core);await Promise.allSettled(CORE_FILES.map(f=>c.add(new Request(f,{cache:'reload'}))));await self.skipWaiting()})())});
-self.addEventListener('activate',e=>{e.waitUntil((async()=>{const n=await cacheNames(true),names=await caches.keys();await Promise.all(names.filter(x=>x.startsWith(CACHE_PREFIX)&&x!==n.core&&x!==n.runtime).map(x=>caches.delete(x)));await self.clients.claim()})())});
-self.addEventListener('message',e=>{if(e.data?.type==='SKIP_WAITING')self.skipWaiting();if(e.data?.type==='CHECK_VERSION')buildPromise=null});
-function isStatic(u){return /\.(?:js|css|svg|png|jpg|jpeg|webp|glb|gltf|bin|woff2?)$/i.test(u.pathname)}
-async function networkFirst(req){const n=await cacheNames();try{const res=await fetch(new Request(req,{cache:'no-store'}));if(res&&res.ok){const c=await caches.open(n.core);c.put(req,res.clone()).catch(()=>{})}return res}catch(err){const hit=await caches.match(req,{ignoreSearch:false});if(hit)return hit;throw err}}
-async function staticStrategy(req){const n=await cacheNames();const url=new URL(req.url);const key=new Request(url.origin+url.pathname,{method:'GET'});const cached=await caches.match(key,{ignoreSearch:true});try{const res=await fetch(new Request(req,{cache:'no-cache'}));if(res&&res.ok){const c=await caches.open(n.runtime);c.put(key,res.clone()).catch(()=>{});return res}if(cached)return cached;return res}catch(err){if(cached)return cached;throw err}}
-self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const u=new URL(req.url);if(u.origin!==self.location.origin)return;if(u.pathname.endsWith('/version.json')||req.mode==='navigate'){e.respondWith(networkFirst(req));return}if(isStatic(u)){e.respondWith(staticStrategy(req));return}e.respondWith(networkFirst(req))});
+// Zero-manual-version service worker.
+// Code/HTML/CSS = network-first so every deploy is picked up automatically.
+// Heavy/static assets = cache-first for fast mobile reloads.
+const CACHE_PREFIX='tu-tien-auto-';
+const CODE_CACHE='tu-tien-auto-code';
+const ASSET_CACHE='tu-tien-auto-assets';
+const CODE_RE=/\.(?:js|css|html|webmanifest)$/i;
+const HEAVY_RE=/\.(?:glb|gltf|bin|png|jpg|jpeg|webp|svg|woff2?)$/i;
+self.addEventListener('install',e=>{e.waitUntil(self.skipWaiting())});
+self.addEventListener('activate',e=>{e.waitUntil((async()=>{const names=await caches.keys();await Promise.all(names.filter(n=>n.startsWith('tu-tien-')&&!n.startsWith(CACHE_PREFIX)).map(n=>caches.delete(n)));await self.clients.claim()})())});
+self.addEventListener('message',e=>{if(e.data?.type==='SKIP_WAITING')self.skipWaiting();if(e.data?.type==='PURGE_CODE')e.waitUntil(caches.delete(CODE_CACHE))});
+async function networkFirst(req,cacheName){try{const res=await fetch(new Request(req,{cache:'no-store'}));if(res&&res.ok){const c=await caches.open(cacheName);c.put(req,res.clone()).catch(()=>{})}return res}catch(err){const hit=await caches.match(req,{ignoreSearch:true});if(hit)return hit;throw err}}
+async function cacheFirst(req,cacheName){const hit=await caches.match(req,{ignoreSearch:true});if(hit)return hit;const res=await fetch(req);if(res&&res.ok){const c=await caches.open(cacheName);c.put(req,res.clone()).catch(()=>{})}return res}
+self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const u=new URL(req.url);if(u.origin!==self.location.origin)return;if(req.mode==='navigate'){e.respondWith(networkFirst(req,CODE_CACHE));return}if(CODE_RE.test(u.pathname)){e.respondWith(networkFirst(req,CODE_CACHE));return}if(HEAVY_RE.test(u.pathname)){e.respondWith(cacheFirst(req,ASSET_CACHE));return}e.respondWith(networkFirst(req,CODE_CACHE))});
