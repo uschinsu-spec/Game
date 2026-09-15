@@ -1,0 +1,10 @@
+(()=>{'use strict';
+class WorldCraftNodes{
+ constructor({scene=window.GameRuntime?.scene,events=window.GameServices?.events}={}){this.scene=scene;this.events=events;this.nodes=new Map();this.createDefault()}
+ createNode(id,type,pos,extra={}){if(!this.scene||typeof BABYLON==='undefined')return null;const mesh=type==='FURNACE'?BABYLON.MeshBuilder.CreateCylinder(id,{height:1.4,diameter:.9},this.scene):BABYLON.MeshBuilder.CreateBox(id,{size:.9},this.scene);mesh.position.set(pos.x,pos.y||.45,pos.z);mesh.metadata={worldInteraction:true,stationId:id,stationType:type,...extra};const mat=new BABYLON.StandardMaterial(`${id}_mat`,this.scene);mat.diffuseColor=type==='FURNACE'?new BABYLON.Color3(.55,.25,.12):type==='FORGE'?new BABYLON.Color3(.35,.4,.48):new BABYLON.Color3(.2,.55,.65);mat.emissiveColor=mat.diffuseColor.scale(.18);mesh.material=mat;mesh.actionManager=new BABYLON.ActionManager(this.scene);mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger,()=>this.interact(id)));this.nodes.set(id,{id,type,mesh,context:{stationId:id,type,...extra}});return this.nodes.get(id)}
+ createDefault(){this.createNode('bronze_furnace_node','FURNACE',{x:5,z:4},{furnaceId:'bronze_furnace'});this.createNode('jade_furnace_node','FURNACE',{x:7,z:4},{furnaceId:'jade_furnace'});this.createNode('forge_node','FORGE',{x:-5,z:4});this.createNode('formation_table_node','FORMATION_TABLE',{x:-7,z:4})}
+ interact(id){const n=this.nodes.get(id);if(!n)return false;this.events?.emit?.('craft:stationInteracted',{...n.context});return true}
+ context(id){return this.nodes.get(id)?.context||null}
+}
+window.GameCore=window.GameCore||{};window.GameCore.WorldCraftNodes=WorldCraftNodes;window.GameCore.worldCraftNodes=window.GameCore.worldCraftNodes||new WorldCraftNodes();window.GameServices=Object.assign(window.GameServices||{},{worldCraftNodes:window.GameCore.worldCraftNodes});
+})();
