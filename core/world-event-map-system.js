@@ -1,0 +1,10 @@
+(()=>{'use strict';
+class WorldEventMapSystem{
+ constructor({events=window.GameServices?.events,enemies=window.GameServices?.enemyEntities,clock=window.GameServices?.clock}={}){Object.assign(this,{events,enemies,clock});this.map=new Map();events?.on?.('encounter:started',d=>{const e=enemies?.get?.(d?.bossEntityId);if(e)this.publish({id:`enc:${d.encounterId}`,zoneId:e.zoneId,position:e.position,type:'BOSS',label:'Boss Encounter',persistent:true})},{owner:'WorldEventMapSystem'});events?.on?.('encounter:completed',d=>this.remove(`enc:${d?.encounterId}`),{owner:'WorldEventMapSystem'});events?.on?.('encounter:reset',d=>this.remove(`enc:${d?.encounterId}`),{owner:'WorldEventMapSystem'});events?.on?.('zone:unloaded',d=>{for(const x of this.list(d?.zoneId))if(!x.persistent)this.remove(x.id)},{owner:'WorldEventMapSystem'})}
+ publish(def={}){if(!def.id||!def.zoneId||!Number.isFinite(def.position?.x)||!Number.isFinite(def.position?.z))return false;this.map.set(String(def.id),{id:String(def.id),zoneId:String(def.zoneId),position:{x:Number(def.position.x),y:Number(def.position.y)||0,z:Number(def.position.z)},type:String(def.type||'EVENT'),label:String(def.label||'Sự kiện'),icon:def.icon||'✦',persistent:!!def.persistent,expiresAt:def.expiresAt||0});this.events?.emit?.('map:worldEventsChanged',{});return true}
+ remove(id){const ok=this.map.delete(String(id));if(ok)this.events?.emit?.('map:worldEventsChanged',{});return ok}
+ list(zoneId=null){const now=Date.now(),out=[];for(const x of this.map.values()){if(x.expiresAt&&x.expiresAt<=now){this.map.delete(x.id);continue}if(!zoneId||x.zoneId===zoneId)out.push({...x,position:{...x.position}})}return out}
+ dispose(){this.events?.disposeOwner?.('WorldEventMapSystem');this.map.clear()}
+}
+window.GameCore=window.GameCore||{};window.GameCore.WorldEventMapSystem=WorldEventMapSystem;
+})();
