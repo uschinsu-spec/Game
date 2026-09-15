@@ -4,7 +4,7 @@
   const groups=[
     ['https://cdn.babylonjs.com/babylon.js'],
     ['https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js'],
-    ['./assets/ui/ui-icons.js','./game.js'],
+    ['./core/game-state.js','./assets/ui/ui-icons.js','./game.js'],
     ['./assets/environment/terrain/tex_01_Grass_Lush.js','./assets/environment/world/enhanced-world.js'],
     ['./assets/characters/rigged-player.js','./assets/characters/player-animation-pro.js','./assets/characters/player-upperbody-animation.js','./assets/characters/player-combat-facing.js'],
     ['./assets/enemies/enemy-registry.js','./assets/enemies/enemy-animation.js','./assets/enemies/enemy-loader.js','./assets/enemies/ultimate-monsters.js'],
