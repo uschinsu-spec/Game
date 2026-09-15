@@ -1,1 +1,1 @@
-(()=>{globalThis.GAME2_BUILD_ID='2026.09.15-p18.29'})();
+(()=>{globalThis.GAME2_BUILD_ID='2026.09.16-p18.30'})();
