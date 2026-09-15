@@ -32,6 +32,30 @@ jobs:
         run: node tests/phase17-ci.mjs
       - name: Phase 18 final migration and invariant gate
         run: node tests/phase18-ci.mjs
+      - name: Browser boot smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/game-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "Chrome/Chromium not available on runner"
+            exit 1
+          fi
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8080/index.html >/tmp/game-dom.html 2>/tmp/game-chrome.log || true
+          echo '--- boot status ---'
+          grep -o '<span id="boot-message">[^<]*' /tmp/game-dom.html || true
+          echo '--- chrome errors ---'
+          grep -E 'ERROR|Uncaught|ReferenceError|TypeError|Failed to load|ERR_' /tmp/game-chrome.log | tail -80 || true
+          if grep -q 'id="boot-status"[^>]*display: none' /tmp/game-dom.html; then
+            echo 'Browser smoke test: BOOT READY'
+          else
+            echo 'Browser smoke test: BOOT FAILED'
+            grep -o '<span id="boot-message">[^<]*' /tmp/game-dom.html || true
+            exit 1
+          fi
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
