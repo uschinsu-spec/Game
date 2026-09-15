@@ -1,7 +1,7 @@
 // Fast boot: ordered dependency groups + persistent cache with current build version.
 (() => {
   'use strict';
-  const BUILD = '20260915-vivid-legs-v22';
+  const BUILD = '20260915-player-bonefix-v23';
   const v = `?v=${BUILD}`;
   const groups = [
     ['https://cdn.babylonjs.com/babylon.js'],
