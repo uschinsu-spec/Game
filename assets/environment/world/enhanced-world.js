@@ -9,7 +9,7 @@ class EnhancedWorldZoneAssetBuilder{
  for(const r of zone.terrain?.roads||[]){const midX=(r.a.x+r.b.x)/2,midZ=(r.a.z+r.b.z)/2;if(Math.abs(midX-cx)>size*.8||Math.abs(midZ-cz)>size*.8)continue;const len=Math.hypot(r.b.x-r.a.x,r.b.z-r.a.z),mesh=BABYLON.MeshBuilder.CreateBox(`Road_${chunkKey}_${r.id}`,{width:r.width,height:.03,depth:len},s);mesh.position.set(midX,.02,midZ);mesh.rotation.y=Math.atan2(r.b.x-r.a.x,r.b.z-r.a.z);mesh.parent=root;mesh.material=m.road;mesh.isPickable=false;tag(mesh,{zoneId:zone.id,chunkKey,kind:'ROAD',cullRadius:size*2})}
  for(const w of zone.terrain?.water||[]){if(Math.abs(w.center.x-cx)>size*.8||Math.abs(w.center.z-cz)>size*.8)continue;const mesh=BABYLON.MeshBuilder.CreateDisc(`Water_${chunkKey}_${w.id}`,{radius:w.radius,tessellation:32},s);mesh.position.set(w.center.x,.035,w.center.z);mesh.rotation.x=Math.PI/2;mesh.parent=root;mesh.material=m.water;mesh.isPickable=false;tag(mesh,{zoneId:zone.id,chunkKey,kind:'WATER',cullRadius:size*2})}
  const pois=(zone.pois||[]).filter(p=>Math.abs(p.position.x-cx)<=size*.55&&Math.abs(p.position.z-cz)<=size*.55);for(const p of pois)if(p.type==='LANDMARK'){const h=BABYLON.MeshBuilder.CreateCylinder(`POI_${p.id}`,{height:4,diameterBottom:2.2,diameterTop:.3,tessellation:6},s);h.position.set(p.position.x,2,p.position.z);h.parent=root;h.material=p.id.includes('bamboo')?m.shrine:m.rock;h.isPickable=false;tag(h,{zoneId:zone.id,chunkKey,kind:'LANDMARK',cullRadius:150,blocksSpawn:true})}
- return{root,dispose:()=>root.dispose(false,true)}}
+ return{root,dispose:()=>root.dispose(false,false)}}
 }
 window.EnhancedWorldZoneAssetBuilder=EnhancedWorldZoneAssetBuilder;
 })();
