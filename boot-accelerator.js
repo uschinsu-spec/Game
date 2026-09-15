@@ -1,27 +1,44 @@
-// GAME2 boot accelerator: warm network/cache in parallel without changing execution order.
-(()=>{'use strict';
+// GAME2 boot accelerator: remove stale Service Workers, then warm network in parallel.
+(async()=>{'use strict';
  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- // The old iOS recovery path purged caches every new tab/session. The Safari SW bug is fixed,
- // so mark recovery complete before boot.js runs and preserve warm caches.
- if(isIOS){try{sessionStorage.setItem('GAME2_IOS_SW_RECOVERY_20260915_P1825','1')}catch(_){}}
+ const RETIRE_KEY='GAME2_SW_RETIRED_P1828';
  const head=document.head;
  const addLink=(rel,href,extra={})=>{try{const l=document.createElement('link');l.rel=rel;l.href=href;Object.assign(l,extra);head.appendChild(l);return l}catch(_){return null}};
  addLink('preconnect','https://cdn.babylonjs.com',{crossOrigin:'anonymous'});
  addLink('dns-prefetch','https://cdn.babylonjs.com');
- // Register the now Safari-safe worker on iOS too, so subsequent opens reuse code/assets.
- if('serviceWorker'in navigator){navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none',scope:'./'}).then(r=>r.update()).catch(e=>console.warn('[BootAccel] SW warmup',e))}
+
+ // Normal-mode browsers may still be controlled by an old worker/cache while private mode is clean.
+ // Remove every registration and every GAME2 Cache Storage entry once for this release.
+ try{
+   let already=false;try{already=sessionStorage.getItem(RETIRE_KEY)==='1'}catch(_){}
+   if(!already){
+     const hadController=!!navigator.serviceWorker?.controller;
+     if('serviceWorker'in navigator){
+       const regs=await navigator.serviceWorker.getRegistrations();
+       await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+     }
+     if('caches'in window){
+       for(const name of await caches.keys()) if(name.startsWith('game2-')) await caches.delete(name);
+     }
+     try{sessionStorage.setItem(RETIRE_KEY,'1')}catch(_){}
+     // A controller remains attached to the current document until navigation. Reload once after unregistering it.
+     if(hadController){
+       const u=new URL(location.href);u.searchParams.set('nocache','p18.28');u.searchParams.set('_',Date.now().toString());
+       location.replace(u.toString());return;
+     }
+   }
+ }catch(e){console.warn('[BootAccel] stale SW cleanup',e)}
+
  const versioned=(src,build)=>`${src}${src.includes('?')?'&':'?'}v=${encodeURIComponent(build)}`;
  const preloadStage=(stage,build)=>{for(const src of stage?.files||[]){if(/^https?:\/\//i.test(src))continue;addLink('preload',versioned(src,build),{as:'script'})}};
- (async()=>{try{
-   const manifest=await import('./core/build-manifest.js');
+ try{
+   const manifest=await import(`./core/build-manifest.js?boot=${Date.now()}`);
    const stages=manifest.BOOT_STAGES||[],build=manifest.BUILD_ID||'';
    const byId=id=>stages.find(s=>s.id===id);
-   // Core is the visible 33% bottleneck: start all requests immediately.
    preloadStage(byId('core'),build);
-   // Pipeline later mandatory stages while core scripts execute. Execution order remains owned by boot.js.
-   setTimeout(()=>preloadStage(byId('runtime'),build),120);
-   setTimeout(()=>preloadStage(byId('gameplay'),build),350);
-   setTimeout(()=>preloadStage(byId('ui'),build),700);
-   setTimeout(()=>preloadStage(byId('finalize'),build),900);
- }catch(e){console.warn('[BootAccel] preload unavailable',e)}})();
+   setTimeout(()=>preloadStage(byId('runtime'),build),80);
+   setTimeout(()=>preloadStage(byId('gameplay'),build),220);
+   setTimeout(()=>preloadStage(byId('ui'),build),420);
+   setTimeout(()=>preloadStage(byId('finalize'),build),520);
+ }catch(e){console.warn('[BootAccel] preload unavailable',e)}
 })();
