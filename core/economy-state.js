@@ -1,0 +1,7 @@
+(()=>{'use strict';
+const KEY='game2-economy-v1',storage=window.GameStorage,events=window.GameServices?.events;
+const empty=()=>({version:1,wallet:{HA:0,TRUNG:0,THUONG:0,CUC:0},inventory:{capacity:48,stacks:{},instances:{},reservations:{},recovery:[]},equipment:{WEAPON:null,CHEST:null,RING:null},shop:{sold:{}}});
+function normalize(raw){const s=Object.assign(empty(),raw||{});s.wallet=Object.assign(empty().wallet,raw?.wallet||{});s.inventory=Object.assign(empty().inventory,raw?.inventory||{});s.inventory.stacks=Object.assign({},raw?.inventory?.stacks||{});s.inventory.instances=Object.assign({},raw?.inventory?.instances||{});s.inventory.reservations=Object.assign({},raw?.inventory?.reservations||{});s.inventory.recovery=[...(raw?.inventory?.recovery||[])];s.equipment=Object.assign(empty().equipment,raw?.equipment||{});s.shop=Object.assign(empty().shop,raw?.shop||{});s.shop.sold=Object.assign({},raw?.shop?.sold||{});return s}
+class EconomyStore{constructor(){this.state=normalize(storage?.read(KEY,{}));this.save()}save(){storage?.write(KEY,this.state);events?.emit?.('economy:changed',{snapshot:this.snapshot()});return true}snapshot(){return typeof structuredClone==='function'?structuredClone(this.state):JSON.parse(JSON.stringify(this.state))}reset(){this.state=empty();return this.save()}}
+window.GameCore=window.GameCore||{};window.GameCore.EconomyStore=EconomyStore;window.GameCore.economyStore=window.GameCore.economyStore||new EconomyStore();window.GameServices=Object.assign(window.GameServices||{},{economyStore:window.GameCore.economyStore});
+})();
