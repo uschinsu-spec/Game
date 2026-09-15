@@ -1,0 +1,4 @@
+(()=>{'use strict';
+class WorldFlagSystem{constructor({store=window.GameServices?.economyStore,events=window.GameServices?.events}={}){Object.assign(this,{store,events});store.state.worldFlags=store.state.worldFlags||{}}get(k,f=false){return Object.prototype.hasOwnProperty.call(this.store.state.worldFlags,k)?this.store.state.worldFlags[k]:f}set(k,v=true,source='SYSTEM'){const prev=this.get(k);if(prev===v)return false;this.store.state.worldFlags[k]=v;this.store.save();this.events?.emit?.('worldFlag:changed',{key:k,previous:prev,value:v,source});return true}all(){return{...this.store.state.worldFlags}}}
+window.GameCore=window.GameCore||{};window.GameCore.WorldFlagSystem=WorldFlagSystem;window.GameCore.worldFlags=window.GameCore.worldFlags||new WorldFlagSystem();window.GameServices=Object.assign(window.GameServices||{},{worldFlags:window.GameCore.worldFlags});
+})();
