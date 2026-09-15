@@ -1,1 +1,0 @@
-(()=>{'use strict';window.LegacyMiniMapDisabled=true;/* GAME2 Phase 15: rendering is owned by MapV2UI. */})();

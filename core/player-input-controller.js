@@ -1,3 +1,0 @@
-(()=>{'use strict';
-const s=window.GameServices||{},input=s.input,motor=s.playerMotor,mobile=s.mobileInput;if(!input||!motor)return;window.PlayerInputController={update(){return motor.isMoving?.()||false},vector(){const v=input.getMoveIntent?.()||{x:0,z:0,magnitude:0};return{x:v.x,z:v.z,m:v.magnitude}},isPinching:()=>!!mobile?.pinching,reset(){mobile?.reset?.();s.keyboardInput?.reset?.();input.reset?.();window.isPlayerMoving=false;if(window.PLAYER_MOTION_STATE==='moving')window.PLAYER_MOTION_STATE='idle'},getIntent:()=>input.getMoveIntent?.(),getVelocity:()=>motor.getVelocity?.()};
-})();

@@ -30,6 +30,8 @@ jobs:
           find . -type f \( -name '*.js' -o -name '*.mjs' \) -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check
       - name: Phase 17 performance and PWA policy
         run: node tests/phase17-ci.mjs
+      - name: Phase 18 final migration and invariant gate
+        run: node tests/phase18-ci.mjs
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:

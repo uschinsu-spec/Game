@@ -1,26 +1,24 @@
-# Thanh Vân Tiên Vực
+# Thanh Vân Tiên Vực — GAME2
 
-Web game 3D tiên hiệp tối ưu cho điện thoại, chạy trực tiếp trên trình duyệt bằng Babylon.js.
+Web game 3D tiên hiệp chạy trên Babylon.js, tối ưu mobile/iPhone và được tổ chức theo kiến trúc domain-system thay vì Stage/Wave/CP/Level.
 
-## Tính năng hiện tại
-- Thế giới 3D tiên hiệp Trung Hoa rộng 320x320.
-- Gameplay ưu tiên màn hình dọc và chơi một tay.
-- Joystick 360 độ, tốc độ di chuyển theo độ kéo.
-- Camera third-person tự bám sau lưng và giữ nhân vật ở 1/3 dưới màn hình.
-- Auto-target/soft-lock quái gần phía trước.
-- 1 nút đánh chính + 3 kỹ năng: Kiếm Khí, Liên Trảm, Pháp Trận.
-- Thanh máu mục tiêu và phản hồi đánh trúng.
-- Menu phụ thu gọn cho vũ khí, trang bị, tọa kỵ và linh thú.
-- Zoom hai ngón, PWA/fullscreen mobile và khóa portrait-primary khi cài ra màn hình chính.
-- Nhân vật tu tiên có khớp vai, khuỷu, cổ tay, hông, gối và cổ chân.
-- Adaptive render resolution để giữ FPS ổn định trên điện thoại.
-- Distance culling cho vật thể xa và freeze world matrix cho cảnh tĩnh.
-- Service Worker cache để lần mở sau nhanh hơn và vẫn ưu tiên nhận bản cập nhật mới.
+## Kiến trúc production
+- **Progression:** `CultivationSystem → MeditationSystem → BreakthroughSystem`. Không Player Level, Combat EXP, CP, Stage/Wave hay auto-realm.
+- **Combat:** `SkillSystem → CastSystem → SkillEffectResolver/ProjectileSystem → DamageSystem → Death/Respawn`. Realm Suppression và lethal floor nằm trong `DamageSystem`.
+- **Movement:** `InputSystem → PlayerMotor → CollisionSystem → Player transform`. Camera do `CameraController` sở hữu.
+- **Animation:** `PlayerAnimationStateMachine + FacingController + PlayerRigAdapter`; animation/VFX không gây damage.
+- **Enemy:** `EnemyDomain → EnemyEntityRegistry → SpawnSystem → EnemyAISystem/EncounterSystem → EnemyRenderer`.
+- **Economy:** `Wallet/Inventory/Item/Equipment/Loot/Pickup/Shop` với transaction/idempotency.
+- **Craft:** job persisted + reservation-safe cho Alchemy/Crafting; Artifact/Formation dùng domain riêng.
+- **Pet:** Pet entity/AI/skill/capture/pickup dùng chung combat/economy systems.
+- **Quest/NPC:** event-driven Quest FSM + NPC/Dialogue/Interaction/ServiceRouter.
+- **World:** `World → Region → Zone → SubZone → POI`, chunk streaming/refcount, discovery, waypoint, resource, respawn anchor.
+- **Map:** Minimap / Local Map / World Map V2, Fog of War và markers từ authoritative registries.
+- **UI:** UIState snapshot + UICommand router; view không sở hữu gameplay mutation.
+- **Runtime:** BUILD_ID boot manifest, versioned Service Worker cache, RuntimeLifecycle và PerformanceTelemetry.
 
-## Mục tiêu hiệu năng
-- Ưu tiên 30 FPS ổn định trên iPhone/Android phổ thông.
-- Tự giảm render resolution nếu FPS thấp và tăng lại khi máy còn dư hiệu năng.
-- Cảnh xa được culling theo khoảng cách để giảm draw calls.
+## Vertical slice production
+Thanh Vân Sơn Mạch gồm: Thanh Vân Thôn → Thanh Trúc Lâm → Linh Khê Cốc → Vân Sơn Đạo → Thanh Vân Đỉnh → Cổ Động Thanh Vân. Safe hub, quest, gather, waypoint, craft/meditate, breakthrough, deeper zones và boss encounter đều dùng các system ở trên, không có central arena shortcut.
 
-## Asset pipeline tiếp theo
-Khi thêm asset thật, ưu tiên GLB/GLTF, Meshopt/Draco và texture WebP/KTX2. Nhân vật production nên dùng skinned GLB có animation Idle/Walk/Run/Attack/Skill/Ride/Hit/Death thay cho model procedural hiện tại.
+## Release gate
+Mỗi push `main` phải qua JavaScript syntax check, Phase 17 PWA/performance policy, Phase 18 final migration/invariant audit và GitHub Pages deployment. Xem `docs/PRODUCTION_RELEASE_CHECKLIST.md` và `docs/SAVE_MIGRATION_GAME2.md`.
