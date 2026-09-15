@@ -10,7 +10,7 @@ class PlayerMotor{
  recoverLastSafe(reason='RECOVER'){return this.teleport(this.lastSafePosition,{reason,markSafe:false})}
  isMoving(){return this.moving}
  getVelocity(){return{...this.velocity}}
- dispose(){this.scheduler?.disposeOwner?.('PlayerMotor')}
+ dispose(){this.scheduler?.unregisterOwner?.('PlayerMotor')}
 }
 window.GameCore=window.GameCore||{};window.GameCore.PlayerMotor=PlayerMotor;window.GameCore.playerMotor=window.GameCore.playerMotor||new PlayerMotor();window.GameServices=Object.assign(window.GameServices||{},{playerMotor:window.GameCore.playerMotor});
 })();
