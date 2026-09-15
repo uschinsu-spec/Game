@@ -1,0 +1,8 @@
+(()=>{'use strict';
+class DeathSystem{
+ constructor({health,events,clock,scheduler,status,shields,combatState,balance}={}){this.health=health;this.events=events;this.clock=clock;this.scheduler=scheduler;this.status=status;this.shields=shields;this.combatState=combatState;this.balance=balance;this.pending=new Map();scheduler?.register?.('FAST',()=>this.update(),{owner:'DeathSystem',label:'death-respawn'})}
+ die(entityId,context={}){const id=String(entityId),h=this.health.get(id);if(!h||h.alive)return false;this.status?.clear(id,s=>s.category!=='PERSISTENT');this.shields?.clear(id);this.combatState?.clear(id);this.events?.emit('entity:died',{entityId:id,context});if(id==='player')this.pending.set(id,(this.clock?.now?.()||0)+(this.balance?.playerRespawnDelay||1.5));return true}
+ update(){const now=this.clock?.now?.()||0;for(const[id,at]of[...this.pending])if(now>=at){this.pending.delete(id);const snap=this.health.revive(id,{hpRatio:1});this.status?.apply(id,{id:'RESPAWN_INVULNERABLE',category:'BUFF',duration:this.balance?.playerRespawnInvulnerability||2,tags:['INVULNERABLE']});this.events?.emit('entity:respawned',{entityId:id,health:snap})}}
+}
+window.GameCore=window.GameCore||{};window.GameCore.DeathSystem=DeathSystem;window.GameCore.death=window.GameCore.death||new DeathSystem({health:window.GameCore.health,events:window.GameCore.events,clock:window.GameCore.clock,scheduler:window.GameCore.tickScheduler,status:window.GameCore.status,shields:window.GameCore.shields,combatState:window.GameCore.combatState,balance:window.GameCore.combatBalance});
+})();
