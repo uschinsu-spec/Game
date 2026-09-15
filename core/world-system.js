@@ -1,0 +1,11 @@
+(()=>{'use strict';
+class WorldSystem{
+ constructor({catalog=window.GameCore?.phase13Catalog,state=window.GameServices?.worldState,streaming=window.GameServices?.worldStreaming,terrain=window.GameServices?.terrain,events=window.GameServices?.events,meditation=window.GameServices?.meditation,player=window.GameRuntime?.player,scheduler=window.GameServices?.scheduler,spawn=window.GameServices?.spawnSystem}={}){Object.assign(this,{catalog,state,streaming,terrain,events,meditation,player,scheduler,spawn});this.activeZoneId=null;scheduler?.register?.('SLOW',()=>this.tick(),{owner:'WorldSystem',label:'world-context'});this.ready=this.enter(state?.state?.currentZoneId||'thanh_van_region',{initial:true})}
+ zone(id=this.activeZoneId){return this.catalog.ZONES[id]||null}
+ async enter(zoneId,{position=null,initial=false}={}){const z=this.catalog.ZONES[zoneId];if(!z)return{ok:false,reason:'ZONE_UNKNOWN'};if(!initial)this.events?.emit?.('zone:transition:start',{from:this.activeZoneId,to:zoneId});await this.streaming.enterZone(zoneId,position);this.activeZoneId=zoneId;this.state.setZone(zoneId);this.configureSpawn(z);if(!initial)this.events?.emit?.('zone:transition:end',{zoneId});return{ok:true,zone:z}}
+ configureSpawn(z){const safeZones=Object.values(z.subZones||{}).filter(s=>s.safe).map(s=>({x:s.center.x,z:s.center.z,radius:s.radius}));this.spawn?.setEcology?.({zoneId:z.id,safeZones,subZones:z.subZones})}
+ subZoneAt(p=this.player?.position){const z=this.zone();if(!z||!p)return null;let best=null;for(const s of Object.values(z.subZones||{})){const d=Math.hypot(p.x-s.center.x,p.z-s.center.z);if(d<=s.radius&&(!best||d<best.d))best={d,subZone:s}}return best?.subZone||null}
+ tick(){const p=this.player?.position,z=this.zone();if(!p||!z)return;const density=this.terrain.spiritDensity(z.id,p);this.meditation?.setContext?.({spiritDensity:density});this.events?.emit?.('world:context',{zoneId:z.id,subZoneId:this.subZoneAt(p)?.id||null,spiritDensity:density})}
+}
+window.GameCore=window.GameCore||{};window.GameCore.WorldSystem=WorldSystem;
+})();

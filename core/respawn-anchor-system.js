@@ -1,0 +1,4 @@
+(()=>{'use strict';
+class RespawnAnchorSystem{constructor({catalog=window.GameCore?.phase13Catalog,state=window.GameServices?.worldState,events=window.GameServices?.events}={}){Object.assign(this,{catalog,state,events})}set(id){const zone=this.catalog.ZONES[this.state.state.currentZoneId],a=zone?.respawnAnchors?.find(x=>x.id===id);if(!a)return false;this.state.state.lastRespawnAnchorId=id;this.state.save('RESPAWN_ANCHOR');this.events?.emit?.('respawn:anchorChanged',{anchorId:id,zoneId:zone.id});return true}current(){const zone=this.catalog.ZONES[this.state.state.currentZoneId];return zone?.respawnAnchors?.find(x=>x.id===this.state.state.lastRespawnAnchorId)||zone?.respawnAnchors?.[0]||null}position(){return this.current()?.position||{x:0,y:0,z:0}}}
+window.GameCore=window.GameCore||{};window.GameCore.RespawnAnchorSystem=RespawnAnchorSystem;
+})();

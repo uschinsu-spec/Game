@@ -1,0 +1,4 @@
+(()=>{'use strict';
+class WaypointSystem{constructor({catalog=window.GameCore?.phase13Catalog,state=window.GameServices?.worldState,events=window.GameServices?.events}={}){Object.assign(this,{catalog,state,events})}get(id){return this.catalog.WAYPOINTS[id]||null}isUnlocked(id){return!!this.state.state.unlockedWaypoints[id]}unlock(id){if(!this.get(id))return false;return this.state.unlockWaypoint(id)}listUnlocked(){return Object.keys(this.state.state.unlockedWaypoints).map(id=>this.get(id)).filter(Boolean)}}
+window.GameCore=window.GameCore||{};window.GameCore.WaypointSystem=WaypointSystem;
+})();
