@@ -1,7 +1,7 @@
 // GAME2 Phase 17 versioned PWA cache — Safari/iOS safe.
 importScripts('./core/build-id.js');
 const BUILD_ID=self.GAME2_BUILD_ID,PREFIX='game2-',SHELL=`${PREFIX}${BUILD_ID}-shell`,ASSETS=`${PREFIX}${BUILD_ID}-assets`;
-const SHELL_FILES=['./','./index.html','./assets/ui/style.css','./assets/ui/skill-vfx.css','./manifest.webmanifest','./assets/ui/ui-icons.css','./boot.js','./core/build-id.js','./core/build-manifest.js'];
+const SHELL_FILES=['./','./index.html','./assets/ui/style.css','./assets/ui/skill-vfx.css','./manifest.webmanifest','./assets/ui/ui-icons.css','./boot-accelerator.js','./boot.js','./core/build-id.js','./core/build-manifest.js'];
 const CODE_RE=/\.(?:js|css|html|json|webmanifest)$/i,ASSET_RE=/\.(?:png|jpg|jpeg|webp|svg|woff2?|glb|gltf|bin)$/i;
 
 // Do NOT clone Request.mode === 'navigate'. Safari/WebKit rejects manually
@@ -18,7 +18,6 @@ const normalized=req=>{
 self.addEventListener('install',e=>e.waitUntil((async()=>{
   const c=await caches.open(SHELL);
   await c.addAll(SHELL_FILES);
-  // Replace the broken iOS worker as soon as this version is discovered.
   await self.skipWaiting();
 })()));
 
@@ -39,14 +38,12 @@ self.addEventListener('message',e=>{
 async function networkFirst(req,cacheName){
   const key=normalized(req);
   try{
-    // Fetch the original browser-created request. Never reconstruct a navigate Request.
     const res=await fetch(req);
     if(res?.ok)(await caches.open(cacheName)).put(key,res.clone()).catch(()=>{});
     return res;
   }catch(err){
     const hit=await caches.match(key);
     if(hit)return hit;
-    // Navigation can fall back to the cached app shell even when the URL has query params.
     if(req.mode==='navigate'){
       const shell=await caches.match('./index.html')||await caches.match('./');
       if(shell)return shell;
