@@ -8,7 +8,7 @@
     ['./assets/environment/terrain/tex_01_Grass_Lush.js','./assets/environment/world/enhanced-world.js'],
     ['./assets/characters/rigged-player.js','./assets/characters/player-animation-pro.js','./assets/characters/player-upperbody-animation.js','./assets/characters/player-combat-facing.js'],
     ['./assets/enemies/enemy-registry.js','./assets/enemies/enemy-animation.js','./assets/enemies/enemy-loader.js','./assets/enemies/ultimate-monsters.js'],
-    ['./idle-adventure.js','./skill-vfx.js','./progression-systems.js','./mobile-runtime.js','./mobile-controls-fix.js']
+    ['./idle-adventure.js','./skill-vfx.js','./progression-systems.js','./mobile-runtime.js','./mobile-controls-fix.js','./mobile-minimap.js']
   ];
   const total=groups.reduce((n,g)=>n+g.length,0);let done=0,failed=false,timer;
   const panel=document.createElement('section');panel.id='boot-status';panel.setAttribute('role','status');panel.style.cssText='position:fixed;inset:0;z-index:100000;background:#5aa8d6;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font:16px system-ui';
