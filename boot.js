@@ -1,7 +1,7 @@
 // Ordered startup: dependencies must succeed before gameplay is evaluated.
 (() => {
   'use strict';
-  const BUILD = '20260915-mobile-opt-v13';
+  const BUILD = '20260915-mobile-opt-v14';
   const v = `?v=${BUILD}`;
   const sources = [
     'https://cdn.babylonjs.com/babylon.js','https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js',`./assets/ui/ui-icons.js${v}`,`./game.js${v}`,`./assets/environment/terrain/tex_01_Grass_Lush.js${v}`,`./assets/environment/world/enhanced-world.js${v}`,`./assets/characters/rigged-player.js${v}`,`./assets/characters/player-animation-pro.js${v}`,`./assets/characters/player-upperbody-animation.js${v}`,`./assets/characters/player-combat-facing.js${v}`,`./assets/enemies/enemy-registry.js${v}`,`./assets/enemies/enemy-animation.js${v}`,`./assets/enemies/enemy-loader.js${v}`,`./assets/enemies/ultimate-monsters.js${v}`,`./idle-adventure.js${v}`,`./skill-vfx.js${v}`,`./progression-systems.js${v}`,`./mobile-runtime.js${v}`,`./mobile-controls-fix.js${v}`
