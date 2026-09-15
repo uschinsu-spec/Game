@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8');
+const assert=(x,m)=>{if(!x)throw new Error(m)};
+const boot=read('boot.js'),sw=read('service-worker.js'),mobile=read('mobile-runtime.js'),bid=read('core/build-id.js'),manifest=JSON.parse(read('manifest.webmanifest'));
+assert(!boot.includes('?t=${Date.now()}')&&!boot.includes('Date.now()}`'),'boot uses Date.now cache bust');
+assert(boot.includes('BUILD_ID')&&boot.includes('TOTAL_BOOT_WEIGHT'),'weighted BUILD_ID boot missing');
+assert(!mobile.includes('setInterval('),'mobile-runtime setInterval regression');
+assert(mobile.includes("register?.('SLOW'")&&mobile.includes("register?.('SECOND'"),'scheduler buckets missing');
+const id=/GAME2_BUILD_ID='([^']+)'/.exec(bid)?.[1];assert(id,'BUILD_ID missing');
+assert(sw.includes("importScripts('./core/build-id.js')"),'service worker not sharing build id');
+assert(sw.includes("n.startsWith(PREFIX)&&n!==SHELL&&n!==ASSETS"),'old cache cleanup missing');
+assert(sw.includes('const hit=await caches.match(key);if(hit)return hit;throw err'),'offline code fallback missing');
+assert(sw.includes('cache.match(key)')&&sw.includes('if(hit){'),'offline asset fallback missing');
+assert(!/install[\s\S]{0,200}skipWaiting/.test(sw),'new worker activates before controlled update');
+assert(manifest.start_url==='./'&&manifest.scope==='./','GitHub Pages relative manifest broken');
+console.log(JSON.stringify({ok:true,buildId:id,checks:['fresh-build-id','old-cache-cleanup','offline-fallback','stable-boot','scheduler-runtime','github-pages-path']}));
