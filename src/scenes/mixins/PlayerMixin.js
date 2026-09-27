@@ -1,0 +1,400 @@
+/**
+ * PlayerMixin.js
+ * Quản lý: createPlayer, calcStats, performDash, toggleFlyingSword,
+ *           nearestEnemy, createVfxPool, spawnVfx, perspective, fixed
+ */
+import { REALMS } from '../../config/realmsData.js';
+import { SECTS } from '../../config/sectsData.js';
+import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
+import { SKILL_MASTERY_TIERS, ELEMENTAL_SKILLS } from '../../config/skillsData.js';
+import { gameState } from '../../state/gameState.js';
+import { getCongPhapById } from '../../config/congPhapData.js';
+
+export const PlayerMixin = {
+
+  createPlayer() {
+    this.playerHpMax = this.calcPlayerMaxHp();
+    this.playerHp = this.playerHpMax;
+    this.playerDmg = this.calcPlayerDmg();
+
+    const spawn = this.currentMap?.spawn || { x: 350, y: 620 };
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, 'player_idle', 0)
+      .setScale(0.85)
+      .setDepth(620);
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(44, 70).setOffset(42, 40);
+    this.player.play('p_idle');
+
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 35, 40, 14, 0x000000, 0.45).setDepth(1);
+
+    this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
+  },
+
+  // 1. Khí Huyết (HP)
+  calcPlayerMaxHp() {
+    const realm = REALMS[gameState.realmIdx] || REALMS[0];
+    let hp = realm.hp;
+    // Cộng thêm từ trang bị đang mang (Đạo Bào, Ngọc Bội...)
+    if (gameState.equipped) {
+      if (gameState.equipped.armor?.bonusHp) hp += gameState.equipped.armor.bonusHp;
+      if (gameState.equipped.amulet?.bonusHp) hp += gameState.equipped.amulet.bonusHp;
+    }
+    if (gameState.sectId) {
+      const sect = SECTS.find(s => s.id === gameState.sectId);
+      if (sect && sect.hpBonus) hp = Math.floor(hp * (1 + sect.hpBonus / 100));
+    }
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    if (cp && cp.bonusHpPct) {
+      hp = Math.floor(hp * (1 + cp.bonusHpPct / 100));
+    }
+    (gameState.inventory?.formations || []).forEach(fName => {
+      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
+      if (fObj && fObj.bonusHp) hp += fObj.bonusHp;
+    });
+    return hp;
+  },
+
+  // 2. Pháp Lực (Mana / MP)
+  calcPlayerMaxMp() {
+    const realm = REALMS[gameState.realmIdx] || REALMS[0];
+    let mp = (realm.manaMax || 100);
+    if (gameState.equipped?.amulet?.bonusMp) {
+      mp += gameState.equipped.amulet.bonusMp;
+    }
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    if (cp && cp.bonusMpPct) {
+      mp = Math.floor(mp * (1 + cp.bonusMpPct / 100));
+    }
+    if (gameState.sectId === 'thuy_nguyet_cung') {
+      mp = Math.floor(mp * 1.25);
+    }
+    return mp;
+  },
+
+  // 3. Thần Thức (Spiritual Sense - Tăng Tốc Độ Đánh)
+  calcPlayerSpiritualSense() {
+    const realm = REALMS[gameState.realmIdx] || REALMS[0];
+    let sense = (realm.spiritualSense || 10);
+    if (gameState.equipped?.boots?.bonusSpd) {
+      sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
+    }
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    if (cp && cp.bonusSensePct) {
+      sense = Math.floor(sense * (1 + cp.bonusSensePct / 100));
+    }
+    if (gameState.sectId === 'thien_loi_tong') {
+      sense = Math.floor(sense * 1.2);
+    }
+    return sense;
+  },
+
+  // 4. Tốc Độ Đánh / Khoảng Cách Đòn Đánh (ms) dựa trên Thần Thức
+  calcPlayerAtkInterval() {
+    const sense = this.calcPlayerSpiritualSense();
+    // Thần Thức càng cao -> Tốc đánh càng nhanh
+    let interval = Math.max(85, 620 - Math.floor(sense * 1.5));
+    if (gameState.sectId === 'van_kiem_tong') {
+      interval = Math.floor(interval * 0.82);
+    }
+    return Math.max(80, interval);
+  },
+
+  // 5. Sát Thương Cơ Bản (Base Raw Damage)
+  calcPlayerBaseDmg() {
+    const realm = REALMS[gameState.realmIdx] || REALMS[0];
+    let dmg = realm.dmg;
+    // Cộng thêm từ vũ khí & trang sức đang trang bị
+    if (gameState.equipped) {
+      if (gameState.equipped.weapon?.bonusDmg) dmg += gameState.equipped.weapon.bonusDmg;
+      if (gameState.equipped.amulet?.bonusDmg) dmg += gameState.equipped.amulet.bonusDmg;
+    }
+    if (gameState.sectId) {
+      const sect = SECTS.find(s => s.id === gameState.sectId);
+      if (sect && sect.bonusDmgMul) dmg = Math.floor(dmg * sect.bonusDmgMul);
+    }
+    (gameState.inventory?.formations || []).forEach(fName => {
+      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
+      if (fObj && fObj.bonusDmg) dmg += fObj.bonusDmg;
+    });
+    return dmg;
+  },
+
+  // 6. Sát Thương Theo Từng Hệ (Tu Luyện Hệ Nào Tăng Damage Hệ Đó)
+  calcPlayerElementalDmg(elem = 'Vật Lý') {
+    const baseDmg = this.calcPlayerBaseDmg();
+    let bonusPct = 0;
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    if (cp) {
+      if (cp.elem === 'Toàn Hệ') {
+        bonusPct += (cp.bonusDmgPct || 10);
+      } else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) {
+        // Tăng mạnh sát thương của hệ công pháp đang tu luyện
+        bonusPct += (cp.bonusDmgPct || 30);
+      }
+    }
+    return Math.max(1, Math.floor(baseDmg * (1 + bonusPct / 100)));
+  },
+
+  // 7. Tổng Sát Thương / Công Kích Toàn Diện
+  calcPlayerDmg() {
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    const activeElem = cp ? cp.elem : 'Vật Lý';
+    return this.calcPlayerElementalDmg(activeElem);
+  },
+
+  // 8. Hộ Thể Giáp Cơ Bản (Tăng Cho Tất Cả Các Hệ Khi Lên Cấp Cảnh Giới)
+  calcPlayerBaseDef() {
+    const realm = REALMS[gameState.realmIdx] || REALMS[0];
+    let def = realm.def;
+    // Cộng thêm từ Mũ & Khiên/Thuẫn đang trang bị
+    if (gameState.equipped) {
+      if (gameState.equipped.helm?.bonusDef) def += gameState.equipped.helm.bonusDef;
+      if (gameState.equipped.shield?.bonusDef) def += gameState.equipped.shield.bonusDef;
+    }
+    if (gameState.sectId) {
+      const sect = SECTS.find(s => s.id === gameState.sectId);
+      if (sect && sect.defBonus) def = Math.floor(def * (1 + sect.defBonus / 100));
+    }
+    (gameState.inventory?.formations || []).forEach(fName => {
+      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
+      if (fObj && fObj.bonusDef) def += fObj.bonusDef;
+    });
+    return def;
+  },
+
+  // 9. Giáp Theo Từng Hệ (Tu Luyện Hệ Nào Tăng DEF Hệ Đó + Lên Cấp Tăng Toàn Hệ)
+  calcPlayerElementalDef(elem = 'Vật Lý') {
+    const baseDef = this.calcPlayerBaseDef();
+    let bonusDefPct = 0;
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    if (cp) {
+      if (cp.elem === 'Toàn Hệ') {
+        bonusDefPct += (cp.bonusDefPct || 10);
+      } else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) {
+        // Tăng mạnh giáp của hệ công pháp đang tu luyện
+        bonusDefPct += (cp.bonusDefPct || 35);
+      }
+    }
+    return Math.floor(baseDef * (1 + bonusDefPct / 100));
+  },
+
+  // 10. Giáp Tổng Quát
+  calcPlayerDef() {
+    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+    const activeElem = cp ? cp.elem : 'Vật Lý';
+    return this.calcPlayerElementalDef(activeElem);
+  },
+
+  toggleMeditation() {
+    if (!gameState.activeCongPhapId) {
+      this.showFloatingText(this.player.x, this.player.y - 70, 'Chưa học Công Pháp! Hãy đổi Da Thú lấy [Dẫn Khí Quyết]!', '#ff7777', '14px');
+      if (this.openCongPhapPanel) this.openCongPhapPanel();
+      return;
+    }
+
+    gameState.isMeditating = !gameState.isMeditating;
+    if (gameState.isMeditating) {
+      this.player.setVelocity(0, 0);
+      gameState.autoFight = false;
+      this.updateAutoBtnVisual();
+      const cp = getCongPhapById(gameState.activeCongPhapId);
+      this.showFloatingText(this.player.x, this.player.y - 70, `🧘 TĨNH TỌA TU LUYỆN [${cp?.name || ''}] (+${(cp?.speed || 2) * 3} Tu Vi/s)`, '#55ff99', '15px');
+    } else {
+      this.showFloatingText(this.player.x, this.player.y - 70, '⚔ KẾT THÚC TĨNH TỌA', '#ffd700', '14px');
+    }
+    this.updateHUD();
+  },
+
+  toggleResting() {
+    // Nếu đang ở trạng thái chiến đấu / đang chết thì không nghỉ được
+    if (this.dead) return;
+
+    gameState.isResting = !gameState.isResting;
+
+    if (gameState.isResting) {
+      // Dưỡng sức: dừng di chuyển, tắt autoFight
+      this.player.setVelocity(0, 0);
+      this.moveTarget = null;
+      this.player.play('p_idle', true);
+      gameState.autoFight = false;
+      this.updateAutoBtnVisual();
+      this.showFloatingText(this.player.x, this.player.y - 70, '🛌 DƯỠNG SỨC: Hồi HP & Pháp Lực (+5%/s)', '#86efac', '14px');
+    } else {
+      this.showFloatingText(this.player.x, this.player.y - 70, '⚔ KẾT THÚC DƯỠNG SỨC', '#ffd700', '13px');
+    }
+    // Cập nhật lại nút bên sidebar
+    this.createSideToggleButtons();
+    this.updateHUD();
+  },
+
+  cancelRestingState(reason = '') {
+    let wasActive = false;
+    if (gameState.isResting) {
+      gameState.isResting = false;
+      wasActive = true;
+    }
+    if (gameState.isMeditating) {
+      gameState.isMeditating = false;
+      wasActive = true;
+    }
+    if (wasActive) {
+      if (this.createSideToggleButtons) this.createSideToggleButtons();
+      this.updateHUD();
+      if (reason && this.player && this.player.active) {
+        this.showFloatingText(this.player.x, this.player.y - 70, reason, '#ffd700', '13px');
+      }
+    }
+  },
+
+  performDash() {
+    if (this.time.now < this.lastDash + this.dashCd) return;
+    this.lastDash = this.time.now;
+    this.isDashing = true;
+    this.spawnVfx(this.player.x, this.player.y, 1, 0.8, { tint: 0x66ffff, duration: 250 });
+    this.showFloatingText(this.player.x, this.player.y - 50, 'THAN PHAP LUOT!', '#66ffff');
+    this.time.delayedCall(200, () => { this.isDashing = false; });
+  },
+
+  toggleFlyingSword() {
+    this.isFlyingSword = !this.isFlyingSword;
+    if (this.isFlyingSword) {
+      this.showFloatingText(this.player.x, this.player.y - 60, 'NGỰ KIẾM PHI HÀNH (+40% TỐC)', '#ffd700');
+      this.spawnVfx(this.player.x, this.player.y + 20, 0, 0.7, { tint: 0xffd700, duration: 300 });
+    } else {
+      this.showFloatingText(this.player.x, this.player.y - 60, 'THU KIẾM ĐI BỘ', '#aaddff');
+    }
+  },
+
+  isOnScreen(x, y, margin = 20) {
+    const cam = this.cameras.main;
+    if (!cam) return true;
+    const left = (cam.worldView ? cam.worldView.x : cam.scrollX) - margin;
+    const right = (cam.worldView ? cam.worldView.right : cam.scrollX + cam.width) + margin;
+    const top = (cam.worldView ? cam.worldView.y : cam.scrollY) - margin;
+    const bottom = (cam.worldView ? cam.worldView.bottom : cam.scrollY + cam.height) + margin;
+    return x >= left && x <= right && y >= top && y <= bottom;
+  },
+
+  isEnemyOnScreen(enemy, margin = 20) {
+    if (!enemy || !enemy.active) return false;
+    return this.isOnScreen(enemy.x, enemy.y, margin);
+  },
+
+  nearestEnemy(maxDist = 460, onlyOnScreen = true) {
+    let closest = null, minD = maxDist;
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!e || !e.active || e.isDead || !e.visible) continue;
+      if (onlyOnScreen && !this.isEnemyOnScreen(e, 20)) continue;
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
+      if (d < minD) { minD = d; closest = e; }
+    }
+    return closest;
+  },
+
+  createVfxPool() {
+    this.vfxPool = this.add.group({ defaultKey: 'vfx', maxSize: 48 });
+    for (let i = 0; i < 30; i++) {
+      const s = this.add.image(-200, -200, 'vfx', 0).setVisible(false).setActive(false).setDepth(150);
+      this.vfxPool.add(s);
+    }
+  },
+
+  spawnVfx(x, y, frame = 0, scale = 1, opts = {}) {
+    const v = this.vfxPool.get(x, y, 'vfx', frame);
+    if (!v) return null;
+    const grow = opts.grow || 1, duration = opts.duration || 320, alpha = opts.alpha ?? 0.95;
+    v.clearTint().setActive(true).setVisible(true).setPosition(x, y).setFrame(frame)
+      .setScale(scale).setAlpha(alpha).setAngle(opts.angle || 0).setDepth(opts.depth || y + 2);
+    if (opts.tint) v.setTint(opts.tint);
+    this.tweens.killTweensOf(v);
+    this.tweens.add({
+      targets: v,
+      scaleX: scale * grow, scaleY: scale * grow,
+      alpha: 0,
+      duration,
+      ease: opts.ease || 'Cubic.easeOut',
+      onComplete: () => { v.setActive(false).setVisible(false); }
+    });
+    return v;
+  },
+
+  // Perspective scale (y position → depth scale)
+  perspective(y) {
+    const t = Phaser.Math.Clamp((y - this.field.top) / (this.field.bottom - this.field.top), 0, 1);
+    return 0.65 + 0.55 * t;
+  },
+
+  // Helper: set scrollFactor=0 + depth for fixed UI elements
+  fixed(o, d = 100) {
+    return o.setScrollFactor(0).setDepth(d);
+  },
+
+  showFloatingText(x, y, text, color = '#ffffff', fontSize = '12px') {
+    const txt = this.add.text(x, y, text, {
+      fontSize,
+      fontFamily: 'sans-serif',
+      fontStyle: 'bold',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(20000);
+
+    this.tweens.add({
+      targets: txt,
+      y: y - 45,
+      alpha: 0,
+      duration: 1100,
+      ease: 'Cubic.easeOut',
+      onComplete: () => txt.destroy()
+    });
+  },
+
+  getSkillMastery(skillId) {
+    if (!gameState.skillMastery) gameState.skillMastery = {};
+    if (!gameState.skillMastery[skillId]) {
+      gameState.skillMastery[skillId] = { tierIdx: 0, exp: 0 };
+    }
+    const data = gameState.skillMastery[skillId];
+    const tier = SKILL_MASTERY_TIERS[data.tierIdx] || SKILL_MASTERY_TIERS[0];
+    const nextTier = SKILL_MASTERY_TIERS[data.tierIdx + 1] || null;
+    return {
+      tierIdx: data.tierIdx,
+      exp: data.exp,
+      tier,
+      nextTier,
+      isMax: !nextTier
+    };
+  },
+
+  gainSkillExp(skillId, amt = 1) {
+    const mastery = this.getSkillMastery(skillId);
+    if (mastery.isMax) return mastery;
+
+    const skillObj = ELEMENTAL_SKILLS.find(s => s.id === skillId);
+    const sName = skillObj ? skillObj.name : skillId;
+    
+    gameState.skillMastery[skillId].exp += amt;
+    const curTier = mastery.tier;
+
+    if (gameState.skillMastery[skillId].exp >= curTier.expReq && mastery.nextTier) {
+      gameState.skillMastery[skillId].tierIdx++;
+      gameState.skillMastery[skillId].exp = 0;
+      const newTier = SKILL_MASTERY_TIERS[gameState.skillMastery[skillId].tierIdx];
+      
+      this.spawnVfx(this.player.x, this.player.y, 0, 1.4, { tint: newTier.badgeBg, duration: 600 });
+      this.showFloatingText(
+        this.player.x,
+        this.player.y - 85,
+        `⚡ [${sName}] ĐỘT PHÁ [${newTier.name.toUpperCase()}]! (ST +${Math.round(newTier.dmgBonus * 100)}%)`,
+        newTier.color,
+        '15px'
+      );
+      if (this.createSkillBar) {
+        this.createSkillBar();
+      }
+    }
+    return this.getSkillMastery(skillId);
+  },
+};

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#060b13">
+<title>Linh Sơn Phi Kiếm 3D — Tu Tiên Truyền Kỳ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Philosopher:ital,wght@0,700;1,700&family=Be+Vietnam+Pro:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #0f172a 0%, #060b13 100%);
+  touch-action: none;
+  overscroll-behavior: none;
+  font-family: 'Be Vietnam Pro', 'Philosopher', sans-serif;
+}
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #102b32 0%, #091a24 45%, #071418 100%);
+  touch-action: none;
+}
+canvas {
+  display: block;
+  box-shadow: 0 0 36px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fef08a;
+  background: radial-gradient(circle at center, #172554 0%, #030712 100%);
+  z-index: 999;
+  letter-spacing: .15em;
+  font-family: 'Philosopher', 'Be Vietnam Pro', serif;
+  font-weight: 700;
+  font-size: 24px;
+  text-shadow: 0 0 20px rgba(234, 179, 8, 0.8), 0 0 40px rgba(56, 189, 248, 0.5);
+  transition: opacity 0.5s ease;
+}
+#loading .subtitle {
+  font-size: 13px;
+  color: #93c5fd;
+  margin-top: 10px;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+</head>
+<body>
+<div id="loading">
+  <div>LINH SƠN PHI KIẾM 3D</div>
+  <div class="subtitle">☯ TU TIÊN TRUYỀN KỲ ☯</div>
+</div>
+<div id="file-protocol-warning" style="display:none;position:fixed;inset:0;background:#061118;color:#fef08a;z-index:99999;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif;">
+  <div style="font-size:42px;margin-bottom:16px;">⚠️</div>
+  <h2 style="color:#ef4444;margin:0 0 12px 0;">KHÔNG THỂ CHẠY TRỰC TIẾP TỪ FILE://</h2>
+  <p style="color:#cbd5e1;max-width:540px;line-height:1.6;font-size:15px;">
+    Trình duyệt hiện đại chặn tính năng nạp Module ES6 khi mở file HTML trực tiếp.<br><br>
+    👉 <strong style="color:#38bdf8;">Cách mở game:</strong> Hãy bấm đúp vào file <strong style="color:#4ade80;background:#0d2818;padding:3px 8px;border-radius:4px;border:1px solid #22c55e;">CHOI_GAME.bat</strong> trong thư mục game để tự động mở máy chủ và vào chơi ngay!
+  </p>
+</div>
+<div id="game"></div>
+<script>
+if (window.location.protocol === 'file:') {
+  const warn = document.getElementById('file-protocol-warning');
+  if (warn) warn.style.display = 'flex';
+  const ld = document.getElementById('loading');
+  if (ld) ld.style.display = 'none';
+}
+</script>
+<script type="module" src="./src/main.js"></script>
+<script>
+window.addEventListener('load', () => setTimeout(() => {
+  const e = document.getElementById('loading');
+  if (e && window.location.protocol !== 'file:') {
+    e.style.opacity = '0';
+    setTimeout(() => e.remove(), 500);
+  }
+}, 600));
+</script>
+</body>
+</html>
