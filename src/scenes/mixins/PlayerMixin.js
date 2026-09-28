@@ -61,13 +61,54 @@ export const PlayerMixin = {
     return mp;
   },
 
-  calcPlayerSpiritualSense() {
+  getSpiritualSenseBase() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
-    let sense = (realm.spiritualSense || 10);
+    return Math.max(1, Number(realm.spiritualSense) || 10);
+  },
+
+  getSpiritualSenseBonusCap() {
+    // Bonus vĩnh viễn tối đa bằng 100% Thần Thức nền của cảnh giới hiện tại.
+    return this.getSpiritualSenseBase();
+  },
+
+  getStoredSpiritualSenseBonus() {
+    const raw = Math.max(0, Number(gameState.spiritualSenseBonus) || 0);
+    return Math.min(raw, this.getSpiritualSenseBonusCap());
+  },
+
+  addPermanentSpiritualSense(amount = 0) {
+    // Dùng cho đan dược/công pháp tăng Thần Thức vĩnh viễn.
+    // Phần đã cộng được giữ nguyên khi đột phá; cảnh giới cao hơn chỉ mở trần bonus lớn hơn.
+    const add = Math.max(0, Math.floor(Number(amount) || 0));
+    const current = Math.max(0, Number(gameState.spiritualSenseBonus) || 0);
+    const cap = this.getSpiritualSenseBonusCap();
+    const applied = Math.max(0, Math.min(add, cap - current));
+    gameState.spiritualSenseBonus = Math.min(cap, current + applied);
+    return {
+      applied,
+      bonus: gameState.spiritualSenseBonus,
+      cap,
+      total: this.calcPlayerSpiritualSense()
+    };
+  },
+
+  calcPlayerSpiritualSense() {
+    const baseSense = this.getSpiritualSenseBase();
+    let permanentBonus = this.getStoredSpiritualSenseBonus();
+
+    // Giữ tương thích save cũ nếu spiritualSense từng được lưu cao hơn nền cảnh giới.
+    if (!Number.isFinite(Number(gameState.spiritualSenseBonus)) && Number(gameState.spiritualSense) > baseSense) {
+      permanentBonus = Math.min(Number(gameState.spiritualSense) - baseSense, this.getSpiritualSenseBonusCap());
+      gameState.spiritualSenseBonus = permanentBonus;
+    }
+
+    let sense = baseSense + permanentBonus;
+
+    // Trang bị/tông môn là bonus động, không ghi vào phần bonus vĩnh viễn.
     if (gameState.equipped?.boots?.bonusSpd) sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
-    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp && cp.bonusSensePct) sense = Math.floor(sense * (1 + cp.bonusSensePct / 100));
     if (gameState.sectId === 'thien_loi_tong') sense = Math.floor(sense * 1.2);
+
+    gameState.spiritualSense = sense;
     return sense;
   },
 
