@@ -16,6 +16,7 @@ import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.
 import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgression.js?v=20260928-van-moc-depth-fe5fb67';
 import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-rank1-cores-af017e7';
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
+import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -38,6 +39,8 @@ installCommonPillRankUiFix(MainGameScene);
 installVanMocEnemyProgression(MainGameScene);
 installRankOneBeastCoreDrops(MainGameScene);
 installRareResourceInventoryUI(MainGameScene);
+// Final inventory renderer: compact slots, click-for-details, and true duplicate stacking.
+installInventoryGridUI(MainGameScene);
 // Hard pause must wrap all final gameplay/UI methods first.
 installUiGameplayPauseOptimization(MainGameScene);
 // MUST be absolutely last: normalizes every modal child to screen-space and disables
