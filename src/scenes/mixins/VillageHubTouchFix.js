@@ -1,4 +1,4 @@
-import { W, H } from '../constants.js';
+import { W } from '../constants.js';
 
 const VILLAGE_HOTSPOTS = Object.freeze([
   { npcId: 'truong_thon', x: 270, y: 118, width: 205, height: 92 },
@@ -14,8 +14,8 @@ const VILLAGE_HOTSPOTS = Object.freeze([
 /**
  * Mobile hotfix for the Thanh Van Village image hub.
  *
- * - Touching a hotspot must never leave the debug/highlight rectangle stuck
- *   on screen after a modal is closed (iOS Safari does not always emit
+ * - Touching a hotspot must never leave the highlight rectangle stuck on
+ *   screen after a modal is closed (iOS Safari does not always emit
  *   pointerout after a touch).
  * - Touching the gate guard leaves the village immediately, without opening
  *   any confirmation/NPC panel.
@@ -38,23 +38,10 @@ export function installVillageHubTouchFix(SceneClass) {
     this.villageReentryBlockedUntil = blockedUntil;
     this.portalCooldownUntil = Math.max(Number(this.portalCooldownUntil || 0), blockedUntil);
 
-    // Keep the same safe spawn used by the previous gate action. It is outside
-    // the return-portal radius, so the 5 second lock is a second layer of safety.
+    // Same safe spawn as the previous gate action; outside the return portal.
     this.switchMap?.(1, 420, 620);
     return true;
   };
-
-  // No matter which UI path calls the guard, never show a confirmation panel.
-  const originalOpenNpcDialogModal = proto.openNpcDialogModal;
-  if (typeof originalOpenNpcDialogModal === 'function') {
-    proto.openNpcDialogModal = function patchedOpenNpcDialogModal(npcId, ...args) {
-      if (npcId === 've_si_cong' && Number(this.gameState?.currentMapId) === 0) {
-        this.leaveThanhVanVillageDirect?.();
-        return;
-      }
-      return originalOpenNpcDialogModal.call(this, npcId, ...args);
-    };
-  }
 
   proto.createVillageImageHotspots = function createVillageImageHotspotsFixed() {
     this.clearVillageImageHotspots?.();
@@ -73,9 +60,8 @@ export function installVillageHubTouchFix(SceneClass) {
         .setDepth(180)
         .setInteractive({ useHandCursor: true });
 
-      // Do not use persistent pointerover styling here. On iPhone/iPad Safari,
-      // a touch can emit pointerover without a matching pointerout, which was
-      // leaving every previously tapped hotspot outlined on the village map.
+      // Avoid persistent pointerover styling. On iPhone/iPad Safari a touch can
+      // emit pointerover without a matching pointerout, leaving stale borders.
       zone.on('pointerout', () => resetZone(zone));
       zone.on('pointerup', () => resetZone(zone));
       zone.on('pointercancel', () => resetZone(zone));
@@ -86,19 +72,18 @@ export function installVillageHubTouchFix(SceneClass) {
         pointer?.event?.preventDefault?.();
         this.moveTarget = null;
 
-        // Clear any stale visual state from all previously touched zones first.
+        // Remove any old highlight left by a previous touch before doing anything.
         this.villageHotspotObjects?.forEach(obj => {
           if (obj?.input) resetZone(obj);
         });
 
-        // Gate guard: one tap = leave immediately. No NPC/confirmation UI.
+        // Gate guard: one tap = leave immediately. No dialog, no confirmation.
         if (def.npcId === 've_si_cong') {
           this.leaveThanhVanVillageDirect?.();
           return;
         }
 
-        // Very short tap feedback only; it is always cleared even when Safari
-        // never emits pointerout after the touch.
+        // Short tap feedback only; always clear it even if pointerout never fires.
         zone.setFillStyle(0xffffff, 0.12).setStrokeStyle(2, 0xffefad, 0.85);
         this.time?.delayedCall?.(90, () => resetZone(zone));
         this.openNpcDialogModal?.(def.npcId);
@@ -120,7 +105,7 @@ export function installVillageHubTouchFix(SceneClass) {
     this.villageHotspotObjects.push(hintBg, hint);
   };
 
-  // Extra guard in case another system calls triggerPortalTeleport directly.
+  // Extra guard if another system attempts a direct teleport back to map 0.
   const originalTriggerPortalTeleport = proto.triggerPortalTeleport;
   if (typeof originalTriggerPortalTeleport === 'function') {
     proto.triggerPortalTeleport = function patchedTriggerPortalTeleport(portal, ...args) {
