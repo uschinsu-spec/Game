@@ -10,6 +10,8 @@ import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=202
 import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-npc-fullscreen-d9ed7f8';
 import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-skill-fullscreen-1d6de02';
 import { installStarterGiftResourceOnly } from './scenes/mixins/StarterGiftResourceOnly.js?v=20260928-starter-resource-only-16f2fc3';
+import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-common-herbs-1af431a';
+import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.js?v=20260928-common-pill-ui-582079f';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -24,6 +26,8 @@ installSimpleWelcomeUI(MainGameScene);
 installSimpleNpcFullscreenUI(MainGameScene);
 installSimpleSkillFullscreenUI(MainGameScene);
 installStarterGiftResourceOnly(MainGameScene);
+installEarlyGamePharmacopeia(MainGameScene);
+installCommonPillRankUiFix(MainGameScene);
 // Hard pause must wrap all final gameplay/UI methods first.
 installUiGameplayPauseOptimization(MainGameScene);
 // MUST be absolutely last: normalizes every modal child to screen-space and disables
