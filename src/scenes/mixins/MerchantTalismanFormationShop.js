@@ -5,10 +5,10 @@ import { W, H } from '../constants.js';
 const FONT = 'Be Vietnam Pro, sans-serif';
 
 const RANK_TO_REALM = Object.freeze({
-  'Nhất Phẩm': { min: 1, max: 12, label: 'Luyện Khí', currencyKey: 'low', currencyLabel: 'Linh Thạch Sơ Cấp', icon: '✨' },
-  'Nhị Phẩm': { min: 13, max: 16, label: 'Trúc Cơ', currencyKey: 'mid', currencyLabel: 'Linh Thạch Trung Cấp', icon: '🔹' },
-  'Tam Phẩm': { min: 17, max: 20, label: 'Kim Đan', currencyKey: 'high', currencyLabel: 'Linh Thạch Thượng Phẩm', icon: '🔷' },
-  'Tứ Phẩm': { min: 21, max: 24, label: 'Nguyên Anh', currencyKey: 'extreme', currencyLabel: 'Linh Thạch Cực Phẩm', icon: '💠' },
+  'Nhất Phẩm': { min: 1, max: 12, label: 'Luyện Khí', currencyKey: 'low', currencyLabel: 'Linh Thạch Sơ Cấp', icon: '◈' },
+  'Nhị Phẩm': { min: 13, max: 16, label: 'Trúc Cơ', currencyKey: 'mid', currencyLabel: 'Linh Thạch Trung Cấp', icon: '◆' },
+  'Tam Phẩm': { min: 17, max: 20, label: 'Kim Đan', currencyKey: 'high', currencyLabel: 'Linh Thạch Thượng Phẩm', icon: '💎' },
+  'Tứ Phẩm': { min: 21, max: 24, label: 'Nguyên Anh', currencyKey: 'extreme', currencyLabel: 'Linh Thạch Cực Phẩm', icon: '🔶' },
   'Ngũ Phẩm': { min: 25, max: 28, label: 'Hóa Thần', currencyKey: 'extreme', currencyLabel: 'Linh Thạch Cực Phẩm', icon: '💠' }
 });
 
