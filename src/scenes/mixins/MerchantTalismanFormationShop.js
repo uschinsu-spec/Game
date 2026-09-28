@@ -5,18 +5,17 @@ import { W, H } from '../constants.js';
 const FONT = 'Be Vietnam Pro, sans-serif';
 
 const RANK_TO_REALM = Object.freeze({
-  'Nhất Phẩm': { min: 1, max: 12, label: 'Luyện Khí' },
-  'Nhị Phẩm': { min: 13, max: 16, label: 'Trúc Cơ' },
-  'Tam Phẩm': { min: 17, max: 20, label: 'Kim Đan' },
-  'Tứ Phẩm': { min: 21, max: 24, label: 'Nguyên Anh' },
-  'Ngũ Phẩm': { min: 25, max: 28, label: 'Hóa Thần' }
+  'Nhất Phẩm': { min: 1, max: 12, label: 'Luyện Khí', currencyKey: 'low', currencyLabel: 'Linh Thạch Sơ Cấp', icon: '✨' },
+  'Nhị Phẩm': { min: 13, max: 16, label: 'Trúc Cơ', currencyKey: 'mid', currencyLabel: 'Linh Thạch Trung Cấp', icon: '🔹' },
+  'Tam Phẩm': { min: 17, max: 20, label: 'Kim Đan', currencyKey: 'high', currencyLabel: 'Linh Thạch Thượng Phẩm', icon: '🔷' },
+  'Tứ Phẩm': { min: 21, max: 24, label: 'Nguyên Anh', currencyKey: 'extreme', currencyLabel: 'Linh Thạch Cực Phẩm', icon: '💠' },
+  'Ngũ Phẩm': { min: 25, max: 28, label: 'Hóa Thần', currencyKey: 'extreme', currencyLabel: 'Linh Thạch Cực Phẩm', icon: '💠' }
 });
 
 const SHOP_PRICE_MULTIPLIER = 2.5;
 
 function getPlayerRankName() {
   const idx = Math.max(0, Number(gameState.realmIdx) || 0);
-  if (idx <= 0) return 'Nhất Phẩm';
   if (idx <= 12) return 'Nhất Phẩm';
   if (idx <= 16) return 'Nhị Phẩm';
   if (idx <= 20) return 'Tam Phẩm';
@@ -30,18 +29,27 @@ function ensureInventory() {
   if (!Array.isArray(gameState.inventory.formations)) gameState.inventory.formations = [];
   if (!gameState.currencies) gameState.currencies = { silver: 0, low: gameState.gold || 0, mid: 0, high: 0, extreme: 0 };
   if (gameState.currencies.low === undefined) gameState.currencies.low = gameState.gold || 0;
+  if (gameState.currencies.mid === undefined) gameState.currencies.mid = 0;
+  if (gameState.currencies.high === undefined) gameState.currencies.high = 0;
+  if (gameState.currencies.extreme === undefined) gameState.currencies.extreme = 0;
 }
 
-function getLowStone() {
-  ensureInventory();
-  return Math.max(0, Number(gameState.currencies.low ?? gameState.gold ?? 0) || 0);
+function currencyInfoForRank(rank) {
+  return RANK_TO_REALM[rank] || RANK_TO_REALM['Nhất Phẩm'];
 }
 
-function setLowStone(v) {
+function getCurrencyAmount(rank) {
   ensureInventory();
-  const n = Math.max(0, Math.floor(Number(v) || 0));
-  gameState.currencies.low = n;
-  gameState.gold = n;
+  const info = currencyInfoForRank(rank);
+  return Math.max(0, Number(gameState.currencies[info.currencyKey] || 0));
+}
+
+function setCurrencyAmount(rank, value) {
+  ensureInventory();
+  const info = currencyInfoForRank(rank);
+  const amount = Math.max(0, Math.floor(Number(value) || 0));
+  gameState.currencies[info.currencyKey] = amount;
+  if (info.currencyKey === 'low') gameState.gold = amount;
 }
 
 function shopPrice(item) {
@@ -119,15 +127,16 @@ export function installMerchantTalismanFormationShop(MainGameScene) {
   proto.buyMerchantSpecialItem = function buyMerchantSpecialItem(type, item) {
     ensureInventory();
     if (!item) return { success: false, msg: 'Vật phẩm không hợp lệ.' };
+    const info = currencyInfoForRank(item.rank);
     const price = shopPrice(item);
-    const have = getLowStone();
-    if (have < price) return { success: false, msg: `Không đủ Linh Thạch Sơ Cấp. Cần ${price}.` };
+    const have = getCurrencyAmount(item.rank);
+    if (have < price) return { success: false, msg: `Không đủ ${info.currencyLabel}. Cần ${price}.` };
 
     if (type === 'formations' && gameState.inventory.formations.includes(item.name)) {
       return { success: false, msg: 'Bạn đã sở hữu trận pháp này.' };
     }
 
-    setLowStone(have - price);
+    setCurrencyAmount(item.rank, have - price);
     if (type === 'talismans') {
       gameState.inventory.talismans[item.name] = (gameState.inventory.talismans[item.name] || 0) + 1;
     } else {
@@ -140,15 +149,16 @@ export function installMerchantTalismanFormationShop(MainGameScene) {
   proto.openMerchantSpecialShop = function openMerchantSpecialShop(type = 'talismans') {
     ensureInventory();
     const rank = getPlayerRankName();
-    const realmLabel = RANK_TO_REALM[rank]?.label || rank;
+    const rankInfo = currencyInfoForRank(rank);
+    const realmLabel = rankInfo.label || rank;
     const isFormation = type === 'formations';
     const title = isFormation ? '☸ VẠN BẢO CÁC • TRẬN PHÁP' : '📜 VẠN BẢO CÁC • PHÙ LỤC';
-    const panel = createShell(this, title, `${rank} • phù hợp ${realmLabel} • Giá bán đã gồm phí thương hội`);
+    const panel = createShell(this, title, `${rank} • phù hợp ${realmLabel} • thanh toán bằng ${rankInfo.currencyLabel}`);
 
     button(this, panel, -120, -346, 220, 48, '📜 PHÙ LỤC', () => this.openMerchantSpecialShop('talismans'), !(!isFormation));
     button(this, panel, 120, -346, 220, 48, '☸ TRẬN PHÁP', () => this.openMerchantSpecialShop('formations'), !(isFormation));
 
-    const wallet = this.add.text(-220, -300, `✨ Linh Thạch Sơ Cấp: ${getLowStone()}`, {
+    const wallet = this.add.text(-220, -300, `${rankInfo.icon} ${rankInfo.currencyLabel}: ${getCurrencyAmount(rank)}`, {
       fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffe77a'
     }).setOrigin(0, 0.5);
     panel.add(wallet);
@@ -165,6 +175,7 @@ export function installMerchantTalismanFormationShop(MainGameScene) {
     items.slice(0, 6).forEach((item, idx) => {
       const y = -230 + idx * 104;
       const price = shopPrice(item);
+      const itemInfo = currencyInfoForRank(item.rank);
       const owned = isFormation
         ? (gameState.inventory.formations.includes(item.name) ? 1 : 0)
         : (gameState.inventory.talismans[item.name] || 0);
@@ -178,8 +189,8 @@ export function installMerchantTalismanFormationShop(MainGameScene) {
       const own = this.add.text(-218, y + 30, `Có: ${owned}`, { fontFamily: FONT, fontSize: '11px', color: '#8fffd0' }).setOrigin(0, 0.5);
       panel.add([box, name, meta, own]);
 
-      const canBuy = getLowStone() >= price && (!isFormation || owned === 0);
-      button(this, panel, 164, y, 126, 52, isFormation && owned ? 'ĐÃ CÓ' : `MUA\n${price} ✨`, () => {
+      const canBuy = getCurrencyAmount(item.rank) >= price && (!isFormation || owned === 0);
+      button(this, panel, 164, y, 126, 52, isFormation && owned ? 'ĐÃ CÓ' : `MUA\n${price} ${itemInfo.icon}`, () => {
         const result = this.buyMerchantSpecialItem(type, item);
         this.showFloatingText?.(this.player?.x ?? 270, (this.player?.y ?? 620) - 70, result.msg, result.success ? '#61ffc0' : '#ff8b9a', '13px');
         this.openMerchantSpecialShop(type);
