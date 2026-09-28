@@ -3,11 +3,13 @@ import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimiz
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
 import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-fullscreen-safe-f1641b6';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-simple-crafting-ffe7105';
+import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=20260928-simple-primary-932c701';
 
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
 installFullscreenModalOptimization(MainGameScene);
 installSimpleCraftingUI(MainGameScene);
+installSimplePrimaryUI(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
