@@ -1,4 +1,7 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
+import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js';
+
+installTouchInputOptimization(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
@@ -34,4 +37,3 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     window.game = new Phaser.Game(config);
   });
 }
-
