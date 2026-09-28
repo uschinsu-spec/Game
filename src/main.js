@@ -13,7 +13,7 @@ import { installStarterGiftResourceOnly } from './scenes/mixins/StarterGiftResou
 import { installWorldResourceProgression } from './scenes/mixins/WorldResourceProgression.js?v=20260928-world-resources-a419273';
 import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-common-herbs-1af431a';
 import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.js?v=20260928-common-pill-ui-b25b6a2';
-import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgression.js?v=20260928-van-moc-depth-fe5fb67';
+import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgression.js?v=20260928-van-moc-assets-28d42ad';
 import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-rank1-cores-af017e7';
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
