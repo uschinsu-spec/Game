@@ -19,6 +19,7 @@ import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInve
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
 import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v1';
+import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -42,6 +43,7 @@ installRareResourceInventoryUI(MainGameScene);
 installInventoryGridUI(MainGameScene);
 installVillageHubTouchFix(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
+installElementalCombatProgression(MainGameScene);
 installUiGameplayPauseOptimization(MainGameScene);
 installUnifiedUiMapIsolation(MainGameScene);
 
