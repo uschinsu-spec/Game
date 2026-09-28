@@ -58,6 +58,13 @@ function collectUiObjects(scene) {
   return ui;
 }
 
+function isLargePanelBackground(obj) {
+  if (!obj || obj.type !== 'Rectangle') return false;
+  const w = Number(obj.width || obj.displayWidth || 0);
+  const h = Number(obj.height || obj.displayHeight || 0);
+  return w >= 400 && h >= 260;
+}
+
 function normalizeModalToScreen(scene) {
   if (!scene) return;
   resetWorldTouch(scene);
@@ -69,7 +76,10 @@ function normalizeModalToScreen(scene) {
     overlay.setDepth?.(UI_OVERLAY_DEPTH);
     if (overlay.type === 'Rectangle') {
       overlay.setDisplaySize?.(W + 24, H + 24);
-      overlay.setFillStyle?.(0x010811, 1);
+      // Keep the blocker interactive but visually transparent. This is especially
+      // important on 32,000px combat maps: world input stays isolated without a
+      // black fullscreen veil appearing behind the UI.
+      overlay.setFillStyle?.(0x000000, 0.001);
     }
     if (!overlay.input && overlay.setInteractive) {
       overlay.setInteractive({ useHandCursor: false });
@@ -97,6 +107,17 @@ function normalizeModalToScreen(scene) {
     // camera scroll even when the parent Container renders fixed. Force the ENTIRE modal
     // tree into screen-space so visual position and touch/click hit area are identical.
     walkTree(panel, obj => obj.setScrollFactor?.(0, 0));
+
+    // Apply the same bright fullscreen theme to every final modal implementation,
+    // including simplified panels installed after FullscreenModalOptimization.
+    const topLevel = Array.isArray(panel.list) ? panel.list : [];
+    const background = topLevel.find(isLargePanelBackground);
+    if (background) {
+      background.setPosition?.(0, 0);
+      background.setDisplaySize?.(W - 6, H - 6);
+      background.setFillStyle?.(0x124766, 0.96);
+      background.setStrokeStyle?.(3, 0x9cf7ff, 1);
+    }
   }
 
   if (scene.modalLayer?.list?.length) {
