@@ -1,12 +1,14 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
-import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-modal-freeze-bb97445';
+import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-fullscreen-v2-4a8f7f0';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-simple-crafting-ffe7105';
 import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=20260928-simple-primary-932c701';
 import { installSimpleCongPhapHomeUI } from './scenes/mixins/SimpleCongPhapHomeUI.js?v=20260928-single-line-congphap-22fa3d0';
 import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=20260928-welcome-fullscreen-d18e1e9';
-import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-safe-mode-29e7e99';
+import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-npc-fullscreen-d9ed7f8';
+import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-skill-fullscreen-1d6de02';
+import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
@@ -15,6 +17,9 @@ installSimpleCraftingUI(MainGameScene);
 installSimplePrimaryUI(MainGameScene);
 installSimpleCongPhapHomeUI(MainGameScene);
 installSimpleWelcomeUI(MainGameScene);
+installSimpleNpcFullscreenUI(MainGameScene);
+installSimpleSkillFullscreenUI(MainGameScene);
+// MUST be last: wraps every final open* method and closeModal with true hard pause.
 installUiGameplayPauseOptimization(MainGameScene);
 
 export const config = {
@@ -43,7 +48,6 @@ export const config = {
   }
 };
 
-// Khởi động game ngay khi DOM sẵn sàng hoặc window load
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   window.game = new Phaser.Game(config);
 } else {
