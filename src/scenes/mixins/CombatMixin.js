@@ -4,7 +4,7 @@
  *           gainExp, playerDeath, respawnPlayer, onSecondTick
  */
 import { REALMS } from '../../config/realmsData.js';
-import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
+import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-sword-only-v2';
 import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
 import { CRAFTING_SYSTEM, calculatePillEfficiency, getPlayerPillRank } from '../../config/craftingData.js';
@@ -43,16 +43,16 @@ export const CombatMixin = {
   },
 
   // ==================================================================
-  // CAST EQUIPPED SKILL (1..5)  —  Ranged Spell & Sword System
+  // CAST EQUIPPED SKILL (1..5) — HỆ THỐNG 5 SKILL KIẾM GỐC DUY NHẤT
   // ==================================================================
   castSkill(skillId) {
     const skill = ELEMENTAL_SKILLS.find(s => s.id === skillId);
-    if (!skill) return;
+    if (!skill || skill.elem !== 'Kiếm' || !String(skill.id).startsWith('kiem_')) return;
 
     const atkInterval = this.calcPlayerAtkInterval ? this.calcPlayerAtkInterval() : 400;
 
     // Kim Nhận Thuật & Bạch Hổ Canh Kim Kiếm: Không có hồi chiêu cố định, phụ thuộc vào Tốc Độ Đánh của Player
-    if (skill.id === 'kim_1' || skill.id === 'kim_2' || skill.cd === 0) {
+    if (skill.id === 'kiem_1' || skill.id === 'kiem_2' || skill.cd === 0) {
       const lastCastKey = `last_${skill.id}_cast`;
       if (this[lastCastKey] && this.time.now < this[lastCastKey] + atkInterval) return;
       this[lastCastKey] = this.time.now;
@@ -74,62 +74,22 @@ export const CombatMixin = {
     }
 
     if (this.player && this.player.active) {
-      const isFastSkill = (skill.id === 'kim_1' || skill.id === 'kim_2' || skill.cd === 0);
+      const isFastSkill = (skill.id === 'kiem_1' || skill.id === 'kiem_2' || skill.cd === 0);
       const animDuration = isFastSkill ? Math.min(260, Math.floor(atkInterval * 0.65)) : 450;
       this.attackUntil = this.time.now + animDuration;
       this.player.play('p_attack', true);
     }
 
-    const elemColors = {
-      'Kiếm': '#99eeff', 'Kim': '#ffd700', 'Hỏa': '#ff4422', 'Thủy': '#44aaff', 'Thổ': '#aa8844',
-      'Mộc': '#44dd66', 'Phong': '#66ffcc', 'Lôi': '#ffee33', 'Vật Lý': '#ff88aa'
-    };
-    const elemKeyMap = {
-      'Kiếm': 'kim', 'Kim': 'kim', 'Hỏa': 'hoa', 'Thủy': 'thuy', 'Thổ': 'tho',
-      'Mộc': 'moc', 'Phong': 'phong', 'Lôi': 'loi', 'Vật Lý': 'ly'
-    };
-    const elemKey = elemKeyMap[skill.elem] || 'kim';
-
-    // --- 3-Tier VFX logic ---
-    let vfxKey;
-    if (skill.healPct && !skill.dmgMul)        { vfxKey = 'vfx_heal'; }
-    else if (skill.shield && !skill.dmgMul)    { vfxKey = 'vfx_shield'; }
-    else if (skill.spdBuff && !skill.dmgMul)   { vfxKey = 'vfx_speed'; }
-    else if (skill.minRealm >= 8)              { vfxKey = `vfx_ult_${elemKey}`; }
-    else if (skill.minRealm >= 4)              { vfxKey = `vfx_mid_${elemKey}`; }
-    else                                       { vfxKey = `vfx_skill_${elemKey}`; }
+    const elemColors = { 'Kiếm': '#99eeff' };
 
     // Tăng điểm thuần thục kỹ năng mỗi khi thi triển (Sơ Nhập -> Tiểu Thành -> Đại Thành -> Viên Mãn)
     const mastery = this.gainSkillExp ? this.gainSkillExp(skillId, 1) : (this.getSkillMastery ? this.getSkillMastery(skillId) : { tier: { dmgBonus: 0, vfxMul: 1.0, name: 'Sơ Nhập', color: '#aaddff' } });
     const masteryDmgBonus = mastery.tier.dmgBonus || 0;
-    const vfxMul = mastery.tier.vfxMul || 1.0;
-
-    const isDivine = (skill.minRealm >= 16);
-    const elemDmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg(skill.elem || 'Kiếm') : (this.playerDmg || 1);
+    const elemDmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg('Kiếm') : (this.playerDmg || 1);
     const baseDmg = Math.max(1, Math.floor(elemDmg * (skill.dmgMul || 1) * (1 + masteryDmgBonus)));
 
-    // --- Buff-only skills ---
-    if (skill.healPct && !skill.dmgMul) {
-      const healAmount = Math.floor(this.playerHpMax * skill.healPct * (1 + masteryDmgBonus * 0.5));
-      this.playerHp = Math.min(this.playerHpMax, this.playerHp + healAmount);
-      this.spawnSpellVfx(this.player.x, this.player.y - 30, 'vfx_heal', 0.75 * vfxMul, 600, false);
-      this.showFloatingText(this.player.x, this.player.y - 80, `+${healAmount} HP`, '#44ff66', '16px');
-      this.showFloatingText(this.player.x, this.player.y - 60, `[${skill.elem} • ${mastery.tier.name}] ${skill.name}`, mastery.tier.color || elemColors[skill.elem] || '#ffd700', '12px');
-      return;
-    }
-    if (skill.spdBuff && !skill.dmgMul) {
-      this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_speed', 0.75 * vfxMul, 500, true);
-      this.showFloatingText(this.player.x, this.player.y - 60, `[${skill.elem} • ${mastery.tier.name}] ${skill.name}`, mastery.tier.color || elemColors[skill.elem] || '#ffd700', '12px');
-      return;
-    }
-    if (skill.shield && !skill.dmgMul) {
-      this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_shield', 0.8 * vfxMul, 550, false);
-      this.showFloatingText(this.player.x, this.player.y - 60, `[${skill.elem} • ${mastery.tier.name}] ${skill.name}`, mastery.tier.color || elemColors[skill.elem] || '#ffd700', '12px');
-      return;
-    }
-
-    // --- Dedicated Universal Elemental & Sword System Choreography ---
-    this.castElementalSkill(skill, target, baseDmg, elemColors, mastery);
+    // Chỉ có một renderer: bộ 5 skill Kiếm gốc bên dưới.
+    this.castSwordSkill(skill, target, baseDmg, elemColors, mastery);
   },
 
   // no-op kept for compatibility — HP is in this.playerHp
@@ -164,7 +124,6 @@ export const CombatMixin = {
       this.cancelRestingState();
     }
 
-    // Ghi nhận lượng sát thương của từng nguồn tấn công (Player, NPC Tổ Đội, NPC Tán Tu Ngoài Map)
     if (!enemy.damageDealers) {
       enemy.damageDealers = {};
     }
@@ -197,7 +156,6 @@ export const CombatMixin = {
   takePlayerDamage(rawDmg, elem = 'Vật Lý') {
     if (this.dead || this.time.now < this.invulnerableUntil || this.isDashing || !this.player || !this.player.active) return;
 
-    // Bị đánh: Ngắt ngay trạng thái nghỉ ngơi / dưỡng sức & tĩnh tọa
     if (this.cancelRestingState) {
       this.cancelRestingState('⚔ Bị Địch Tấn Công: Ngắt Dưỡng Sức & Tĩnh Tọa!');
     }
@@ -243,9 +201,6 @@ export const CombatMixin = {
   },
 
   onSecondTick() {
-    // gardenTimer cũ đã bị xóa: Linh Thảo CHỈ thu được bằng cách hái tay, không tự tăng
-
-    // 1. Quản lý Dược Lực Đan Dược (Pill Buff Countdown)
     let pillSpeed = 0;
     if (gameState.activePillBuff) {
       gameState.activePillBuff.durationLeft = (gameState.activePillBuff.durationLeft || 1) - 1;
@@ -258,7 +213,6 @@ export const CombatMixin = {
       }
     }
 
-    // 2. Tu Luyện Tự Động / Tĩnh Tọa (Công Pháp + Dược Lực Đan Dược)
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     let cpSpeed = 0;
     if (cp && gameState.realmIdx <= cp.maxRealmIdx) {
@@ -267,13 +221,12 @@ export const CombatMixin = {
 
     let totalSpeed = cpSpeed + pillSpeed;
     if (totalSpeed > 0) {
-      if (gameState.isMeditating) totalSpeed *= 3; // Tĩnh tọa tăng gấp 3 toàn bộ tốc độ tụ khí
+      if (gameState.isMeditating) totalSpeed *= 3;
       if (gameState.aptitude === 'Thiên Linh Căn') totalSpeed = Math.floor(totalSpeed * 1.5);
       if (gameState.sectId) totalSpeed = Math.floor(totalSpeed * 1.2);
 
       this.gainExp(totalSpeed, false);
 
-      // Hiệu ứng hào quang khi tĩnh tọa hoặc khi có dược lực đan dược
       if (this.player && this.player.active && (gameState.isMeditating || pillSpeed > 0)) {
         if (Math.random() < 0.35) {
           const vfxName = pillSpeed > 0 ? 'vfx_cast' : 'vfx_heal';
@@ -282,12 +235,9 @@ export const CombatMixin = {
       }
     }
 
-    // 3. DƯỠNG SỨC: Hồi Phục HP & Pháp Lực Mỗi Giây (Khi isResting = true)
     if (gameState.isResting && !this.dead) {
       const maxHp = this.calcPlayerMaxHp();
       const maxMp = this.calcPlayerMaxMp();
-
-      // Hồi 5% HP + 5% MP mỗi giây (x2 khi đồng thời Tĩnh Tọa)
       const regenRate = gameState.isMeditating ? 0.10 : 0.05;
       const hpRegen = Math.max(1, Math.floor(maxHp * regenRate));
       const mpRegen = Math.max(1, Math.floor(maxMp * regenRate));
@@ -300,12 +250,10 @@ export const CombatMixin = {
 
       this.updateHUD();
 
-      // Hiệu ứng hào quang xanh hồi máu
       if (this.player && this.player.active && Math.random() < 0.55) {
         this.spawnSpellVfx(this.player.x, this.player.y - 10, 'vfx_heal', 0.55, 550, false);
       }
 
-      // Thông báo khi HP/MP đầy, tự kết thúc dưỡng sức
       if (this.playerHp >= maxHp && (gameState.mana || 0) >= maxMp && !wasFullHp) {
         gameState.isResting = false;
         this.createSideToggleButtons();
@@ -313,7 +261,6 @@ export const CombatMixin = {
         return;
       }
 
-      // Hiển thị số HP/MP được hồi
       if (!wasFullHp || !wasFullMp) {
         const hpStr = !wasFullHp ? `+${hpRegen}HP` : '';
         const mpStr = !wasFullMp ? ` +${mpRegen}MP` : '';
@@ -328,7 +275,6 @@ export const CombatMixin = {
         }
       }
 
-      // Dừng di chuyển khi đang dưỡng sức (phòng khi bị nhấn nhầm di chuyển)
       if (this.player.body && (Math.abs(this.player.body.velocity.x) > 5 || Math.abs(this.player.body.velocity.y) > 5)) {
         this.player.setVelocity(0, 0);
         this.moveTarget = null;
@@ -336,7 +282,6 @@ export const CombatMixin = {
     }
   },
 
-  // Phương thức dùng đan dược (Uống / Nuốt Đan)
   consumePill(pillName) {
     if (!gameState.inventory.pills || !gameState.inventory.pills[pillName] || gameState.inventory.pills[pillName] <= 0) {
       this.showFloatingText(this.player.x, this.player.y - 60, `Không có [${pillName}] trong túi!`, '#ff5555');
@@ -346,7 +291,6 @@ export const CombatMixin = {
     const pill = CRAFTING_SYSTEM.pills.find(p => p.name === pillName);
     if (!pill) return { success: false, error: 'Đan dược không tồn tại' };
 
-    // A. Đan dược Hồi Phục Khí Huyết
     if (pill.type === 'heal') {
       gameState.inventory.pills[pillName]--;
       const healHp = pill.healHp || 300;
@@ -357,20 +301,17 @@ export const CombatMixin = {
       return { success: true, type: 'heal' };
     }
 
-    // B. Đan dược Đột Phá Bình Cảnh
     if (pill.type === 'breakthrough') {
       this.showFloatingText(this.player.x, this.player.y - 60, `Hãy nhấn [ĐỘT PHÁ] trong bảng Cảnh Giới để dùng [${pill.name}]!`, '#ffd700');
       return { success: false, error: 'Dùng khi đột phá cảnh giới' };
     }
 
-    // C. Đan dược Tăng Tốc Độ Tụ Khí (Cultivation Speed Buff)
     const check = calculatePillEfficiency(pill, gameState.realmIdx);
     if (!check.canUse) {
       this.showFloatingText(this.player.x, this.player.y - 70, `❌ ${check.reason}`, '#ff4444', '13px');
       return { success: false, error: check.reason };
     }
 
-    // Tiêu thụ 1 viên đan dược
     gameState.inventory.pills[pillName]--;
     const duration = pill.durationSec || 180;
     gameState.activePillBuff = {
@@ -427,14 +368,14 @@ export const CombatMixin = {
   },
 
   // ----------------------------------------------------------------
-  // Universal Elemental System Choreography (9 Elemental Systems x 5 Tiers x 4 Mastery Stages)
+  // BỘ 5 SKILL KIẾM GỐC — 5 CẤP SKILL x 4 BẬC THUẦN THỤC
   // ----------------------------------------------------------------
   castSwordSkill(skill, target, baseDmg, elemColors, mastery) {
     return this.castElementalSkill(skill, target, baseDmg, elemColors, mastery);
   },
 
   castElementalSkill(skill, target, baseDmg, elemColors, mastery = { tier: { name: 'Sơ Nhập', dmgBonus: 0, vfxMul: 1.0, color: '#aaddff' } }) {
-    const elemName = skill.elem || skill.element || 'Kiếm';
+    const elemName = 'Kiếm';
     const elemColor = elemColors[elemName] || '#99eeff';
     const vfxMul = mastery.tier.vfxMul || 1.0;
     const facingDir = this.player.flipX ? -1 : 1;
@@ -451,67 +392,29 @@ export const CombatMixin = {
       ty = Phaser.Math.Clamp(ty, minY, maxY);
     }
 
-    // Determine element key
-    let elemKey = 'kiem';
-    if (elemName === 'Hỏa') elemKey = 'hoa';
-    else if (elemName === 'Lôi') elemKey = 'loi';
-    else if (elemName === 'Kim') elemKey = 'kim';
-    else if (elemName === 'Thủy') elemKey = 'thuy';
-    else if (elemName === 'Phong') elemKey = 'phong';
-    else if (elemName === 'Mộc') elemKey = 'moc';
-    else if (elemName === 'Thổ') elemKey = 'tho';
-    else if (elemName === 'Vật Lý') elemKey = 'ly';
-    else if (elemName === 'Kiếm') elemKey = 'kiem';
-
-    // Skill tier: 1 (Luyện Khí), 2 (Trúc Cơ), 3 (Kim Đan), 4 (Nguyên Anh), 5 (Hóa Thần)
     let tierLevel = 1;
     if (skill.minRealm >= 16) tierLevel = 5;
     else if (skill.minRealm >= 12) tierLevel = 4;
     else if (skill.minRealm >= 8) tierLevel = 3;
     else if (skill.minRealm >= 4) tierLevel = 2;
-    else tierLevel = 1;
 
-    // Color palettes for 4 mastery stages
-    const paletteMap = {
-      hoa: [0xff5522, 0xff7733, 0xff9944, 0xffcc44],
-      loi: [0xaa44ff, 0x00e5ff, 0xdd66ff, 0xffffff],
-      kim: [0xffd700, 0xfff0aa, 0xffcc33, 0xffe680],
-      thuy: [0x00c8ff, 0x33e5ff, 0x80f0ff, 0x0099ff],
-      phong: [0x00ffaa, 0x66ffcc, 0x33e5b5, 0xaaffdd],
-      moc: [0x22ee66, 0x66ff88, 0xaaffaa, 0x33cc55],
-      tho: [0xddaa44, 0xffbb55, 0xcc8833, 0xeecc77],
-      ly: [0xffeedd, 0xddccbb, 0xffffff, 0xeeaa88],
-      kiem: [0xffd700, 0x00e5ff, 0xff3355, 0xaa44ff]
-    };
-    const elementTints = {
-      hoa: 0xff6622,
-      loi: 0xaa44ff,
-      kim: 0xffd700,
-      thuy: 0x00c8ff,
-      phong: 0x00ffaa,
-      moc: 0x22ee66,
-      tho: 0xddaa44,
-      ly: 0xffeedd,
-      kiem: 0xffea66
-    };
-
-    const mainTint = elementTints[elemKey] || 0xffd700;
+    const mainTint = 0xffea66;
     const tierIdx = mastery.tierIdx || (mastery.tier ? mastery.tier.idx : 0);
     const isDaiThanhOrAbove = (tierIdx >= 2);
+    const swordMasteryTints = [0xffea66, 0x00e5ff, 0xff3355, 0xaa44ff];
 
-    // Texture Key Resolution
-    const proj1Key = (elemKey === 'kiem') ? 'vfx_kim_1_0' : (this.textures.exists(`vfx_${elemKey}_1`) ? `vfx_${elemKey}_1` : 'vfx_kim_1_0');
-    const proj2Key = (elemKey === 'kiem') ? 'vfx_kim_2_0' : (this.textures.exists(`vfx_${elemKey}_2`) ? `vfx_${elemKey}_2` : 'vfx_kim_2_0');
-    const proj2HitKey = (elemKey === 'kiem') ? 'vfx_kim_2_2' : (this.textures.exists(`vfx_${elemKey}_2`) ? `vfx_${elemKey}_2` : 'vfx_kim_2_2');
-    const array3Key = (elemKey === 'kiem') ? 'vfx_kim_3_0' : (this.textures.exists(`vfx_${elemKey}_3`) ? `vfx_${elemKey}_3` : 'vfx_kim_3_0');
-    const swordKiemKhiKey = (this.textures.exists('vfx_sword_kiem_khi')) ? 'vfx_sword_kiem_khi' : 'vfx_kim_1_7';
-    const swarm4Key = (elemKey === 'kiem') ? swordKiemKhiKey : (this.textures.exists(`vfx_${elemKey}_4`) ? `vfx_${elemKey}_4` : swordKiemKhiKey);
-    const colossus5Key = (elemKey === 'kiem') ? 'vfx_giant_tru_tien_sword' : (this.textures.exists(`vfx_${elemKey}_5`) ? `vfx_${elemKey}_5` : 'vfx_giant_tru_tien_sword');
-    const shockwaveKey = (elemKey === 'kiem') ? 'vfx_tru_tien_shockwave' : (this.textures.exists(`vfx_${elemKey}_shockwave`) ? `vfx_${elemKey}_shockwave` : 'vfx_tru_tien_shockwave');
-    const impactKey = (this.textures.exists('vfx_impact_frame7')) ? 'vfx_impact_frame7' : 'vfx_sword_impact_frame7';
+    const proj1Key = 'vfx_kim_1_0';
+    const proj2Key = 'vfx_kim_2_0';
+    const proj2HitKey = 'vfx_kim_2_2';
+    const array3Key = 'vfx_kim_3_0';
+    const swordKiemKhiKey = this.textures.exists('vfx_sword_kiem_khi') ? 'vfx_sword_kiem_khi' : 'vfx_kim_1_7';
+    const swarm4Key = swordKiemKhiKey;
+    const colossus5Key = 'vfx_giant_tru_tien_sword';
+    const shockwaveKey = 'vfx_tru_tien_shockwave';
+    const impactKey = this.textures.exists('vfx_impact_frame7') ? 'vfx_impact_frame7' : 'vfx_sword_impact_frame7';
 
     // =========================================================================
-    // TIER 1: Luyện Khí (4 Projectiles - Bezier Arc Tracking - Soft Impact Slash)
+    // KIẾM 1 — Kim Nhận Thuật: Sơ Nhập 1 / Tiểu Thành 2 / Đại Thành 3 / Viên Mãn 4 kiếm
     // =========================================================================
     if (tierLevel === 1) {
       const startX = this.player.x;
@@ -519,28 +422,30 @@ export const CombatMixin = {
       let endX = target && target.active && this.isEnemyOnScreen(target, 20) ? target.x : tx;
       let endY = target && target.active && this.isEnemyOnScreen(target, 20) ? target.y - 15 : ty - 15;
       const dist = Phaser.Math.Distance.Between(startX, startY, endX, endY);
-      
       const PROJECTILE_SPEED = 270;
       const flyDuration = Math.max(90, Math.round((dist / PROJECTILE_SPEED) * 1000));
 
       const pScale = Math.abs(this.player.scaleX || 0.85);
       const startScale = pScale * 0.50 * vfxMul;
-
       let targetScale = startScale;
       if (target && target.active) {
         const eScale = Math.abs(target.scaleX || 0.50);
         targetScale = Phaser.Math.Clamp(eScale * (target.isBoss ? 1.30 : 1.00) * vfxMul, 0.40, 1.70);
       }
 
-      const colors = isDaiThanhOrAbove
-        ? (paletteMap[elemKey] || [0xffd700, 0x00e5ff, 0xff3355, 0xaa44ff])
-        : [mainTint, 0xffffff, mainTint, 0xffffff];
+      const countByMastery = [1, 2, 3, 4];
+      const projectileCount = countByMastery[tierIdx] || 1;
+      const offsetsByCount = {
+        1: [0],
+        2: [-38, 38],
+        3: [-58, 0, 58],
+        4: [-70, -24, 24, 70]
+      };
+      const arcOffsets = offsetsByCount[projectileCount];
+      const perProjDmg = Math.max(1, Math.floor(baseDmg / projectileCount));
 
-      const arcOffsets = [-70, -24, 24, 70];
-      const perProjDmg = Math.max(1, Math.floor(baseDmg / 4));
-
-      for (let i = 0; i < 4; i++) {
-        const pTint = colors[i];
+      for (let i = 0; i < projectileCount; i++) {
+        const pTint = tierIdx === 0 ? mainTint : swordMasteryTints[i % swordMasteryTints.length];
         const offsetDist = arcOffsets[i] * Math.min(1.5, vfxMul);
 
         this.time.delayedCall(i * 35, () => {
@@ -550,8 +455,7 @@ export const CombatMixin = {
             .setScale(startScale)
             .setTint(pTint);
 
-          const animKey = `anim_vfx_${elemKey}_1`;
-          if (this.anims.exists(animKey)) proj.play(animKey);
+          if (this.anims.exists('anim_vfx_kiem_1')) proj.play('anim_vfx_kiem_1');
 
           const proxy = { t: 0 };
           this.tweens.add({
@@ -562,7 +466,6 @@ export const CombatMixin = {
             onUpdate: () => {
               const curTargetX = (target && target.active) ? target.x : endX;
               const curTargetY = (target && target.active) ? target.y - 15 : endY;
-
               const curAngle = Phaser.Math.Angle.Between(startX, startY, curTargetX, curTargetY);
               const curNx = -Math.sin(curAngle);
               const curNy = Math.cos(curAngle);
@@ -570,26 +473,23 @@ export const CombatMixin = {
               const curMidY = (startY + curTargetY) / 2;
               const curCtrlX = curMidX + curNx * offsetDist;
               const curCtrlY = curMidY + curNy * offsetDist;
-
               const t = proxy.t;
               const omt = 1 - t;
               const bx = omt * omt * startX + 2 * omt * t * curCtrlX + t * t * curTargetX;
               const by = omt * omt * startY + 2 * omt * t * curCtrlY + t * t * curTargetY;
               proj.setPosition(bx, by);
-
               const dx = 2 * omt * (curCtrlX - startX) + 2 * t * (curTargetX - curCtrlX);
               const dy = 2 * omt * (curCtrlY - startY) + 2 * t * (curTargetY - curCtrlY);
               proj.setRotation(Math.atan2(dy, dx));
-
               const curScale = startScale + (targetScale - startScale) * t;
               proj.setScale(curScale);
-
               if (target && target.active && t > 0.15) {
                 const dToEnemy = Phaser.Math.Distance.Between(bx, by, target.x, target.y - 15);
                 if (dToEnemy < 25) proxy.t = 1;
               }
             },
             onComplete: () => {
+              const finalRotation = proj.rotation || 0;
               proj.destroy();
               const finalHitX = (target && target.active) ? target.x : endX;
               const finalHitY = (target && target.active) ? target.y - 15 : endY;
@@ -600,9 +500,8 @@ export const CombatMixin = {
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(targetScale * 0.30)
                   .setAlpha(0.06)
-                  .setTint(pTint);
-
-                impactVfx.setRotation(proj.rotation || 0);
+                  .setTint(pTint)
+                  .setRotation(finalRotation);
 
                 this.tweens.add({
                   targets: impactVfx,
@@ -634,18 +533,12 @@ export const CombatMixin = {
         });
       }
 
-      this.showFloatingText(
-        this.player.x,
-        this.player.y - 70,
-        `[${elemName} • ${mastery.tier.name}] ${skill.name}!`,
-        mastery.tier.color || elemColor,
-        '13px'
-      );
+      this.showFloatingText(this.player.x, this.player.y - 70, `[Kiếm • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '13px');
       return;
     }
 
     // =========================================================================
-    // TIER 2: Trúc Cơ (Dual Strike / Crescent Qi -> Dynamic Tracking -> Hit Burst)
+    // KIẾM 2 — Bạch Hổ Canh Kim Kiếm (giữ nguyên choreography gốc)
     // =========================================================================
     if (tierLevel === 2) {
       const startX = this.player.x;
@@ -653,10 +546,8 @@ export const CombatMixin = {
       let endX = target && target.active && this.isEnemyOnScreen(target, 20) ? target.x : tx;
       let endY = target && target.active && this.isEnemyOnScreen(target, 20) ? target.y - 15 : ty - 15;
       const dist = Phaser.Math.Distance.Between(startX, startY, endX, endY);
-      
       const PROJECTILE_SPEED = 280;
       const flyDuration = Math.max(90, Math.round((dist / PROJECTILE_SPEED) * 1000));
-
       const pScale = Math.abs(this.player.scaleX || 0.85);
       const startScale = pScale * 0.65 * vfxMul;
 
@@ -671,10 +562,10 @@ export const CombatMixin = {
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(startScale)
         .setTint(mainTint);
-      
+
       const initAngle = Phaser.Math.Angle.Between(startX, startY, endX, endY);
       crossProjectile.setRotation(initAngle);
-      if (elemKey === 'kiem' && this.anims.exists('anim_vfx_kim_2_fly')) crossProjectile.play('anim_vfx_kim_2_fly');
+      if (this.anims.exists('anim_vfx_kim_2_fly')) crossProjectile.play('anim_vfx_kim_2_fly');
 
       const proxy = { t: 0 };
       this.tweens.add({
@@ -689,13 +580,10 @@ export const CombatMixin = {
           const curX = startX + (curTargetX - startX) * t;
           const curY = startY + (curTargetY - startY) * t;
           crossProjectile.setPosition(curX, curY);
-
           const curAngle = Phaser.Math.Angle.Between(curX, curY, curTargetX, curTargetY);
           crossProjectile.setRotation(curAngle);
-
           const curScale = startScale + (targetScale - startScale) * t;
           crossProjectile.setScale(curScale);
-
           if (target && target.active && t > 0.15) {
             const dToEnemy = Phaser.Math.Distance.Between(curX, curY, target.x, target.y - 15);
             if (dToEnemy < 32) proxy.t = 1;
@@ -703,7 +591,6 @@ export const CombatMixin = {
         },
         onComplete: () => {
           crossProjectile.destroy();
-          
           const finalHitX = (target && target.active) ? target.x : endX;
           const finalHitY = (target && target.active) ? target.y - 15 : endY;
           const finalAngle = Phaser.Math.Angle.Between(startX, startY, finalHitX, finalHitY);
@@ -712,10 +599,10 @@ export const CombatMixin = {
             .setDepth(Math.floor(finalHitY) + 60)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(targetScale * 1.25)
-            .setTint(mainTint);
-          hitBurst.setRotation(finalAngle);
-          if (elemKey === 'kiem' && this.anims.exists('anim_vfx_kim_2_hit')) hitBurst.play('anim_vfx_kim_2_hit');
-          
+            .setTint(mainTint)
+            .setRotation(finalAngle);
+          if (this.anims.exists('anim_vfx_kim_2_hit')) hitBurst.play('anim_vfx_kim_2_hit');
+
           this.tweens.add({
             targets: hitBurst,
             scaleX: targetScale * 1.45,
@@ -735,7 +622,6 @@ export const CombatMixin = {
                 .setAlpha(0.06)
                 .setRotation(finalAngle)
                 .setTint(mainTint);
-
               this.tweens.add({
                 targets: impactVfx,
                 scaleX: targetScale * 1.25,
@@ -756,18 +642,17 @@ export const CombatMixin = {
                 }
               });
             }
-
             this.damageEnemy(target, baseDmg, true);
             this.spawnVfx(finalHitX, finalHitY, 0, targetScale * 0.85, { tint: mainTint, duration: 200 });
           }
         }
       });
-      this.showFloatingText(this.player.x, this.player.y - 70, `[${elemName} • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '14px');
+      this.showFloatingText(this.player.x, this.player.y - 70, `[Kiếm • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '14px');
       return;
     }
 
     // =========================================================================
-    // TIER 3: Kim Đan (Formation Array & 6/8/10/12 Missiles Falling in Circle - 3.0s AoE)
+    // KIẾM 3 — Thập Nhị Thiên Kiếm Trận: 6 / 8 / 10 / 12 theo thuần thục
     // =========================================================================
     if (tierLevel === 3) {
       const DURATION_MS = 3000;
@@ -793,9 +678,7 @@ export const CombatMixin = {
             alpha: 0,
             duration: 1200,
             ease: 'Quad.easeOut',
-            onComplete: () => {
-              if (groundArray && groundArray.active) groundArray.destroy();
-            }
+            onComplete: () => { if (groundArray && groundArray.active) groundArray.destroy(); }
           });
         }
       });
@@ -820,52 +703,38 @@ export const CombatMixin = {
           .setTint(mainTint);
 
         missiles.push(missile);
-
         this.time.delayedCall(i * 25, () => {
           this.tweens.add({
             targets: missile,
             y: gy,
             duration: 260,
             ease: 'Cubic.easeIn',
-            onComplete: () => {
-              this.spawnVfx(gx, gy, 0, 0.40, { tint: mainTint, duration: 160 });
-            }
+            onComplete: () => this.spawnVfx(gx, gy, 0, 0.40, { tint: mainTint, duration: 160 })
           });
         });
       }
 
-      const tickCount = 6;
-      const tickInterval = 500;
       const perTickDmg = Math.max(1, Math.floor(baseDmg / 6));
-
-      for (let tick = 0; tick < tickCount; tick++) {
-        this.time.delayedCall(tick * tickInterval, () => {
+      for (let tick = 0; tick < 6; tick++) {
+        this.time.delayedCall(tick * 500, () => {
           this.spawnVfx(tx, ty, 0, 1.2, { tint: mainTint, duration: 220 });
-
           [...this.enemies].forEach(t => {
             if (!t || !t.active || !this.isEnemyOnScreen(t, 40)) return;
             const nx = (t.x - tx) / (targetRadiusX + 20);
             const ny = (t.y - ty) / (targetRadiusY + 20);
-            const inFormation = (nx * nx + ny * ny) <= 1.15;
-
-            if (inFormation) {
+            if ((nx * nx + ny * ny) <= 1.15) {
               this.damageEnemy(t, perTickDmg, (tick % 2 === 0));
-
               if (impactKey && this.textures.exists(impactKey)) {
                 const eScale = Math.abs(t.scaleX || 0.50);
                 const slashBaseScale = Math.max(0.40, eScale * 1.15);
                 const hitOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-                const hx = t.x + Phaser.Math.Between(-8, 8);
-                const hy = t.y - hitOffsetY + Phaser.Math.Between(-6, 6);
-
-                const slashVfx = this.add.sprite(hx, hy, impactKey)
+                const slashVfx = this.add.sprite(t.x + Phaser.Math.Between(-8, 8), t.y - hitOffsetY + Phaser.Math.Between(-6, 6), impactKey)
                   .setDepth(Math.floor(t.y) + 60)
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(slashBaseScale * 0.20)
                   .setAlpha(0.05)
                   .setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2))
                   .setTint(mainTint);
-
                 this.tweens.add({
                   targets: slashVfx,
                   scaleX: slashBaseScale,
@@ -873,19 +742,15 @@ export const CombatMixin = {
                   alpha: 0.21,
                   duration: 130,
                   ease: 'Cubic.easeOut',
-                  onComplete: () => {
-                    this.tweens.add({
-                      targets: slashVfx,
-                      scaleX: slashBaseScale * 1.25,
-                      scaleY: slashBaseScale * 1.25,
-                      alpha: 0,
-                      duration: 150,
-                      ease: 'Quad.easeIn',
-                      onComplete: () => {
-                        if (slashVfx && slashVfx.active) slashVfx.destroy();
-                      }
-                    });
-                  }
+                  onComplete: () => this.tweens.add({
+                    targets: slashVfx,
+                    scaleX: slashBaseScale * 1.25,
+                    scaleY: slashBaseScale * 1.25,
+                    alpha: 0,
+                    duration: 150,
+                    ease: 'Quad.easeIn',
+                    onComplete: () => { if (slashVfx && slashVfx.active) slashVfx.destroy(); }
+                  })
                 });
               }
             }
@@ -908,40 +773,27 @@ export const CombatMixin = {
         });
       });
 
-      this.showFloatingText(
-        this.player.x,
-        this.player.y - 70,
-        `[${elemName} • ${mastery.tier.name}] ${skill.name}!`,
-        mastery.tier.color || elemColor,
-        '15px'
-      );
+      this.showFloatingText(this.player.x, this.player.y - 70, `[Kiếm • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '15px');
       return;
     }
 
     // =========================================================================
-    // TIER 4: Nguyên Anh (Swarm Dragon Orbit -> 8 Directions Pierce & 3 Passes)
+    // KIẾM 4 — Vạn Kiếm Quy Tông: 10 / 14 / 18 / 22 theo thuần thục
     // =========================================================================
     if (tierLevel === 4) {
       const countsByTier = [10, 14, 18, 22];
       const swarmCount = countsByTier[tierIdx] || 10;
       const targetEnemy = target;
-
       const perHitDmg = Math.max(1, Math.floor(baseDmg / (swarmCount * 3)));
       const orbitRadiusX = 85;
       const orbitRadiusY = 38;
       const orbitHeight = 130;
 
-      const getTargetPos = () => {
-        if (targetEnemy && targetEnemy.active) {
-          return { x: targetEnemy.x, y: targetEnemy.y };
-        }
-        return { x: tx, y: ty };
-      };
+      const getTargetPos = () => targetEnemy && targetEnemy.active ? { x: targetEnemy.x, y: targetEnemy.y } : { x: tx, y: ty };
 
       for (let i = 0; i < swarmCount; i++) {
         this.time.delayedCall(i * 80, () => {
           const initT = getTargetPos();
-
           const unit = this.add.sprite(initT.x, initT.y - orbitHeight, swarm4Key)
             .setDepth(Math.floor(initT.y) + 55)
             .setBlendMode(Phaser.BlendModes.ADD)
@@ -954,40 +806,7 @@ export const CombatMixin = {
           let orbitAngle = -i * orbitAngleStep;
           const orbitDuration = 800 + (i * 40);
           const orbitStartTime = this.time.now;
-
-          this.tweens.add({
-            targets: unit,
-            alpha: 1.0,
-            duration: 160,
-            ease: 'Quad.easeOut'
-          });
-
-          const orbitTimer = this.time.addEvent({
-            delay: 16,
-            loop: true,
-            callback: () => {
-              if (!unit || !unit.active) {
-                orbitTimer.remove();
-                return;
-              }
-              const curT = getTargetPos();
-              const elapsed = this.time.now - orbitStartTime;
-              orbitAngle += 0.10;
-
-              const ox = curT.x + Math.cos(orbitAngle) * orbitRadiusX;
-              const oy = (curT.y - orbitHeight) + Math.sin(orbitAngle) * orbitRadiusY;
-              unit.setPosition(ox, oy);
-
-              const vx = -orbitRadiusX * Math.sin(orbitAngle);
-              const vy = orbitRadiusY * Math.cos(orbitAngle);
-              unit.setRotation(Math.atan2(vy, vx));
-
-              if (elapsed >= orbitDuration) {
-                orbitTimer.remove();
-                startPiercingPasses();
-              }
-            }
-          });
+          this.tweens.add({ targets: unit, alpha: 1.0, duration: 160, ease: 'Quad.easeOut' });
 
           const startPiercingPasses = () => {
             let passIndex = 0;
@@ -1002,25 +821,12 @@ export const CombatMixin = {
               const hitOffsetY = targetEnemy && targetEnemy.displayHeight ? (targetEnemy.displayHeight * 0.28) : 20;
               const hitX = curT.x;
               const hitY = curT.y - hitOffsetY;
-
-              let endX, endY;
-
-              if (passIndex === 1) {
-                endX = hitX + passDistX;
-                endY = hitY + passDistY;
-              } else if (passIndex === 2) {
-                endX = hitX - passDistX;
-                endY = hitY - passDistY;
-              } else {
-                endX = hitX + passDistX;
-                endY = hitY + passDistY;
-              }
-
+              const endX = passIndex === 2 ? hitX - passDistX : hitX + passDistX;
+              const endY = passIndex === 2 ? hitY - passDistY : hitY + passDistY;
               const startX = unit.x;
               const startY = unit.y;
               const flyAngle = Math.atan2(endY - startY, endX - startX);
               unit.setRotation(flyAngle);
-
               let hasDealtDamage = false;
 
               this.tweens.add({
@@ -1032,20 +838,16 @@ export const CombatMixin = {
                 onUpdate: (tween) => {
                   if (!hasDealtDamage && tween.progress >= 0.45) {
                     hasDealtDamage = true;
-
                     [...this.enemies].forEach(t => {
                       if (!t || !t.active || !this.isEnemyOnScreen(t, 40)) return;
                       const dCenter = Phaser.Math.Distance.Between(hitX, hitY, t.x, t.y);
                       const dUnit = Phaser.Math.Distance.Between(unit.x, unit.y, t.x, t.y);
-
                       if (dCenter < 95 || dUnit < 80) {
                         this.damageEnemy(t, perHitDmg, (passIndex === 3));
-
                         if (impactKey && this.textures.exists(impactKey)) {
                           const eScale = Math.abs(t.scaleX || 0.50);
                           const baseSlashScale = Math.max(0.40, eScale * 1.15);
                           const eOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-
                           const slashVfx = this.add.sprite(t.x, t.y - eOffsetY, impactKey)
                             .setDepth(Math.floor(t.y) + 70)
                             .setBlendMode(Phaser.BlendModes.ADD)
@@ -1053,7 +855,6 @@ export const CombatMixin = {
                             .setAlpha(0.05)
                             .setRotation(flyAngle + Phaser.Math.FloatBetween(-0.20, 0.20))
                             .setTint(mainTint);
-
                           this.tweens.add({
                             targets: slashVfx,
                             scaleX: baseSlashScale,
@@ -1061,17 +862,15 @@ export const CombatMixin = {
                             alpha: 0.20,
                             duration: 120,
                             ease: 'Cubic.easeOut',
-                            onComplete: () => {
-                              this.tweens.add({
-                                targets: slashVfx,
-                                scaleX: baseSlashScale * 1.25,
-                                scaleY: baseSlashScale * 1.25,
-                                alpha: 0,
-                                duration: 140,
-                                ease: 'Quad.easeIn',
-                                onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
-                              });
-                            }
+                            onComplete: () => this.tweens.add({
+                              targets: slashVfx,
+                              scaleX: baseSlashScale * 1.25,
+                              scaleY: baseSlashScale * 1.25,
+                              alpha: 0,
+                              duration: 140,
+                              ease: 'Quad.easeIn',
+                              onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
+                            })
                           });
                         }
                       }
@@ -1079,11 +878,8 @@ export const CombatMixin = {
                   }
                 },
                 onComplete: () => {
-                  if (passIndex < 3) {
-                    this.time.delayedCall(80, () => {
-                      executePass();
-                    });
-                  } else {
+                  if (passIndex < 3) this.time.delayedCall(80, executePass);
+                  else {
                     this.spawnVfx(unit.x, unit.y, 0, 0.60, { tint: mainTint, duration: 200 });
                     this.tweens.add({
                       targets: unit,
@@ -1091,43 +887,57 @@ export const CombatMixin = {
                       scaleX: 0.1,
                       scaleY: 0.1,
                       duration: 160,
-                      onComplete: () => {
-                        if (unit && unit.active) unit.destroy();
-                      }
+                      onComplete: () => { if (unit && unit.active) unit.destroy(); }
                     });
                   }
                 }
               });
             };
-
             executePass();
           };
+
+          const orbitTimer = this.time.addEvent({
+            delay: 16,
+            loop: true,
+            callback: () => {
+              if (!unit || !unit.active) { orbitTimer.remove(); return; }
+              const curT = getTargetPos();
+              const elapsed = this.time.now - orbitStartTime;
+              orbitAngle += 0.10;
+              const ox = curT.x + Math.cos(orbitAngle) * orbitRadiusX;
+              const oy = (curT.y - orbitHeight) + Math.sin(orbitAngle) * orbitRadiusY;
+              unit.setPosition(ox, oy);
+              unit.setRotation(Math.atan2(orbitRadiusY * Math.cos(orbitAngle), -orbitRadiusX * Math.sin(orbitAngle)));
+              if (elapsed >= orbitDuration) {
+                orbitTimer.remove();
+                startPiercingPasses();
+              }
+            }
+          });
         });
       }
-      this.showFloatingText(this.player.x, this.player.y - 70, `[${elemName} • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '15px');
+      this.showFloatingText(this.player.x, this.player.y - 70, `[Kiếm • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '15px');
       return;
     }
 
     // =========================================================================
-    // TIER 5: Hóa Thần (Colossus Sky Drop, 4-Tier Range Scaling & 5.0s AoE Storm)
+    // KIẾM 5 — Thái Canh Tru Tiên Trận: phạm vi 250 / 350 / 460 / 600 theo thuần thục
     // =========================================================================
     if (tierLevel === 5) {
       const DURATION_MS = 5000;
       const strikeX = tx;
       const strikeY = ty;
       const perTickDmg = Math.max(1, Math.floor(baseDmg * 0.06));
-
       const tierRanges = [250, 350, 460, 600];
       const tierColossusScales = [1.35, 1.70, 2.15, 2.70];
       const tierShockwaveScales = [3.2, 4.5, 6.0, 8.0];
       const tierStormSpreads = [80, 120, 165, 225];
-
       const aoeRadius = tierRanges[tierIdx] || 250;
       const colossusScale = tierColossusScales[tierIdx] || 1.35;
       const shockwaveScale = tierShockwaveScales[tierIdx] || 3.2;
       const stormSpread = tierStormSpreads[tierIdx] || 80;
-
       const startSkyY = strikeY - 560;
+
       const colossus = this.add.sprite(strikeX, startSkyY, colossus5Key)
         .setDepth(Math.floor(strikeY) + 70)
         .setBlendMode(Phaser.BlendModes.ADD)
@@ -1164,12 +974,10 @@ export const CombatMixin = {
             const d = Phaser.Math.Distance.Between(strikeX, strikeY, t.x, t.y);
             if (d < aoeRadius) {
               this.damageEnemy(t, Math.floor(baseDmg * 0.40), true);
-
               if (impactKey && this.textures.exists(impactKey)) {
                 const eScale = Math.abs(t.scaleX || 0.50);
                 const slashTargetScale = eScale * 1.65;
                 const hitOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-
                 const slashVfx = this.add.sprite(t.x, t.y - hitOffsetY, impactKey)
                   .setDepth(Math.floor(t.y) + 75)
                   .setBlendMode(Phaser.BlendModes.ADD)
@@ -1177,7 +985,6 @@ export const CombatMixin = {
                   .setAlpha(0.06)
                   .setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2))
                   .setTint(mainTint);
-
                 this.tweens.add({
                   targets: slashVfx,
                   scaleX: slashTargetScale,
@@ -1185,17 +992,15 @@ export const CombatMixin = {
                   alpha: 0.24,
                   duration: 150,
                   ease: 'Cubic.easeOut',
-                  onComplete: () => {
-                    this.tweens.add({
-                      targets: slashVfx,
-                      scaleX: slashTargetScale * 1.25,
-                      scaleY: slashTargetScale * 1.25,
-                      alpha: 0,
-                      duration: 180,
-                      ease: 'Quad.easeIn',
-                      onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
-                    });
-                  }
+                  onComplete: () => this.tweens.add({
+                    targets: slashVfx,
+                    scaleX: slashTargetScale * 1.25,
+                    scaleY: slashTargetScale * 1.25,
+                    alpha: 0,
+                    duration: 180,
+                    ease: 'Quad.easeIn',
+                    onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
+                  })
                 });
               }
             }
@@ -1203,9 +1008,8 @@ export const CombatMixin = {
         }
       });
 
-      // Ambient Storm effects over 5s
       const stormList = [];
-      const stormTexture = (elemKey === 'kiem' || elemKey === 'loi') ? 'vfx_loi' : swarm4Key;
+      const stormTexture = 'vfx_loi';
       const stormTimer = this.time.addEvent({
         delay: 180,
         repeat: Math.floor(DURATION_MS / 180) - 1,
@@ -1214,7 +1018,6 @@ export const CombatMixin = {
           const lx = strikeX + Phaser.Math.Between(-stormSpread, stormSpread);
           const ly = strikeY - Phaser.Math.Between(30, 150 * (colossusScale / 1.35));
           const lScale = Phaser.Math.FloatBetween(0.85, 1.45) * (1.0 + tierIdx * 0.15);
-
           if (this.textures.exists(stormTexture)) {
             const bolt = this.add.sprite(lx, ly, stormTexture)
               .setDepth(Math.floor(strikeY) + 72)
@@ -1224,9 +1027,7 @@ export const CombatMixin = {
               .setRotation(Phaser.Math.FloatBetween(-0.25, 0.25))
               .setTint(mainTint)
               .setFlipX(Math.random() > 0.5);
-
             stormList.push(bolt);
-
             this.tweens.add({
               targets: bolt,
               alpha: 0,
@@ -1234,27 +1035,20 @@ export const CombatMixin = {
               scaleY: lScale * 1.15,
               duration: 160,
               ease: 'Quad.easeOut',
-              onComplete: () => {
-                if (bolt && bolt.active) bolt.destroy();
-              }
+              onComplete: () => { if (bolt && bolt.active) bolt.destroy(); }
             });
           }
         }
       });
 
-      const tickCount = 10;
-      const tickInterval = 500;
-
-      for (let tick = 1; tick <= tickCount; tick++) {
-        this.time.delayedCall(tick * tickInterval, () => {
+      for (let tick = 1; tick <= 10; tick++) {
+        this.time.delayedCall(tick * 500, () => {
           this.spawnVfx(strikeX, strikeY, 0, 1.3 * (colossusScale / 1.35), { tint: mainTint, duration: 200 });
-
           [...this.enemies].forEach(t => {
             if (!t || !t.active || !this.isEnemyOnScreen(t, 30)) return;
             const d = Phaser.Math.Distance.Between(strikeX, strikeY, t.x, t.y);
             if (d < aoeRadius) {
               this.damageEnemy(t, perTickDmg, (tick % 3 === 0));
-
               if (this.textures.exists(stormTexture)) {
                 const miniBurst = this.add.sprite(t.x, t.y - 30, stormTexture)
                   .setDepth(Math.floor(t.y) + 60)
@@ -1262,7 +1056,6 @@ export const CombatMixin = {
                   .setScale(0.55 * (1 + tierIdx * 0.12))
                   .setAlpha(0.85)
                   .setTint(mainTint);
-
                 this.tweens.add({
                   targets: miniBurst,
                   alpha: 0,
@@ -1279,7 +1072,6 @@ export const CombatMixin = {
       this.time.delayedCall(DURATION_MS, () => {
         if (stormTimer) stormTimer.remove();
         stormList.forEach(b => { if (b && b.active) b.destroy(); });
-
         if (colossus && colossus.active) {
           this.spawnVfx(strikeX, strikeY, 0, 2.0 * (colossusScale / 1.35), { tint: mainTint, duration: 350 });
           this.tweens.add({
@@ -1288,15 +1080,12 @@ export const CombatMixin = {
             scaleY: colossusScale * 1.3,
             duration: 400,
             ease: 'Quad.easeOut',
-            onComplete: () => {
-              if (colossus && colossus.active) colossus.destroy();
-            }
+            onComplete: () => { if (colossus && colossus.active) colossus.destroy(); }
           });
         }
       });
 
-      this.showFloatingText(this.player.x, this.player.y - 70, `[${elemName} • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || '#ffffff', '16px');
-      return;
+      this.showFloatingText(this.player.x, this.player.y - 70, `[Kiếm • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || '#ffffff', '16px');
     }
   }
 };
