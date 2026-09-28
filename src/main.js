@@ -18,6 +18,7 @@ import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDr
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
+import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v1';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -32,22 +33,16 @@ installSimpleWelcomeUI(MainGameScene);
 installSimpleNpcFullscreenUI(MainGameScene);
 installSimpleSkillFullscreenUI(MainGameScene);
 installStarterGiftResourceOnly(MainGameScene);
-// Install before EarlyGamePharmacopeia so the selected herb rank can still be
-// decorated with zone quality and mineral nodes share the same map lifecycle.
 installWorldResourceProgression(MainGameScene);
 installEarlyGamePharmacopeia(MainGameScene);
 installCommonPillRankUiFix(MainGameScene);
 installVanMocEnemyProgression(MainGameScene);
 installRankOneBeastCoreDrops(MainGameScene);
 installRareResourceInventoryUI(MainGameScene);
-// Final inventory renderer: compact slots, click-for-details, and true duplicate stacking.
 installInventoryGridUI(MainGameScene);
-// Fix Thanh Van Village touch highlighting and direct gate exit before final UI wrappers.
 installVillageHubTouchFix(MainGameScene);
-// Hard pause must wrap all final gameplay/UI methods first.
+installCongPhapMasteryProgression(MainGameScene);
 installUiGameplayPauseOptimization(MainGameScene);
-// MUST be absolutely last: normalizes every modal child to screen-space and disables
-// all world/HUD input behind it, so 32,000px combat maps behave exactly like Map 0.
 installUnifiedUiMapIsolation(MainGameScene);
 
 export const config = {
