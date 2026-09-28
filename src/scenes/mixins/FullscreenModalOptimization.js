@@ -54,6 +54,101 @@ function isLargePanelBackground(obj) {
   return w >= 400 && h >= 300;
 }
 
+function parseHexColor(value) {
+  if (typeof value !== 'string') return null;
+  const match = value.trim().match(/^#([0-9a-f]{6})$/i);
+  if (!match) return null;
+  const n = parseInt(match[1], 16);
+  return {
+    r: (n >> 16) & 255,
+    g: (n >> 8) & 255,
+    b: n & 255
+  };
+}
+
+function colorBrightness(color) {
+  if (!color) return 255;
+  return (color.r * 299 + color.g * 587 + color.b * 114) / 1000;
+}
+
+function brightenTextColor(obj, fontPx) {
+  if (!obj?.style || typeof obj.setColor !== 'function') return;
+  const current = parseHexColor(obj.style.color);
+  if (!current || colorBrightness(current) >= 155) return;
+
+  const text = String(obj.text || '').toLowerCase();
+  if (text.includes('lỗi') || text.includes('không đủ') || text.includes('thất bại')) {
+    obj.setColor('#FF8A9A');
+    return;
+  }
+  if (text.includes('thành công') || text.includes('đang bật') || text.includes('đã học')) {
+    obj.setColor('#7CFFD5');
+    return;
+  }
+  if ((fontPx || 0) >= 18) {
+    obj.setColor('#FFE88A');
+  } else if (obj.style.fontStyle === 'bold' || (fontPx || 0) >= 15) {
+    obj.setColor('#8FE9FF');
+  } else {
+    obj.setColor('#E4F7FF');
+  }
+}
+
+function getSafeWrapWidth(obj) {
+  const PANEL_LEFT = -248;
+  const PANEL_RIGHT = 248;
+  const EDGE_PAD = 14;
+  const x = Number.isFinite(obj?.x) ? obj.x : 0;
+  const originX = Number.isFinite(obj?.originX) ? obj.originX : 0;
+
+  let width;
+  if (originX >= 0.4 && originX <= 0.6) {
+    const half = Math.max(70, Math.min(PANEL_RIGHT - x, x - PANEL_LEFT) - EDGE_PAD);
+    width = half * 2;
+  } else if (originX > 0.6) {
+    width = x - PANEL_LEFT - EDGE_PAD;
+  } else {
+    width = PANEL_RIGHT - x - EDGE_PAD;
+  }
+
+  return Math.max(110, Math.min(468, Math.floor(width)));
+}
+
+function optimizeTextObject(obj) {
+  if (!obj || typeof obj.setFontSize !== 'function') return;
+
+  const current = getFontPx(obj);
+  const next = readableFontSize(current);
+  if (next && (!current || next > current)) {
+    obj.setFontSize(next);
+  }
+
+  const finalPx = getFontPx(obj) || next || current || 13;
+  const wrapWidth = getSafeWrapWidth(obj);
+
+  // Tất cả text trong modal đều có giới hạn chiều rộng riêng theo vị trí.
+  // Advanced wrap giúp xuống dòng theo từ/cụm từ, tránh cắt chữ giữa chừng.
+  obj.setWordWrapWidth?.(wrapWidth, true);
+
+  // Tăng khoảng cách dòng để text 2–4 dòng vẫn dễ đọc trên điện thoại.
+  const currentSpacing = Number(obj.lineSpacing || obj.style?.lineSpacing || 0);
+  const desiredSpacing = finalPx >= 18 ? 6 : finalPx >= 15 ? 5 : 4;
+  if (typeof obj.setLineSpacing === 'function' && currentSpacing < desiredSpacing) {
+    obj.setLineSpacing(desiredSpacing);
+  }
+
+  // Căn trái cho đoạn mô tả dài; giữ căn giữa cho tiêu đề/nút ngắn.
+  const text = String(obj.text || '');
+  const isLongText = text.length > 42 || text.includes('\n');
+  if (isLongText && typeof obj.setAlign === 'function') {
+    obj.setAlign(obj.originX >= 0.4 && obj.originX <= 0.6 ? 'center' : 'left');
+  }
+
+  brightenTextColor(obj, finalPx);
+  obj.__fullscreenFontSized = true;
+  obj.__fullscreenWrapped = true;
+}
+
 function makeOverlayFullscreen(scene) {
   const overlay = scene?.activeModalOverlay;
   if (!overlay || !overlay.active) return;
@@ -64,11 +159,9 @@ function makeOverlayFullscreen(scene) {
 
   if (overlay.type === 'Rectangle') {
     if (typeof overlay.setDisplaySize === 'function') overlay.setDisplaySize(W + 8, H + 8);
-    if (typeof overlay.setFillStyle === 'function') overlay.setFillStyle(0x02070d, 0.985);
+    if (typeof overlay.setFillStyle === 'function') overlay.setFillStyle(0x03101a, 0.99);
   }
 
-  // Biến phần nền thành lớp chặn input toàn màn hình. Khi UI mở,
-  // không touch nào được phép xuyên xuống joystick / map / combat.
   if (!overlay.input && typeof overlay.setInteractive === 'function') {
     overlay.setInteractive({ useHandCursor: false });
   }
@@ -85,57 +178,51 @@ function makeOverlayFullscreen(scene) {
 
 function optimizePanel(scene) {
   const panel = scene?.activeModal;
-  if (!panel || !panel.active || panel.__fullscreenOptimized) {
+  if (!panel || !panel.active) {
     makeOverlayFullscreen(scene);
     return;
   }
 
-  panel.__fullscreenOptimized = true;
   resetWorldTouch(scene);
   makeOverlayFullscreen(scene);
 
   if (typeof panel.setPosition === 'function') panel.setPosition(W / 2, H / 2);
   if (typeof panel.setScrollFactor === 'function') panel.setScrollFactor(0);
 
-  // Nền panel chiếm gần toàn bộ màn hình, thay vì hộp nhỏ giữa màn hình.
+  const firstPass = !panel.__fullscreenOptimized;
+  panel.__fullscreenOptimized = true;
+
   const topLevel = Array.isArray(panel.list) ? panel.list : [];
   const background = topLevel.find(isLargePanelBackground);
   if (background) {
     background.setPosition?.(0, 0);
     background.setDisplaySize?.(W - 10, H - 12);
-    background.setFillStyle?.(0x071621, 0.995);
-    background.setStrokeStyle?.(2, 0xcaa765, 0.95);
+    background.setFillStyle?.(0x082638, 0.995);
+    background.setStrokeStyle?.(2.5, 0x63E6FF, 0.98);
   }
 
-  // Tận dụng chiều cao 960px: giãn các hàng UI ra để chữ lớn không chồng nhau.
-  topLevel.forEach(child => {
-    if (!child || child === background) return;
-    if (Number.isFinite(child.x)) child.x *= 1.04;
-    if (Number.isFinite(child.y)) child.y *= 1.16;
-  });
+  // Chỉ giãn vị trí đúng một lần để tránh panel bị phóng dần khi wrapper chạy lại.
+  if (firstPass) {
+    topLevel.forEach(child => {
+      if (!child || child === background) return;
+      if (Number.isFinite(child.x)) child.x *= 1.04;
+      if (Number.isFinite(child.y)) child.y *= 1.16;
+    });
+  }
 
-  // Tăng cỡ chữ có chọn lọc. Các mô tả 9px -> 12px, label 11px -> 13px,
-  // tiêu đề 13px -> 15px, tiêu đề lớn 16px -> 18px.
+  // Luôn quét lại text vì một số panel thêm nội dung sau khi mở.
   walkDisplayTree(panel, obj => {
     if (!obj || typeof obj.setFontSize !== 'function') return;
-    if (obj.__fullscreenFontSized) return;
-    const current = getFontPx(obj);
-    const next = readableFontSize(current);
-    if (!next || next <= current) return;
-    obj.__fullscreenFontSized = true;
-    obj.setFontSize(next);
-    if (obj.style && Number.isFinite(obj.style.wordWrapWidth) && obj.style.wordWrapWidth > 0) {
-      obj.setWordWrapWidth?.(Math.min(470, obj.style.wordWrapWidth), true);
-    }
+    optimizeTextObject(obj);
   });
 
-  // Nâng vùng chạm tối thiểu cho các control nhỏ trên mobile.
+  // Nâng vùng chạm tối thiểu cho control nhỏ trên mobile.
   walkDisplayTree(panel, obj => {
     if (!obj?.input || !obj.input.hitArea) return;
     const area = obj.input.hitArea;
     if (area && typeof area.width === 'number' && typeof area.height === 'number') {
-      if (area.width < 64) area.width = 64;
-      if (area.height < 44) area.height = 44;
+      if (area.width < 72) area.width = 72;
+      if (area.height < 46) area.height = 46;
     }
   });
 }
@@ -145,12 +232,10 @@ export function installFullscreenModalOptimization(MainGameScene) {
   const proto = MainGameScene.prototype;
   proto.__fullscreenModalOptimizationInstalled = true;
 
-  // Public helper để các modal được tạo bất đồng bộ cũng có thể gọi lại nếu cần.
   proto.optimizeActiveModalForMobile = function optimizeActiveModalForMobile() {
     optimizePanel(this);
   };
 
-  // Bọc toàn bộ open* của hệ thống UI hiện tại, không sửa logic nội bộ từng panel.
   Object.getOwnPropertyNames(proto).forEach(name => {
     if (!/^open[A-Z]/.test(name)) return;
     const original = proto[name];
@@ -161,9 +246,9 @@ export function installFullscreenModalOptimization(MainGameScene) {
       const result = original.apply(this, args);
       optimizePanel(this);
 
-      // Một số panel tạo nội dung ở cuối event loop; chạy thêm một lượt an toàn.
       if (this.time?.delayedCall) {
         this.time.delayedCall(0, () => optimizePanel(this));
+        this.time.delayedCall(60, () => optimizePanel(this));
       } else if (typeof queueMicrotask === 'function') {
         queueMicrotask(() => optimizePanel(this));
       }
