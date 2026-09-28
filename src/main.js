@@ -9,6 +9,7 @@ import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=202
 import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-npc-fullscreen-d9ed7f8';
 import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-skill-fullscreen-1d6de02';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
+import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-map-ui-isolation-9d6db7f';
 
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
@@ -19,8 +20,11 @@ installSimpleCongPhapHomeUI(MainGameScene);
 installSimpleWelcomeUI(MainGameScene);
 installSimpleNpcFullscreenUI(MainGameScene);
 installSimpleSkillFullscreenUI(MainGameScene);
-// MUST be last: wraps every final open* method and closeModal with true hard pause.
+// Hard pause must wrap all final gameplay/UI methods first.
 installUiGameplayPauseOptimization(MainGameScene);
+// MUST be absolutely last: normalizes every modal child to screen-space and disables
+// all world/HUD input behind it, so 32,000px combat maps behave exactly like Map 0.
+installUnifiedUiMapIsolation(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
