@@ -1,6 +1,7 @@
 import { REALMS } from '../../config/realmsData.js';
 import { SKILL_MASTERY_TIERS, ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-vfx-original-restore-v1';
 import { gameState } from '../../state/gameState.js';
+import { CombatMixin } from './CombatMixin.js?v=20260928-vfx-original-restore-v1';
 
 function getRealmMasteryCap(realmIdx) {
   const realm = REALMS[Math.max(0, Number(realmIdx) || 0)] || REALMS[0];
@@ -37,6 +38,10 @@ export function installSkillMasteryRealmGuard(MainGameScene) {
   const proto = MainGameScene?.prototype;
   if (!proto || proto.__skillMasteryRealmGuardInstalled) return;
   proto.__skillMasteryRealmGuardInstalled = true;
+
+  // Nạp lại đúng Combat/VFX gốc đã được thiết kế, kể cả khi trình duyệt còn cache module cũ.
+  // Sau dòng này chỉ bổ sung guard bậc thuần thục, không sửa choreography VFX.
+  Object.assign(proto, CombatMixin);
 
   // Chỉ sửa cách xác định BẬC THUẦN THỤC được phép dùng.
   // Không thay asset, số projectile, kích thước, màu, choreography hay VFX gốc.
