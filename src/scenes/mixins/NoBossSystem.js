@@ -43,16 +43,23 @@ export function installNoBossSystem(MainGameScene) {
       if (!enemy) return enemy;
 
       enemy.isBoss = false;
-
-      // Chuẩn hóa UI quái về kiểu thường nếu một wrapper cũ đã chạm vào style.
-      if (!Number.isFinite(enemy.vanMocSizeMultiplier)) {
-        enemy.baseEnemyScale = 0.50;
+      if (enemy.monsterData && typeof enemy.monsterData === 'object' && 'isBoss' in enemy.monsterData) {
+        delete enemy.monsterData.isBoss;
       }
+
+      const hasCustomRankVisual = Number.isFinite(enemy.vanMocSizeMultiplier);
+
+      // Chỉ chuẩn hóa scale/màu mặc định với quái không có visual phẩm cấp riêng.
+      if (!hasCustomRankVisual) {
+        enemy.baseEnemyScale = 0.50;
+        enemy.nameText?.setColor?.('#ffd700');
+      }
+
+      // HP bar luôn dùng kiểu quái thường; không còn thanh boss 48px/màu đỏ riêng.
       enemy.barW = 36;
-      enemy.hpBg?.setDisplaySize?.(36, 4);
-      enemy.hpBar?.setDisplaySize?.(36, 4);
+      if (enemy.hpBg) enemy.hpBg.width = 36;
+      if (enemy.hpBar) enemy.hpBar.width = 36;
       enemy.hpBar?.setFillStyle?.(0xee5533, 1);
-      enemy.nameText?.setColor?.('#ffd700');
 
       return enemy;
     };
@@ -61,7 +68,12 @@ export function installNoBossSystem(MainGameScene) {
   const previousKillEnemy = proto.killEnemy;
   if (typeof previousKillEnemy === 'function') {
     proto.killEnemy = function killEnemyWithoutBossBonus(enemy) {
-      if (enemy) enemy.isBoss = false;
+      if (enemy) {
+        enemy.isBoss = false;
+        if (enemy.monsterData && typeof enemy.monsterData === 'object' && 'isBoss' in enemy.monsterData) {
+          delete enemy.monsterData.isBoss;
+        }
+      }
       return previousKillEnemy.call(this, enemy);
     };
   }
