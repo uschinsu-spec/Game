@@ -17,7 +17,7 @@ import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgre
 import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-rank1-cores-357150f';
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
-import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v1';
+import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
