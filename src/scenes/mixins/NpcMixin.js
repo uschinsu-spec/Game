@@ -2,7 +2,7 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v1';
+import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v2';
 import { gameState } from '../../state/gameState.js';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
@@ -162,33 +162,48 @@ export const NpcMixin = {
   syncVillageHubMode() {
     const active = Number(gameState.currentMapId) === 0;
 
-    if (this.player) {
-      this.player.setVisible(!active).setVelocity?.(0, 0);
-      if (this.player.body) this.player.body.enable = !active;
-    }
-    if (active) {
-      this.moveTarget = null;
-      if (this.joy) {
-        this.joy.active = false;
-        this.joy.id = null;
-        this.joy.x = 0;
-        this.joy.y = 0;
+    if (active) this.enforceVillageHubPresentation();
+    else {
+      if (this.player) {
+        this.player.setVisible(true);
+        if (this.player.body) this.player.body.enable = true;
       }
+      this.topHudElements?.forEach(el => el?.setVisible?.(this.topHudVisible !== false));
+      this.minimapElements?.forEach(el => el?.setVisible?.(this.topHudVisible !== false));
+      this.mini?.setVisible?.(this.topHudVisible !== false);
+      this.toggleUiBtnBg?.setVisible?.(true);
+      this.toggleUiBtnTxt?.setVisible?.(true);
+      this.skillContainer?.setVisible?.(this.skillsVisible !== false);
+      this.sideToggleContainer?.setVisible?.(true);
     }
-
-    const showCombatHud = !active;
-    this.topHudElements?.forEach(el => el?.setVisible?.(showCombatHud && this.topHudVisible !== false));
-    this.minimapElements?.forEach(el => el?.setVisible?.(showCombatHud && this.topHudVisible !== false));
-    this.mini?.setVisible?.(showCombatHud && this.topHudVisible !== false);
-    this.toggleUiBtnBg?.setVisible?.(showCombatHud);
-    this.toggleUiBtnTxt?.setVisible?.(showCombatHud);
-    this.skillContainer?.setVisible?.(showCombatHud && this.skillsVisible !== false);
-    this.sideToggleContainer?.setVisible?.(showCombatHud);
-    this.joyBase?.setVisible?.(false);
-    this.joyKnob?.setVisible?.(false);
 
     if (active) this.createVillageImageHotspots();
     else this.clearVillageImageHotspots();
+  },
+
+  enforceVillageHubPresentation() {
+    if (Number(gameState.currentMapId) !== 0) return;
+    if (this.player) {
+      this.player.setVisible(false).setVelocity?.(0, 0);
+      if (this.player.body) this.player.body.enable = false;
+    }
+    this.moveTarget = null;
+    if (this.joy) {
+      this.joy.active = false;
+      this.joy.id = null;
+      this.joy.x = 0;
+      this.joy.y = 0;
+    }
+
+    this.topHudElements?.forEach(el => el?.setVisible?.(false));
+    this.minimapElements?.forEach(el => el?.setVisible?.(false));
+    this.mini?.setVisible?.(false);
+    this.toggleUiBtnBg?.setVisible?.(false);
+    this.toggleUiBtnTxt?.setVisible?.(false);
+    this.skillContainer?.setVisible?.(false);
+    this.sideToggleContainer?.setVisible?.(false);
+    this.joyBase?.setVisible?.(false);
+    this.joyKnob?.setVisible?.(false);
   },
 
   // ----------------------------------------------------------------

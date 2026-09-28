@@ -213,13 +213,8 @@ export function installEarlyGamePharmacopeia(MainGameScene) {
   if (typeof originalInitHerbs === 'function' && !originalInitHerbs.__commonHerbWrapped) {
     const wrappedInit = function initHerbsWithThanhVanCommons(...args) {
       const result = originalInitHerbs.apply(this, args);
-      const mapId = Number(gameState.currentMapId ?? this.currentMap?.id ?? 0);
-      if (mapId === 0 && (!this.herbsGroup || this.herbsGroup.length === 0)) {
-        const points = [
-          [92, 690], [192, 790], [348, 720], [448, 815], [270, 862]
-        ];
-        points.forEach(([x, y], idx) => this.spawnOneHerb(x, y, 1, idx, null));
-      }
+      // Thanh Van Village is now a static image hub. Resource nodes belong to
+      // the outdoor maps and must not cover the labels painted into IMG_7504.
       return result;
     };
     wrappedInit.__commonHerbWrapped = true;

@@ -11,7 +11,7 @@
  *   mixins/ModalMixin.js   — 7 panel UI (Map, Skill, Sect, Crafting, Gear, etc.)
  */
 import { REALMS } from '../config/realmsData.js';
-import { ALL_MAPS, getMapById } from '../config/regionsData.js?v=20260928-thanh-van-image-hub-v1';
+import { ALL_MAPS, getMapById } from '../config/regionsData.js?v=20260928-thanh-van-image-hub-v2';
 import { gameState } from '../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../config/skillsData.js';
 import { W, H } from './constants.js';
@@ -21,7 +21,7 @@ import { CombatMixin } from './mixins/CombatMixin.js';
 import { EnemyMixin } from './mixins/EnemyMixin.js';
 import { PlayerMixin } from './mixins/PlayerMixin.js';
 import { ModalMixin } from './mixins/ModalMixin.js';
-import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-thanh-van-image-hub-v1';
+import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-thanh-van-image-hub-v2';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
 import { HerbsMixin } from './mixins/HerbsMixin.js';
 import { exportSaveCode } from '../state/saveSystem.js';
@@ -265,7 +265,12 @@ export class MainGameScene extends Phaser.Scene {
   // ----------------------------------------------------------------
   update(time, delta) {
     if (!this.player || !this.player.body || this.dead) return;
-    if (Number(gameState.currentMapId) === 0) return;
+    if (Number(gameState.currentMapId) === 0) {
+      // Closing a full-screen modal restores its previous display snapshot.
+      // Re-assert the image-hub presentation so combat controls stay hidden.
+      this.enforceVillageHubPresentation();
+      return;
+    }
 
     // 0. Map Portal Detection & Teleportation
     if (this.activePortals && this.activePortals.length > 0) {
