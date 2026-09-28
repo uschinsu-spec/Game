@@ -213,12 +213,22 @@ export const NPCS_DATA = [
     greeting: 'Vạn Bảo Các mua bán công bằng, tỷ lệ quy đổi chuẩn thiên địa! Có da lông săn bắt hay cần đổi Bạc lấy Linh Thạch cứ việc tìm ta.',
     actions: [
       {
-        id: 'exchange_pelt_shop',
-        label: '🏪 Tiệm Thu Mua Da Thú (Đổi Lấy Bạc)',
-        desc: 'Bán da lông yêu thú săn được để thu về Ngân Lượng (Bạc)',
-        color: '#0d9488',
+        id: 'buy_talismans',
+        label: '📜 Mua Phù Lục Theo Cảnh Giới',
+        desc: 'Vạn Bảo Các bán phù lục đúng phẩm cấp hiện tại của đạo hữu',
+        color: '#38bdf8',
         execute: (scene) => {
-          scene.openCongPhapPanel('Hoàng Giai', 'exchange');
+          scene.openMerchantSpecialShop('talismans');
+          return { success: true };
+        }
+      },
+      {
+        id: 'buy_formations',
+        label: '☸ Mua Trận Pháp Theo Cảnh Giới',
+        desc: 'Mua trận pháp đúng phẩm cấp cảnh giới hiện tại, cao hơn sẽ không hiện bán',
+        color: '#a855f7',
+        execute: (scene) => {
+          scene.openMerchantSpecialShop('formations');
           return { success: true };
         }
       },
@@ -330,8 +340,6 @@ export const NPCS_DATA = [
         color: '#ef4444',
         execute: (scene) => {
           scene.closeModal();
-          // Spawn outside the 100px return-portal radius to prevent an
-          // immediate bounce back into the village on the next update tick.
           scene.portalCooldownUntil = (scene.time?.now || 0) + 3500;
           scene.switchMap(1, 420, 620);
           return { success: true };
