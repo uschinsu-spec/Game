@@ -42,7 +42,7 @@ export const EnemyMixin = {
     // - Vùng 1 (Đầu map: 650 -> 4,000px): Thưa thớt, an toàn cho tân thủ (khoảng cách ~450px)
     // - Vùng 2 (Trung gian: 4,000 -> 12,000px): Mật độ vừa (khoảng cách ~300px)
     // - Vùng 3 (Thâm sâu: 12,000 -> 22,000px): Mật độ cao (khoảng cách ~220px)
-    // - Vùng 4 (Tận cùng / Gần Cấm Địa: 22,000 -> W - 500px): Dày đặc nhất (khoảng cách ~160px) + Nhiều Boss
+    // - Vùng 4 (Tận cùng / Gần Cấm Địa: 22,000 -> W - 500px): Dày đặc nhất (khoảng cách ~160px)
     // -------------------------------------------------------------------------
     const spawnPoints = [];
 
@@ -77,20 +77,16 @@ export const EnemyMixin = {
     for (let i = 0; i < totalNodes; i++) {
       const sp = spawnPoints[i];
       const y = Phaser.Math.Between(this.field.top + 35, this.field.bottom - 35);
-      
-      // Boss xuất hiện ở cuối mỗi phân khu hoặc mật độ cao ở vùng sâu
-      const isBoss = (sp.zone === 4 && (i % 6 === 0)) || (i === totalNodes - 1) || (sp.zone === 2 && i % 14 === 0);
-      this.spawnOneFixedEnemy(sp.x, y, i, sp.zone, isBoss);
+      this.spawnOneFixedEnemy(sp.x, y, i, sp.zone);
     }
   },
 
-  spawnOneFixedEnemy(homeX, homeY, slotIndex, zone = 1, isBoss = false) {
+  spawnOneFixedEnemy(homeX, homeY, slotIndex, zone = 1) {
     const map = ALL_MAPS[gameState.currentMapId] || ALL_MAPS[0];
-    
+
     // Càng đi sâu vào map (zone cao), cấp độ quái trong dải quái của map đó càng nâng cao
     let rankOffset = 0;
-    if (isBoss) rankOffset = 3;
-    else if (zone === 1) rankOffset = (slotIndex % 2);
+    if (zone === 1) rankOffset = (slotIndex % 2);
     else if (zone === 2) rankOffset = (slotIndex % 3);
     else if (zone >= 3) rankOffset = 1 + (slotIndex % 3);
 
@@ -98,7 +94,7 @@ export const EnemyMixin = {
     const monsterData = MONSTER_RANKS[mIdx];
 
     const enemySpriteNum = monsterData.spriteNum || ((mIdx % 16) + 1);
-    const baseEnemyScale = isBoss ? 0.75 : 0.50;
+    const baseEnemyScale = 0.50;
 
     const enemy = this.enemyGroup.create(homeX, homeY, 'enemy_' + enemySpriteNum + '_idle_0')
       .setScale(baseEnemyScale * this.perspective(homeY))
@@ -109,7 +105,6 @@ export const EnemyMixin = {
     enemy.homeY = homeY;
     enemy.isDead = false;
     enemy.monsterData = monsterData;
-    enemy.isBoss = isBoss;
     enemy.isRanged = monsterData.isRanged || [3, 6, 8, 13, 15, 16].includes(enemySpriteNum);
     enemy.baseEnemyScale = baseEnemyScale;
     enemy.hp = monsterData.hp;
@@ -123,16 +118,16 @@ export const EnemyMixin = {
     enemy.enemySpriteNum = enemySpriteNum;
     enemy.play('e_enemy_' + enemySpriteNum + '_idle', true);
 
-    const barW = isBoss ? 48 : 36;
+    const barW = 36;
     enemy.barW = barW;
     enemy.hpBg = this.add.rectangle(homeX, homeY - 36, barW, 4, 0x111111, 0.8).setDepth(Math.floor(homeY) + 1);
-    enemy.hpBar = this.add.rectangle(homeX - barW / 2, homeY - 36, barW, 4, isBoss ? 0xff2244 : 0xee5533)
+    enemy.hpBar = this.add.rectangle(homeX - barW / 2, homeY - 36, barW, 4, 0xee5533)
       .setOrigin(0, 0.5).setDepth(Math.floor(homeY) + 2);
     enemy.nameText = this.add.text(homeX, homeY - 47, `${monsterData.name}`, {
-      fontSize: isBoss ? '10px' : '9px',
+      fontSize: '9px',
       fontFamily: 'sans-serif',
       fontStyle: 'bold',
-      color: isBoss ? '#ff8844' : '#ffd700',
+      color: '#ffd700',
       stroke: '#000',
       strokeThickness: 2
     }).setOrigin(0.5).setDepth(Math.floor(homeY) + 3);
@@ -162,15 +157,13 @@ export const EnemyMixin = {
       if (gameState.materials.beastHorns === undefined) gameState.materials.beastHorns = 0;
 
       const isParty = !!(gameState.party && gameState.party.isFormed);
-      const isBoss = !!enemy.isBoss;
 
       // 1. TÍNH TOÁN TỔNG NGUYÊN LIỆU RỚT RA TỪ QUÁI (RAW GROUND DROPS)
-      const mult = isBoss ? 3 : 1;
-      const rawPelts = Phaser.Math.Between(2, 4) * mult;
-      const rawFurs = Phaser.Math.Between(1, 3) * mult;
-      const rawClaws = (Math.random() < 0.65 ? Phaser.Math.Between(1, 2) : 0) * mult;
-      const rawBlood = (Math.random() < 0.55 ? Phaser.Math.Between(1, 2) : 0) * mult;
-      const rawHorns = (Math.random() < 0.40 ? 1 : 0) * mult;
+      const rawPelts = Phaser.Math.Between(2, 4);
+      const rawFurs = Phaser.Math.Between(1, 3);
+      const rawClaws = Math.random() < 0.65 ? Phaser.Math.Between(1, 2) : 0;
+      const rawBlood = Math.random() < 0.55 ? Phaser.Math.Between(1, 2) : 0;
+      const rawHorns = Math.random() < 0.40 ? 1 : 0;
 
       const dropBundle = {
         beastPelts: rawPelts,
@@ -277,7 +270,7 @@ export const EnemyMixin = {
     // 3. Nhãn hiển thị đếm ngược 2s và Người có quyền nhặt (Top Damage)
     const tagBg = this.add.rectangle(0, -32, 136, 22, 0x09111e, 0.9)
       .setStrokeStyle(1, auraColor);
-    
+
     const tagText = this.add.text(0, -38, '🎁 Chiến Lợi Phẩm (2s)', {
       fontFamily: 'sans-serif',
       fontSize: '8.5px',
@@ -479,11 +472,11 @@ export const EnemyMixin = {
 
   enemyAttack(enemy, target = null) {
     if (!enemy || !enemy.active || enemy.isDead) return;
-    
+
     const targetX = target ? target.x : (this.player ? this.player.x : enemy.x);
     enemy.setFlipX(targetX < enemy.x);
     enemy.attackUntil = this.time.now + 450;
-    
+
     const atkAnim = 'e_enemy_' + enemy.enemySpriteNum + '_attack';
     if (this.anims.exists(atkAnim)) {
       enemy.play(atkAnim, false);
@@ -494,12 +487,12 @@ export const EnemyMixin = {
         }
       });
     }
-    
+
     // Windup before melee impact connects
     this.time.delayedCall(160, () => {
       if (!enemy || !enemy.active || enemy.isDead) return;
       const enemyDmg = enemy.dmg || 20;
-      
+
       // 1. Hit Player
       if (this.player && this.player.active && !this.dead) {
         const d = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
@@ -553,12 +546,12 @@ export const EnemyMixin = {
 
   enemyShootProjectile(enemy, target = null) {
     if (!enemy || !enemy.active || enemy.isDead) return;
-    
+
     const targetX = target ? target.x : (this.player ? this.player.x : enemy.x);
     const targetY = target ? target.y : (this.player ? this.player.y : enemy.y);
     enemy.setFlipX(targetX < enemy.x);
     enemy.attackUntil = this.time.now + 450;
-    
+
     const atkAnim = 'e_enemy_' + enemy.enemySpriteNum + '_attack';
     if (this.anims.exists(atkAnim)) {
       enemy.play(atkAnim, false);
@@ -566,7 +559,7 @@ export const EnemyMixin = {
 
     const startX = enemy.x, startY = enemy.y - 15;
     const enemyDmg = enemy.dmg || 40;
-    
+
     const proj = this.add.circle(startX, startY, 7, 0xff3355, 0.95).setDepth(Math.floor(startY) + 50);
     this.tweens.add({
       targets: proj,
@@ -575,7 +568,7 @@ export const EnemyMixin = {
       ease: 'Linear',
       onComplete: () => {
         if (proj && proj.active) proj.destroy();
-        
+
         // Sát thương theo loại target
         if (target) {
           if (target.type === 'player' && this.player && this.player.active && !this.dead) {
