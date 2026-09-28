@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-vfx-original-restore-v1';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-sword-only-v2';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
 import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-bright-modal-ed67031';
@@ -8,7 +8,7 @@ import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=202
 import { installSimpleCongPhapHomeUI } from './scenes/mixins/SimpleCongPhapHomeUI.js?v=20260928-single-line-congphap-22fa3d0';
 import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=20260928-welcome-fullscreen-d18e1e9';
 import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-thanh-van-image-hub-v3';
-import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-skill-fullscreen-1d6de02';
+import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-sword-only-v2';
 import { installStarterGiftResourceOnly } from './scenes/mixins/StarterGiftResourceOnly.js?v=20260928-starter-resource-only-16f2fc3';
 import { installWorldResourceProgression } from './scenes/mixins/WorldResourceProgression.js?v=20260928-world-resources-a419273';
 import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-thanh-van-image-hub-v3';
@@ -18,10 +18,8 @@ import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDr
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
-import { installSkillMasteryRealmGuard } from './scenes/mixins/SkillMasteryRealmGuard.js?v=20260928-vfx-original-restore-v2';
 import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v2';
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
-import { installSwordMasteryRestore } from './scenes/mixins/SwordMasteryRestore.js?v=20260928-sword-mastery-restore-v1';
 import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
 import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js?v=20260928-realm-progression-v3';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-spirit-stone-icons-v3';
@@ -49,10 +47,8 @@ installRankOneBeastCoreDrops(MainGameScene);
 installRareResourceInventoryUI(MainGameScene);
 installInventoryGridUI(MainGameScene);
 installVillageHubTouchFix(MainGameScene);
-installSkillMasteryRealmGuard(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
-installSwordMasteryRestore(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
 installUiGameplayPauseOptimization(MainGameScene);
 installUnifiedUiMapIsolation(MainGameScene);
