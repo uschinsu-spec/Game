@@ -1,4 +1,5 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-sword-only-v2';
+import { CombatMixin } from './scenes/mixins/CombatMixin.js?v=20260928-sword-only-v3';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
 import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-bright-modal-ed67031';
@@ -25,6 +26,10 @@ import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-spirit-stone-icons-v3';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
+
+// Một nguồn duy nhất cho toàn bộ 5 skill Kiếm: CombatMixin.js.
+// Nạp trực tiếp bản mới để không còn bất kỳ renderer/guard VFX phụ nào ghi đè.
+Object.assign(MainGameScene.prototype, CombatMixin);
 
 installRealmIndexCompatibility(MainGameScene);
 installRealmProgressionV3(MainGameScene);
