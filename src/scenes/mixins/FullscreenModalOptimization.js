@@ -36,10 +36,14 @@ function makeOverlayFullscreen(scene) {
   overlay.setPosition?.(W / 2, H / 2);
   overlay.setScrollFactor?.(0);
   overlay.setDepth?.(UI_OVERLAY_DEPTH);
+
   if (overlay.type === 'Rectangle') {
     overlay.setDisplaySize?.(W + 16, H + 16);
-    overlay.setFillStyle?.(0x010811, 1);
+    // Transparent blocker: keeps all world touch/input blocked without putting a
+    // black veil behind Bag/Crafting/Skills/Map panels.
+    overlay.setFillStyle?.(0x000000, 0.001);
   }
+
   if (!overlay.input && overlay.setInteractive) overlay.setInteractive({ useHandCursor: false });
   if (!overlay.__fullscreenInputGuard) {
     overlay.__fullscreenInputGuard = true;
@@ -58,6 +62,7 @@ function optimizePanel(scene) {
     makeOverlayFullscreen(scene);
     return;
   }
+
   resetWorldTouch(scene);
   makeOverlayFullscreen(scene);
   panel.setPosition?.(W / 2, H / 2);
@@ -70,9 +75,11 @@ function optimizePanel(scene) {
     background.__fullscreenFrameApplied = true;
     background.setPosition?.(0, 0);
     background.setDisplaySize?.(W - 6, H - 6);
-    background.setFillStyle?.(0x062a3b, 1);
-    background.setStrokeStyle?.(3, 0x67e8ff, 1);
+    // Bright jade-blue fullscreen panel instead of near-black/navy.
+    background.setFillStyle?.(0x124766, 0.96);
+    background.setStrokeStyle?.(3, 0x9cf7ff, 1);
   }
+
   scene.enterUiHardPause?.();
 }
 
