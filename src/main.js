@@ -18,13 +18,15 @@ import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDr
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
-import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v1';
+import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v2';
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
+import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js?v=20260928-realm-progression-v3';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
 installRealmIndexCompatibility(MainGameScene);
+installRealmProgressionV3(MainGameScene);
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
 installFullscreenModalOptimization(MainGameScene);
@@ -57,28 +59,12 @@ export const config = {
   backgroundColor: '#061118',
   physics: {
     default: 'arcade',
-    arcade: {
-      gravity: { y: 0 },
-      debug: false
-    }
+    arcade: { gravity: { y: 0 }, debug: false }
   },
   scene: [MainGameScene],
-  input: {
-    touch: {
-      capture: true
-    },
-    activePointers: 3
-  },
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
-  }
+  input: { touch: { capture: true }, activePointers: 3 },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
 };
 
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  window.game = new Phaser.Game(config);
-} else {
-  window.addEventListener('DOMContentLoaded', () => {
-    window.game = new Phaser.Game(config);
-  });
-}
+if (document.readyState === 'complete' || document.readyState === 'interactive') window.game = new Phaser.Game(config);
+else window.addEventListener('DOMContentLoaded', () => { window.game = new Phaser.Game(config); });
