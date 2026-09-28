@@ -105,8 +105,8 @@ export const NPCS_DATA = [
 
   {
     id: 'duoc_diem',
-    name: 'Dược Điếm (Liễu Dược Sư)',
-    title: '[DƯỢC ĐIẾM]',
+    name: 'Dược Nương (Liễu Dược Sư)',
+    title: '[DƯỢC NƯƠNG]',
     mapId: 0,
     x: 410,
     y: 220,
@@ -156,8 +156,8 @@ export const NPCS_DATA = [
 
   {
     id: 'tuu_lau',
-    name: 'Tửu Lầu (Túy Tiên Quán)',
-    title: '[TỬU LẦU]',
+    name: 'Chủ Tửu Quán (Túy Tiên Quán)',
+    title: '[CHỦ TỬU QUÁN]',
     mapId: 0,
     x: 360,
     y: 570,
@@ -199,8 +199,8 @@ export const NPCS_DATA = [
 
   {
     id: 'thuong_hoi',
-    name: 'Thương Hội (Vạn Bảo Các)',
-    title: '[THƯƠNG HỘI]',
+    name: 'Thương Nhân (Vạn Bảo Các)',
+    title: '[THƯƠNG NHÂN]',
     mapId: 0,
     x: 140,
     y: 540,
@@ -239,6 +239,108 @@ export const NPCS_DATA = [
         color: '#15803d',
         execute: (scene) => {
           scene.openCurrencyExchangeModal();
+          return { success: true };
+        }
+      }
+    ]
+  },
+
+  {
+    id: 'nong_phu',
+    name: 'Nông Phu (Điền Bá)',
+    title: '[NÔNG PHU]',
+    mapId: 0,
+    x: 478,
+    y: 205,
+    icon: '🌾',
+    color: '#86efac',
+    tagBg: 0x12351f,
+    tagBorder: 0x4ade80,
+    spriteKey: 'npc_9',
+    avatar: 'npc_9',
+    greeting: 'Ruộng linh điền của Thanh Vân Thôn chuyên gieo trồng dược thảo phổ thông. Có thảo dược muốn bán hoặc cần giống cây thì cứ tìm ta.',
+    actions: [
+      {
+        id: 'sell_common_herbs',
+        label: '🌿 Bán Linh Thảo Phổ Thông',
+        desc: 'Mở kho thảo dược và bán các cây thuốc đã thu hái ngoài thôn',
+        color: '#22c55e',
+        execute: (scene) => {
+          scene.openCommonHerbSellPanel?.();
+          return { success: true };
+        }
+      },
+      {
+        id: 'buy_farm_herbs',
+        label: '🧺 Mua 10 Linh Thảo (Giá: 200 Bạc)',
+        desc: 'Mua thảo dược phổ thông dùng làm nguyên liệu luyện đan',
+        color: '#eab308',
+        execute: (scene) => scene.tradeWithNpc('buy_herbs', { costSilver: 200, addHerbs: 10 })
+      }
+    ]
+  },
+
+  {
+    id: 'tho_xay',
+    name: 'Thợ Xây (Lỗ Công)',
+    title: '[THỢ XÂY]',
+    mapId: 0,
+    x: 473,
+    y: 747,
+    icon: '🏗️',
+    color: '#fbbf24',
+    tagBg: 0x35230a,
+    tagBorder: 0xf59e0b,
+    spriteKey: 'npc_14',
+    avatar: 'npc_14',
+    greeting: 'Ta phụ trách cầu đường và các công trình nối Thanh Vân Thôn với những vùng đất bên ngoài. Muốn xem lộ trình thì mở bản đồ thế giới.',
+    actions: [
+      {
+        id: 'open_world_map',
+        label: '🗺️ Xem Bản Đồ & Công Trình Liên Vùng',
+        desc: 'Mở bản đồ để xem các khu vực, điều kiện và đường đi đã mở khóa',
+        color: '#38bdf8',
+        execute: (scene) => {
+          scene.openMapPanel('nam_lang');
+          return { success: true };
+        }
+      }
+    ]
+  },
+
+  {
+    id: 've_si_cong',
+    name: 'Vệ Sĩ Cổng (Hộ Vệ Thanh Vân)',
+    title: '[VỆ SĨ CỔNG]',
+    mapId: 0,
+    x: 270,
+    y: 825,
+    icon: '🛡️',
+    color: '#fca5a5',
+    tagBg: 0x351215,
+    tagBorder: 0xef4444,
+    spriteKey: 'npc_16',
+    avatar: 'npc_16',
+    greeting: 'Bên ngoài cổng là Thanh Vân Ngoại Vi, nơi dã thú và yêu vật xuất hiện. Hãy chuẩn bị đầy đủ trước khi rời khu an toàn.',
+    actions: [
+      {
+        id: 'leave_village',
+        label: '⚔️ Rời Thôn — Đến Thanh Vân Ngoại Vi',
+        desc: 'Đi qua cổng là vào khu chiến đấu và có thể bị quái vật tấn công',
+        color: '#ef4444',
+        execute: (scene) => {
+          scene.closeModal();
+          scene.switchMap(1, 350, 620);
+          return { success: true };
+        }
+      },
+      {
+        id: 'inspect_route',
+        label: '🗺️ Xem Bản Đồ Trước Khi Khởi Hành',
+        desc: 'Kiểm tra khu vực, cảnh giới yêu cầu và lộ trình tiếp theo',
+        color: '#38bdf8',
+        execute: (scene) => {
+          scene.openMapPanel('nam_lang', 1);
           return { success: true };
         }
       }

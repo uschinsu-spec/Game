@@ -11,7 +11,7 @@
  *   mixins/ModalMixin.js   — 7 panel UI (Map, Skill, Sect, Crafting, Gear, etc.)
  */
 import { REALMS } from '../config/realmsData.js';
-import { ALL_MAPS, getMapById } from '../config/regionsData.js';
+import { ALL_MAPS, getMapById } from '../config/regionsData.js?v=20260928-thanh-van-image-hub-v1';
 import { gameState } from '../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../config/skillsData.js';
 import { W, H } from './constants.js';
@@ -21,7 +21,7 @@ import { CombatMixin } from './mixins/CombatMixin.js';
 import { EnemyMixin } from './mixins/EnemyMixin.js';
 import { PlayerMixin } from './mixins/PlayerMixin.js';
 import { ModalMixin } from './mixins/ModalMixin.js';
-import { NpcMixin } from './mixins/NpcMixin.js';
+import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-thanh-van-image-hub-v1';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
 import { HerbsMixin } from './mixins/HerbsMixin.js';
 import { exportSaveCode } from '../state/saveSystem.js';
@@ -211,6 +211,10 @@ export class MainGameScene extends Phaser.Scene {
     this.createSideToggleButtons();
     this.createMinimap();
 
+    // Map 0 is an image-based hub: hide combat controls/player and attach
+    // click zones to the function labels painted into IMG_7504.png.
+    this.syncVillageHubMode();
+
     this.modalLayer = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
 
     this.initBattlefield();
@@ -225,6 +229,7 @@ export class MainGameScene extends Phaser.Scene {
     // Tap-to-move
     this.input.on('pointerdown', p => {
       if (this.isModalOpen && this.isModalOpen()) return;
+      if (Number(gameState.currentMapId) === 0) return;
       if (p.y < 90 || p.y > H - 140 || p.x > W - 60) return;
       this.moveTarget = {
         x: Phaser.Math.Clamp(p.x + this.cameras.main.scrollX, this.field.left, this.field.right),
@@ -260,6 +265,7 @@ export class MainGameScene extends Phaser.Scene {
   // ----------------------------------------------------------------
   update(time, delta) {
     if (!this.player || !this.player.body || this.dead) return;
+    if (Number(gameState.currentMapId) === 0) return;
 
     // 0. Map Portal Detection & Teleportation
     if (this.activePortals && this.activePortals.length > 0) {
@@ -884,6 +890,7 @@ export class MainGameScene extends Phaser.Scene {
     this.moveTarget = null;
     this.createNpcs();
     this.createMapPortals();
+    this.syncVillageHubMode();
     this.initBattlefield();
     this.initFellowNpcs();
     this.initHerbs();
@@ -905,20 +912,7 @@ export class MainGameScene extends Phaser.Scene {
     const curMapId = gameState.currentMapId;
     const portalDefs = [];
 
-    if (curMapId === 0) {
-      // Map 0: Thanh Vân Thôn (Thôn Làng An Toàn - Static 540x960) -> Cổng Hướng Nam đi Thanh Vân Ngoại Vi
-      portalDefs.push({
-        x: 270,
-        y: 865,
-        signOffsetY: -115,
-        targetMapId: 1,
-        targetSpawnX: 350,
-        targetSpawnY: 620,
-        title: 'THANH VÂN NGOẠI VI',
-        sub: '✦ CỔNG NAM • BÃI SĂN YÊU TÂN THỦ ✦',
-        minRealm: 0
-      });
-    } else if (curMapId === 1) {
+    if (curMapId === 1) {
       // Map 1: Thanh Vân Ngoại Vi -> Cổng Bắc quay về Thanh Vân Thôn
       portalDefs.push({
         x: 250,

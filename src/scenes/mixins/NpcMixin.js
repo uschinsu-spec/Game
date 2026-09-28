@@ -2,10 +2,24 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA } from '../../config/npcData.js';
+import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
+
+// The new Thanh Van Village is a static interactive hub. Coordinates are in
+// the 540x960 game canvas and line up with the labels already painted into
+// assets/environment/IMG_7504.png.
+const VILLAGE_HOTSPOTS = Object.freeze([
+  { npcId: 'truong_thon', x: 270, y: 118, width: 205, height: 92 },
+  { npcId: 'nong_phu',    x: 478, y: 205, width: 124, height: 118 },
+  { npcId: 'tho_ren',     x: 100, y: 326, width: 165, height: 145 },
+  { npcId: 'thuong_hoi',  x: 270, y: 405, width: 178, height: 126 },
+  { npcId: 'tuu_lau',     x: 367, y: 526, width: 184, height: 128 },
+  { npcId: 'duoc_diem',   x: 126, y: 590, width: 188, height: 142 },
+  { npcId: 'tho_xay',     x: 473, y: 747, width: 132, height: 128 },
+  { npcId: 've_si_cong',  x: 270, y: 825, width: 190, height: 150 }
+]);
 
 export const NpcMixin = {
 
@@ -19,6 +33,10 @@ export const NpcMixin = {
     this.npcsGroup = [];
 
     const curMapId = gameState.currentMapId;
+    // Map 0 already contains every NPC and label in the background artwork.
+    // Do not create legacy sprites, name plates or floating interaction buttons.
+    if (Number(curMapId) === 0) return;
+
     const currentNpcs = NPCS_DATA.filter(n => n.mapId === curMapId);
 
     currentNpcs.forEach(npcData => {
@@ -97,6 +115,80 @@ export const NpcMixin = {
       container.add([shadow, sprite, tagBg, tagTxt, nameTxt, promptBtn, promptTxt]);
       this.npcsGroup.push({ data: npcData, container, sprite, tagBg });
     });
+  },
+
+  clearVillageImageHotspots() {
+    if (this.villageHotspotObjects) {
+      this.villageHotspotObjects.forEach(obj => obj?.destroy?.());
+    }
+    this.villageHotspotObjects = [];
+  },
+
+  createVillageImageHotspots() {
+    this.clearVillageImageHotspots();
+    if (Number(gameState.currentMapId) !== 0) return;
+
+    this.villageHotspotObjects = [];
+    VILLAGE_HOTSPOTS.forEach(def => {
+      const zone = this.add.rectangle(def.x, def.y, def.width, def.height, 0xffe7a0, 0.001)
+        .setDepth(180)
+        .setInteractive({ useHandCursor: true });
+
+      zone.on('pointerover', () => zone.setFillStyle(0xffe7a0, 0.13).setStrokeStyle(2, 0xffd978, 0.85));
+      zone.on('pointerout', () => zone.setFillStyle(0xffe7a0, 0.001).setStrokeStyle());
+      zone.on('pointerdown', pointer => {
+        this.input?.stopPropagation?.();
+        pointer?.event?.stopPropagation?.();
+        pointer?.event?.preventDefault?.();
+        this.moveTarget = null;
+        zone.setFillStyle(0xffffff, 0.2).setStrokeStyle(3, 0xffefad, 1);
+        this.openNpcDialogModal(def.npcId);
+      });
+      this.villageHotspotObjects.push(zone);
+    });
+
+    const hintBg = this.add.rectangle(W / 2, 24, 314, 32, 0x071b25, 0.88)
+      .setStrokeStyle(1.5, 0xffdf8c, 0.9)
+      .setDepth(181);
+    const hint = this.add.text(W / 2, 24, '☝ CHẠM VÀO TÊN CHỨC NĂNG TRÊN BẢN ĐỒ', {
+      fontFamily: 'Be Vietnam Pro, sans-serif',
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#fff3bd'
+    }).setOrigin(0.5).setDepth(182);
+    this.villageHotspotObjects.push(hintBg, hint);
+  },
+
+  syncVillageHubMode() {
+    const active = Number(gameState.currentMapId) === 0;
+
+    if (this.player) {
+      this.player.setVisible(!active).setVelocity?.(0, 0);
+      if (this.player.body) this.player.body.enable = !active;
+    }
+    if (active) {
+      this.moveTarget = null;
+      if (this.joy) {
+        this.joy.active = false;
+        this.joy.id = null;
+        this.joy.x = 0;
+        this.joy.y = 0;
+      }
+    }
+
+    const showCombatHud = !active;
+    this.topHudElements?.forEach(el => el?.setVisible?.(showCombatHud && this.topHudVisible !== false));
+    this.minimapElements?.forEach(el => el?.setVisible?.(showCombatHud && this.topHudVisible !== false));
+    this.mini?.setVisible?.(showCombatHud && this.topHudVisible !== false);
+    this.toggleUiBtnBg?.setVisible?.(showCombatHud);
+    this.toggleUiBtnTxt?.setVisible?.(showCombatHud);
+    this.skillContainer?.setVisible?.(showCombatHud && this.skillsVisible !== false);
+    this.sideToggleContainer?.setVisible?.(showCombatHud);
+    this.joyBase?.setVisible?.(false);
+    this.joyKnob?.setVisible?.(false);
+
+    if (active) this.createVillageImageHotspots();
+    else this.clearVillageImageHotspots();
   },
 
   // ----------------------------------------------------------------
