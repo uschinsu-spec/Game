@@ -3,10 +3,10 @@ import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
 
 export const CONG_PHAP_MASTERY_TIERS = Object.freeze([
-  { idx: 0, name: 'Sơ Nhập',   usesReq: 120,  bonusMul: 0.35, color: '#aaddff' },
-  { idx: 1, name: 'Tiểu Thành', usesReq: 420,  bonusMul: 0.60, color: '#55ff99' },
-  { idx: 2, name: 'Đại Thành',  usesReq: 1200, bonusMul: 0.82, color: '#ffd700' },
-  { idx: 3, name: 'Viên Mãn',   usesReq: 0,    bonusMul: 1.00, color: '#ff44dd' }
+  { idx: 0, name: 'Sơ Nhập',   usesReq: 120,  bonusMul: 0.35, color: '#aaddff', realmTier: 'Sơ Kỳ' },
+  { idx: 1, name: 'Tiểu Thành', usesReq: 420,  bonusMul: 0.60, color: '#55ff99', realmTier: 'Trung Kỳ' },
+  { idx: 2, name: 'Đại Thành',  usesReq: 1200, bonusMul: 0.82, color: '#ffd700', realmTier: 'Hậu Kỳ' },
+  { idx: 3, name: 'Viên Mãn',   usesReq: 0,    bonusMul: 1.00, color: '#ff44dd', realmTier: 'Đỉnh Phong' }
 ]);
 
 function ensureBag() {
@@ -16,18 +16,23 @@ function ensureBag() {
   return gameState.congPhapMastery;
 }
 
-function realmBand(realmIdx) {
-  const idx = Math.max(0, Number(realmIdx) || 0);
-  if (idx <= 4) return 0;   // Phàm Nhân + Luyện Khí
-  if (idx <= 8) return 1;   // Trúc Cơ
-  if (idx <= 12) return 2;  // Kim Đan
-  return 3;                 // Nguyên Anh trở lên
+function getRealmTierIndex(realmIdx) {
+  const realm = REALMS[Math.max(0, Number(realmIdx) || 0)] || REALMS[0];
+  const tier = realm?.tier || '';
+  if (tier === 'Sơ Kỳ') return 0;
+  if (tier === 'Trung Kỳ') return 1;
+  if (tier === 'Hậu Kỳ') return 2;
+  if (tier === 'Đỉnh Phong') return 3;
+  return -1; // Phàm Nhân / Chưa Tu Luyện
 }
 
-function tierRealmRequirement(tierIdx) {
-  // Mỗi mức thuần thục gắn với một đại cảnh giới.
-  // Sơ Nhập: Phàm Nhân/Luyện Khí; Tiểu Thành: Trúc Cơ; Đại Thành: Kim Đan; Viên Mãn: Nguyên Anh+.
-  return [0, 5, 9, 13][Math.max(0, Math.min(3, tierIdx))];
+function getMasteryCapByRealm(realmIdx) {
+  // 4 cấp thành thục đi đúng 4 tiểu cảnh giới trong MỖI đại cảnh giới:
+  // Sơ Kỳ -> Sơ Nhập
+  // Trung Kỳ -> Tiểu Thành
+  // Hậu Kỳ -> Đại Thành
+  // Đỉnh Phong -> Viên Mãn
+  return getRealmTierIndex(realmIdx);
 }
 
 export function installCongPhapMasteryProgression(MainGameScene) {
@@ -43,14 +48,15 @@ export function installCongPhapMasteryProgression(MainGameScene) {
     const tierIdx = Math.max(0, Math.min(3, Number(data.tierIdx) || 0));
     const tier = CONG_PHAP_MASTERY_TIERS[tierIdx];
     const nextTier = CONG_PHAP_MASTERY_TIERS[tierIdx + 1] || null;
+    const masteryCap = getMasteryCapByRealm(gameState.realmIdx);
     return {
       cpId,
       tierIdx,
       tier,
       nextTier,
       uses: Math.max(0, Number(data.uses) || 0),
-      requiredRealmIdx: nextTier ? tierRealmRequirement(nextTier.idx) : null,
-      realmReady: nextTier ? Number(gameState.realmIdx || 0) >= tierRealmRequirement(nextTier.idx) : true,
+      masteryCap,
+      realmReady: nextTier ? masteryCap >= nextTier.idx : true,
       isMax: !nextTier
     };
   };
@@ -63,6 +69,7 @@ export function installCongPhapMasteryProgression(MainGameScene) {
   proto.gainCongPhapCombatUse = function gainCongPhapCombatUse(amt = 1) {
     const cpId = gameState.activeCongPhapId;
     if (!cpId || !getCongPhapById(cpId)) return null;
+
     const bag = ensureBag();
     if (!bag[cpId]) bag[cpId] = { tierIdx: 0, uses: 0 };
 
@@ -72,15 +79,17 @@ export function installCongPhapMasteryProgression(MainGameScene) {
     bag[cpId].uses += Math.max(0, Number(amt) || 0);
     mastery = this.getCongPhapMastery(cpId);
 
-    // Không thể vượt mức thuần thục nếu đại cảnh giới chưa tương ứng.
     const nextTier = mastery.nextTier;
     if (!nextTier) return mastery;
+
     const currentTierReq = mastery.tier.usesReq || 0;
     if (bag[cpId].uses < currentTierReq) return mastery;
 
-    const needRealmIdx = tierRealmRequirement(nextTier.idx);
-    if (Number(gameState.realmIdx || 0) < needRealmIdx) {
-      // Giữ số lần luyện ở ngưỡng để khi đột phá cảnh giới thì lần đánh tiếp theo sẽ thăng cấp.
+    // Cảnh giới hiện tại quyết định trần thành thục trong CHÍNH đại cảnh giới đó.
+    // Ví dụ Luyện Khí Sơ Kỳ chỉ được Sơ Nhập; Trung Kỳ mới được Tiểu Thành;
+    // Hậu Kỳ mới được Đại Thành; Đỉnh Phong mới được Viên Mãn.
+    const masteryCap = getMasteryCapByRealm(gameState.realmIdx);
+    if (masteryCap < nextTier.idx) {
       bag[cpId].uses = currentTierReq;
       return this.getCongPhapMastery(cpId);
     }
@@ -137,7 +146,7 @@ export function installCongPhapMasteryProgression(MainGameScene) {
     proto.basicAttack = wrapped;
   }
 
-  // Khi công pháp mới được học lần đầu, luôn bắt đầu ở Sơ Nhập.
+  // Công pháp mới học luôn bắt đầu ở Sơ Nhập.
   const originalOpenCongPhapPanel = proto.openCongPhapPanel;
   if (typeof originalOpenCongPhapPanel === 'function' && !originalOpenCongPhapPanel.__cpMasteryInitWrapped) {
     const wrapped = function openCongPhapPanelWithMasteryInit(...args) {
