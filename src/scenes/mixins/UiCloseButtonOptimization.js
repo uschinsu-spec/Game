@@ -8,6 +8,7 @@ function stopPointerEvent(pointer) {
 function resetCombatTouch(scene) {
   if (!scene) return;
   scene.moveTarget = null;
+  if (scene.player?.body?.setVelocity) scene.player.setVelocity(0, 0);
   if (!scene.joy) return;
   scene.joy.active = false;
   scene.joy.id = null;
@@ -23,83 +24,59 @@ export function installUiCloseButtonOptimization(MainGameScene) {
   const proto = MainGameScene.prototype;
   proto.__uiCloseButtonOptimized = true;
 
-  // Nút đóng dùng chung cho mọi modal: lớn, rõ và ổn định trên mobile.
-  // Không đóng ở pointerdown vì lúc đó scene-level input vẫn đang xử lý cùng touch.
-  // Chỉ đóng ở pointerup để không xuyên touch xuống map/combat phía sau modal.
-  proto.createModalCloseBtn = function createModalCloseBtnOptimized(panel, x = 215, y = -280) {
-    const safeX = x >= 0 ? Math.min(x, 184) : Math.max(x, -184);
-    const width = 92;
-    const height = 42;
+  // Mobile-first close button: fixed at the top-right of every fullscreen modal.
+  // Close on pointerdown so one tap always works even during combat-heavy scenes.
+  proto.createModalCloseBtn = function createModalCloseBtnOptimized(panel) {
+    const x = 205;
+    const y = -432;
+    const width = 104;
+    const height = 48;
 
-    const btnBg = this.add.rectangle(safeX, y, width, height, 0x9f1d2d, 1)
-      .setStrokeStyle(2, 0xfecaca, 1)
+    const btnBg = this.add.rectangle(x, y, width, height, 0xb91c2c, 1)
+      .setStrokeStyle(2.5, 0xffc3cc, 1)
       .setInteractive({ useHandCursor: true });
 
-    const btnTxt = this.add.text(safeX, y, 'ĐÓNG', {
-      fontSize: '13px',
+    const btnTxt = this.add.text(x, y, 'ĐÓNG', {
+      fontSize: '15px',
       fontFamily: 'Be Vietnam Pro, sans-serif',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setStroke('#4a0b14', 2).setOrigin(0.5);
 
-    let pressedPointerId = null;
-
-    const setNormal = () => {
-      if (!btnBg?.active) return;
-      btnBg.setFillStyle(0x9f1d2d, 1).setScale(1);
-      if (btnTxt?.active) btnTxt.setColor('#ffffff').setScale(1);
-    };
-
-    const setPressed = () => {
-      if (!btnBg?.active) return;
-      btnBg.setFillStyle(0xdc263d, 1).setScale(0.96);
-      if (btnTxt?.active) btnTxt.setColor('#fff3a8').setScale(0.96);
-    };
-
-    btnBg.on('pointerover', () => {
-      if (pressedPointerId === null && btnBg?.active) {
-        btnBg.setFillStyle(0xc52236, 1);
-        if (btnTxt?.active) btnTxt.setColor('#fff3a8');
-      }
-    });
-
-    btnBg.on('pointerout', () => {
-      pressedPointerId = null;
-      setNormal();
-    });
-
-    btnBg.on('pointerdown', (pointer) => {
+    let closed = false;
+    const closeNow = (pointer) => {
       stopPointerEvent(pointer);
-      resetCombatTouch(this);
-      pressedPointerId = pointer?.id ?? 0;
-      setPressed();
-    });
-
-    btnBg.on('pointerup', (pointer) => {
-      stopPointerEvent(pointer);
-      const pointerId = pointer?.id ?? 0;
-      if (pressedPointerId !== null && pointerId !== pressedPointerId) return;
-      pressedPointerId = null;
+      if (closed) return;
+      closed = true;
       resetCombatTouch(this);
       this.closeModal();
-    });
+    };
 
-    btnBg.on('pointerupoutside', (pointer) => {
-      stopPointerEvent(pointer);
-      pressedPointerId = null;
-      setNormal();
+    btnBg.on('pointerdown', closeNow);
+    btnBg.on('pointerover', () => {
+      if (btnBg?.active) btnBg.setFillStyle(0xe11d48, 1);
+      if (btnTxt?.active) btnTxt.setColor('#fff4a8');
+    });
+    btnBg.on('pointerout', () => {
+      if (btnBg?.active) btnBg.setFillStyle(0xb91c2c, 1);
+      if (btnTxt?.active) btnTxt.setColor('#ffffff');
     });
 
     panel.add([btnBg, btnTxt]);
     return btnBg;
   };
 
-  // Mọi cách đóng modal (nút ĐÓNG, ESC, chuyển panel...) đều giải phóng touch combat.
+  // Every close path releases touch state and resumes world physics.
   const originalCloseModal = proto.closeModal;
   if (typeof originalCloseModal === 'function' && !originalCloseModal.__uiCloseWrapped) {
     const wrappedCloseModal = function closeModalWithTouchReset(...args) {
       resetCombatTouch(this);
-      return originalCloseModal.apply(this, args);
+      const result = originalCloseModal.apply(this, args);
+      if (this.physics?.world?.isPaused && this.physics.world.resume) {
+        this.physics.world.resume();
+      }
+      this.__uiWorldPaused = false;
+      return result;
     };
     wrappedCloseModal.__uiCloseWrapped = true;
     proto.closeModal = wrappedCloseModal;
