@@ -71,47 +71,16 @@ export const PlayerMixin = {
     return sense;
   },
 
-  // Tốc độ đánh cân bằng theo cảnh giới.
-  // Luyện Khí Sơ Kỳ (realmIdx = 1) = đúng 2 giây / 1 đòn.
-  // Các cảnh giới sau giảm dần interval nhưng không còn rơi xuống mức quá nhanh như trước.
+  // Tốc độ đánh lấy trực tiếp từ Thần Thức.
+  // Chuẩn cân bằng: Luyện Khí Sơ Kỳ có 20 Thần Thức = 2000ms / đòn.
+  // Khi Thần Thức tăng từ cảnh giới, trang bị, công pháp... thì tốc đánh tăng tự nhiên.
+  // Hàm lũy thừa 0.6 giúp late-game nhanh hơn nhưng không tăng mất kiểm soát.
   calcPlayerAtkInterval() {
-    const realmIdx = Math.max(0, Number(gameState.realmIdx) || 0);
-    const baseByRealm = {
-      0: 2200, // Phàm Nhân
-      1: 2000, // Luyện Khí Sơ Kỳ
-      2: 1850, // Luyện Khí Trung Kỳ
-      3: 1700, // Luyện Khí Hậu Kỳ
-      4: 1550, // Luyện Khí Đỉnh Phong
-      5: 1450,
-      6: 1350,
-      7: 1250,
-      8: 1150,
-      9: 1050,
-      10: 980,
-      11: 920,
-      12: 860,
-      13: 800,
-      14: 750,
-      15: 700,
-      16: 650,
-      17: 600,
-      18: 560,
-      19: 520,
-      20: 480
-    };
-
-    let interval = baseByRealm[realmIdx] ?? 2000;
-
-    // Thần Thức chỉ tạo hiệu chỉnh nhỏ để không phá cân bằng đầu game.
-    const sense = this.calcPlayerSpiritualSense();
-    const realmBaseSense = REALMS[realmIdx]?.spiritualSense || 10;
-    const bonusSense = Math.max(0, sense - realmBaseSense);
-    interval -= Math.min(220, Math.floor(bonusSense * 2));
-
-    // Vạn Kiếm Tông vẫn có lợi thế tốc đánh nhưng bị giới hạn an toàn.
-    if (gameState.sectId === 'van_kiem_tong') interval = Math.floor(interval * 0.90);
-
-    return Math.max(450, interval);
+    const sense = Math.max(1, this.calcPlayerSpiritualSense());
+    const BASE_SENSE = 20;
+    const BASE_INTERVAL = 2000;
+    const interval = Math.round(BASE_INTERVAL * Math.pow(BASE_SENSE / sense, 0.60));
+    return Math.max(450, Math.min(2600, interval));
   },
 
   calcPlayerBaseDmg() {
@@ -293,7 +262,14 @@ export const PlayerMixin = {
       .setScale(scale).setAlpha(alpha).setAngle(opts.angle || 0).setDepth(opts.depth || y + 2);
     if (opts.tint) v.setTint(opts.tint);
     this.tweens.killTweensOf(v);
-    this.tweens.add({ targets: v, scaleX: scale * grow, scaleY: scale * grow, alpha: 0, duration, ease: opts.ease || 'Cubic.easeOut', onComplete: () => { v.setActive(false).setVisible(false); } });
+    this.tweens.add({
+      targets: v,
+      scaleX: scale * grow, scaleY: scale * grow,
+      alpha: 0,
+      duration,
+      ease: opts.ease || 'Cubic.easeOut',
+      onComplete: () => { v.setActive(false).setVisible(false); }
+    });
     return v;
   },
 
@@ -302,11 +278,28 @@ export const PlayerMixin = {
     return 0.65 + 0.55 * t;
   },
 
-  fixed(o, d = 100) { return o.setScrollFactor(0).setDepth(d); },
+  fixed(o, d = 100) {
+    return o.setScrollFactor(0).setDepth(d);
+  },
 
   showFloatingText(x, y, text, color = '#ffffff', fontSize = '12px') {
-    const txt = this.add.text(x, y, text, { fontSize, fontFamily: 'sans-serif', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setDepth(20000);
-    this.tweens.add({ targets: txt, y: y - 45, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => txt.destroy() });
+    const txt = this.add.text(x, y, text, {
+      fontSize,
+      fontFamily: 'sans-serif',
+      fontStyle: 'bold',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(20000);
+
+    this.tweens.add({
+      targets: txt,
+      y: y - 45,
+      alpha: 0,
+      duration: 1100,
+      ease: 'Cubic.easeOut',
+      onComplete: () => txt.destroy()
+    });
   },
 
   getSkillMastery(skillId) {
@@ -330,7 +323,9 @@ export const PlayerMixin = {
       gameState.skillMastery[skillId].exp = 0;
       const newTier = SKILL_MASTERY_TIERS[gameState.skillMastery[skillId].tierIdx];
       this.spawnVfx(this.player.x, this.player.y, 0, 1.4, { tint: newTier.badgeBg, duration: 600 });
-      this.showFloatingText(this.player.x, this.player.y - 85, `⚡ [${sName}] ĐỘT PHÁ [${newTier.name.toUpperCase()}]! (ST +${Math.round(newTier.dmgBonus * 100)}%)`, newTier.color, '15px');
+      this.showFloatingText(this.player.x, this.player.y - 85,
+        `⚡ [${sName}] ĐỘT PHÁ [${newTier.name.toUpperCase()}]! (ST +${Math.round(newTier.dmgBonus * 100)}%)`,
+        newTier.color, '15px');
       if (this.createSkillBar) this.createSkillBar();
     }
     return this.getSkillMastery(skillId);
