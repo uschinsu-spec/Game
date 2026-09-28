@@ -1,5 +1,5 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
-import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js';
+import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 
 installTouchInputOptimization(MainGameScene);
 
