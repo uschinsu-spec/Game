@@ -5,7 +5,8 @@ export const gameState = {
   exp: 0,
   
   // Thuộc tính Tu Tiên
-  spiritualSense: 10, // Thần Thức (tăng bạo kích & cảm ứng cơ duyên)
+  spiritualSense: 10, // Giá trị tương thích cũ; Thần Thức thực tế lấy từ REALMS + spiritualSenseBonus
+  spiritualSenseBonus: 0, // Thần Thức cộng thêm vĩnh viễn từ đan dược/công pháp; giữ nguyên khi đột phá cảnh giới
   manaMax: 500,       // Chân Nguyên / Linh Lực
   mana: 500,
   aptitude: 'Ngũ Hành Linh Căn', // Căn Cốt
