@@ -1,6 +1,7 @@
 import { gameState } from '../../state/gameState.js';
 
 const VAN_MOC_MAP_ID = 2;
+const NORMAL_ENEMY_BASE_SCALE = 0.50;
 
 const ZONE_LABELS = {
   1: 'Sơ Kỳ',
@@ -16,13 +17,74 @@ const ZONE_COLORS = {
   4: '#fb7185'
 };
 
+// Chọn trực tiếp asset đang có trong assets/enemies cho 4 cấp Nhất Phẩm.
+// Mỗi thư mục đã có đủ idle/run/attack nên tái sử dụng trọn bộ animation hiện tại.
+const ZONE_ENEMY_ASSETS = {
+  1: { spriteNum: 5, asset: 'enemy_5', monster: 'Thanh Lang', stage: 'Nhất Phẩm Sơ Kỳ' },
+  2: { spriteNum: 4, asset: 'enemy_4', monster: 'Độc Giác Trư', stage: 'Nhất Phẩm Trung Kỳ' },
+  3: { spriteNum: 9, asset: 'enemy_9', monster: 'Huyết Tích Ma', stage: 'Nhất Phẩm Hậu Kỳ' },
+  4: { spriteNum: 7, asset: 'enemy_7', monster: 'Lang Vương Vạn Mộc', stage: 'Nhất Phẩm Đỉnh Phong' }
+};
+
+// Kích thước tăng tuyệt đối theo cấp so với quái cơ sở, không cộng thêm boss scale cũ.
+const ZONE_SIZE_MULTIPLIERS = {
+  1: 1.2,
+  2: 1.4,
+  3: 1.6,
+  4: 1.8
+};
+
+function applyVanMocVisual(scene, enemy, strictZone, strictBoss) {
+  if (!enemy) return enemy;
+
+  const visual = ZONE_ENEMY_ASSETS[strictZone];
+  const sizeMultiplier = ZONE_SIZE_MULTIPLIERS[strictZone] || 1;
+  const spriteNum = visual?.spriteNum || enemy.enemySpriteNum;
+
+  // Khóa đúng bộ hình enemy theo cấp. Nếu dữ liệu monster sau này đổi spriteNum,
+  // Vạn Mộc vẫn sử dụng đúng 4 asset đã chọn ở trên.
+  if (spriteNum && enemy.enemySpriteNum !== spriteNum) {
+    enemy.enemySpriteNum = spriteNum;
+    enemy.setTexture?.(`enemy_${spriteNum}_idle_0`);
+    enemy.play?.(`e_enemy_${spriteNum}_idle`, true);
+  }
+
+  enemy.vanMocZone = strictZone;
+  enemy.vanMocStage = ZONE_LABELS[strictZone];
+  enemy.vanMocAsset = visual?.asset || `enemy_${spriteNum}`;
+  enemy.vanMocSizeMultiplier = sizeMultiplier;
+
+  // EnemyMixin/MainScene luôn dựa vào baseEnemyScale khi cập nhật perspective.
+  // Ghi scale mới vào đây để đi lại, combat và respawn đều giữ đúng kích thước.
+  enemy.baseEnemyScale = NORMAL_ENEMY_BASE_SCALE * sizeMultiplier;
+  const perspectiveScale = typeof scene.perspective === 'function' ? scene.perspective(enemy.y) : 1;
+  const finalScale = enemy.baseEnemyScale * perspectiveScale;
+  enemy.setScale?.(finalScale);
+
+  // Đồng bộ HUD trên đầu quái ngay frame spawn đầu tiên.
+  const barW = strictBoss ? 48 : 36;
+  enemy.barW = barW;
+  enemy.hpBg?.setPosition?.(enemy.x, enemy.y - 36 * finalScale);
+  enemy.hpBar?.setPosition?.(enemy.x - barW / 2, enemy.y - 36 * finalScale);
+  enemy.nameText?.setPosition?.(enemy.x, enemy.y - 47 * finalScale);
+
+  if (enemy.nameText?.setText) {
+    const baseName = visual?.monster || enemy.monsterData?.name || 'Yêu Thú';
+    enemy.nameText.setText(`${baseName} • ${ZONE_LABELS[strictZone]}`);
+    enemy.nameText.setColor?.(ZONE_COLORS[strictZone]);
+    enemy.nameText.setFontSize?.(strictZone === 4 ? '10px' : (strictZone === 3 ? '9.5px' : '9px'));
+  }
+
+  return enemy;
+}
+
 /**
  * Vạn Mộc Sâm Lâm dùng cùng density gradient với Thanh Vân Ngoại Vi,
  * nhưng khóa cấp yêu thú tuyệt đối theo độ sâu bản đồ:
- * Zone 1 -> Nhất Phẩm Sơ Kỳ
- * Zone 2 -> Nhất Phẩm Trung Kỳ
- * Zone 3 -> Nhất Phẩm Hậu Kỳ
- * Zone 4 -> Nhất Phẩm Đỉnh Phong
+ * Zone 1 -> Nhất Phẩm Sơ Kỳ -> enemy_5 -> 1.2x
+ * Zone 2 -> Nhất Phẩm Trung Kỳ -> enemy_4 -> 1.4x
+ * Zone 3 -> Nhất Phẩm Hậu Kỳ -> enemy_9 -> 1.6x
+ * Zone 4 -> Nhất Phẩm Đỉnh Phong -> enemy_7 -> 1.8x
  *
  * EnemyMixin gốc tính rankOffset từ zone + slotIndex. Ta truyền slotIndex
  * chuẩn hóa để tái sử dụng toàn bộ AI/combat/respawn/drop hiện có mà không
@@ -69,19 +131,6 @@ export function installVanMocEnemyProgression(MainGameScene) {
       strictBoss
     );
 
-    if (!enemy) return enemy;
-
-    enemy.vanMocZone = strictZone;
-    enemy.vanMocStage = ZONE_LABELS[strictZone];
-
-    // Hiển thị ngắn gọn cấp yêu thú để người chơi nhận biết độ sâu khu vực.
-    if (enemy.nameText?.setText) {
-      const baseName = enemy.monsterData?.name || 'Yêu Thú';
-      enemy.nameText.setText(`${baseName} • ${ZONE_LABELS[strictZone]}`);
-      enemy.nameText.setColor?.(ZONE_COLORS[strictZone]);
-      enemy.nameText.setFontSize?.(strictBoss ? '10px' : '8.5px');
-    }
-
-    return enemy;
+    return applyVanMocVisual(this, enemy, strictZone, strictBoss);
   };
 }
