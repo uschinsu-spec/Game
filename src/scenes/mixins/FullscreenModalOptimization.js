@@ -1,23 +1,26 @@
 import { W, H } from '../constants.js';
 
-function stopPointer(pointer) {
+const UI_OVERLAY_DEPTH = 999998;
+const UI_PANEL_DEPTH = 1000000;
+
+function stopPointer(scene, pointer) {
+  scene?.input?.stopPropagation?.();
   const evt = pointer?.event;
-  if (!evt) return;
-  if (typeof evt.stopPropagation === 'function') evt.stopPropagation();
-  if (typeof evt.preventDefault === 'function') evt.preventDefault();
+  evt?.stopPropagation?.();
+  evt?.preventDefault?.();
 }
 
 function resetWorldTouch(scene) {
   if (!scene) return;
   scene.moveTarget = null;
-  if (scene.player?.body?.setVelocity) scene.player.setVelocity(0, 0);
+  scene.player?.setVelocity?.(0, 0);
   if (!scene.joy) return;
   scene.joy.active = false;
   scene.joy.id = null;
   scene.joy.x = 0;
   scene.joy.y = 0;
-  if (scene.joyBase?.setVisible) scene.joyBase.setVisible(false);
-  if (scene.joyKnob?.setVisible) scene.joyKnob.setVisible(false);
+  scene.joyBase?.setVisible?.(false);
+  scene.joyKnob?.setVisible?.(false);
 }
 
 function isLargePanelBackground(obj) {
@@ -30,28 +33,22 @@ function isLargePanelBackground(obj) {
 function makeOverlayFullscreen(scene) {
   const overlay = scene?.activeModalOverlay;
   if (!overlay || !overlay.active) return;
-
   overlay.setPosition?.(W / 2, H / 2);
   overlay.setScrollFactor?.(0);
-  overlay.setDepth?.(9998);
-
+  overlay.setDepth?.(UI_OVERLAY_DEPTH);
   if (overlay.type === 'Rectangle') {
-    overlay.setDisplaySize?.(W + 12, H + 12);
-    overlay.setFillStyle?.(0x020912, 0.995);
+    overlay.setDisplaySize?.(W + 16, H + 16);
+    overlay.setFillStyle?.(0x010811, 1);
   }
-
-  if (!overlay.input && typeof overlay.setInteractive === 'function') {
-    overlay.setInteractive({ useHandCursor: false });
-  }
-
+  if (!overlay.input && overlay.setInteractive) overlay.setInteractive({ useHandCursor: false });
   if (!overlay.__fullscreenInputGuard) {
     overlay.__fullscreenInputGuard = true;
     overlay.on?.('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       resetWorldTouch(scene);
     });
-    overlay.on?.('pointerup', pointer => stopPointer(pointer));
-    overlay.on?.('pointermove', pointer => stopPointer(pointer));
+    overlay.on?.('pointerup', pointer => stopPointer(scene, pointer));
+    overlay.on?.('pointermove', pointer => stopPointer(scene, pointer));
   }
 }
 
@@ -61,74 +58,44 @@ function optimizePanel(scene) {
     makeOverlayFullscreen(scene);
     return;
   }
-
   resetWorldTouch(scene);
   makeOverlayFullscreen(scene);
-
   panel.setPosition?.(W / 2, H / 2);
   panel.setScrollFactor?.(0);
-  panel.setDepth?.(10000);
+  panel.setDepth?.(UI_PANEL_DEPTH);
 
-  // Fullscreen only changes the frame/background. Never scale or reposition
-  // existing child text/rows: that caused the overlapping UI seen on mobile.
   const topLevel = Array.isArray(panel.list) ? panel.list : [];
   const background = topLevel.find(isLargePanelBackground);
   if (background && !background.__fullscreenFrameApplied) {
     background.__fullscreenFrameApplied = true;
     background.setPosition?.(0, 0);
-    background.setDisplaySize?.(W - 8, H - 8);
-    background.setFillStyle?.(0x082638, 1);
-    background.setStrokeStyle?.(2.5, 0x63e6ff, 1);
+    background.setDisplaySize?.(W - 6, H - 6);
+    background.setFillStyle?.(0x062a3b, 1);
+    background.setStrokeStyle?.(3, 0x67e8ff, 1);
   }
-
-  // While a modal is open, pause Arcade Physics so enemy collision/combat cannot
-  // steal or disturb UI input. Input and scene UI remain fully interactive.
-  if (!scene.__uiWorldPaused && scene.physics?.world?.pause) {
-    scene.physics.world.pause();
-    scene.__uiWorldPaused = true;
-  }
+  scene.enterUiHardPause?.();
 }
 
 export function installFullscreenModalOptimization(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__fullscreenModalOptimizationInstalled) return;
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__fullscreenModalOptimizationInstalledV2) return;
   const proto = MainGameScene.prototype;
-  proto.__fullscreenModalOptimizationInstalled = true;
+  proto.__fullscreenModalOptimizationInstalledV2 = true;
 
   proto.optimizeActiveModalForMobile = function optimizeActiveModalForMobile() {
     optimizePanel(this);
   };
 
-  // Freeze the gameplay loop while any modal is open. This stops enemy AI,
-  // attacks, portals and auto-combat behind the UI while keeping UI input alive.
-  const originalUpdate = proto.update;
-  if (typeof originalUpdate === 'function' && !originalUpdate.__modalFreezeWrapped) {
-    const wrappedUpdate = function updateWithModalFreeze(time, delta) {
-      if (this.isModalOpen?.()) {
-        resetWorldTouch(this);
-        return;
-      }
-      return originalUpdate.call(this, time, delta);
-    };
-    wrappedUpdate.__modalFreezeWrapped = true;
-    proto.update = wrappedUpdate;
-  }
-
   Object.getOwnPropertyNames(proto).forEach(name => {
     if (!/^open[A-Z]/.test(name)) return;
     const original = proto[name];
-    if (typeof original !== 'function' || original.__fullscreenModalWrapped) return;
-
+    if (typeof original !== 'function' || original.__fullscreenModalWrappedV2) return;
     const wrapped = function fullscreenModalWrapper(...args) {
       resetWorldTouch(this);
       const result = original.apply(this, args);
       optimizePanel(this);
-      if (this.time?.delayedCall) {
-        this.time.delayedCall(0, () => optimizePanel(this));
-      }
       return result;
     };
-
-    wrapped.__fullscreenModalWrapped = true;
+    wrapped.__fullscreenModalWrappedV2 = true;
     proto[name] = wrapped;
   });
 }
