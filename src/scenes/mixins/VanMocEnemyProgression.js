@@ -24,7 +24,6 @@ const ZONE_ENEMY_ASSETS = {
   4: { spriteNum: 7, asset: 'enemy_7', monster: 'Huyết Lang Vạn Mộc', stage: 'Nhất Phẩm Đỉnh Phong' }
 };
 
-// Kích thước tăng theo phẩm cấp, hoàn toàn độc lập với cơ chế Boss.
 const ZONE_SIZE_MULTIPLIERS = {
   1: 1.2,
   2: 1.4,
@@ -45,7 +44,6 @@ function applyVanMocVisual(scene, enemy, strictZone) {
     enemy.play?.(`e_enemy_${spriteNum}_idle`, true);
   }
 
-  enemy.isBoss = false;
   enemy.vanMocZone = strictZone;
   enemy.vanMocStage = ZONE_LABELS[strictZone];
   enemy.vanMocAsset = visual?.asset || `enemy_${spriteNum}`;
@@ -56,10 +54,9 @@ function applyVanMocVisual(scene, enemy, strictZone) {
   const finalScale = enemy.baseEnemyScale * perspectiveScale;
   enemy.setScale?.(finalScale);
 
-  // Tất cả đều dùng HUD quái thường; Đỉnh Phong chỉ khác cấp và kích thước.
   enemy.barW = 36;
-  enemy.hpBg?.setDisplaySize?.(36, 4);
-  enemy.hpBar?.setDisplaySize?.(36, 4);
+  if (enemy.hpBg) enemy.hpBg.width = 36;
+  if (enemy.hpBar) enemy.hpBar.width = 36;
   enemy.hpBg?.setPosition?.(enemy.x, enemy.y - 36 * finalScale);
   enemy.hpBar?.setPosition?.(enemy.x - 18, enemy.y - 36 * finalScale);
   enemy.hpBar?.setFillStyle?.(0xee5533, 1);
@@ -81,8 +78,6 @@ function applyVanMocVisual(scene, enemy, strictZone) {
  * Zone 2 -> Nhất Phẩm Trung Kỳ -> enemy_4 -> 1.4x
  * Zone 3 -> Nhất Phẩm Hậu Kỳ -> enemy_9 -> 1.6x
  * Zone 4 -> Nhất Phẩm Đỉnh Phong -> enemy_7 -> 1.8x
- *
- * Không còn Boss. Zone 4 chỉ là quái Đỉnh Phong thường có phẩm cấp cao hơn.
  */
 export function installVanMocEnemyProgression(MainGameScene) {
   if (!MainGameScene?.prototype || MainGameScene.prototype.__vanMocEnemyProgressionInstalled) return;
@@ -96,17 +91,13 @@ export function installVanMocEnemyProgression(MainGameScene) {
     homeX,
     homeY,
     slotIndex,
-    zone = 1,
-    _legacyBossFlag = false
+    zone = 1
   ) {
     if (Number(gameState.currentMapId) !== VAN_MOC_MAP_ID) {
-      return originalSpawnOneFixedEnemy.call(this, homeX, homeY, slotIndex, zone, false);
+      return originalSpawnOneFixedEnemy.call(this, homeX, homeY, slotIndex, zone);
     }
 
     const strictZone = Math.max(1, Math.min(4, Number(zone) || 1));
-
-    // Mapping vào công thức rankOffset của EnemyMixin gốc nhưng luôn truyền false
-    // cho tham số Boss để loại bỏ hoàn toàn boss rank/scale/loot.
     const strictSlotIndex = strictZone === 1 ? 0 : (strictZone === 2 ? 1 : (strictZone === 3 ? 1 : 2));
 
     const enemy = originalSpawnOneFixedEnemy.call(
@@ -114,8 +105,7 @@ export function installVanMocEnemyProgression(MainGameScene) {
       homeX,
       homeY,
       strictSlotIndex,
-      strictZone,
-      false
+      strictZone
     );
 
     return applyVanMocVisual(this, enemy, strictZone);
