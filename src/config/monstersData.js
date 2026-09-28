@@ -1,5 +1,4 @@
 // YÊU THÚ: CẤP ĐỘ CHƯA TU LUYỆN (PHÀM THÚ) VÀ NHẤT PHẨM ĐẾN NGŨ PHẨM YÊU THÚ
-// GAME KHÔNG CÒN CƠ CHẾ BOSS: mọi quái đều dùng cùng hệ spawn/combat/loot thường.
 export const MONSTER_RANKS = [
   // Cấp độ Chưa Tu Luyện (Phàm Thú) - Thanh Vân Thôn Ngoại Vi
   // Chỉ số chuẩn: HP 100, DMG 1 (tương đương Phàm Nhân)
