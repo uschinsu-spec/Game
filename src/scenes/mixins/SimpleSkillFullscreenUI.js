@@ -1,6 +1,7 @@
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-sword-only-v1';
 import { gameState } from '../../state/gameState.js';
 import { W, H } from '../constants.js';
+import { fitSingleLine, stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 const OVERLAY_DEPTH = 999998;
@@ -11,50 +12,15 @@ const PALETTES = {
   'Kiếm': [0x0b5f79, 0x67e8f9, '#a5f3fc']
 };
 
-function stopPointer(scene, pointer) {
-  scene?.input?.stopPropagation?.();
-  pointer?.event?.stopPropagation?.();
-  pointer?.event?.preventDefault?.();
-}
-
-function fitSingleLine(textObj, maxWidth, minPx = 10) {
-  if (!textObj) return;
-  let size = parseFloat(textObj.style?.fontSize || 16);
-  while (textObj.width > maxWidth && size > minPx) {
-    size -= 1;
-    textObj.setFontSize(size);
-  }
-}
-
 function createShell(scene, title, subtitle = '') {
-  scene.closeModal();
-  const overlay = scene.fixed(
-    scene.add.rectangle(W / 2, H / 2, W + 16, H + 16, 0x010811, 1),
-    OVERLAY_DEPTH
-  ).setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), PANEL_DEPTH);
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  scene.enterUiHardPause?.();
-  overlay.on('pointerdown', p => stopPointer(scene, p));
-  overlay.on('pointerup', p => stopPointer(scene, p));
-  overlay.on('pointermove', p => stopPointer(scene, p));
-
-  const bg = scene.add.rectangle(0, 0, W - 6, H - 6, 0x062a3b, 1)
-    .setStrokeStyle(3, 0x67e8ff, 1);
-  const header = scene.add.rectangle(0, -420, W - 24, 94, 0x0b4560, 1)
-    .setStrokeStyle(2, 0x4de9ff, 1);
-  const titleTxt = scene.add.text(-238, -437, title, {
-    fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffe45c'
-  }).setOrigin(0, 0.5);
-  const subTxt = scene.add.text(-238, -402, subtitle, {
-    fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#9af5ff'
-  }).setOrigin(0, 0.5);
-  fitSingleLine(titleTxt, 360, 15);
-  fitSingleLine(subTxt, 360, 10);
-  panel.add([bg, header, titleTxt, subTxt]);
-  scene.createModalCloseBtn(panel);
-  return panel;
+  return scene.createModalShell(title, subtitle, {
+    headerY: -420,
+    headerH: 94,
+    titleFontSize: '22px',
+    titleY: -437,
+    subY: -402,
+    subtitleColor: '#9af5ff'
+  });
 }
 
 function addButton(scene, panel, x, y, w, h, label, action, opts = {}) {
@@ -74,9 +40,26 @@ function addButton(scene, panel, x, y, w, h, label, action, opts = {}) {
   return bg;
 }
 
+export function getAvailableSkillsForCurrentArea(scene, activeElem = 'Kiếm') {
+  const mapId = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
+  const isThanhVan = mapId <= 1;
+
+  return ELEMENTAL_SKILLS.filter(skill => {
+    const isTargetElem = (skill.id === 'basic_attack') || (skill.elem === activeElem) || (activeElem === 'Kiếm' && String(skill.id).startsWith('kiem_'));
+    if (!isTargetElem) return false;
+    if (isThanhVan && Number(skill.minRealm ?? 0) >= 4) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function renderElementTabs(scene, panel, activeElem) {
   const [fill, stroke, color] = PALETTES['Kiếm'];
-  addButton(scene, panel, 0, -320, 474, 44, 'KIẾM ĐẠO — 5 THẦN THÔNG GỐC', null, {
+  const mapId = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
+  const isThanhVan = mapId <= 1;
+  const tabTitle = isThanhVan ? 'KIẾM ĐẠO — THANH VÂN TRẤN' : 'KIẾM ĐẠO — 5 THẦN THÔNG GỐC';
+  addButton(scene, panel, 0, -320, 474, 44, tabTitle, null, {
     fill,
     stroke,
     color,
@@ -91,7 +74,7 @@ function learnedSet(scene) {
 function renderList(scene, panel, activeElem) {
   renderElementTabs(scene, panel, activeElem);
   const learned = learnedSet(scene);
-  const skills = ELEMENTAL_SKILLS.slice(0, 5);
+  const skills = getAvailableSkillsForCurrentArea(scene, activeElem);
 
   skills.forEach((skill, idx) => {
     const y = -235 + idx * 93;
@@ -166,9 +149,9 @@ function renderDetail(scene, panel, activeElem, skill) {
     }, { fill: 0x6b1b2c, stroke: 0xfb7185, color: '#ffe4e8', fontSize: '15px' });
   } else {
     addButton(scene, panel, 0, 95, 474, 58, 'XÁC NHẬN TRANG BỊ', () => {
-      const swordIds = new Set(ELEMENTAL_SKILLS.map(s => s.id));
+      const swordIds = new Set(ELEMENTAL_SKILLS.filter(s => s.elem === 'Kiếm' || String(s.id).startsWith('kiem_')).map(s => s.id));
       const ids = [...(gameState.equippedSkillIds || [])].filter(id => swordIds.has(id) && id !== skill.id);
-      if (ids.length < 5) ids.push(skill.id);
+      if (ids.length < 6) ids.push(skill.id);
       else ids[4] = skill.id;
       gameState.equippedSkillIds = ids;
       scene.createSkillBar?.();
@@ -188,13 +171,24 @@ export function installSimpleSkillFullscreenUI(MainGameScene) {
 
   proto.openSkillPanel = function openSimpleSkillPanel(activeElem = 'Kiếm', selectedSkillId = null) {
     activeElem = 'Kiếm';
-    const swordIds = new Set(ELEMENTAL_SKILLS.map(s => s.id));
-    gameState.equippedSkillIds = (gameState.equippedSkillIds || []).filter(id => swordIds.has(id));
-    const panel = createShell(this, 'TÀNG KINH CÁC — KIẾM ĐẠO', selectedSkillId ? 'CHI TIẾT THẦN THÔNG KIẾM' : '5 THẦN THÔNG KIẾM GỐC');
-    if (selectedSkillId) {
-      const skill = ELEMENTAL_SKILLS.find(s => s.id === selectedSkillId);
-      if (skill) renderDetail(this, panel, 'Kiếm', skill);
-      else renderList(this, panel, 'Kiếm');
+    const allowedIds = new Set(ELEMENTAL_SKILLS.map(s => s.id));
+    gameState.equippedSkillIds = (gameState.equippedSkillIds || []).map(id => (id && allowedIds.has(id)) ? id : null);
+
+    const availableSkills = getAvailableSkillsForCurrentArea(this, activeElem);
+    const availableIds = new Set(availableSkills.map(s => s.id));
+    const targetSkill = selectedSkillId && availableIds.has(selectedSkillId)
+      ? availableSkills.find(s => s.id === selectedSkillId)
+      : null;
+
+    const mapId = Number(gameState.currentMapId ?? this?.currentMap?.id ?? 0);
+    const isThanhVan = mapId <= 1;
+    const subTitle = targetSkill
+      ? 'CHI TIẾT THẦN THÔNG KIẾM'
+      : (isThanhVan ? 'THẦN THÔNG KIẾM (THANH VÂN TRẤN)' : '5 THẦN THÔNG KIẾM GỐC');
+
+    const panel = createShell(this, 'TÀNG KINH CÁC — KIẾM ĐẠO', subTitle);
+    if (targetSkill) {
+      renderDetail(this, panel, 'Kiếm', targetSkill);
     } else {
       renderList(this, panel, 'Kiếm');
     }

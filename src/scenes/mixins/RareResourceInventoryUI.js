@@ -1,5 +1,6 @@
 import { W, H } from '../constants.js';
 import { gameState } from '../../state/gameState.js';
+import { stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
@@ -25,34 +26,20 @@ const MINERAL_NAMES = {
   ore_1_vanmoc: ['Vạn Mộc Tinh Thạch', 'Nhất Phẩm Cực Phẩm']
 };
 
-function stopPointer(scene, pointer) {
-  scene?.input?.stopPropagation?.();
-  pointer?.event?.stopPropagation?.();
-  pointer?.event?.preventDefault?.();
-}
-
 function createShell(scene, subtitle = '') {
-  scene.closeModal();
-  const overlay = scene.fixed(scene.add.rectangle(W / 2, H / 2, W + 16, H + 16, 0x000000, 0.001), 1999998)
-    .setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), 2000000);
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  scene.enterUiHardPause?.();
-  overlay.on('pointerdown', p => stopPointer(scene, p));
-  overlay.on('pointerup', p => stopPointer(scene, p));
-
-  const bg = scene.add.rectangle(0, 0, W - 6, H - 6, 0x124766, 0.98).setStrokeStyle(3, 0x7df3ff, 1);
-  const header = scene.add.rectangle(0, -420, W - 24, 94, 0x0b5a70, 1).setStrokeStyle(2, 0xffdc63, 1);
-  const title = scene.add.text(-238, -437, '🎒 TÀI NGUYÊN HIẾM', {
-    fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffe77a'
-  }).setOrigin(0, 0.5);
-  const sub = scene.add.text(-238, -402, subtitle, {
-    fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#b9f8ff'
-  }).setOrigin(0, 0.5);
-  panel.add([bg, header, title, sub]);
-  scene.createModalCloseBtn(panel);
-  return panel;
+  return scene.createModalShell('🎒 TÀI NGUYÊN HIẾM', subtitle, {
+    bgFill: 0x124766,
+    bgAlpha: 0.98,
+    bgStroke: 0x7df3ff,
+    headerY: -420,
+    headerH: 94,
+    headerFill: 0x0b5a70,
+    headerStroke: 0xffdc63,
+    titleFontSize: '22px',
+    titleY: -437,
+    subY: -402,
+    subtitleColor: '#b9f8ff'
+  });
 }
 
 function resourceRows() {

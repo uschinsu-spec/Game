@@ -12,7 +12,8 @@ import { CRAFTING_SYSTEM, calculatePillEfficiency, getPlayerPillRank } from '../
 export const CombatMixin = {
 
   basicAttack() {
-    if (this.time.now < this.lastBasic + 300) return;
+    if (this.gameplayPaused || this.__uiHardPaused || this.isModalOpen?.()) return;
+    if (this.time.now < this.lastBasic + 280) return;
     this.lastBasic = this.time.now;
 
     // Đánh quái: Tự động ngắt trạng thái nghỉ ngơi / tĩnh tọa
@@ -20,39 +21,59 @@ export const CombatMixin = {
       this.cancelRestingState();
     }
 
-    // Melee attack only (close range 110px)
-    const target = this.nearestEnemy(110);
+    // Tầm cận chiến vật lý (bắt mục tiêu cận chiến <= 160px)
+    let target = this.nearestEnemy(160, true);
     if (target && target.active) {
       this.player.setFlipX(target.x < this.player.x);
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
+      if (dist > 100 && !gameState.autoFight) {
+        const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+        this.player.x += Math.cos(angle) * Math.min(dist - 80, 40);
+        this.player.y += Math.sin(angle) * Math.min(dist - 80, 25);
+      }
     }
 
     if (this.player && this.player.active) {
-      this.attackUntil = this.time.now + 400;
+      const atkInterval = this.calcPlayerAtkInterval ? this.calcPlayerAtkInterval() : 380;
+      this.attackUntil = this.time.now + Math.min(380, Math.floor(atkInterval * 0.7));
       this.player.play('p_attack', true);
     }
 
-    if (target && target.active) {
-      const sense = this.calcPlayerSpiritualSense ? this.calcPlayerSpiritualSense() : (gameState.spiritualSense || 10);
-      const critRate = 0.15 + (sense * 0.005);
-      const isCrit = Math.random() < critRate;
-      let dmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg('Vật Lý') : (this.playerDmg || 1);
-      if (isCrit) dmg = Math.floor(dmg * 1.85);
-      this.damageEnemy(target, dmg, isCrit);
-      this.spawnVfx(target.x, target.y, 0, 0.55, { duration: 240, grow: 1.3 });
+    if (target && target.active && !target.isDead) {
+      const curDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
+      if (curDist <= 135) {
+        const sense = this.calcPlayerSpiritualSense ? this.calcPlayerSpiritualSense() : (gameState.spiritualSense || 10);
+        const critRate = 0.15 + (sense * 0.005);
+        const isCrit = Math.random() < critRate;
+        let dmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg('Vật Lý') : (this.playerDmg || 1);
+        if (isCrit) dmg = Math.floor(dmg * 1.85);
+        this.damageEnemy(target, dmg, isCrit);
+        this.spawnVfx(target.x, target.y, 0, 0.65, { duration: 220, grow: 1.3, tint: 0xffeedd });
+
+        // Direct Combat Hook
+        if (typeof this.onBasicAttackHit === 'function') {
+          this.onBasicAttackHit(target, dmg, isCrit);
+        }
+      }
     }
   },
 
   // ==================================================================
-  // CAST EQUIPPED SKILL (1..5) — HỆ THỐNG 5 SKILL KIẾM GỐC DUY NHẤT
+  // CAST EQUIPPED SKILL (1..5) — HỆ THỐNG SKILL 9 HỆ
   // ==================================================================
   castSkill(skillId) {
+    if (this.gameplayPaused || this.__uiHardPaused || this.isModalOpen?.()) return;
+    if (skillId === 'basic_attack') {
+      this.basicAttack();
+      return;
+    }
     const skill = ELEMENTAL_SKILLS.find(s => s.id === skillId);
-    if (!skill || skill.elem !== 'Kiếm' || !String(skill.id).startsWith('kiem_')) return;
+    if (!skill) return;
 
     const atkInterval = this.calcPlayerAtkInterval ? this.calcPlayerAtkInterval() : 400;
 
-    // Kim Nhận Thuật & Bạch Hổ Canh Kim Kiếm: Không có hồi chiêu cố định, phụ thuộc vào Tốc Độ Đánh của Player
-    if (skill.id === 'kiem_1' || skill.id === 'kiem_2' || skill.cd === 0) {
+    // Fast skills / zero cd skills depend on player attack speed
+    if (skill.cd === 0 || skill.id === 'kiem_1' || skill.id === 'kiem_2') {
       const lastCastKey = `last_${skill.id}_cast`;
       if (this[lastCastKey] && this.time.now < this[lastCastKey] + atkInterval) return;
       this[lastCastKey] = this.time.now;
@@ -60,6 +81,11 @@ export const CombatMixin = {
     } else {
       if (this.activeSkillCds[skillId] > 0) return;
       this.activeSkillCds[skillId] = skill.cd;
+    }
+
+    // Direct Combat Hook: onSkillCastSuccess
+    if (typeof this.onSkillCastSuccess === 'function') {
+      this.onSkillCastSuccess(skillId, skill);
     }
 
     // Tung kỹ năng: Tự động ngắt trạng thái nghỉ ngơi / tĩnh tọa
@@ -74,22 +100,216 @@ export const CombatMixin = {
     }
 
     if (this.player && this.player.active) {
-      const isFastSkill = (skill.id === 'kiem_1' || skill.id === 'kiem_2' || skill.cd === 0);
+      const isFastSkill = (skill.cd === 0 || skill.id === 'kiem_1' || skill.id === 'kiem_2');
       const animDuration = isFastSkill ? Math.min(260, Math.floor(atkInterval * 0.65)) : 450;
       this.attackUntil = this.time.now + animDuration;
       this.player.play('p_attack', true);
     }
 
-    const elemColors = { 'Kiếm': '#99eeff' };
+    const elemColors = {
+      'Kiếm': '#99eeff',
+      'Kim': '#ffd700',
+      'Hỏa': '#ff4422',
+      'Thủy': '#44aaff',
+      'Thổ': '#aa8844',
+      'Mộc': '#44dd66',
+      'Phong': '#66ffcc',
+      'Lôi': '#ffee33',
+      'Vật Lý': '#ff88aa'
+    };
 
     // Tăng điểm thuần thục kỹ năng mỗi khi thi triển (Sơ Nhập -> Tiểu Thành -> Đại Thành -> Viên Mãn)
     const mastery = this.gainSkillExp ? this.gainSkillExp(skillId, 1) : (this.getSkillMastery ? this.getSkillMastery(skillId) : { tier: { dmgBonus: 0, vfxMul: 1.0, name: 'Sơ Nhập', color: '#aaddff' } });
     const masteryDmgBonus = mastery.tier.dmgBonus || 0;
-    const elemDmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg('Kiếm') : (this.playerDmg || 1);
+    const elemDmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg(skill.elem || 'Kiếm') : (this.playerDmg || 1);
     const baseDmg = Math.max(1, Math.floor(elemDmg * (skill.dmgMul || 1) * (1 + masteryDmgBonus)));
 
-    // Chỉ có một renderer: bộ 5 skill Kiếm gốc bên dưới.
-    this.castSwordSkill(skill, target, baseDmg, elemColors, mastery);
+    if (skill.elem === 'Kiếm' || String(skill.id).startsWith('kiem_')) {
+      this.castSwordSkill(skill, target, baseDmg, elemColors, mastery);
+    } else {
+      this.castElementalSpell(skill, target, baseDmg, elemColors, mastery);
+    }
+  },
+
+  castElementalSpell(skill, target, baseDmg, elemColors, mastery) {
+    const elemKeyMap = {
+      'Kiếm': 'kim',
+      'Kim': 'kim',
+      'Hỏa': 'hoa',
+      'Thủy': 'thuy',
+      'Thổ': 'tho',
+      'Mộc': 'moc',
+      'Phong': 'phong',
+      'Lôi': 'loi',
+      'Vật Lý': 'ly'
+    };
+    const eKey = elemKeyMap[skill.elem] || 'kim';
+    const elemColor = elemColors[skill.elem] || '#ffd700';
+    const vfxMul = (mastery.tier && mastery.tier.vfxMul) ? mastery.tier.vfxMul : 1.0;
+
+    let tierLevel = 1;
+    if (skill.minRealm >= 16) tierLevel = 5;
+    else if (skill.minRealm >= 12) tierLevel = 4;
+    else if (skill.minRealm >= 8) tierLevel = 3;
+    else if (skill.minRealm >= 4) tierLevel = 2;
+
+    const tx = (target && target.active) ? target.x : this.player.x + (this.player.flipX ? -200 : 200);
+    const ty = (target && target.active) ? target.y : this.player.y;
+
+    if (tierLevel === 1 || tierLevel === 2) {
+      const projKey = (tierLevel === 2 && this.textures.exists(`vfx_${eKey}_2`)) ? `vfx_${eKey}_2` : (this.textures.exists(`vfx_${eKey}_1_0`) ? `vfx_${eKey}_1_0` : (this.textures.exists(`vfx_${eKey}_1`) ? `vfx_${eKey}_1` : 'vfx_kim_1_0'));
+      const startX = this.player.x;
+      const startY = this.player.y - 15;
+      const proj = this.add.sprite(startX, startY, projKey)
+        .setDepth(Math.floor(this.player.y) + 50)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setScale(0.65 * vfxMul);
+
+      if (this.anims.exists(`anim_vfx_${eKey}_1`)) {
+        proj.play(`anim_vfx_${eKey}_1`);
+      }
+
+      const angle = Phaser.Math.Angle.Between(startX, startY, tx, ty - 15);
+      proj.setRotation(angle);
+
+      const dist = Phaser.Math.Distance.Between(startX, startY, tx, ty - 15);
+      const dur = Math.max(100, Math.round((dist / 320) * 1000));
+
+      this.tweens.add({
+        targets: proj,
+        x: tx,
+        y: ty - 15,
+        duration: dur,
+        ease: 'Linear',
+        onComplete: () => {
+          proj.destroy();
+          const impactKey = this.textures.exists(`vfx_${eKey}_1_7`) ? `vfx_${eKey}_1_7` : (this.textures.exists(`vfx_${eKey}_impact`) ? `vfx_${eKey}_impact` : 'vfx_impact_frame7');
+          if (this.textures.exists(impactKey)) {
+            const imp = this.add.sprite(tx, ty - 15, impactKey)
+              .setDepth(Math.floor(ty) + 55)
+              .setBlendMode(Phaser.BlendModes.ADD)
+              .setScale(0.85 * vfxMul);
+            this.tweens.add({
+              targets: imp,
+              scaleX: 1.4 * vfxMul,
+              scaleY: 1.4 * vfxMul,
+              alpha: 0,
+              duration: 220,
+              onComplete: () => imp.destroy()
+            });
+          }
+          if (target && target.active && this.isEnemyOnScreen(target, 40)) {
+            this.damageEnemy(target, baseDmg, tierLevel === 2);
+          }
+        }
+      });
+    } else if (tierLevel === 3) {
+      const arrayKey = this.textures.exists(`vfx_${eKey}_3`) ? `vfx_${eKey}_3` : 'vfx_kim_3_0';
+      const arrayImg = this.add.image(tx, ty, arrayKey)
+        .setDepth(Math.floor(ty) - 5)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setScale(1.2 * vfxMul)
+        .setAlpha(0.2);
+
+      this.tweens.add({
+        targets: arrayImg,
+        alpha: 0.9,
+        scaleX: 1.5 * vfxMul,
+        scaleY: 1.5 * vfxMul,
+        duration: 400,
+        yoyo: true,
+        repeat: 2,
+        onComplete: () => arrayImg.destroy()
+      });
+
+      for (let tick = 0; tick < 3; tick++) {
+        this.time.delayedCall(tick * 350, () => {
+          [...this.enemies].forEach(t => {
+            if (!t || !t.active || !this.isEnemyOnScreen(t, 40)) return;
+            const dist = Phaser.Math.Distance.Between(t.x, t.y, tx, ty);
+            if (dist < 150) {
+              this.damageEnemy(t, Math.max(1, Math.floor(baseDmg / 3)), tick === 0);
+              this.spawnVfx(t.x, t.y - 15, 0, 0.6 * vfxMul, { duration: 180 });
+            }
+          });
+        });
+      }
+    } else if (tierLevel === 4) {
+      const swarmKey = this.textures.exists(`vfx_${eKey}_4`) ? `vfx_${eKey}_4` : (this.textures.exists(`vfx_${eKey}_1`) ? `vfx_${eKey}_1` : 'vfx_kim_1_0');
+      for (let i = 0; i < 8; i++) {
+        const angle = (i * 2 * Math.PI) / 8;
+        const sx = tx + Math.cos(angle) * 120;
+        const sy = ty + Math.sin(angle) * 80 - 180;
+        this.time.delayedCall(i * 45, () => {
+          const missile = this.add.sprite(sx, sy, swarmKey)
+            .setDepth(Math.floor(ty) + 40)
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setScale(0.7 * vfxMul);
+          this.tweens.add({
+            targets: missile,
+            x: tx + Phaser.Math.Between(-40, 40),
+            y: ty + Phaser.Math.Between(-20, 20),
+            duration: 250,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+              missile.destroy();
+              this.spawnVfx(missile.x, missile.y, 0, 0.5 * vfxMul, { duration: 150 });
+            }
+          });
+        });
+      }
+      this.time.delayedCall(400, () => {
+        [...this.enemies].forEach(t => {
+          if (!t || !t.active || !this.isEnemyOnScreen(t, 40)) return;
+          const dist = Phaser.Math.Distance.Between(t.x, t.y, tx, ty);
+          if (dist < 180) {
+            this.damageEnemy(t, baseDmg, true);
+          }
+        });
+      });
+    } else if (tierLevel === 5) {
+      const colossusKey = this.textures.exists(`vfx_${eKey}_5`) ? `vfx_${eKey}_5` : (this.textures.exists('vfx_giant_tru_tien_sword') ? 'vfx_giant_tru_tien_sword' : 'vfx_kim_1_0');
+      const giant = this.add.sprite(tx, ty - 380, colossusKey)
+        .setDepth(Math.floor(ty) + 80)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setScale(1.2 * vfxMul);
+
+      this.tweens.add({
+        targets: giant,
+        y: ty - 15,
+        duration: 350,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          giant.destroy();
+          if (this.cameras && this.cameras.main) this.cameras.main.shake(300, 0.015);
+          const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
+          if (this.textures.exists(shockKey)) {
+            const shock = this.add.image(tx, ty, shockKey)
+              .setDepth(Math.floor(ty) + 40)
+              .setBlendMode(Phaser.BlendModes.ADD)
+              .setScale(0.5);
+            this.tweens.add({
+              targets: shock,
+              scaleX: 2.5 * vfxMul,
+              scaleY: 2.5 * vfxMul,
+              alpha: 0,
+              duration: 450,
+              onComplete: () => shock.destroy()
+            });
+          }
+          [...this.enemies].forEach(t => {
+            if (!t || !t.active || !this.isEnemyOnScreen(t, 40)) return;
+            const dist = Phaser.Math.Distance.Between(t.x, t.y, tx, ty);
+            if (dist < 260) {
+              this.damageEnemy(t, baseDmg, true);
+              this.spawnVfx(t.x, t.y - 15, 0, 0.9 * vfxMul, { duration: 250 });
+            }
+          });
+        }
+      });
+    }
+
+    this.showFloatingText(this.player.x, this.player.y - 70, `[${skill.elem} • ${mastery.tier.name}] ${skill.name}!`, mastery.tier.color || elemColor, '14px');
   },
 
   // no-op kept for compatibility — HP is in this.playerHp
@@ -154,6 +374,7 @@ export const CombatMixin = {
   },
 
   takePlayerDamage(rawDmg, elem = 'Vật Lý') {
+    if (this.gameplayPaused || this.__uiHardPaused || this.isModalOpen?.()) return;
     if (this.dead || this.time.now < this.invulnerableUntil || this.isDashing || !this.player || !this.player.active) return;
 
     if (this.cancelRestingState) {

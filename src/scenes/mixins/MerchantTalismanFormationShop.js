@@ -1,6 +1,7 @@
 import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { gameState } from '../../state/gameState.js';
 import { W, H } from '../constants.js';
+import { stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
@@ -57,48 +58,19 @@ function shopPrice(item) {
   return Math.max(1, Math.floor(base * SHOP_PRICE_MULTIPLIER));
 }
 
-function stopPointer(pointer) {
-  const evt = pointer?.event;
-  evt?.stopPropagation?.();
-  evt?.preventDefault?.();
-}
-
-function pauseWorld(scene) {
-  scene.moveTarget = null;
-  scene.player?.setVelocity?.(0, 0);
-  if (scene.joy) {
-    scene.joy.active = false;
-    scene.joy.id = null;
-    scene.joy.x = 0;
-    scene.joy.y = 0;
-  }
-  scene.joyBase?.setVisible?.(false);
-  scene.joyKnob?.setVisible?.(false);
-  if (!scene.__uiWorldPaused && scene.physics?.world?.pause) {
-    scene.physics.world.pause();
-    scene.__uiWorldPaused = true;
-  }
-}
-
 function createShell(scene, title, subtitle) {
-  scene.closeModal?.();
-  const overlay = scene.fixed(scene.add.rectangle(W / 2, H / 2, W + 16, H + 16, 0x010811, 1), 999998)
-    .setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), 1000000);
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  pauseWorld(scene);
-  overlay.on('pointerdown', stopPointer);
-  overlay.on('pointerup', stopPointer);
-  overlay.on('pointermove', stopPointer);
-
-  const bg = scene.add.rectangle(0, 0, W - 8, H - 8, 0x082638, 1).setStrokeStyle(2.5, 0x61ffc0, 1);
-  const header = scene.add.rectangle(0, -424, W - 20, 92, 0x0a3a31, 1).setStrokeStyle(1.5, 0x61ffc0, 0.95);
-  const t = scene.add.text(-238, -444, title, { fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#fff19a' }).setOrigin(0, 0.5);
-  const s = scene.add.text(-238, -410, subtitle, { fontFamily: FONT, fontSize: '12px', color: '#b7ffe0' }).setOrigin(0, 0.5);
-  panel.add([bg, header, t, s]);
-  scene.createModalCloseBtn?.(panel);
-  return panel;
+  return scene.createModalShell(title, subtitle, {
+    bgStroke: 0x61ffc0,
+    headerY: -424,
+    headerH: 92,
+    headerFill: 0x0a3a31,
+    headerStroke: 0x61ffc0,
+    titleFontSize: '22px',
+    titleColor: '#fff19a',
+    titleY: -444,
+    subY: -410,
+    subtitleColor: '#b7ffe0'
+  });
 }
 
 function button(scene, panel, x, y, w, h, label, onPress, enabled = true) {
@@ -109,7 +81,7 @@ function button(scene, panel, x, y, w, h, label, onPress, enabled = true) {
     fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: enabled ? '#ffffff' : '#8a999c',
     align: 'center', wordWrap: { width: w - 18, useAdvancedWrap: true }
   }).setOrigin(0.5);
-  if (enabled) bg.on('pointerdown', p => { stopPointer(p); onPress?.(); });
+  if (enabled) bg.on('pointerdown', p => { stopPointer(scene, p); onPress?.(); });
   panel.add([bg, txt]);
 }
 

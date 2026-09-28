@@ -155,23 +155,6 @@ export const PlayerMixin = {
     return dmg;
   },
 
-  calcPlayerElementalDmg(elem = 'Vật Lý') {
-    const baseDmg = this.calcPlayerBaseDmg();
-    let bonusPct = 0;
-    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp) {
-      if (cp.elem === 'Toàn Hệ') bonusPct += (cp.bonusDmgPct || 10);
-      else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) bonusPct += (cp.bonusDmgPct || 30);
-    }
-    return Math.max(1, Math.floor(baseDmg * (1 + bonusPct / 100)));
-  },
-
-  calcPlayerDmg() {
-    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    const activeElem = cp ? cp.elem : 'Vật Lý';
-    return this.calcPlayerElementalDmg(activeElem);
-  },
-
   calcPlayerBaseDef() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let def = realm.def;
@@ -188,23 +171,6 @@ export const PlayerMixin = {
       if (fObj && fObj.bonusDef) def += fObj.bonusDef;
     });
     return def;
-  },
-
-  calcPlayerElementalDef(elem = 'Vật Lý') {
-    const baseDef = this.calcPlayerBaseDef();
-    let bonusDefPct = 0;
-    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp) {
-      if (cp.elem === 'Toàn Hệ') bonusDefPct += (cp.bonusDefPct || 10);
-      else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) bonusDefPct += (cp.bonusDefPct || 35);
-    }
-    return Math.floor(baseDef * (1 + bonusDefPct / 100));
-  },
-
-  calcPlayerDef() {
-    const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    const activeElem = cp ? cp.elem : 'Vật Lý';
-    return this.calcPlayerElementalDef(activeElem);
   },
 
   toggleMeditation() {
@@ -344,7 +310,7 @@ export const PlayerMixin = {
       color,
       stroke: '#000000',
       strokeThickness: 3
-    }).setOrigin(0.5).setDepth(20000);
+    }).setOrigin(0.5).setDepth(8500);
 
     this.tweens.add({
       targets: txt,

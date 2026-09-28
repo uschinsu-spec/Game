@@ -3,24 +3,10 @@
  * Quản lý Hệ thống Lưu & Tải Tiến Trình Tu Tiên (Save / Load Game via Code & LocalStorage)
  */
 import { gameState } from './gameState.js';
+import { migrateLegacyRealmIndex } from '../config/realmMigration.js';
 
 export const SAVE_VERSION = 3;
 export const SAVE_PREFIX = 'LSPK_';
-
-const OLD_TO_NEW_REALM = Object.freeze({
-  0: 0,
-  1: 1, 2: 4, 3: 8, 4: 12,
-  5: 13, 6: 14, 7: 15, 8: 16,
-  9: 17, 10: 18, 11: 19, 12: 20,
-  13: 21, 14: 22, 15: 23, 16: 24,
-  17: 25, 18: 26, 19: 27, 20: 28
-});
-
-function migrateRealmIndex(idx, version = 2) {
-  const n = Math.max(0, Math.floor(Number(idx) || 0));
-  if (Number(version) >= 3) return Math.min(n, 28);
-  return OLD_TO_NEW_REALM[n] ?? 0;
-}
 
 export const DEFAULT_INITIAL_STATE = {
   realmIdx: 0,
@@ -135,7 +121,7 @@ export function importSaveCode(codeString) {
     const data = JSON.parse(base64ToUtf8(cleanCode));
     if (data.realmIdx === undefined && data.exp === undefined && !data.inventory) return { success: false, error: 'Mã lưu không chứa dữ liệu nhân vật hợp lệ' };
 
-    gameState.realmIdx = migrateRealmIndex(data.realmIdx, data.version);
+    gameState.realmIdx = migrateLegacyRealmIndex(data.realmIdx, data.version);
     gameState.__realmSchemaV3 = true;
     gameState.exp = data.exp ?? 0;
     gameState.spiritualSense = data.spiritualSense ?? 10;
@@ -156,6 +142,9 @@ export function importSaveCode(codeString) {
     gameState.activeCongPhapId = data.activeCongPhapId || null;
     gameState.learnedCongPhapIds = data.learnedCongPhapIds || [];
     gameState.congPhapMastery = data.congPhapMastery || {};
+    (gameState.learnedCongPhapIds || []).forEach(cpId => {
+      if (!gameState.congPhapMastery[cpId]) gameState.congPhapMastery[cpId] = { tierIdx: 0, uses: 0 };
+    });
     gameState.activePillBuff = data.activePillBuff || null;
     gameState.claimedStarterGift = !!data.claimedStarterGift;
     gameState.isMeditating = false;
@@ -169,7 +158,7 @@ export function importSaveCode(codeString) {
     gameState.inventory = data.inventory || { items: [], pills: {}, talismans: {}, formations: [] };
     gameState.currentMapId = data.currentMapId ?? 0;
     gameState.gearPlus = data.gearPlus ?? 0;
-    gameState.equippedSkillIds = data.equippedSkillIds || [];
+    gameState.equippedSkillIds = (data.equippedSkillIds && data.equippedSkillIds.length > 0) ? data.equippedSkillIds : ['basic_attack', 'kiem_1'];
     gameState.skillMastery = data.skillMastery || {};
     gameState.autoFight = data.autoFight !== undefined ? !!data.autoFight : true;
     gameState.autoMode = data.autoMode || 'farm';

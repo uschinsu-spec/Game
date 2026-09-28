@@ -7,88 +7,68 @@ import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { SECTS, SECT_RANKS } from '../../config/sectsData.js';
 import { ALL_MAPS } from '../../config/regionsData.js';
 import { gameState } from '../../state/gameState.js';
-import { ensureCurrencies, formatCurrencySummary } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
 
 export const HudMixin = {
+
+  addHudSkinRegion(rect, depth) {
+    const skin = this.fixed(this.add.image(W / 2, H / 2, 'hud_skin').setDisplaySize(W, H), depth);
+    const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+    maskShape.fillStyle(0xffffff);
+    for (const area of rect) maskShape.fillRect(area.x, area.y, area.w, area.h);
+    maskShape.setScrollFactor(0);
+    skin.setMask(maskShape.createGeometryMask());
+    skin.once(Phaser.GameObjects.Events.DESTROY, () => maskShape.destroy());
+    return skin;
+  },
 
   createTopHUD() {
     this.topHudVisible = true;
     this.topHudElements = [];
     const font = 'Be Vietnam Pro, sans-serif';
     const fixed = (obj, depth) => {
-      const item = this.fixed(obj, depth);
+      const item = this.fixed(obj, 9000 + depth - 200);
       this.topHudElements.push(item);
       return item;
     };
 
-    // Jade and gold character panel. The minimap remains a separate card on the right.
-    fixed(this.add.rectangle(214, 64, 420, 124, 0x071b25, 0.97).setStrokeStyle(2, 0xcaa765), 200);
-    fixed(this.add.rectangle(214, 4, 404, 2, 0xf2d991, 0.95), 201);
-    fixed(this.add.rectangle(214, 124, 404, 2, 0x68c9b3, 0.8), 201);
-    fixed(this.add.circle(39, 37, 27, 0x173f42, 1).setStrokeStyle(3, 0xe8c779), 202);
-    fixed(this.add.image(39, 37, 'player_idle', 0).setDisplaySize(49, 49), 203);
-    fixed(this.add.circle(39, 37, 29, 0x000000, 0).setStrokeStyle(1, 0x70dbcb), 204);
+    this.topHudElements.push(this.addHudSkinRegion([{ x: 0, y: 0, w: 405, h: 145 }], 9000));
+    fixed(this.add.circle(52, 54, 37, 0x092c35, 1), 200);
+    const portrait = fixed(this.add.image(52, 54, 'hud_portrait').setDisplaySize(82, 82), 203);
+    const portraitMask = this.make.graphics({ x: 0, y: 0, add: false });
+    portraitMask.fillStyle(0xffffff).fillCircle(52, 54, 38);
+    portraitMask.setScrollFactor(0);
+    portrait.setMask(portraitMask.createGeometryMask());
+    portrait.once(Phaser.GameObjects.Events.DESTROY, () => portraitMask.destroy());
+    const avatarHit = fixed(this.add.circle(52, 54, 40, 0x000000, 0).setInteractive({ useHandCursor: true }), 205);
+    avatarHit.on('pointerdown', () => this.openCurrencyExchangeModal());
 
-    this.hudRealmText = fixed(this.add.text(77, 17, '', {
-      fontFamily: font, fontSize: '16px', fontStyle: 'bold', color: '#ffdf8c'
+    this.hudRealmText = fixed(this.add.text(110, 24, '', {
+      fontFamily: font, fontSize: '17px', fontStyle: 'bold', color: '#ffe2a0'
     }).setStroke('#07151b', 3).setOrigin(0, 0.5), 204);
-    this.hudSectText = fixed(this.add.text(77, 39, '', {
+    this.hudSectText = fixed(this.add.text(112, 45, '', {
       fontFamily: font, fontSize: '12px', fontStyle: 'bold', color: '#9ee9d8'
     }).setOrigin(0, 0.5), 204);
-    this.hudMapText = fixed(this.add.text(408, 39, '', {
-      fontFamily: font, fontSize: '12px', fontStyle: 'bold', color: '#f2d991'
+    this.hudMapText = fixed(this.add.text(348, 45, '', {
+      fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#f2d991'
     }).setOrigin(1, 0.5), 204);
 
     const makeBar = (y, label, track, fill) => {
-      fixed(this.add.text(78, y, label, { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#d9e9e5' }).setOrigin(0, 0.5), 204);
-      fixed(this.add.rectangle(257, y, 310, 14, track, 1).setStrokeStyle(1, 0x72968d), 202);
-      fixed(this.add.rectangle(257, y - 5, 306, 2, 0xffffff, 0.18), 203);
-      return fixed(this.add.rectangle(103, y, 308, 11, fill, 1).setOrigin(0, 0.5), 203);
+      fixed(this.add.text(113, y, label, { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#eef8ec' }).setOrigin(0, 0.5), 204);
+      return fixed(this.add.rectangle(143, y, 230, 8, fill, 1).setOrigin(0, 0.5), 203);
     };
-    this.hudHpBar = makeBar(61, 'HP', 0x321520, 0xe64e65);
-    this.hudMpBar = makeBar(78, 'MP', 0x102c44, 0x51b9f4);
-    this.hudExpBar = makeBar(95, 'TU', 0x14352e, 0x68e0ae);
-    this.hudHpText = fixed(this.add.text(257, 61, '', { fontFamily: font, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#291019', 2).setOrigin(0.5), 204);
-    this.hudMpText = fixed(this.add.text(257, 78, '', { fontFamily: font, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#0a2030', 2).setOrigin(0.5), 204);
-    this.hudExpText = fixed(this.add.text(257, 95, '', { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#0c2720', 2).setOrigin(0.5), 204);
-
-    const resource = (x, w, icon, isGold = false) => {
-      const box = fixed(this.add.rectangle(x + w / 2, 112, w, 20, 0x15343b, 0.96).setStrokeStyle(1, 0x7ca897), 202);
-      fixed(this.add.image(x + 12, 112, icon).setDisplaySize(20, 20), 204);
-      if (isGold) {
-        box.setInteractive({ useHandCursor: true });
-        box.on('pointerdown', () => this.openCurrencyExchangeModal());
-      }
-    };
-    resource(12, 255, 'xianxia_gold', true);
-    resource(275, 137, 'item_8');
-    this.hudGoldText = fixed(this.add.text(38, 112, '', { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#ffe293' }).setOrigin(0, 0.5), 204);
-    this.hudGoldText.setInteractive({ useHandCursor: true });
-    this.hudGoldText.on('pointerdown', () => this.openCurrencyExchangeModal());
-    this.hudOreText = fixed(this.add.text(299, 112, '', { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#b8e4ff' }).setOrigin(0, 0.5), 204);
-
-    fixed(this.add.rectangle(214, 139, 420, 22, 0x071b25, 0.88).setStrokeStyle(1, 0x477b76), 201);
-    this.afkBannerText = fixed(this.add.text(12, 139, '', {
-      fontFamily: font, fontSize: '12px', fontStyle: 'bold', color: '#a7eddb'
-    }).setOrigin(0, 0.5), 204);
+    this.hudHpBar = makeBar(68, 'HP', 0x321520, 0xe64e65);
+    this.hudMpBar = makeBar(85, 'MP', 0x102c44, 0x51b9f4);
+    this.hudExpBar = makeBar(102, 'TU', 0x14352e, 0x68e0ae);
+    this.hudHpText = fixed(this.add.text(258, 68, '', { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#291019', 2).setOrigin(0.5), 204);
+    this.hudMpText = fixed(this.add.text(258, 85, '', { fontFamily: font, fontSize: '11px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#0a2030', 2).setOrigin(0.5), 204);
+    this.hudExpText = fixed(this.add.text(258, 102, '', { fontFamily: font, fontSize: '10px', fontStyle: 'bold', color: '#ffffff' }).setStroke('#0c2720', 2).setOrigin(0.5), 204);
 
     this.createUiToggleButton();
     this.updateHUD();
   },
 
   createUiToggleButton() {
-    this.toggleUiBtnBg = this.fixed(this.add.rectangle(W - 58, 139, 108, 20, 0x071b25, 0.95)
-      .setStrokeStyle(1.2, 0x68c9b3)
-      .setInteractive({ useHandCursor: true }), 250);
-    this.toggleUiBtnTxt = this.fixed(this.add.text(W - 58, 139, '👁️ ẨN UI (H)', {
-      fontFamily: 'Be Vietnam Pro, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#68e0ae'
-    }).setOrigin(0.5), 251);
-
-    this.toggleUiBtnBg.on('pointerdown', () => this.toggleTopHUD());
-    this.toggleUiBtnBg.on('pointerover', () => this.toggleUiBtnBg.setFillStyle(0x13384a, 1));
-    this.toggleUiBtnBg.on('pointerout', () => this.toggleUiBtnBg.setFillStyle(0x071b25, 0.95));
-
     if (this.input?.keyboard) {
       this.input.keyboard.on('keydown-H', () => this.toggleTopHUD());
     }
@@ -108,22 +88,15 @@ export const HudMixin = {
       this.minimapElements.forEach(el => {
         if (el && el.setVisible) el.setVisible(isVis);
       });
+      this.miniMapLabel?.setVisible?.(isVis && Number(gameState.currentMapId) === 0);
     }
 
     if (this.mini) {
       if (!isVis) this.mini.clear();
       this.mini.setVisible(isVis);
     }
-
-    if (this.toggleUiBtnBg && this.toggleUiBtnTxt) {
-      if (isVis) {
-        this.toggleUiBtnBg.setPosition(W - 58, 139).setSize(108, 20);
-        this.toggleUiBtnTxt.setPosition(W - 58, 139).setText('👁️ ẨN UI (H)').setColor('#68e0ae');
-      } else {
-        this.toggleUiBtnBg.setPosition(W - 52, 22).setSize(94, 26).setFillStyle(0x071b25, 0.95);
-        this.toggleUiBtnTxt.setPosition(W - 52, 22).setText('👁️ HIỆN UI (H)').setColor('#ffd700');
-      }
-    }
+    this.restToggleElements?.forEach(el => el.setVisible(isVis));
+    this.autoToggleElements?.forEach(el => el.setVisible(isVis));
 
     this.showFloatingText(this.player.x, this.player.y - 70, isVis ? '✨ ĐÃ HIỆN GIAO DIỆN UI' : '👁️ ĐÃ ẨN GIAO DIỆN UI', isVis ? '#68e0ae' : '#ffdf8c', '13px');
   },
@@ -134,16 +107,24 @@ export const HudMixin = {
     const exp = gameState.exp || 0;
     const expPct = Math.min(100, Math.floor((exp / nextReq) * 100));
 
+    const fmtCompact = (val) => {
+      const num = Math.max(0, Math.floor(Number(val) || 0));
+      if (num >= 1e9) return (num / 1e9).toFixed(2) + ' Tỷ';
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + ' Tr';
+      if (num >= 1e4) return (num / 1e3).toFixed(1) + ' k';
+      return num.toLocaleString('vi-VN');
+    };
+
     if (this.hudRealmText) this.hudRealmText.setText(`✦ ${realm.name}`);
-    if (this.hudExpBar) this.hudExpBar.width = Math.max(0, (expPct / 100) * 308);
-    if (this.hudExpText) this.hudExpText.setText(`Tu Vi ${expPct}% · ${exp}/${nextReq}`);
+    if (this.hudExpBar) this.hudExpBar.width = Math.max(0, (expPct / 100) * 230);
+    if (this.hudExpText) this.hudExpText.setText(`Tu Vi ${expPct}% · ${fmtCompact(exp)}/${fmtCompact(nextReq)}`);
 
     // HP Bar
     this.playerHpMax = this.calcPlayerMaxHp();
     if (this.playerHp === undefined || this.playerHp === null) this.playerHp = this.playerHpMax;
     const hpRatio = Math.max(0, Math.min(1, this.playerHp / (this.playerHpMax || 1)));
-    if (this.hudHpBar) this.hudHpBar.width = Math.max(0, hpRatio * 308);
-    if (this.hudHpText) this.hudHpText.setText(`${Math.max(0, Math.floor(this.playerHp))} / ${this.playerHpMax}`);
+    if (this.hudHpBar) this.hudHpBar.width = Math.max(0, hpRatio * 230);
+    if (this.hudHpText) this.hudHpText.setText(`${fmtCompact(this.playerHp)} / ${fmtCompact(this.playerHpMax)}`);
 
     // MP Bar
     const manaMax = this.calcPlayerMaxMp ? this.calcPlayerMaxMp() : (gameState.manaMax || 100);
@@ -153,8 +134,8 @@ export const HudMixin = {
     }
     const mana = gameState.mana;
     const mpRatio = Math.max(0, Math.min(1, mana / (manaMax || 1)));
-    if (this.hudMpBar) this.hudMpBar.width = Math.max(0, mpRatio * 308);
-    if (this.hudMpText) this.hudMpText.setText(`${Math.floor(mana)} / ${manaMax}`);
+    if (this.hudMpBar) this.hudMpBar.width = Math.max(0, mpRatio * 230);
+    if (this.hudMpText) this.hudMpText.setText(`${fmtCompact(mana)} / ${fmtCompact(manaMax)}`);
 
     // Sect
     if (this.hudSectText) {
@@ -165,11 +146,6 @@ export const HudMixin = {
         this.hudSectText.setText('Tán Tu Tự Do');
       }
     }
-
-    // Resources (Bạc, Linh Thạch Sơ/Trung/Thượng/Cực)
-    ensureCurrencies(gameState);
-    if (this.hudGoldText) this.hudGoldText.setText(formatCurrencySummary(gameState));
-    if (this.hudOreText) this.hudOreText.setText(`${gameState.ores} Khoáng`);
 
     // Map
     if (this.hudMapText) {
@@ -184,82 +160,89 @@ export const HudMixin = {
   // ---- Bottom Navigation ----
   createBottomNav() {
     if (this.menuContainer) this.menuContainer.destroy(true);
-    this.menuContainer = this.add.container(0, 0).setDepth(200);
+    this.menuContainer = this.add.container(0, 0).setDepth(9000);
+    const navSkin = this.addHudSkinRegion([{ x: 0, y: 833, w: W, h: H - 833 }], 9000);
+    this.menuContainer.add(navSkin);
 
-    // Nền nav bar đẹp hơn
-    const navBg = this.fixed(this.add.rectangle(W / 2 - 30, H - 36, W - 60, 60, 0x060c18, 0.97).setStrokeStyle(1.5, 0x2a4060), 200);
-    this.menuContainer.add(navBg);
-
-    // Bỏ Tông Môn - chỉ giữ 5 mục chính, icon to hơn, gap rộng hơn
+    // Bản đồ được mở bằng minimap ở góc trên.
     const navItems = [
       { key: 'bag',    label: 'Túi Đồ',   icon: 'xianxia_bag',    action: () => this.openGearPanel() },
-      { key: 'realm',  label: 'Cảnh Giới', icon: 'xianxia_realm',  action: () => this.openCharacterPanel() },
+      { key: 'realm',  label: 'Nhân Vật', icon: 'xianxia_realm',  action: () => this.openCharacterPanel() },
       { key: 'craft',  label: 'Bách Nghệ', icon: 'xianxia_craft',  action: () => this.openCraftingPanel('pills') },
-      { key: 'skills', label: 'Công Pháp', icon: 'xianxia_skills', action: () => this.openCongPhapPanel('Hoàng Giai', 'manuals') },
-      { key: 'map',    label: 'Bản Đồ',   icon: 'xianxia_map',    action: () => this.openMapPanel() },
+      { key: 'skills', label: 'Công Pháp', icon: 'xianxia_skills', action: () => (this.openCongPhapHome ? this.openCongPhapHome() : this.openCongPhapPanel()) },
     ];
 
-    // 5 nút chia đều, icon lớn hơn (60px), label to hơn
-    const totalNavW = W - 80;
+    // Các nút chia đều trong thanh điều hướng.
+    const totalNavW = W - 24;
     const gap = totalNavW / navItems.length;
-    const startX = 40 + gap / 2;
+    const startX = 12 + gap / 2;
     navItems.forEach((btn, idx) => {
       const x = startX + idx * gap;
-      const y = H - 36;
+      const y = H - 62;
       const btnBox = this.fixed(
-        this.add.rectangle(x, y, gap - 4, 60, 0x111e30, 0)
+        this.add.rectangle(x, y, gap - 4, 130, 0x111e30, 0)
           .setInteractive({ useHandCursor: true }), 202);
-      const iconImg = this.fixed(this.add.image(x, y - 14, btn.icon).setDisplaySize(36, 36), 203);
-      const labelTxt = this.fixed(this.add.text(x, y + 14, btn.label, {
-        fontSize: '13px', fontFamily: 'Be Vietnam Pro, sans-serif', fontStyle: 'bold', color: '#fff0c8'
+      const iconImg = this.fixed(this.add.image(x, y - 17, btn.icon).setDisplaySize(57, 57), 204);
+      const labelTxt = this.fixed(this.add.text(x, y + 27, btn.label, {
+        fontSize: '15px', fontFamily: 'Be Vietnam Pro, sans-serif', fontStyle: 'bold', color: '#fff1d0'
       }).setStroke('#0a1b20', 3).setOrigin(0.5), 204);
-      btnBox.on('pointerdown', btn.action);
+      btnBox.on('pointerdown', (_pointer, _localX, _localY, event) => {
+        event?.stopPropagation();
+        btn.action();
+      });
       btnBox.on('pointerover', () => iconImg.setTint(0xffe066));
       btnBox.on('pointerout', () => iconImg.clearTint());
       this.menuContainer.add([btnBox, iconImg, labelTxt]);
     });
+    this.menuContainer.setVisible(this.menuVisible !== false);
   },
 
-  // ---- Skill Bar (5 slots) ----
+  // ---- Skill Bar (6 independent slots) ----
   createSkillBar() {
     if (this.skillContainer) this.skillContainer.destroy(true);
-    this.skillContainer = this.add.container(0, 0).setDepth(200);
-
-    const startX = 36, y = H - 105, gap = 56;
+    this.skillContainer = this.add.container(0, 0).setDepth(9001);
+    const skillSkin = this.addHudSkinRegion([{ x: 0, y: 720, w: 495, h: 115 }], 9001);
+    this.skillContainer.add(skillSkin);
+    const startX = 105, y = 795, gap = 63;
     this.skillSlots = [];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const slotIndex = i;
       const x = startX + i * gap;
       const skillId = gameState.equippedSkillIds[i];
 
-      const slotBg = this.fixed(this.add.rectangle(x, y, 52, 52, 0x111a28, 0).setInteractive({ useHandCursor: true }), 205);
-      const hotkeyTxt = this.fixed(this.add.text(x - 19, y - 20, `${i + 1}`, { fontSize: '10px', fontStyle: 'bold', color: '#ffd700' }), 206);
+      const slotBg = this.fixed(this.add.circle(x, y, 26, 0x111a28, 0).setInteractive({ useHandCursor: true }), 210);
+      const hotkeyTxt = this.fixed(this.add.text(x, y + 26, `${i + 1}`, { fontSize: '11px', fontStyle: 'bold', color: '#ffe8a6' })
+        .setOrigin(0.5).setBackgroundColor('#0b2630'), 211);
 
       let icon = null, cdOverlay = null, cdText = null;
       if (skillId) {
         const skill = ELEMENTAL_SKILLS.find(s => s.id === skillId);
         if (skill) {
-          icon = this.fixed(this.add.image(x, y, skill.icon).setDisplaySize(52, 52), 206);
-          cdOverlay = this.fixed(this.add.rectangle(x, y, 48, 48, 0x000000, 0.7).setVisible(false), 207);
+          icon = this.fixed(this.add.image(x, y, skill.icon).setDisplaySize(43, 43), 206);
+          cdOverlay = this.fixed(this.add.circle(x, y, 22, 0x000000, 0.7).setVisible(false), 207);
           cdText = this.fixed(this.add.text(x, y, '', { fontSize: '13px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5), 208);
 
           const mastery = this.getSkillMastery ? this.getSkillMastery(skill.id) : { tier: { name: 'Sơ Nhập', color: '#aaddff' } };
           const badgeShort = mastery.tier.name[0]; // S, T, Đ, V
           const masteryBgColor = Phaser.Display.Color.HexStringToColor(mastery.tier.color).color;
-          const masteryDot = this.fixed(this.add.rectangle(x + 16, y + 16, 15, 13, 0x08121e, 0.95).setStrokeStyle(1, masteryBgColor), 208);
-          const masteryTxt = this.fixed(this.add.text(x + 16, y + 16, badgeShort, { fontSize: '8.5px', fontStyle: 'bold', color: mastery.tier.color }).setOrigin(0.5), 209);
+          const masteryDot = this.fixed(this.add.rectangle(x + 18, y - 18, 15, 13, 0x08121e, 0.95).setStrokeStyle(1, masteryBgColor), 208);
+          const masteryTxt = this.fixed(this.add.text(x + 18, y - 18, badgeShort, { fontSize: '8.5px', fontStyle: 'bold', color: mastery.tier.color }).setOrigin(0.5), 209);
 
           this.skillSlots.push({ skillId: skill.id, cdOverlay, cdText, slotBg, masteryDot, masteryTxt });
           this.skillContainer.add([icon, cdOverlay, cdText, masteryDot, masteryTxt]);
         }
       } else {
-        this.fixed(this.add.text(x, y, '+', { fontSize: '20px', color: '#556677' }).setOrigin(0.5), 206);
+        const plus = this.fixed(this.add.text(x, y, '+', {
+          fontSize: '24px', fontStyle: 'bold', color: '#9fc7c4'
+        }).setOrigin(0.5), 207);
+        this.skillContainer.add(plus);
         this.skillSlots.push({ skillId: null, slotBg });
       }
 
       let pressTimer = null, isLongPress = false;
-      slotBg.on('pointerdown', () => {
+      slotBg.on('pointerdown', (_pointer, _localX, _localY, event) => {
+        event?.stopPropagation();
         isLongPress = false;
         pressTimer = this.time.delayedCall(450, () => {
           isLongPress = true;
@@ -278,57 +261,26 @@ export const HudMixin = {
       this.skillContainer.add([slotBg, hotkeyTxt]);
     }
 
-    // Basic Attack Button (F)
-    const attackX = startX + 5 * gap + 15;
-    const atkBtn = this.fixed(this.add.circle(attackX, y, 30, 0x882222, 0).setInteractive({ useHandCursor: true }), 205);
-    const atkIcon = this.fixed(this.add.image(attackX, y - 4, 'xianxia_attack').setDisplaySize(52, 52), 206);
-    const atkLabel = this.fixed(this.add.text(attackX, y + 25, 'ĐÁNH (F)', { fontSize: '11px', fontStyle: 'bold', color: '#fff' }).setStroke('#291410', 3).setOrigin(0.5), 207);
-    atkBtn.on('pointerdown', () => this.basicAttack());
+    this.skillContainer.setVisible(this.skillsVisible !== false);
 
-    // Auto Toggle Button (Tap: Toggle Auto | Hold/Long-press: Open Auto Settings Menu)
-    const autoX = attackX + 58;
-    this.autoBtnBg = this.fixed(this.add.rectangle(autoX, y, 52, 56, 0x111e30, 0).setInteractive({ useHandCursor: true }), 205);
-    this.autoBtnIcon = this.fixed(this.add.image(autoX, y - 10, 'xianxia_auto').setDisplaySize(46, 46), 206);
-    this.autoBtnLabel = this.fixed(this.add.text(autoX, y + 18, 'TỰ ĐỘNG', { fontSize: '11px', fontStyle: 'bold', color: '#fff' }).setStroke('#0a1b20', 3).setOrigin(0.5), 207);
-    
-    let autoPressTimer = null;
-    let isAutoLongPress = false;
-    this.autoBtnBg.on('pointerdown', () => {
-      isAutoLongPress = false;
-      autoPressTimer = this.time.delayedCall(380, () => {
-        isAutoLongPress = true;
-        this.openAfkPanel();
-      });
-    });
-    this.autoBtnBg.on('pointerup', () => {
-      if (autoPressTimer) autoPressTimer.remove(false);
-      if (!isAutoLongPress) {
-        this.toggleAutoFight();
-      }
-    });
-    this.autoBtnBg.on('pointerout', () => {
-      if (autoPressTimer) autoPressTimer.remove(false);
-    });
-    this.updateAutoBtnVisual();
-
-    this.skillContainer.add([atkBtn, atkIcon, atkLabel, this.autoBtnBg, this.autoBtnIcon, this.autoBtnLabel]);
   },
 
   createSideToggleButtons() {
     if (this.sideToggleContainer) this.sideToggleContainer.destroy(true);
-    this.sideToggleContainer = this.add.container(0, 0).setDepth(209);
-
-    // ── NÚT DƯỠNG SỨC (🛌) ── Phía trên nút Skill, bỏ nút Tĩnh Tọa riêng
+    this.sideToggleContainer = this.add.container(0, 0).setDepth(9010);
+    const controlsSkin = this.addHudSkinRegion([{ x: 395, y: 145, w: W - 395, h: 60 }], 9010);
     const isRest = gameState.isResting;
-    const restToggle = this.fixed(this.add.rectangle(W - 24, H - 175, 40, 58, isRest ? 0x14382a : 0x1a0d2c, 0.93)
-      .setStrokeStyle(2, isRest ? 0x4ade80 : 0x553366)
+    const restToggle = this.fixed(this.add.rectangle(W - 39, 174, 70, 46, 0x45db9b, isRest ? 0.16 : 0)
       .setInteractive({ useHandCursor: true }), 209);
-    const restToggleIcon = this.fixed(this.add.text(W - 24, H - 185, '🛌', { fontSize: '18px' }).setOrigin(0.5), 210);
-    const restToggleTxt = this.fixed(this.add.text(W - 24, H - 161, isRest ? 'Dừng' : 'Nghỉ', {
-      fontSize: '10px', fontStyle: 'bold', color: isRest ? '#4ade80' : '#9966cc'
+    const restToggleIcon = this.fixed(this.add.text(W - 39, 163, '♨', { fontSize: '20px', color: '#f5e5bf' }).setOrigin(0.5), 210);
+    const restToggleTxt = this.fixed(this.add.text(W - 39, 186, isRest ? 'DỪNG' : 'NGHỈ', {
+      fontSize: '11px', fontStyle: 'bold', color: isRest ? '#7affb7' : '#fff1d1'
     }).setOrigin(0.5), 210);
 
-    restToggle.on('pointerdown', () => this.toggleResting());
+    restToggle.on('pointerdown', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
+      this.toggleResting();
+    });
 
     if (isRest) {
       this.tweens.add({
@@ -340,39 +292,64 @@ export const HudMixin = {
       });
     }
 
-    // ── NÚT SKILL TOGGLE ──
-    const skillToggle = this.fixed(this.add.rectangle(W - 24, H - 107, 40, 58, 0x0d1a2c, 0.9)
-      .setStrokeStyle(1.5, 0x334466)
+    const isAuto = !!gameState.autoFight;
+    this.sideAutoBtnBg = this.fixed(this.add.rectangle(W - 110, 174, 70, 46, 0x45db9b, isAuto ? 0.16 : 0)
       .setInteractive({ useHandCursor: true }), 209);
-    const skillToggleIcon = this.fixed(this.add.text(W - 24, H - 117, '⚡', { fontSize: '20px' }).setOrigin(0.5), 210);
-    const skillToggleTxt = this.fixed(this.add.text(W - 24, H - 93, 'Chiêu', {
-      fontSize: '10px', fontStyle: 'bold', color: '#88bbff'
+    this.sideAutoBtnIcon = this.fixed(this.add.image(W - 110, 163, 'xianxia_auto').setDisplaySize(26, 26), 210);
+    this.sideAutoBtnLabel = this.fixed(this.add.text(W - 110, 186, 'AUTO', {
+      fontSize: '11px', fontStyle: 'bold', color: isAuto ? '#7affb7' : '#fff1d1'
     }).setOrigin(0.5), 210);
 
-    skillToggle.on('pointerdown', () => {
-      this.skillsVisible = !this.skillsVisible;
-      if (this.skillContainer) this.skillContainer.setVisible(this.skillsVisible);
+    let autoPressTimer = null;
+    let isAutoLongPress = false;
+    this.sideAutoBtnBg.on('pointerdown', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
+      isAutoLongPress = false;
+      autoPressTimer = this.time.delayedCall(380, () => {
+        isAutoLongPress = true;
+        this.openAfkPanel();
+      });
+    });
+    this.sideAutoBtnBg.on('pointerup', () => {
+      if (autoPressTimer) autoPressTimer.remove(false);
+      if (!isAutoLongPress) {
+        this.toggleAutoFight();
+      }
+    });
+    this.sideAutoBtnBg.on('pointerout', () => {
+      if (autoPressTimer) autoPressTimer.remove(false);
     });
 
-    // ── NÚT MENU ──
-    const menuToggle = this.fixed(this.add.rectangle(W - 24, H - 40, 40, 54, 0x0d1a2c, 0.9)
-      .setStrokeStyle(1.5, 0x334466)
+    // Thu gọn hoặc mở lại hai khay dưới, vẫn giữ các nút chức năng phía trên.
+    const menuFrame = this.addHudSkinRegion([{ x: 495, y: 775, w: 45, h: 63 }], 9010);
+    const menuToggle = this.fixed(this.add.rectangle(W - 23, 809, 38, 42, 0x092832, 0)
       .setInteractive({ useHandCursor: true }), 209);
-    const menuToggleIcon = this.fixed(this.add.text(W - 24, H - 50, '☰', { fontSize: '20px' }).setOrigin(0.5), 210);
-    const menuToggleTxt = this.fixed(this.add.text(W - 24, H - 28, 'Menu', {
-      fontSize: '10px', fontStyle: 'bold', color: '#88aacc'
+    const menuToggleIcon = this.fixed(this.add.text(W - 23, 809, this.menuVisible === false ? '⌄' : '⌃', {
+      fontSize: '32px', fontStyle: 'bold', color: '#ffe5a4'
     }).setOrigin(0.5), 210);
 
-    menuToggle.on('pointerdown', () => {
+    menuToggle.on('pointerdown', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
       this.menuVisible = !this.menuVisible;
+      this.skillsVisible = this.menuVisible;
       if (this.menuContainer) this.menuContainer.setVisible(this.menuVisible);
+      if (this.skillContainer) this.skillContainer.setVisible(this.menuVisible);
+      menuToggleIcon.setText(this.menuVisible ? '⌃' : '⌄');
     });
 
     this.sideToggleContainer.add([
+      controlsSkin,
       restToggle, restToggleIcon, restToggleTxt,
-      skillToggle, skillToggleIcon, skillToggleTxt,
-      menuToggle, menuToggleIcon, menuToggleTxt
+      this.sideAutoBtnBg, this.sideAutoBtnIcon, this.sideAutoBtnLabel,
+      menuFrame, menuToggle, menuToggleIcon
     ]);
+    this.restToggleElements = [controlsSkin, restToggle, restToggleIcon, restToggleTxt];
+    this.autoToggleElements = [this.sideAutoBtnBg, this.sideAutoBtnIcon, this.sideAutoBtnLabel];
+    if (this.topHudVisible === false) {
+      this.restToggleElements.forEach(el => el.setVisible(false));
+      this.autoToggleElements.forEach(el => el.setVisible(false));
+    }
+    this.updateAutoBtnVisual();
   },
 
   // ---- AFK Banner ----
@@ -576,28 +553,49 @@ export const HudMixin = {
   },
 
   updateAutoBtnVisual() {
-    if (!this.autoBtnIcon) return;
+    const isAuto = !!gameState.autoFight;
     const mode = gameState.autoMode || 'farm';
-    let labelText = 'TỰ ĐỘNG';
-    if (mode === 'march') labelText = 'HÀNH QUÂN';
-    else if (mode === 'rush') labelText = 'VƯỢT MAP';
-    
-    if (this.autoBtnLabel) this.autoBtnLabel.setText(labelText);
 
-    if (gameState.autoFight) {
-      if (mode === 'rush') {
-        this.autoBtnIcon.setTint(0xffaa44);
-        if (this.autoBtnLabel) this.autoBtnLabel.setColor('#ffaa44');
-      } else if (mode === 'march') {
-        this.autoBtnIcon.setTint(0x44ddff);
-        if (this.autoBtnLabel) this.autoBtnLabel.setColor('#44ddff');
+    // Update Side AUTO Button
+    if (this.sideAutoBtnBg) {
+      this.sideAutoBtnBg.setFillStyle(0x45db9b, isAuto ? 0.16 : 0);
+    }
+    if (this.sideAutoBtnIcon) {
+      if (isAuto) {
+        if (mode === 'rush') this.sideAutoBtnIcon.setTint(0xffaa44);
+        else if (mode === 'march') this.sideAutoBtnIcon.setTint(0x44ddff);
+        else this.sideAutoBtnIcon.setTint(0x44ffcc);
       } else {
-        this.autoBtnIcon.setTint(0x44ffcc);
-        if (this.autoBtnLabel) this.autoBtnLabel.setColor('#44ffcc');
+        this.sideAutoBtnIcon.clearTint();
       }
-    } else {
-      this.autoBtnIcon.clearTint();
-      if (this.autoBtnLabel) this.autoBtnLabel.setColor('#ffffff');
+    }
+    if (this.sideAutoBtnLabel) {
+      this.sideAutoBtnLabel.setText('AUTO');
+      this.sideAutoBtnLabel.setColor(isAuto ? '#7affb7' : '#fff1d1');
+    }
+
+    // Update bottom skill bar auto button if exists
+    if (this.autoBtnIcon) {
+      let labelText = 'TỰ ĐỘNG';
+      if (mode === 'march') labelText = 'HÀNH QUÂN';
+      else if (mode === 'rush') labelText = 'VƯỢT MAP';
+      if (this.autoBtnLabel) this.autoBtnLabel.setText(labelText);
+
+      if (isAuto) {
+        if (mode === 'rush') {
+          this.autoBtnIcon.setTint(0xffaa44);
+          if (this.autoBtnLabel) this.autoBtnLabel.setColor('#ffaa44');
+        } else if (mode === 'march') {
+          this.autoBtnIcon.setTint(0x44ddff);
+          if (this.autoBtnLabel) this.autoBtnLabel.setColor('#44ddff');
+        } else {
+          this.autoBtnIcon.setTint(0x44ffcc);
+          if (this.autoBtnLabel) this.autoBtnLabel.setColor('#44ffcc');
+        }
+      } else {
+        this.autoBtnIcon.clearTint();
+        if (this.autoBtnLabel) this.autoBtnLabel.setColor('#ffffff');
+      }
     }
   },
 
@@ -612,82 +610,177 @@ export const HudMixin = {
     this.showFloatingText(this.player.x, this.player.y - 70, gameState.autoFight ? `☯ BẬT ${modeText}` : '⚔ ĐIỀU KHIỂN THỦ CÔNG', '#66ffaa');
   },
 
+  resetJoy() {
+    if (!this.joy) return;
+    this.joy.active = false;
+    this.joy.id = null;
+    this.joy.x = 0;
+    this.joy.y = 0;
+    this.joyBase?.setVisible?.(false);
+    this.joyKnob?.setVisible?.(false);
+  },
+
   // ---- Dynamic Touch Joystick ----
   createDynamicTouchControls() {
-    this.joyBase = this.fixed(this.add.circle(0, 0, 50, 0xd9fff1, 0.15).setStrokeStyle(2, 0x66ffcc, 0.45).setVisible(false), 220);
-    this.joyKnob = this.fixed(this.add.circle(0, 0, 22, 0xd9fff1, 0.4).setStrokeStyle(2, 0xffffff, 0.75).setVisible(false), 221);
+    this.resetJoy();
 
-    this.input.on('pointerdown', p => {
-      if (this.isModalOpen && this.isModalOpen()) return;
-      if (p.y < 100 || p.y > H - 150 || p.x > W - 50) return;
+    if (this.joyBase) this.joyBase.destroy();
+    if (this.joyKnob) this.joyKnob.destroy();
+
+    this.joyBase = this.fixed(
+      this.add.circle(0, 0, 50, 0xd9fff1, 0.15)
+        .setStrokeStyle(2, 0x66ffcc, 0.45)
+        .setVisible(false),
+      220
+    );
+    this.joyKnob = this.fixed(
+      this.add.circle(0, 0, 22, 0xd9fff1, 0.4)
+        .setStrokeStyle(2, 0xffffff, 0.75)
+        .setVisible(false),
+      221
+    );
+
+    const old = this._touchInputHandlers;
+    if (old && this.input) {
+      this.input.off('pointerdown', old.pointerDown);
+      this.input.off('pointermove', old.pointerMove);
+      this.input.off('pointerup', old.release);
+      this.input.off('pointerupoutside', old.release);
+      if (old.blur) window.removeEventListener('blur', old.blur);
+      if (old.visibility) document.removeEventListener('visibilitychange', old.visibility);
+    }
+
+    const isReservedUiZone = (pointer) => {
+      if (!pointer) return true;
+      return pointer.y < 155 || pointer.y > H - 150 || pointer.x > W - 58;
+    };
+
+    const release = (pointer) => {
+      if (!pointer || this.joy.id === pointer.id || !this.joy.active) this.resetJoy();
+    };
+
+    const pointerDown = (pointer, currentlyOver = []) => {
+      if (!pointer) return;
+
+      // Modal đang mở: tuyệt đối không tạo joystick.
+      if (this.isModalOpen?.()) {
+        this.resetJoy();
+        return;
+      }
+
+      // UI/portal/NPC interactive đang nằm dưới ngón tay: để GameObject đó xử lý.
+      if (Array.isArray(currentlyOver) && currentlyOver.length > 0) {
+        this.resetJoy();
+        return;
+      }
+
+      // Dành riêng toàn bộ vùng HUD/skill/menu/sidebar cho UI.
+      if (isReservedUiZone(pointer)) {
+        this.resetJoy();
+        return;
+      }
+
+      // Ngón tay thứ hai không được cướp joystick của ngón đang điều khiển.
+      if (this.joy.active && this.joy.id !== pointer.id) return;
+
       this.joy.active = true;
-      this.joy.id = p.id;
-      this.joy.startX = p.x;
-      this.joy.startY = p.y;
+      this.joy.id = pointer.id;
+      this.joy.startX = pointer.x;
+      this.joy.startY = pointer.y;
       this.joy.x = 0;
       this.joy.y = 0;
-      this.joyBase.setPosition(p.x, p.y).setVisible(true);
-      this.joyKnob.setPosition(p.x, p.y).setVisible(true);
-    });
-
-    this.input.on('pointermove', p => {
-      if (this.joy.active && this.joy.id === p.id) {
-        let dx = p.x - this.joy.startX;
-        let dy = p.y - this.joy.startY;
-        const len = Math.hypot(dx, dy) || 1;
-        const max = 45;
-        if (len > max) { dx = (dx / len) * max; dy = (dy / len) * max; }
-        this.joyKnob.setPosition(this.joy.startX + dx, this.joy.startY + dy);
-        this.joy.x = dx / max;
-        this.joy.y = dy / max;
-      }
-    });
-
-    const release = p => {
-      if (this.joy.id === p.id) {
-        this.joy.active = false; this.joy.id = null; this.joy.x = 0; this.joy.y = 0;
-        this.joyBase.setVisible(false); this.joyKnob.setVisible(false);
-      }
+      this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
+      this.joyKnob.setPosition(pointer.x, pointer.y).setVisible(true);
     };
+
+    const pointerMove = (pointer) => {
+      if (!pointer || !this.joy.active || this.joy.id !== pointer.id) return;
+      if (pointer.isDown === false) {
+        this.resetJoy();
+        return;
+      }
+
+      let dx = pointer.x - this.joy.startX;
+      let dy = pointer.y - this.joy.startY;
+      const len = Math.hypot(dx, dy) || 1;
+      const max = 45;
+      if (len > max) {
+        dx = (dx / len) * max;
+        dy = (dy / len) * max;
+      }
+      this.joyKnob.setPosition(this.joy.startX + dx, this.joy.startY + dy);
+      this.joy.x = dx / max;
+      this.joy.y = dy / max;
+    };
+
+    const blur = () => this.resetJoy();
+    const visibility = () => {
+      if (document.hidden) this.resetJoy();
+    };
+
+    this._touchInputHandlers = { pointerDown, pointerMove, release, blur, visibility };
+    this.input.on('pointerdown', pointerDown);
+    this.input.on('pointermove', pointerMove);
     this.input.on('pointerup', release);
     this.input.on('pointerupoutside', release);
+    window.addEventListener('blur', blur);
+    document.addEventListener('visibilitychange', visibility);
   },
 
   // ---- Minimap (Local Radar View) & Save Game Button ----
   createMinimap() {
     this.minimapElements = [];
     const fixed = (obj, depth) => {
-      const item = this.fixed(obj, depth);
+      const item = this.fixed(obj, 9000 + depth - 200);
       this.minimapElements.push(item);
       return item;
     };
 
-    this.miniBg = fixed(this.add.rectangle(W - 58, 46, 108, 84, 0x071b25, 0.97).setStrokeStyle(2, 0xcaa765), 215);
-    this.mini = this.fixed(this.add.graphics(), 216);
+    this.minimapElements.push(this.addHudSkinRegion([{ x: 405, y: 0, w: W - 405, h: 145 }], 9014));
+
+    this.miniBg = fixed(this.add.circle(W - 65, 61, 55, 0x071b25, 0)
+      .setInteractive({ useHandCursor: true }), 215);
+    this.mini = this.fixed(this.add.graphics(), 9016);
+    const miniMaskShape = this.make.graphics({ x: 0, y: 0, add: false });
+    miniMaskShape.fillStyle(0xffffff).fillCircle(W - 65, 61, 42);
+    miniMaskShape.setScrollFactor(0);
+    this.mini.setMask(miniMaskShape.createGeometryMask());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => miniMaskShape.destroy());
+    this.miniMapHitArea = fixed(this.add.circle(W - 65, 61, 55, 0x071b25, 0)
+      .setInteractive({ useHandCursor: true }), 217);
+    this.miniMapHitArea.on('pointerdown', (pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
+      this.openMapPanel();
+    });
+    this.miniMapLabel = fixed(this.add.text(W - 65, 61, 'BẢN ĐỒ', {
+      fontFamily: 'Be Vietnam Pro, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffdf8c'
+    }).setOrigin(0.5).setVisible(false), 218);
 
     // Save Game Button (Below Minimap)
-    this.saveBtnBg = fixed(this.add.rectangle(W - 58, 102, 108, 24, 0x0a1e28, 0.95)
-      .setStrokeStyle(1.5, 0xcaa765)
+    this.saveBtnBg = fixed(this.add.rectangle(W - 70, 130, 132, 26, 0x092832, 0)
       .setInteractive({ useHandCursor: true }), 215);
-    this.saveBtnTxt = fixed(this.add.text(W - 58, 102, '💾 LƯU TIẾN TRÌNH', {
-      fontSize: '9px', fontStyle: 'bold', color: '#ffdf8c'
+    this.saveBtnTxt = fixed(this.add.text(W - 70, 130, '▣ LƯU TIẾN TRÌNH', {
+      fontFamily: 'Be Vietnam Pro, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#ffdf8c'
     }).setOrigin(0.5), 216);
 
-    this.saveBtnBg.on('pointerdown', () => this.openSaveGameModal());
-    this.saveBtnBg.on('pointerover', () => this.saveBtnBg.setFillStyle(0x13384a, 1));
-    this.saveBtnBg.on('pointerout', () => this.saveBtnBg.setFillStyle(0x0a1e28, 0.95));
+    this.saveBtnBg.on('pointerdown', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
+      this.openSaveGameModal();
+    });
+    this.saveBtnBg.on('pointerover', () => this.saveBtnTxt.setColor('#ffffff'));
+    this.saveBtnBg.on('pointerout', () => this.saveBtnTxt.setColor('#ffdf8c'));
   },
 
   updateMinimap() {
     if (!this.mini || !this.player || this.topHudVisible === false) return;
     this.mini.clear();
-    const bx = W - 110, by = 12, bw = 100, bh = 72;
+    const bx = W - 117, by = 10, bw = 104, bh = 102;
     const cx = bx + bw / 2;
     const cy = by + bh / 2;
 
     // Nền Radar khu vực lân cận
     this.mini.fillStyle(0x061824, 0.92);
-    this.mini.fillRect(bx, by, bw, bh);
+    this.mini.fillCircle(cx, cy, 42);
 
     // Đường kẻ định vị tâm và vòng cự ly radar
     this.mini.lineStyle(1, 0x1a3854, 0.6);

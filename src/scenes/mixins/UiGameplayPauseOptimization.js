@@ -22,6 +22,7 @@ function stopMotion(scene) {
 function freezeWorld(scene) {
   if (!scene) return;
   stopMotion(scene);
+  scene.gameplayPaused = true;
   scene.__uiHardPaused = true;
   scene.__uiWorldPaused = true;
 
@@ -52,6 +53,7 @@ function resumeWorld(scene) {
     scene.anims.resumeAll();
   }
 
+  scene.gameplayPaused = false;
   scene.__uiHardPaused = false;
   scene.__uiWorldPaused = false;
   scene.__uiTweensPaused = false;
@@ -59,18 +61,7 @@ function resumeWorld(scene) {
 }
 
 function uiPaused(scene) {
-  return !!scene?.__uiHardPaused;
-}
-
-function wrapBlockedMethod(proto, name, fallbackValue) {
-  const original = proto[name];
-  if (typeof original !== 'function' || original.__hardUiPauseWrapped) return;
-  const wrapped = function hardUiPauseGuard(...args) {
-    if (uiPaused(this)) return fallbackValue;
-    return original.apply(this, args);
-  };
-  wrapped.__hardUiPauseWrapped = true;
-  proto[name] = wrapped;
+  return !!(scene?.gameplayPaused || scene?.__uiHardPaused);
 }
 
 export function installUiGameplayPauseOptimization(MainGameScene) {
@@ -78,6 +69,9 @@ export function installUiGameplayPauseOptimization(MainGameScene) {
   const proto = MainGameScene.prototype;
   proto.__uiGameplayPauseInstalledV2 = true;
 
+  proto.isGameplayPaused = function isGameplayPaused() {
+    return uiPaused(this);
+  };
   proto.enterUiHardPause = function enterUiHardPause() {
     freezeWorld(this);
   };
@@ -160,20 +154,4 @@ export function installUiGameplayPauseOptimization(MainGameScene) {
     panel?.add?.([bg, txt]);
     return bg;
   };
-
-  // Gameplay/timer entry points that must behave exactly like a safe zone while UI is open.
-  [
-    'onSecondTick',
-    'enemyAttack',
-    'enemyShootProjectile',
-    'takePlayerDamage',
-    'takePartyFollowerDamage',
-    'basicAttack',
-    'castSkill',
-    'performDash',
-    'triggerPortalTeleport',
-    'respawnEnemy',
-    'spawnVfx',
-    'spawnSpellVfx'
-  ].forEach(name => wrapBlockedMethod(proto, name));
 }

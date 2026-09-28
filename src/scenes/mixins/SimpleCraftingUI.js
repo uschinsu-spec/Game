@@ -8,67 +8,24 @@ import {
 } from '../../config/craftingData.js';
 import { getHerbByName } from '../../config/herbsData.js';
 import { gameState } from '../../state/gameState.js';
+import { stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
-function stopPointer(pointer) {
-  const evt = pointer?.event;
-  if (!evt) return;
-  evt.stopPropagation?.();
-  evt.preventDefault?.();
-}
-
-function pauseWorld(scene) {
-  scene.moveTarget = null;
-  if (scene.player?.body?.setVelocity) scene.player.setVelocity(0, 0);
-  if (scene.joy) {
-    scene.joy.active = false;
-    scene.joy.id = null;
-    scene.joy.x = 0;
-    scene.joy.y = 0;
-  }
-  scene.joyBase?.setVisible?.(false);
-  scene.joyKnob?.setVisible?.(false);
-  if (!scene.__uiWorldPaused && scene.physics?.world?.pause) {
-    scene.physics.world.pause();
-    scene.__uiWorldPaused = true;
-  }
+function isThanhVanArea(scene) {
+  const id = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
+  return id === 0 || id === 1;
 }
 
 function createShell(scene, title, subtitle = '') {
-  scene.closeModal();
-
-  const overlay = scene.fixed(scene.add.rectangle(W / 2, H / 2, W + 12, H + 12, 0x020912, 1), 9998)
-    .setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), 10000);
-
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  pauseWorld(scene);
-
-  overlay.on('pointerdown', pointer => stopPointer(pointer));
-  overlay.on('pointerup', pointer => stopPointer(pointer));
-  overlay.on('pointermove', pointer => stopPointer(pointer));
-
-  const bg = scene.add.rectangle(0, 0, W - 8, H - 8, 0x082638, 1)
-    .setStrokeStyle(2.5, 0x63e6ff, 1);
-  const header = scene.add.rectangle(0, -427, W - 20, 88, 0x0b3247, 1)
-    .setStrokeStyle(1.5, 0x3dd9ff, 0.9);
-  const titleTxt = scene.add.text(-238, -445, title, {
-    fontFamily: FONT,
-    fontSize: '22px',
-    fontStyle: 'bold',
-    color: '#ffe77a'
-  }).setOrigin(0, 0.5);
-  const subTxt = scene.add.text(-238, -414, subtitle, {
-    fontFamily: FONT,
-    fontSize: '12px',
-    color: '#9aeaff'
-  }).setOrigin(0, 0.5);
-
-  panel.add([bg, header, titleTxt, subTxt]);
-  scene.createModalCloseBtn(panel);
-  return panel;
+  return scene.createModalShell(title, subtitle, {
+    headerY: -427,
+    headerH: 88,
+    titleFontSize: '22px',
+    titleY: -445,
+    subY: -414,
+    subtitleColor: '#9aeaff'
+  });
 }
 
 function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
@@ -91,7 +48,7 @@ function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
 
   if (enabled && typeof onPress === 'function') {
     bg.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       onPress();
     });
   }
@@ -160,19 +117,53 @@ function renderCategoryTabs(scene, panel, currentTab) {
 }
 
 function renderRankSelector(scene, panel, activeRank) {
-  const rankLabels = ['Nhất Phẩm', 'Nhị Phẩm', 'Tam Phẩm', 'Tứ Phẩm', 'Ngũ Phẩm'];
-  rankLabels.forEach((label, idx) => {
-    const rank = idx + 1;
+  const earlyOnly = isThanhVanArea(scene);
+
+  if (earlyOnly) {
+    // Thanh Vân: chỉ mở Phàm Phẩm (0) & Nhất Phẩm (1)
+    const earlyRanks = [
+      { rank: 0, label: '🌱 PHÀM PHẨM', x: -116 },
+      { rank: 1, label: '💊 NHẤT PHẨM', x: 116 }
+    ];
+    earlyRanks.forEach(({ rank, label, x }) => {
+      const active = rank === activeRank;
+      addButton(scene, panel, x, -280, 220, 48, label,
+        () => scene.openCraftingPanel('pills', rank), {
+          fill: active ? 0x176b55 : 0x123443,
+          stroke: active ? 0x7dffca : 0x4b8192,
+          color: active ? '#edfff5' : '#c8edf6',
+          fontSize: '13px'
+        });
+    });
+
+    const note = scene.add.text(0, -236, 'Thanh Vân: Đan Dược mở tối đa Nhất Phẩm', {
+      fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#a9f5ff'
+    }).setOrigin(0.5);
+    panel.add(note);
+    return;
+  }
+
+  // Toàn bộ 6 Cấp Phẩm: Phàm (0), Nhất (1), Nhị (2), Tam (3), Tứ (4), Ngũ (5)
+  const ranks = [
+    { rank: 0, label: '🌱 PHÀM' },
+    { rank: 1, label: '💊 NHẤT' },
+    { rank: 2, label: '🔮 NHỊ' },
+    { rank: 3, label: '✨ TAM' },
+    { rank: 4, label: '👑 TỨ' },
+    { rank: 5, label: '⚡ NGŨ' }
+  ];
+
+  ranks.forEach((r, idx) => {
     const row = Math.floor(idx / 3);
     const col = idx % 3;
     const x = -164 + col * 164;
-    const y = -292 + row * 48;
-    const active = rank === activeRank;
-    addButton(scene, panel, x, y, 150, 40, label,
-      () => scene.openCraftingPanel('pills', rank), {
-        fill: active ? 0x165d45 : 0x123443,
-        stroke: active ? 0x62ffbd : 0x3b7181,
-        color: active ? '#dfffee' : '#c2e8f2',
+    const y = -294 + row * 44;
+    const active = r.rank === activeRank;
+    addButton(scene, panel, x, y, 150, 38, r.label,
+      () => scene.openCraftingPanel('pills', r.rank), {
+        fill: active ? 0x176b55 : 0x123443,
+        stroke: active ? 0x7dffca : 0x4b8192,
+        color: active ? '#edfff5' : '#c8edf6',
         fontSize: '12px'
       });
   });
@@ -180,10 +171,12 @@ function renderRankSelector(scene, panel, activeRank) {
 
 function renderList(scene, panel, tab, activeRank) {
   let items = CRAFTING_SYSTEM[tab] || [];
-  if (tab === 'pills') items = items.filter(item => item.pillRank === activeRank);
+  if (tab === 'pills') {
+    items = items.filter(item => Number(item.pillRank ?? 1) === Number(activeRank));
+  }
   items = items.slice(0, 7);
 
-  const startY = tab === 'pills' ? -172 : -270;
+  const startY = tab === 'pills' ? -180 : -270;
   const rowH = 72;
 
   if (!items.length) {
@@ -220,7 +213,7 @@ function renderList(scene, panel, tab, activeRank) {
     }).setOrigin(0.5);
 
     box.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       scene.openCraftingPanel(tab, activeRank, item.name);
     });
     panel.add([box, name, meta, arrow]);
@@ -229,7 +222,6 @@ function renderList(scene, panel, tab, activeRank) {
 
 function renderDetail(scene, panel, tab, activeRank, item) {
   const owned = ownedCount(tab, item);
-  const gColor = gradeColor(item);
 
   const crumb = scene.add.text(-230, -352, `BÁCH NGHỆ  ›  ${tabLabel(tab)}`, {
     fontFamily: FONT,
@@ -358,18 +350,29 @@ export function installSimpleCraftingUI(MainGameScene) {
 
   proto.openCraftingPanel = function openSimpleCraftingPanel(currentTab = 'pills', pillRankFilter = null, itemName = null) {
     const tab = ['pills', 'talismans', 'formations'].includes(currentTab) ? currentTab : 'pills';
-    const playerRank = Math.max(1, getPlayerPillRank(gameState.realmIdx));
-    const activeRank = tab === 'pills' ? (pillRankFilter || playerRank) : null;
-    const panel = createShell(this, 'BÁCH NGHỆ', itemName ? 'Chi tiết & xác nhận' : 'Chọn mục cần xem');
+    const isThanhVan = isThanhVanArea(this);
+    const playerRank = Math.max(0, getPlayerPillRank(gameState.realmIdx));
+
+    let activeRank = 0;
+    if (tab === 'pills') {
+      if (pillRankFilter !== null && pillRankFilter !== undefined) {
+        activeRank = Number(pillRankFilter);
+      } else {
+        activeRank = isThanhVan ? 0 : Math.min(5, playerRank);
+      }
+    }
 
     if (itemName) {
       const item = (CRAFTING_SYSTEM[tab] || []).find(entry => entry.name === itemName);
       if (item) {
-        renderDetail(this, panel, tab, activeRank, item);
+        const itemRank = Number(item.pillRank ?? activeRank);
+        const panel = createShell(this, 'BÁCH NGHỆ', 'Chi tiết & xác nhận');
+        renderDetail(this, panel, tab, itemRank, item);
         return;
       }
     }
 
+    const panel = createShell(this, 'BÁCH NGHỆ', 'Chọn mục cần xem');
     renderCategoryTabs(this, panel, tab);
     if (tab === 'pills') renderRankSelector(this, panel, activeRank);
     renderList(this, panel, tab, activeRank);

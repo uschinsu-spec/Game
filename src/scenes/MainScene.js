@@ -16,15 +16,16 @@ import { gameState } from '../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-mastery-vfx-v4';
 import { W, H } from './constants.js';
 
-import { HudMixin } from './mixins/HudMixin.js';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20260928-skill-mastery-vfx-v4';
-import { EnemyMixin } from './mixins/EnemyMixin.js';
+import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20260928-combat-unified-v5';
+import { EnemyMixin } from './mixins/EnemyMixin.js?v=20260928-enemy-loot-unified-v1';
 import { PlayerMixin } from './mixins/PlayerMixin.js';
-import { ModalMixin } from './mixins/ModalMixin.js';
-import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-thanh-van-image-hub-v3';
+import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
+import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-npc-dialog-unified-v1';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
-import { HerbsMixin } from './mixins/HerbsMixin.js';
+import { HerbsMixin } from './mixins/HerbsMixin.js?v=20260928-unified-resources-v2';
 import { exportSaveCode } from '../state/saveSystem.js';
+import { loadAllItemIcons } from '../config/iconManifest.js?v=20260928-game-icons-v1';
 
 export { W, H } from './constants.js';
 
@@ -62,32 +63,48 @@ export class MainGameScene extends Phaser.Scene {
       }
     });
 
-    this.load.image('flying_sword', A + 'player/flying_sword.png');
-    this.load.spritesheet('player_idle', A + 'player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_run', A + 'player/player_run.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_attack', A + 'player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_fly', A + 'player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.image('flying_sword', A + 'characters/player/flying_sword.png');
+    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('player_run', A + 'characters/player/player_run.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
 
     for (let i = 1; i <= 16; i++) {
-      this.load.image(`enemy_${i}_idle_0`, `${A}enemies/enemy_${i}/idle_0.png`);
-      this.load.image(`enemy_${i}_idle_1`, `${A}enemies/enemy_${i}/idle_1.png`);
-      for (let r = 0; r < 4; r++) this.load.image(`enemy_${i}_run_${r}`, `${A}enemies/enemy_${i}/run_${r}.png`);
-      for (let a = 0; a < 4; a++) this.load.image(`enemy_${i}_attack_${a}`, `${A}enemies/enemy_${i}/attack_${a}.png`);
+      this.load.image(`enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.png`);
+      this.load.image(`enemy_${i}_idle_1`, `${A}characters/enemies/ground/enemy_${i}/idle_1.png`);
+      for (let r = 0; r < 4; r++) this.load.image(`enemy_${i}_run_${r}`, `${A}characters/enemies/ground/enemy_${i}/run_${r}.png`);
+      for (let a = 0; a < 4; a++) this.load.image(`enemy_${i}_attack_${a}`, `${A}characters/enemies/ground/enemy_${i}/attack_${a}.png`);
+    }
+
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`enemy_fly_${i}_idle_0`, `${A}characters/enemies/flying/enemy_${i}/idle_0.png`);
+      this.load.image(`enemy_fly_${i}_idle_1`, `${A}characters/enemies/flying/enemy_${i}/idle_1.png`);
+      for (let r = 0; r < 4; r++) this.load.image(`enemy_fly_${i}_run_${r}`, `${A}characters/enemies/flying/enemy_${i}/run_${r}.png`);
+      for (let a = 0; a < 4; a++) this.load.image(`enemy_fly_${i}_attack_${a}`, `${A}characters/enemies/flying/enemy_${i}/attack_${a}.png`);
     }
 
     for (let f = 1; f <= 8; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`dai_han_idle_${f}`, `${A}player/NPC/Dai_Han_Dao/dai_han_3d_idle_${pad}.png`);
-      this.load.image(`dai_han_run_${f}`, `${A}player/NPC/Dai_Han_Dao/dai_han_3d_run_${pad}.png`);
-      this.load.image(`dai_han_attack_${f}`, `${A}player/NPC/Dai_Han_Dao/dai_han_3d_attack_${pad}.png`);
-      this.load.image(`dai_han_fly_${f}`, `${A}player/NPC/Dai_Han_Dao/dai_han_3d_fly_${pad}.png`);
-      this.load.image(`tho_san_idle_${f}`, `${A}player/NPC/Tho_San_Riu/tho_san_riu_3d_idle_${pad}.png`);
-      this.load.image(`tho_san_run_${f}`, `${A}player/NPC/Tho_San_Riu/tho_san_riu_3d_run_${pad}.png`);
-      this.load.image(`tho_san_attack_${f}`, `${A}player/NPC/Tho_San_Riu/tho_san_riu_3d_attack_${pad}.png`);
-      this.load.image(`tho_san_fly_${f}`, `${A}player/NPC/Tho_San_Riu/tho_san_riu_3d_fly_${pad}.png`);
+      this.load.image(`dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.png`);
+      this.load.image(`dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.png`);
+      this.load.image(`dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.png`);
+      this.load.image(`dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.png`);
+      this.load.image(`tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.png`);
+      this.load.image(`tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.png`);
+      this.load.image(`tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.png`);
+      this.load.image(`tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.png`);
     }
 
-    for (let n = 1; n <= 16; n++) this.load.image(`npc_${n}`, `${A}npc/npc_${n}.png`);
+    // 20 Flying NPCs (Trúc Cơ trở lên)
+    for (let i = 1; i <= 20; i++) {
+      for (let f = 1; f <= 8; f++) {
+        const pad = String(f).padStart(2, '0');
+        this.load.image(`npc_fly_${i}_attack_${f}`, `${A}characters/npc/flying/npc_${i}/attack_${pad}.png`);
+        this.load.image(`npc_fly_${i}_fly_${f}`, `${A}characters/npc/flying/npc_${i}/fly_${pad}.png`);
+      }
+    }
+
+    for (let n = 1; n <= 16; n++) this.load.image(`npc_${n}`, `${A}characters/npc/portraits/npc_${n}.png`);
     for (let i = 0; i < 10; i++) this.load.image(`skill_${i}`, A + `icons/skills/skill_${i}.png`);
     ELEMENTAL_SKILLS.forEach(skill => this.load.image(skill.icon, A + `icons/skills/unique/${skill.id}.png`));
     for (let i = 0; i < 18; i++) this.load.image(`item_${i}`, A + `icons/items/item_${i}.png`);
@@ -100,17 +117,20 @@ export class MainGameScene extends Phaser.Scene {
     for (let i = 0; i < 12; i++) this.load.image(`stage_${i}`, A + `icons/stages/stage_${i}.png`);
     ['bag', 'realm', 'skills', 'auto', 'settings', 'close', 'map', 'gold', 'pill', 'quest'].forEach(icon => this.load.image(`ui_${icon}`, A + `icons/ui/${icon}.png`));
     ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold'].forEach(icon => this.load.image(`xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
+    this.load.image('hud_skin', A + 'ui/hud_skin.png');
+    this.load.image('hud_portrait', A + 'ui/hud_portrait.png');
+    loadAllItemIcons(this, A);
 
     const elemDirs = { hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water', phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical' };
     Object.entries(elemDirs).forEach(([elemKey, dirName]) => {
-      this.load.image(`vfx_${elemKey}_1`, `${A}vfx/${dirName}/proj_1.png`);
-      for (let f = 0; f < 8; f++) this.load.image(`vfx_${elemKey}_1_${f}`, `${A}vfx/${dirName}/frame_${f}.png`);
-      this.load.image(`vfx_${elemKey}_2`, `${A}vfx/${dirName}/proj_2.png`);
-      this.load.image(`vfx_${elemKey}_3`, `${A}vfx/${dirName}/array_3.png`);
-      this.load.image(`vfx_${elemKey}_4`, `${A}vfx/${dirName}/swarm_4.png`);
-      this.load.image(`vfx_${elemKey}_5`, `${A}vfx/${dirName}/colossus_5.png`);
-      this.load.image(`vfx_${elemKey}_shockwave`, `${A}vfx/${dirName}/shockwave.png`);
-      this.load.image(`vfx_${elemKey}_impact`, `${A}vfx/${dirName}/impact.png`);
+      this.load.image(`vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.png`);
+      for (let f = 0; f < 8; f++) this.load.image(`vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.png`);
+      this.load.image(`vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.png`);
+      this.load.image(`vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.png`);
+      this.load.image(`vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.png`);
+      this.load.image(`vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.png`);
+      this.load.image(`vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.png`);
+      this.load.image(`vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.png`);
     });
 
     for (let i = 0; i < 8; i++) {
@@ -119,8 +139,8 @@ export class MainGameScene extends Phaser.Scene {
     }
     this.load.image('vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.png`);
     this.load.image('vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.png`);
-    this.load.image('vfx_sword_impact_frame7', `${A}vfx/frame_7.png`);
-    this.load.image('vfx_impact_frame7', `${A}vfx/frame_7.png`);
+    this.load.image('vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.png`);
+    this.load.image('vfx_impact_frame7', `${A}vfx/atlas/frame_7.png`);
     this.load.image('vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.png`);
     this.load.image('vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.png`);
     this.load.image('vfx_loi', `${A}vfx/sword/vfx_loi.png`);
@@ -128,7 +148,7 @@ export class MainGameScene extends Phaser.Scene {
     this.load.image('vfx_shield', A + 'vfx/skills/vfx_shield.png');
     this.load.image('vfx_speed', A + 'vfx/skills/vfx_speed.png');
     this.load.image('vfx_divine', A + 'vfx/ultimates/vfx_divine.png');
-    this.load.spritesheet('vfx', A + 'vfx/vfx_atlas.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('vfx', A + 'vfx/atlas/vfx_atlas.png', { frameWidth: 128, frameHeight: 128 });
   }
 
   create() {
@@ -155,13 +175,13 @@ export class MainGameScene extends Phaser.Scene {
     this.initBattlefield();
     this.initFellowNpcs();
     this.initHerbs();
-    this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,F,Q,E,SPACE,ONE,TWO,THREE,FOUR,FIVE,ESC,T');
+    this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,F,Q,E,SPACE,ONE,TWO,THREE,FOUR,FIVE,SIX,ESC,T');
     this.input.keyboard.on('keydown-ESC', () => this.closeModal());
     this.input.keyboard.on('keydown-T', () => this.toggleMeditation());
     this.input.on('pointerdown', p => {
       if (this.isModalOpen && this.isModalOpen()) return;
       if (Number(gameState.currentMapId) === 0) return;
-      if (p.y < 90 || p.y > H - 140 || p.x > W - 60) return;
+      if (p.y < 90 || p.y > (this.skillsVisible ? H - 225 : H - 140) || p.x > W - 60) return;
       this.moveTarget = { x: Phaser.Math.Clamp(p.x + this.cameras.main.scrollX, this.field.left, this.field.right), y: Phaser.Math.Clamp(p.y, this.field.top, this.field.bottom) };
     });
     this.time.addEvent({ delay: 1000, callback: this.onSecondTick, callbackScope: this, loop: true });
@@ -230,9 +250,20 @@ export class MainGameScene extends Phaser.Scene {
           const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
           let casted = false;
           if (gameState.afkSettings?.autoSkill && !isAttacking) {
-            for (const sId of gameState.equippedSkillIds) if (sId && !(this.activeSkillCds[sId] > 0)) { if (this.isFlyingSword) this.isFlyingSword = false; this.castSkill(sId); casted = true; break; }
+            for (const sId of gameState.equippedSkillIds) {
+              if (!sId || this.activeSkillCds[sId] > 0) continue;
+              if (sId === 'basic_attack' && dist > 115) continue; // Cận chiến: phải áp sát mới tung đòn
+              if (this.isFlyingSword) this.isFlyingSword = false;
+              this.castSkill(sId);
+              casted = true;
+              break;
+            }
           }
-          if (!casted && dist <= 115 && !isAttacking) { if (this.isFlyingSword) this.isFlyingSword = false; this.basicAttack(); }
+          const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
+          if (!casted && hasBasicEquipped && dist <= 115 && !isAttacking) {
+            if (this.isFlyingSword) this.isFlyingSword = false;
+            this.basicAttack();
+          }
         }
       } else if (this.enemies.length > 0) {
         const target = this.nearestEnemy(3000, false);
@@ -240,19 +271,37 @@ export class MainGameScene extends Phaser.Scene {
           const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
           const onScreen = this.isEnemyOnScreen ? this.isEnemyOnScreen(target, 20) : dist <= 420;
           let casted = false;
-          if (gameState.afkSettings?.autoSkill && onScreen && dist <= 420 && !isAttacking) {
-            for (const sId of gameState.equippedSkillIds) if (sId && !(this.activeSkillCds[sId] > 0)) { if (this.isFlyingSword) this.isFlyingSword = false; this.player.setFlipX(target.x < this.player.x); this.castSkill(sId); casted = true; break; }
+          if (gameState.afkSettings?.autoSkill && onScreen && !isAttacking) {
+            for (const sId of gameState.equippedSkillIds) {
+              if (!sId || this.activeSkillCds[sId] > 0) continue;
+              if (sId === 'basic_attack' && dist > 120) continue; // Đánh thường cận chiến: chỉ đánh khi đã chạy đến sát quái (<=120px)
+              if (this.isFlyingSword) this.isFlyingSword = false;
+              this.player.setFlipX(target.x < this.player.x);
+              this.castSkill(sId);
+              casted = true;
+              break;
+            }
           }
           if (!casted) {
-            if (dist > 220) {
-              if (gameState.afkSettings?.autoFly && !this.isFlyingSword) this.isFlyingSword = true;
-              if (!isAttacking) { const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y); vx = Math.cos(angle) * baseSpeed; vy = Math.sin(angle) * baseSpeed; }
-            } else if (dist > 85) {
-              if (this.isFlyingSword) this.isFlyingSword = false;
-              if (!isAttacking) { const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y); vx = Math.cos(angle) * baseSpeed * 0.9; vy = Math.sin(angle) * baseSpeed * 0.9; }
+            const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
+            const hasReadyRangedSkill = gameState.equippedSkillIds.some(sId => sId && sId !== 'basic_attack' && !(this.activeSkillCds[sId] > 0));
+            // Nếu có chiêu tầm xa sẵn sàng: giữ cự ly 220px bắn phép; nếu cần đánh thường cận chiến: CHẠY ÁP SÁT ĐẾN CẬN CHIẾN (85px)!
+            const stopDist = hasReadyRangedSkill ? 220 : (hasBasicEquipped ? 85 : 220);
+
+            if (dist > stopDist) {
+              if (gameState.afkSettings?.autoFly && !this.isFlyingSword && dist > 200) this.isFlyingSword = true;
+              if (!isAttacking) {
+                const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                vx = Math.cos(angle) * baseSpeed;
+                vy = Math.sin(angle) * baseSpeed;
+              }
             } else {
               if (this.isFlyingSword) this.isFlyingSword = false;
-              vx = 0; vy = 0; this.player.setFlipX(target.x < this.player.x); if (!isAttacking) this.basicAttack();
+              vx = 0; vy = 0;
+              this.player.setFlipX(target.x < this.player.x);
+              if (hasBasicEquipped && dist <= 125 && !isAttacking) {
+                this.basicAttack();
+              }
             }
           }
         }
@@ -317,11 +366,11 @@ export class MainGameScene extends Phaser.Scene {
       enemy.setVelocity(evx, evy);
       enemy.x = Phaser.Math.Clamp(enemy.x, this.field.left, this.field.right);
       enemy.y = Phaser.Math.Clamp(enemy.y, this.field.top, this.field.bottom);
-      if (!isEnemyAttacking) { const moving = Math.abs(evx) > 3 || Math.abs(evy) > 3; const animKey = 'e_enemy_' + enemy.enemySpriteNum + (moving ? '_run' : '_idle'); if (enemy.anims?.currentAnim?.key !== animKey) enemy.play(animKey, true); }
+      if (!isEnemyAttacking) { const moving = Math.abs(evx) > 3 || Math.abs(evy) > 3; const pfx = enemy.isFlying ? ('e_enemy_fly_' + enemy.enemySpriteNum) : ('e_enemy_' + enemy.enemySpriteNum); const animKey = pfx + (moving ? '_run' : '_idle'); if (enemy.anims?.currentAnim?.key !== animKey && this.anims.exists(animKey)) enemy.play(animKey, true); }
     }
 
     if (this.updateHerbs) this.updateHerbs(time, delta);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.F) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) this.basicAttack();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.F) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) { if (gameState.equippedSkillIds[0]) this.castSkill(gameState.equippedSkillIds[0]); else this.basicAttack(); }
     if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) this.performDash();
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.toggleFlyingSword();
     if (Phaser.Input.Keyboard.JustDown(this.keys.ONE) && gameState.equippedSkillIds[0]) this.castSkill(gameState.equippedSkillIds[0]);
@@ -329,6 +378,7 @@ export class MainGameScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.THREE) && gameState.equippedSkillIds[2]) this.castSkill(gameState.equippedSkillIds[2]);
     if (Phaser.Input.Keyboard.JustDown(this.keys.FOUR) && gameState.equippedSkillIds[3]) this.castSkill(gameState.equippedSkillIds[3]);
     if (Phaser.Input.Keyboard.JustDown(this.keys.FIVE) && gameState.equippedSkillIds[4]) this.castSkill(gameState.equippedSkillIds[4]);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.SIX) && gameState.equippedSkillIds[5]) this.castSkill(gameState.equippedSkillIds[5]);
   }
 
   createAnimations() {
@@ -340,11 +390,25 @@ export class MainGameScene extends Phaser.Scene {
       if (!this.anims.exists('e_' + t + '_run')) this.anims.create({ key: 'e_' + t + '_run', frames: [0, 1, 2, 3].map(r => ({ key: `${t}_run_${r}` })), frameRate: 8, repeat: -1 });
       if (!this.anims.exists('e_' + t + '_attack')) this.anims.create({ key: 'e_' + t + '_attack', frames: [0, 1, 2, 3].map(a => ({ key: `${t}_attack_${a}` })), frameRate: 10, repeat: 0 });
     }
+    for (let i = 1; i <= 10; i++) {
+      const t = 'enemy_fly_' + i;
+      if (!this.anims.exists('e_' + t + '_idle')) this.anims.create({ key: 'e_' + t + '_idle', frames: [{ key: `${t}_idle_0` }, { key: `${t}_idle_1` }], frameRate: 5, repeat: -1 });
+      if (!this.anims.exists('e_' + t + '_run')) this.anims.create({ key: 'e_' + t + '_run', frames: [0, 1, 2, 3].map(r => ({ key: `${t}_run_${r}` })), frameRate: 9, repeat: -1 });
+      if (!this.anims.exists('e_' + t + '_attack')) this.anims.create({ key: 'e_' + t + '_attack', frames: [0, 1, 2, 3].map(a => ({ key: `${t}_attack_${a}` })), frameRate: 11, repeat: 0 });
+    }
     ['dai_han', 'tho_san'].forEach(npcType => {
       if (!this.anims.exists(`${npcType}_idle`)) this.anims.create({ key: `${npcType}_idle`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_idle_${f}` })), frameRate: 8, repeat: -1 });
       if (!this.anims.exists(`${npcType}_run`)) this.anims.create({ key: `${npcType}_run`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_run_${f}` })), frameRate: 12, repeat: -1 });
       if (!this.anims.exists(`${npcType}_attack`)) this.anims.create({ key: `${npcType}_attack`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_attack_${f}` })), frameRate: 14, repeat: 0 });
+      if (!this.anims.exists(`${npcType}_fly`)) this.anims.create({ key: `${npcType}_fly`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_fly_${f}` })), frameRate: 10, repeat: -1 });
     });
+    for (let i = 1; i <= 20; i++) {
+      const npcType = `npc_fly_${i}`;
+      if (!this.anims.exists(`${npcType}_fly`)) this.anims.create({ key: `${npcType}_fly`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_fly_${f}` })), frameRate: 10, repeat: -1 });
+      if (!this.anims.exists(`${npcType}_idle`)) this.anims.create({ key: `${npcType}_idle`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_fly_${f}` })), frameRate: 10, repeat: -1 });
+      if (!this.anims.exists(`${npcType}_run`)) this.anims.create({ key: `${npcType}_run`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_fly_${f}` })), frameRate: 10, repeat: -1 });
+      if (!this.anims.exists(`${npcType}_attack`)) this.anims.create({ key: `${npcType}_attack`, frames: [1,2,3,4,5,6,7,8].map(f => ({ key: `${npcType}_attack_${f}` })), frameRate: 14, repeat: 0 });
+    }
     ['hoa', 'loi', 'kim', 'thuy', 'phong', 'moc', 'tho', 'ly'].forEach(elemKey => {
       const animKey = `anim_vfx_${elemKey}_1`;
       if (!this.anims.exists(animKey)) this.anims.create({ key: animKey, frames: [0,1,2,3,4,5,6].map(f => ({ key: `vfx_${elemKey}_1_${f}` })), frameRate: 9, repeat: -1 });
@@ -363,10 +427,14 @@ export class MainGameScene extends Phaser.Scene {
     this.bg = (map.noRepeat || map.isPeaceZone || map.worldWidth <= 2880) ? this.add.image(this.worldW / 2, this.worldH / 2, panoramaKey).setDisplaySize(this.worldW, this.worldH).setDepth(-10) : this.add.tileSprite(this.worldW / 2, this.worldH / 2, this.worldW, this.worldH, panoramaKey).setDepth(-10);
   }
   switchMap(mapId, spawnX, spawnY) {
+    this.resetJoy?.();
+    this.moveTarget = null;
     const map = this.applyMapRuntimeConfig(mapId); gameState.currentMapId = map.id; this.physics.world.setBounds(0, 0, this.worldW, this.worldH); this.cameras.main.setBounds(0, 0, this.worldW, this.worldH); if (this.bg) this.bg.destroy();
     const panoramaKey = this.getMapPanoramaKey(map); this.bg = (map.noRepeat || map.isPeaceZone || map.worldWidth <= 2880) ? this.add.image(this.worldW / 2, this.worldH / 2, panoramaKey).setDisplaySize(this.worldW, this.worldH).setDepth(-10) : this.add.tileSprite(this.worldW / 2, this.worldH / 2, this.worldW, this.worldH, panoramaKey).setDepth(-10);
     const sx = spawnX ?? map.spawn?.x ?? 350, sy = spawnY ?? map.spawn?.y ?? 620; if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0); this.moveTarget = null;
-    this.createNpcs(); this.createMapPortals(); this.syncVillageHubMode(); this.initBattlefield(); this.initFellowNpcs(); this.initHerbs(); this.updateHUD(); return map;
+    this.createNpcs(); this.createMapPortals(); this.syncVillageHubMode(); this.initBattlefield(); this.initFellowNpcs(); this.initHerbs(); this.updateHUD();
+    this.resetJoy?.();
+    return map;
   }
 
   createMapPortals() {
@@ -395,7 +463,9 @@ export class MainGameScene extends Phaser.Scene {
   getPortalCooldownKey(fromMapId,toMapId){return `portal_${fromMapId}_${toMapId}`;}
   triggerPortalTeleport(portal){
     if(portal.minRealm&&gameState.realmIdx<portal.minRealm){this.showFloatingText(this.player.x,this.player.y-70,`Tu vi chưa đủ! Cần cảnh giới [${REALMS[portal.minRealm]?.name||'cao hơn'}] để bước vào Tiên Môn!`,'#ff5555','14px');return;}
-    const fromMapId=gameState.currentMapId; const now=this.time.now; const key=this.getPortalCooldownKey(fromMapId,portal.targetMapId); if((this[key]||0)>now)return; this[key]=now+3500; this.switchMap(portal.targetMapId,portal.targetSpawnX,portal.targetSpawnY);
+    const now=Number(this.time?.now||0);
+    if(Number(portal?.targetMapId)===0 && now<Number(this.villageReentryBlockedUntil||0)){return;}
+    const fromMapId=gameState.currentMapId; const key=this.getPortalCooldownKey(fromMapId,portal.targetMapId); if((this[key]||0)>now)return; this[key]=now+3500; this.switchMap(portal.targetMapId,portal.targetSpawnX,portal.targetSpawnY);
   }
 }
 

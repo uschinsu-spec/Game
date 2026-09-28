@@ -43,7 +43,9 @@ export const gameState = {
     helm: null,
     boots: null,
     amulet: null,
-    shield: null
+    shield: null,
+    ring: null,
+    cloak: null
   },
 
   inventory: {
@@ -56,7 +58,7 @@ export const gameState = {
   currentMapId: 0,
 
   gearPlus: 0,
-  equippedSkillIds: [],
+  equippedSkillIds: ['basic_attack', 'kiem_1'],
   skillMastery: {},
   autoFight: true,
   autoMode: 'farm',

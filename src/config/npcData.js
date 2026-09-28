@@ -4,6 +4,17 @@
  */
 import { gameState } from '../state/gameState.js';
 
+export const VILLAGE_HOTSPOTS = Object.freeze([
+  { npcId: 'truong_thon', x: 270, y: 118, width: 205, height: 92 },
+  { npcId: 'nong_phu',    x: 478, y: 205, width: 124, height: 118 },
+  { npcId: 'tho_ren',     x: 100, y: 326, width: 165, height: 145 },
+  { npcId: 'thuong_hoi',  x: 270, y: 405, width: 178, height: 126 },
+  { npcId: 'tuu_lau',     x: 367, y: 526, width: 184, height: 128 },
+  { npcId: 'duoc_diem',   x: 126, y: 590, width: 188, height: 142 },
+  { npcId: 'tho_xay',     x: 473, y: 747, width: 132, height: 128 },
+  { npcId: 've_si_cong',  x: 270, y: 825, width: 190, height: 150 }
+]);
+
 export const NPCS_DATA = [
   {
     id: 'truong_thon',
@@ -20,6 +31,16 @@ export const NPCS_DATA = [
     avatar: 'npc_2',
     greeting: 'Chào mừng tiểu hữu đến với Thanh Vân Thôn! Nơi đây phong thủy hữu tình, linh khí ôn hòa, là vùng đất khởi nguyên lý tưởng cho phàm nhân bước chân vào con đường tu tiên vấn đạo.',
     actions: [
+      {
+        id: 'admin_test_panel',
+        label: '⚡ [ADMIN] Menu Test Game',
+        desc: 'Tùy chỉnh Cảnh giới, Học Skill, Đổi Bậc Thuần thục (Sơ Nhập -> Viên Mãn), Hack Bạc / Linh Thạch',
+        color: '#f43f5e',
+        execute: (scene) => {
+          scene.openAdminTestModal?.();
+          return { success: true };
+        }
+      },
       {
         id: 'starter_gift',
         label: '🎁 Nhận Quà Tân Thủ Nhập Môn',

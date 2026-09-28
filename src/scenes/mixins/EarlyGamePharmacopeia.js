@@ -4,7 +4,6 @@ import { ALL_MAPS } from '../../config/regionsData.js';
 import { ALL_HERBS, getHerbsByRank } from '../../config/herbsData.js';
 import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { NPCS_DATA } from '../../config/npcData.js';
-import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { addCurrency } from '../../config/currencyData.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
@@ -91,38 +90,7 @@ function injectCommonData() {
   });
 }
 
-function addEarlyRankTabs(scene, activeRank) {
-  const panel = scene.activeModal;
-  if (!panel?.active) return;
 
-  const blocker = scene.add.rectangle(0, -268, 492, 106, 0x124766, 1)
-    .setStrokeStyle(1.5, 0x69eaff, 0.9)
-    .setInteractive({ useHandCursor: false });
-
-  const makeTab = (x, rank, label) => {
-    const active = activeRank === rank;
-    const bg = scene.add.rectangle(x, -270, 220, 54, active ? 0x176b55 : 0x123443, 1)
-      .setStrokeStyle(2, active ? 0x7dffca : 0x4b8192, 1)
-      .setInteractive({ useHandCursor: true });
-    const txt = scene.add.text(x, -270, label, {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: active ? '#edfff5' : '#c8edf6'
-    }).setOrigin(0.5);
-    bg.on('pointerdown', p => {
-      stopPointer(scene, p);
-      scene.openCraftingPanel('pills', rank);
-    });
-    panel.add([bg, txt]);
-  };
-
-  panel.add(blocker);
-  makeTab(-116, 0, '🌱 PHÀM PHẨM');
-  makeTab(116, 1, '💊 NHẤT PHẨM');
-
-  const note = scene.add.text(0, -222, 'Thanh Vân: Đan Dược tối đa Nhất Phẩm', {
-    fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#a9f5ff'
-  }).setOrigin(0.5);
-  panel.add(note);
-}
 
 function createHerbMarketShell(scene, subtitle) {
   scene.closeModal();
@@ -198,79 +166,9 @@ export function installEarlyGamePharmacopeia(MainGameScene) {
   injectCommonData();
   installTradeGuildAction();
 
-  const originalSpawnOneHerb = proto.spawnOneHerb;
-  if (typeof originalSpawnOneHerb === 'function' && !originalSpawnOneHerb.__commonHerbWrapped) {
-    const wrappedSpawn = function spawnHerbByMapProgression(x, y, zone = 1, idx = 0, herbDef = null) {
-      const pool = getHerbsByRank(getMapHerbRank(this));
-      const selected = pool.length ? pool[Math.abs(Number(idx) || 0) % pool.length] : herbDef;
-      return originalSpawnOneHerb.call(this, x, y, zone, idx, selected);
-    };
-    wrappedSpawn.__commonHerbWrapped = true;
-    proto.spawnOneHerb = wrappedSpawn;
-  }
 
-  const originalInitHerbs = proto.initHerbs;
-  if (typeof originalInitHerbs === 'function' && !originalInitHerbs.__commonHerbWrapped) {
-    const wrappedInit = function initHerbsWithThanhVanCommons(...args) {
-      const result = originalInitHerbs.apply(this, args);
-      // Thanh Van Village is now a static image hub. Resource nodes belong to
-      // the outdoor maps and must not cover the labels painted into IMG_7504.
-      return result;
-    };
-    wrappedInit.__commonHerbWrapped = true;
-    proto.initHerbs = wrappedInit;
-  }
 
-  const originalCrafting = proto.openCraftingPanel;
-  if (typeof originalCrafting === 'function' && !originalCrafting.__earlyRankWrapped) {
-    const wrappedCrafting = function openThanhVanCrafting(currentTab = 'pills', pillRankFilter = null, itemName = null) {
-      if (!isThanhVanArea(this) || currentTab !== 'pills') {
-        return originalCrafting.call(this, currentTab, pillRankFilter, itemName);
-      }
 
-      const item = itemName ? CRAFTING_SYSTEM.pills.find(p => p.name === itemName) : null;
-      let requestedRank = item ? Number(item.pillRank ?? 0) : (pillRankFilter == null ? 0 : Number(pillRankFilter));
-      if (!Number.isFinite(requestedRank)) requestedRank = 0;
-      requestedRank = Math.max(0, Math.min(1, requestedRank));
-
-      let result;
-      if (requestedRank === 0) {
-        const savedRealm = gameState.realmIdx;
-        gameState.realmIdx = 0;
-        try {
-          result = originalCrafting.call(this, 'pills', null, item?.pillRank === 0 ? itemName : null);
-        } finally {
-          gameState.realmIdx = savedRealm;
-        }
-      } else {
-        result = originalCrafting.call(this, 'pills', 1, item?.pillRank === 1 ? itemName : null);
-      }
-
-      if (!itemName) addEarlyRankTabs(this, requestedRank);
-      return result;
-    };
-    wrappedCrafting.__earlyRankWrapped = true;
-    proto.openCraftingPanel = wrappedCrafting;
-  }
-
-  const originalSkillPanel = proto.openSkillPanel;
-  if (typeof originalSkillPanel === 'function' && !originalSkillPanel.__earlySkillWrapped) {
-    const wrappedSkills = function openThanhVanSkills(activeElem = 'Kiếm', selectedSkillId = null) {
-      if (!isThanhVanArea(this)) return originalSkillPanel.call(this, activeElem, selectedSkillId);
-
-      const all = [...ELEMENTAL_SKILLS];
-      const allowed = all.filter(skill => Number(skill.minRealm ?? 0) < 4);
-      const selectedAllowed = selectedSkillId && allowed.some(skill => skill.id === selectedSkillId) ? selectedSkillId : null;
-      ELEMENTAL_SKILLS.splice(0, ELEMENTAL_SKILLS.length, ...allowed);
-      try {
-        return originalSkillPanel.call(this, activeElem, selectedAllowed);
-      } finally {
-        ELEMENTAL_SKILLS.splice(0, ELEMENTAL_SKILLS.length, ...all);
-      }
-    };
-    wrappedSkills.__earlySkillWrapped = true;
-    proto.openSkillPanel = wrappedSkills;
-  }
 
   proto.openCommonHerbSellPanel = function openCommonHerbSellPanel(selectedHerbId = null) {
     const selected = selectedHerbId ? COMMON_HERBS.find(h => h.id === selectedHerbId) : null;

@@ -5,59 +5,20 @@ import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { getHerbByName } from '../../config/herbsData.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
 import { gameState } from '../../state/gameState.js';
+import { stopPointer } from './UiModalManager.js';
+import { ELEMENTS_8 } from './ElementalCombatProgression.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
-function stopPointer(pointer) {
-  const evt = pointer?.event;
-  if (!evt) return;
-  evt.stopPropagation?.();
-  evt.preventDefault?.();
-}
-
-function pauseWorld(scene) {
-  scene.moveTarget = null;
-  if (scene.player?.body?.setVelocity) scene.player.setVelocity(0, 0);
-  if (scene.joy) {
-    scene.joy.active = false;
-    scene.joy.id = null;
-    scene.joy.x = 0;
-    scene.joy.y = 0;
-  }
-  scene.joyBase?.setVisible?.(false);
-  scene.joyKnob?.setVisible?.(false);
-  if (!scene.__uiWorldPaused && scene.physics?.world?.pause) {
-    scene.physics.world.pause();
-    scene.__uiWorldPaused = true;
-  }
-}
-
 function createShell(scene, title, subtitle = '') {
-  scene.closeModal();
-  const overlay = scene.fixed(scene.add.rectangle(W / 2, H / 2, W + 12, H + 12, 0x020912, 1), 9998)
-    .setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), 10000);
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  pauseWorld(scene);
-
-  overlay.on('pointerdown', stopPointer);
-  overlay.on('pointerup', stopPointer);
-  overlay.on('pointermove', stopPointer);
-
-  const bg = scene.add.rectangle(0, 0, W - 8, H - 8, 0x082638, 1)
-    .setStrokeStyle(2.5, 0x63e6ff, 1);
-  const header = scene.add.rectangle(0, -427, W - 20, 88, 0x0b3247, 1)
-    .setStrokeStyle(1.5, 0x3dd9ff, 0.9);
-  const titleTxt = scene.add.text(-238, -445, title, {
-    fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffe77a'
-  }).setOrigin(0, 0.5);
-  const subTxt = scene.add.text(-238, -414, subtitle, {
-    fontFamily: FONT, fontSize: '12px', color: '#9aeaff'
-  }).setOrigin(0, 0.5);
-  panel.add([bg, header, titleTxt, subTxt]);
-  scene.createModalCloseBtn(panel);
-  return panel;
+  return scene.createModalShell(title, subtitle, {
+    headerY: -427,
+    headerH: 88,
+    titleFontSize: '22px',
+    titleY: -445,
+    subY: -414,
+    subtitleColor: '#9aeaff'
+  });
 }
 
 function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
@@ -75,7 +36,7 @@ function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
   }).setOrigin(0.5);
   if (enabled && onPress) {
     bg.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       onPress();
     });
   }
@@ -179,7 +140,7 @@ function renderInventoryList(scene, panel, page) {
     }).setOrigin(0, 0.5);
     const arrow = scene.add.text(215, y, '›', { fontFamily: FONT, fontSize: '32px', color: '#7cf3ff' }).setOrigin(0.5);
     box.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       scene.openGearPanel('bag', currentPage, slot.id);
     });
     panel.add([box, name, count, arrow]);
@@ -272,7 +233,7 @@ function renderEquipment(scene, panel, selectedSlot = null) {
     }).setOrigin(0, 0.5);
     if (item) {
       box.on('pointerdown', pointer => {
-        stopPointer(pointer);
+        stopPointer(scene, pointer);
         scene.openGearPanel('equip', 0, key);
       });
     }
@@ -311,42 +272,81 @@ function renderCharacterSummary(scene, panel) {
   const exp = gameState.exp || 0;
   const pct = Math.min(100, Math.floor(exp / expReq * 100));
 
-  const realm = scene.add.text(0, -320, currentRealm.name, {
-    fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#fff19a'
+  const realm = scene.add.text(0, -325, currentRealm.name, {
+    fontFamily: FONT, fontSize: '24px', fontStyle: 'bold', color: '#fff19a'
   }).setOrigin(0.5);
-  const cp = scene.add.text(0, -275, activeCp ? `Công pháp: ${activeCp.name}` : 'Chưa vận hành công pháp', {
-    fontFamily: FONT, fontSize: '14px', color: activeCp ? '#78ffd1' : '#ffb0a8'
+  
+  const cpName = activeCp ? `📜 ${activeCp.name} [${activeCp.elem} • ${activeCp.grade}]` : '⚠️ Chưa vận hành công pháp';
+  const cp = scene.add.text(0, -300, cpName, {
+    fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: activeCp ? '#78ffd1' : '#ffb0a8'
   }).setOrigin(0.5);
 
-  const statBg = scene.add.rectangle(0, -150, 470, 170, 0x0d3347, 1).setStrokeStyle(1.5, 0x3c91aa);
+  const statBg = scene.add.rectangle(0, -221, 470, 126, 0x0d3347, 1).setStrokeStyle(1.5, 0x3c91aa);
   const maxHp = scene.calcPlayerMaxHp?.() || 0;
   const maxMp = scene.calcPlayerMaxMp?.() || 0;
   const dmg = scene.calcPlayerDmg?.() || 0;
-  const stats = scene.add.text(-210, -205,
-    `❤ HP tối đa: ${maxHp}\n💧 MP tối đa: ${maxMp}\n⚔ Công kích: ${dmg}\n✨ Tu Vi: ${exp}/${expReq} (${pct}%)`, {
-      fontFamily: FONT, fontSize: '16px', color: '#e7fbff', lineSpacing: 10
+  const def = scene.calcPlayerDef?.() || 0;
+  const sense = scene.calcPlayerSpiritualSense?.() || 10;
+  const atkInterval = scene.calcPlayerAtkInterval?.() || 400;
+  const atkSpeed = (1000 / atkInterval).toFixed(1);
+  const critRate = (15 + (sense * 0.5)).toFixed(1);
+
+  const stats = scene.add.text(-215, -274,
+    `❤️ HP: ${maxHp.toLocaleString('vi-VN')}     🔷 MP: ${maxMp.toLocaleString('vi-VN')}\n` +
+    `⚔️ Công: ${dmg.toLocaleString('vi-VN')}     🛡️ Thủ: ${def.toLocaleString('vi-VN')}\n` +
+    `⚡ Thần Thức: ${sense.toLocaleString('vi-VN')} • ${atkSpeed} đòn/s • Bạo +${critRate}%\n` +
+    `✨ Tu Vi: ${exp.toLocaleString('vi-VN')} / ${expReq.toLocaleString('vi-VN')} (${pct}%)`, {
+      fontFamily: FONT, fontSize: '12.5px', color: '#e7fbff', lineSpacing: 5
     }).setOrigin(0, 0);
   panel.add([realm, cp, statBg, stats]);
 
-  addButton(scene, panel, 0, 20, 430, 58, gameState.isMeditating ? 'DỪNG TĨNH TỌA' : 'BẮT ĐẦU TĨNH TỌA', () => {
+  const cultivated = scene.getCultivationElement?.();
+  const tableBg = scene.add.rectangle(0, 16, 470, 326, 0x0b2839, 1).setStrokeStyle(1.5, 0x3c91aa);
+  const tableTitle = scene.add.text(0, -133, 'CHỈ SỐ SÁT THƯƠNG & PHÒNG NGỰ 8 HỆ', {
+    fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#ffe89a'
+  }).setOrigin(0.5);
+  const columnHead = scene.add.text(-215, -111, 'HỆ', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#91d8ee' });
+  const dmgHead = scene.add.text(55, -111, 'DAMAGE', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#ffb6a1' }).setOrigin(1, 0);
+  const defHead = scene.add.text(215, -111, 'DEF', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#a9ddff' }).setOrigin(1, 0);
+  panel.add([tableBg, tableTitle, columnHead, dmgHead, defHead]);
+  ELEMENTS_8.forEach((elem, index) => {
+    const y = -82 + index * 32;
+    const active = elem === cultivated;
+    const row = scene.add.rectangle(0, y, 448, 29, active ? 0x195a53 : (index % 2 ? 0x10384b : 0x0d3042), 1);
+    if (active) row.setStrokeStyle(1, 0x71f4c0);
+    const label = scene.add.text(-215, y, `${active ? '◆ ' : ''}${elem}`, {
+      fontFamily: FONT, fontSize: '12.5px', fontStyle: active ? 'bold' : 'normal', color: active ? '#9dffdc' : '#e4f6ff'
+    }).setOrigin(0, 0.5);
+    const elemDmg = scene.calcPlayerElementalDmg?.(elem) ?? dmg;
+    const elemDef = scene.calcPlayerElementalDef?.(elem) ?? def;
+    const attack = scene.add.text(55, y, elemDmg.toLocaleString('vi-VN'), {
+      fontFamily: FONT, fontSize: '12px', color: '#ffcfbd'
+    }).setOrigin(1, 0.5);
+    const defense = scene.add.text(215, y, elemDef.toLocaleString('vi-VN'), {
+      fontFamily: FONT, fontSize: '12px', color: '#b9e4ff'
+    }).setOrigin(1, 0.5);
+    panel.add([row, label, attack, defense]);
+  });
+
+  addButton(scene, panel, 0, 223, 430, 50, gameState.isMeditating ? 'DỪNG TĨNH TỌA' : 'BẮT ĐẦU TĨNH TỌA', () => {
     scene.toggleMeditation();
     scene.openCharacterPanel();
   }, {
     fill: gameState.isMeditating ? 0x7c2635 : 0x166044,
     stroke: gameState.isMeditating ? 0xff9aaa : 0x61ffc0,
-    fontSize: '16px'
+    fontSize: '15px'
   });
 
-  addButton(scene, panel, 0, 98, 430, 62, canBreak ? 'ĐỘT PHÁ CẢNH GIỚI  ›' : 'XEM YÊU CẦU ĐỘT PHÁ  ›', () => {
+  addButton(scene, panel, 0, 286, 430, 50, canBreak ? 'ĐỘT PHÁ CẢNH GIỚI  ›' : 'XEM YÊU CẦU ĐỘT PHÁ  ›', () => {
     scene.openCharacterPanel('break');
   }, {
     fill: canBreak ? 0x725215 : 0x17455a,
     stroke: canBreak ? 0xffda63 : 0x59c9e7,
-    fontSize: '16px'
+    fontSize: '15px'
   });
 
-  const hint = scene.add.text(0, 170, reason, {
-    fontFamily: FONT, fontSize: '13px', color: canBreak ? '#8effc5' : '#bcefff',
+  const hint = scene.add.text(0, 351, reason, {
+    fontFamily: FONT, fontSize: '12.5px', color: canBreak ? '#8effc5' : '#bcefff',
     align: 'center', wordWrap: { width: 430, useAdvancedWrap: true }
   }).setOrigin(0.5);
   panel.add(hint);
@@ -360,8 +360,10 @@ function renderBreakthroughDetail(scene, panel) {
     wordWrap: { width: 440, useAdvancedWrap: true }
   }).setOrigin(0, 0.5);
   const box = scene.add.rectangle(0, -140, 470, 280, 0x0d3347, 1).setStrokeStyle(1.5, 0x3c91aa);
+  const expReq = Math.max(1, currentRealm.expReq || 1);
+  const exp = gameState.exp || 0;
   const req = scene.add.text(-215, -245,
-    `Tu Vi: ${gameState.exp || 0}/${currentRealm.expReq}\n` +
+    `Tu Vi: ${exp.toLocaleString('vi-VN')} / ${expReq.toLocaleString('vi-VN')}\n` +
     `${activeCp ? `Công pháp: ${activeCp.name} (Max: ${activeCp.maxStage})` : 'Công pháp: Chưa chọn'}\n` +
     `${requiredPill ? `Đan dược cần: ${requiredPill} • Có: ${gameState.inventory?.pills?.[requiredPill] || 0}` : 'Đan dược: Không yêu cầu'}\n\n${reason}`, {
       fontFamily: FONT, fontSize: '15px', color: '#e7fbff', lineSpacing: 10,
@@ -426,7 +428,7 @@ function renderMapList(scene, panel, region) {
     }).setOrigin(0, 0.5);
     const arrow = scene.add.text(215, y, '›', { fontFamily: FONT, fontSize: '32px', color: '#7cf3ff' }).setOrigin(0.5);
     box.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       scene.openMapPanel(region.id, map.id);
     });
     panel.add([box, name, status, arrow]);
@@ -460,34 +462,14 @@ function renderMapDetail(scene, panel, region, map) {
   addBack(scene, panel, () => scene.openMapPanel(region.id));
 }
 
-export function installSimplePrimaryUI(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__simplePrimaryUiInstalled) return;
-  const proto = MainGameScene.prototype;
-  proto.__simplePrimaryUiInstalled = true;
-
-  proto.openGearPanel = function openSimpleGearPanel(view = 'bag', page = 0, selectedId = null) {
-    if (typeof view === 'number') {
-      page = Math.max(0, view);
-      view = view === -1 ? 'equip' : 'bag';
-    }
-    const panel = createShell(this, 'HÀNH TRANG', selectedId ? 'Chi tiết & xác nhận' : 'Chọn mục cần xem');
-    if (view === 'equip') {
-      renderEquipment(this, panel, selectedId);
-      return;
-    }
-    const slots = inventorySlots();
-    const slot = selectedId ? slots.find(s => s.id === selectedId) : null;
-    if (slot) renderInventoryDetail(this, panel, page, slot);
-    else renderInventoryList(this, panel, page);
-  };
-
-  proto.openCharacterPanel = function openSimpleCharacterPanel(view = 'summary') {
-    const panel = createShell(this, 'CẢNH GIỚI', view === 'break' ? 'Kiểm tra yêu cầu & xác nhận' : 'Thông tin tu luyện chính');
+export const CharacterMapPrimaryModal = {
+  openCharacterPanel(view = 'summary') {
+    const panel = createShell(this, 'NHÂN VẬT', view === 'break' ? 'Kiểm tra yêu cầu & xác nhận' : 'Thông tin tu luyện chính');
     if (view === 'break') renderBreakthroughDetail(this, panel);
     else renderCharacterSummary(this, panel);
-  };
+  },
 
-  proto.openMapPanel = function openSimpleMapPanel(activeRegionId = 'nam_lang', selectedMapId = null) {
+  openMapPanel(activeRegionId = 'nam_lang', selectedMapId = null) {
     const region = WORLD_REGIONS.find(r => r.id === activeRegionId) || WORLD_REGIONS[0];
     const panel = createShell(this, 'ĐẠI BẢN ĐỒ', selectedMapId != null ? 'Chi tiết & xác nhận dịch chuyển' : region.name);
     if (selectedMapId != null) {
@@ -498,5 +480,13 @@ export function installSimplePrimaryUI(MainGameScene) {
       }
     }
     renderMapList(this, panel, region);
-  };
+  }
+};
+
+export function installSimplePrimaryUI(MainGameScene) {
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__simplePrimaryUiInstalled) return;
+  const proto = MainGameScene.prototype;
+  proto.__simplePrimaryUiInstalled = true;
+
+  Object.assign(proto, CharacterMapPrimaryModal);
 }

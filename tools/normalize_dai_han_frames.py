@@ -12,8 +12,8 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FRAMES = ROOT / "assets/player/NPC/Dai_Han_Dao/Frames_128"
-BACKUP = ROOT / "assets/player/NPC/Dai_Han_Dao/Frames_128_original"
+FRAMES = ROOT / "assets/characters/npc/animated/dai_han_dao"
+BACKUP = ROOT / "assets/characters/npc/animated/dai_han_dao/original_backup"
 SCALE = 0.92
 CANVAS = (128, 128)
 GROUND = (64, 116)

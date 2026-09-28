@@ -1,26 +1,8 @@
 import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v3';
 import { W, H } from '../constants.js';
+import { fitSingleLine, stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
-const OVERLAY_DEPTH = 999998;
-const PANEL_DEPTH = 1000000;
-
-function stopPointer(scene, pointer) {
-  scene?.input?.stopPropagation?.();
-  const evt = pointer?.event;
-  evt?.stopPropagation?.();
-  evt?.preventDefault?.();
-}
-
-function fitSingleLine(textObj, maxWidth, minPx = 10) {
-  if (!textObj) return textObj;
-  let size = parseFloat(textObj.style?.fontSize || 16);
-  while (textObj.width > maxWidth && size > minPx) {
-    size -= 1;
-    textObj.setFontSize(size);
-  }
-  return textObj;
-}
 
 function shortText(value, max = 76) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
@@ -28,35 +10,16 @@ function shortText(value, max = 76) {
 }
 
 function createShell(scene, npc) {
-  scene.closeModal();
-  const overlay = scene.fixed(
-    scene.add.rectangle(W / 2, H / 2, W + 16, H + 16, 0x010811, 1),
-    OVERLAY_DEPTH
-  ).setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), PANEL_DEPTH);
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  scene.enterUiHardPause?.();
-
-  overlay.on('pointerdown', p => stopPointer(scene, p));
-  overlay.on('pointerup', p => stopPointer(scene, p));
-  overlay.on('pointermove', p => stopPointer(scene, p));
-
-  const bg = scene.add.rectangle(0, 0, W - 6, H - 6, 0x062a3b, 1)
-    .setStrokeStyle(3, npc.tagBorder || 0x67e8ff, 1);
-  const header = scene.add.rectangle(0, -414, W - 24, 106, npc.tagBg || 0x0b4560, 1)
-    .setStrokeStyle(2, npc.tagBorder || 0x4de9ff, 1);
-  const title = scene.add.text(-238, -436, `${npc.icon || '☯'} ${npc.title || ''} ${npc.name || ''}`, {
-    fontFamily: FONT, fontSize: '23px', fontStyle: 'bold', color: npc.color || '#ffe45c'
-  }).setOrigin(0, 0.5);
-  const sub = scene.add.text(-238, -397, shortText(npc.greeting, 68), {
-    fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#c8f7ff'
-  }).setOrigin(0, 0.5);
-  fitSingleLine(title, 365, 15);
-  fitSingleLine(sub, 430, 10);
-  panel.add([bg, header, title, sub]);
-  scene.createModalCloseBtn(panel);
-  return panel;
+  return scene.createModalShell(
+    `${npc.icon || '☯'} ${npc.title || ''} ${npc.name || ''}`,
+    shortText(npc.greeting, 68),
+    {
+      bgStroke: npc.tagBorder || 0x67e8ff,
+      headerFill: npc.tagBg || 0x0b4560,
+      headerStroke: npc.tagBorder || 0x4de9ff,
+      titleColor: npc.color || '#ffe45c'
+    }
+  );
 }
 
 function addNpcCard(scene, panel, npc) {
@@ -114,12 +77,8 @@ function addAction(scene, panel, action, y, statusText) {
   panel.add([box, title, desc, arrow]);
 }
 
-export function installSimpleNpcFullscreenUI(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__simpleNpcFullscreenInstalled) return;
-  const proto = MainGameScene.prototype;
-  proto.__simpleNpcFullscreenInstalled = true;
-
-  proto.openNpcDialogModal = function openNpcDialogFullscreen(npcId) {
+export const NpcDialogUI = {
+  openNpcDialogModal(npcId) {
     const npc = NPCS_DATA.find(n => n.id === npcId);
     if (!npc) return;
     const panel = createShell(this, npc);
@@ -136,5 +95,17 @@ export function installSimpleNpcFullscreenUI(MainGameScene) {
     const startY = -158;
     const gap = actions.length <= 2 ? 142 : 126;
     actions.slice(0, 4).forEach((action, idx) => addAction(this, panel, action, startY + idx * gap, status));
-  };
+  }
+};
+
+export function installNpcDialogUI(MainGameScene) {
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__npcDialogUiInstalled) return;
+  const proto = MainGameScene.prototype;
+  proto.__npcDialogUiInstalled = true;
+  proto.__simpleNpcFullscreenInstalled = true;
+
+  Object.assign(proto, NpcDialogUI);
 }
+
+export const installSimpleNpcFullscreenUI = installNpcDialogUI;
+

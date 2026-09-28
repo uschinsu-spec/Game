@@ -34,10 +34,24 @@ function getMasteryCapByRealm(realmIdx) {
   return getRealmTierIndex(realmIdx);
 }
 
+export function initCongPhapMasteryData(state = gameState) {
+  if (!state || typeof state !== 'object') return;
+  if (!state.congPhapMastery || typeof state.congPhapMastery !== 'object') {
+    state.congPhapMastery = {};
+  }
+  (state.learnedCongPhapIds || []).forEach(cpId => {
+    if (!state.congPhapMastery[cpId]) {
+      state.congPhapMastery[cpId] = { tierIdx: 0, uses: 0 };
+    }
+  });
+}
+
 export function installCongPhapMasteryProgression(MainGameScene) {
   const proto = MainGameScene?.prototype;
   if (!proto || proto.__congPhapMasteryInstalled) return;
   proto.__congPhapMasteryInstalled = true;
+
+  initCongPhapMasteryData(gameState);
 
   proto.getCongPhapMastery = function getCongPhapMastery(cpId = gameState.activeCongPhapId) {
     if (!cpId) return null;
@@ -83,49 +97,16 @@ export function installCongPhapMasteryProgression(MainGameScene) {
     return this.getCongPhapMastery(cpId);
   };
 
-  const originalCastSkill = proto.castSkill;
-  if (typeof originalCastSkill === 'function' && !originalCastSkill.__congPhapMasteryWrapped) {
-    const wrapped = function castSkillWithCongPhapMastery(skillId, ...args) {
-      const beforeCd = Number(this.activeSkillCds?.[skillId] || 0);
-      const beforeStamp = Number(this[`last_${skillId}_cast`] || 0);
-      const result = originalCastSkill.call(this, skillId, ...args);
-      const afterCd = Number(this.activeSkillCds?.[skillId] || 0);
-      const afterStamp = Number(this[`last_${skillId}_cast`] || 0);
-      if ((afterCd > 0 && (beforeCd <= 0 || afterCd !== beforeCd)) || afterStamp !== beforeStamp) this.gainCongPhapCombatUse?.(1);
-      return result;
-    };
-    wrapped.__congPhapMasteryWrapped = true;
-    proto.castSkill = wrapped;
-  }
+  // Direct combat hooks listening to CombatMixin events
+  proto.onSkillCastSuccess = function onSkillCastSuccessCongPhap(skillId, skill) {
+    this.gainCongPhapCombatUse?.(1);
+  };
 
-  const originalBasicAttack = proto.basicAttack;
-  if (typeof originalBasicAttack === 'function' && !originalBasicAttack.__congPhapMasteryWrapped) {
-    const wrapped = function basicAttackWithCongPhapMastery(...args) {
-      const target = this.nearestEnemy?.(110);
-      const result = originalBasicAttack.apply(this, args);
-      if (target?.active && !target?.isDead) {
-        this.__cpBasicHitCounter = (this.__cpBasicHitCounter || 0) + 1;
-        if (this.__cpBasicHitCounter >= 4) {
-          this.__cpBasicHitCounter = 0;
-          this.gainCongPhapCombatUse?.(1);
-        }
-      }
-      return result;
-    };
-    wrapped.__congPhapMasteryWrapped = true;
-    proto.basicAttack = wrapped;
-  }
-
-  const originalOpenCongPhapPanel = proto.openCongPhapPanel;
-  if (typeof originalOpenCongPhapPanel === 'function' && !originalOpenCongPhapPanel.__cpMasteryInitWrapped) {
-    const wrapped = function openCongPhapPanelWithMasteryInit(...args) {
-      (gameState.learnedCongPhapIds || []).forEach(cpId => {
-        const bag = ensureBag();
-        if (!bag[cpId]) bag[cpId] = { tierIdx: 0, uses: 0 };
-      });
-      return originalOpenCongPhapPanel.apply(this, args);
-    };
-    wrapped.__cpMasteryInitWrapped = true;
-    proto.openCongPhapPanel = wrapped;
-  }
+  proto.onBasicAttackHit = function onBasicAttackHitCongPhap(target, dmg, isCrit) {
+    this.__cpBasicHitCounter = (this.__cpBasicHitCounter || 0) + 1;
+    if (this.__cpBasicHitCounter >= 4) {
+      this.__cpBasicHitCounter = 0;
+      this.gainCongPhapCombatUse?.(1);
+    }
+  };
 }

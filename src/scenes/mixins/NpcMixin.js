@@ -2,26 +2,28 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v3';
+import { NPCS_DATA, VILLAGE_HOTSPOTS } from '../../config/npcData.js?v=20260928-village-hotspots-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
 
-// The new Thanh Van Village is a static interactive hub. Coordinates are in
-// the 540x960 game canvas and line up with the labels already painted into
-// assets/environment/IMG_7504.png.
-const VILLAGE_HOTSPOTS = Object.freeze([
-  { npcId: 'truong_thon', x: 270, y: 118, width: 205, height: 92 },
-  { npcId: 'nong_phu',    x: 478, y: 205, width: 124, height: 118 },
-  { npcId: 'tho_ren',     x: 100, y: 326, width: 165, height: 145 },
-  { npcId: 'thuong_hoi',  x: 270, y: 405, width: 178, height: 126 },
-  { npcId: 'tuu_lau',     x: 367, y: 526, width: 184, height: 128 },
-  { npcId: 'duoc_diem',   x: 126, y: 590, width: 188, height: 142 },
-  { npcId: 'tho_xay',     x: 473, y: 747, width: 132, height: 128 },
-  { npcId: 've_si_cong',  x: 270, y: 825, width: 190, height: 150 }
-]);
-
 export const NpcMixin = {
+
+  leaveThanhVanVillageDirect() {
+    if (Number(gameState?.currentMapId) !== 0) return false;
+
+    this.closeModal?.();
+    this.moveTarget = null;
+
+    const now = Number(this.time?.now || 0);
+    const blockedUntil = now + 5000;
+    this.villageReentryBlockedUntil = blockedUntil;
+    this.portalCooldownUntil = Math.max(Number(this.portalCooldownUntil || 0), blockedUntil);
+
+    // Xuất hiện an toàn ngoài cổng dịch chuyển tại Ngoại Vi (Map 1)
+    this.switchMap?.(1, 420, 620);
+    return true;
+  },
 
   createNpcs() {
     // Xóa NPC cũ nếu có
@@ -125,25 +127,50 @@ export const NpcMixin = {
   },
 
   createVillageImageHotspots() {
-    this.clearVillageImageHotspots();
+    this.clearVillageImageHotspots?.();
     if (Number(gameState.currentMapId) !== 0) return;
 
     this.villageHotspotObjects = [];
+
+    const resetZone = (zone) => {
+      if (!zone || zone.scene == null || zone.active === false) return;
+      zone.setFillStyle(0xffe7a0, 0.001);
+      zone.setStrokeStyle();
+    };
+
     VILLAGE_HOTSPOTS.forEach(def => {
       const zone = this.add.rectangle(def.x, def.y, def.width, def.height, 0xffe7a0, 0.001)
         .setDepth(180)
         .setInteractive({ useHandCursor: true });
 
-      zone.on('pointerover', () => zone.setFillStyle(0xffe7a0, 0.13).setStrokeStyle(2, 0xffd978, 0.85));
-      zone.on('pointerout', () => zone.setFillStyle(0xffe7a0, 0.001).setStrokeStyle());
+      // Tránh dính viền hover trên màn hình cảm ứng iOS/Android
+      zone.on('pointerout', () => resetZone(zone));
+      zone.on('pointerup', () => resetZone(zone));
+      zone.on('pointercancel', () => resetZone(zone));
+
       zone.on('pointerdown', pointer => {
         this.input?.stopPropagation?.();
         pointer?.event?.stopPropagation?.();
         pointer?.event?.preventDefault?.();
         this.moveTarget = null;
-        zone.setFillStyle(0xffffff, 0.2).setStrokeStyle(3, 0xffefad, 1);
-        this.openNpcDialogModal(def.npcId);
+
+        // Xóa highlight cũ
+        this.villageHotspotObjects?.forEach(obj => {
+          if (obj?.input) resetZone(obj);
+        });
+
+        // Chạm vào Vệ Sĩ Cổng: rời thôn ngay không cần mở dialog
+        if (def.npcId === 've_si_cong') {
+          this.leaveThanhVanVillageDirect?.();
+          return;
+        }
+
+        // Hiệu ứng bấm chớp nhẹ và tự reset
+        zone.setFillStyle(0xffffff, 0.12).setStrokeStyle(2, 0xffefad, 0.85);
+        this.time?.delayedCall?.(90, () => resetZone(zone));
+        this.openNpcDialogModal?.(def.npcId);
       });
+
       this.villageHotspotObjects.push(zone);
     });
 
@@ -156,6 +183,7 @@ export const NpcMixin = {
       fontStyle: 'bold',
       color: '#fff3bd'
     }).setOrigin(0.5).setDepth(182);
+
     this.villageHotspotObjects.push(hintBg, hint);
   },
 
@@ -171,6 +199,7 @@ export const NpcMixin = {
       this.topHudElements?.forEach(el => el?.setVisible?.(this.topHudVisible !== false));
       this.minimapElements?.forEach(el => el?.setVisible?.(this.topHudVisible !== false));
       this.mini?.setVisible?.(this.topHudVisible !== false);
+      this.miniMapLabel?.setVisible?.(false);
       this.toggleUiBtnBg?.setVisible?.(true);
       this.toggleUiBtnTxt?.setVisible?.(true);
       this.skillContainer?.setVisible?.(this.skillsVisible !== false);
@@ -196,8 +225,9 @@ export const NpcMixin = {
     }
 
     this.topHudElements?.forEach(el => el?.setVisible?.(false));
-    this.minimapElements?.forEach(el => el?.setVisible?.(false));
-    this.mini?.setVisible?.(false);
+    this.minimapElements?.forEach(el => el?.setVisible?.(this.topHudVisible !== false));
+    this.mini?.setVisible?.(this.topHudVisible !== false);
+    this.miniMapLabel?.setVisible?.(this.topHudVisible !== false);
     this.toggleUiBtnBg?.setVisible?.(false);
     this.toggleUiBtnTxt?.setVisible?.(false);
     this.skillContainer?.setVisible?.(false);
@@ -206,87 +236,6 @@ export const NpcMixin = {
     this.joyKnob?.setVisible?.(false);
   },
 
-  // ----------------------------------------------------------------
-  // BẢNG ĐỐI THOẠI & THAO TÁC VỚI NPC (MOBILE-OPTIMIZED MODAL)
-  // ----------------------------------------------------------------
-  openNpcDialogModal(npcId) {
-    this.closeModal();
-    const npc = NPCS_DATA.find(n => n.id === npcId);
-    if (!npc) return;
-
-    const overlay = this.fixed(this.add.rectangle(W / 2, H / 2, W, H, 0x041019, 0.28), 9999);
-    const panel = this.fixed(this.add.container(W / 2, H / 2), 10000);
-    this.activeModal = panel;
-    this.activeModalOverlay = overlay;
-
-    const bg = this.add.rectangle(0, 0, 480, 590, 0x071b25, 0.94).setStrokeStyle(2, npc.tagBorder);
-    panel.add(bg);
-
-    // Header NPC
-    const title = this.add.text(0, -260, `${npc.icon} ${npc.title} ${npc.name.toUpperCase()}`, {
-      fontSize: '15px', fontStyle: 'bold', color: npc.color
-    }).setOrigin(0.5);
-    panel.add(title);
-    this.createModalCloseBtn(panel, 215, -260);
-
-    // Khung Lời Thoại / Speech Box (Hiển thị Avatar 3D Chân Dung NPC)
-    const speechBg = this.add.rectangle(0, -180, 440, 95, 0x111e30, 0.95).setStrokeStyle(1.2, 0x334e68);
-    const speechAvatarBg = this.add.rectangle(-175, -180, 64, 76, npc.tagBg || 0x0f1826, 1).setStrokeStyle(2, npc.tagBorder || 0x38bdf8);
-    
-    let speechAvatarImg;
-    if (npc.spriteKey && this.textures.exists(npc.spriteKey)) {
-      speechAvatarImg = this.add.image(-175, -180, npc.spriteKey).setDisplaySize(60, 60);
-    } else {
-      speechAvatarImg = this.add.text(-175, -180, npc.icon, { fontSize: '26px' }).setOrigin(0.5);
-    }
-    
-    const speechTxt = this.add.text(-132, -180, `"${npc.greeting}"`, {
-      fontSize: '10.5px',
-      color: '#e2e8f0',
-      wordWrap: { width: 335 },
-      lineSpacing: 4,
-      fontStyle: 'italic'
-    }).setOrigin(0, 0.5);
-    panel.add([speechBg, speechAvatarBg, speechAvatarImg, speechTxt]);
-
-    // Danh Sách Nút Thao Tác (To, Dễ Bấm Bằng Cảm Ứng Trên Điện Thoại)
-    const actions = npc.actions || [];
-    actions.forEach((act, idx) => {
-      const ay = -85 + idx * 82;
-      const actBox = this.add.rectangle(0, ay, 440, 70, 0x0f1b2b, 0.95)
-        .setStrokeStyle(1.5, Phaser.Display.Color.HexStringToColor(act.color).color)
-        .setInteractive({ useHandCursor: true });
-
-      const actTitle = this.add.text(-200, ay - 16, act.label, {
-        fontSize: '12px', fontStyle: 'bold', color: act.color
-      });
-      const actDesc = this.add.text(-200, ay + 12, act.desc, {
-        fontSize: '9.5px', color: '#94a3b8'
-      });
-      const enterIcon = this.add.text(190, ay, '▶', {
-        fontSize: '14px', fontStyle: 'bold', color: act.color
-      }).setOrigin(0.5);
-
-      actBox.on('pointerover', () => actBox.setFillStyle(0x182c44, 1));
-      actBox.on('pointerout', () => actBox.setFillStyle(0x0f1b2b, 0.95));
-      actBox.on('pointerdown', () => {
-        const res = act.execute(this);
-        if (res && res.msg) {
-          this.showFloatingText(this.player.x, this.player.y - 70, res.msg, res.success ? '#4ade80' : '#ff5555');
-        }
-      });
-
-      panel.add([actBox, actTitle, actDesc, enterIcon]);
-    });
-
-    const bottomNote = this.add.text(0, 255, '💡 Chạm vào các tùy chọn trên để thực hiện giao dịch, nhận quà hoặc học hỏi.', {
-      fontSize: '9px', color: '#64748b'
-    }).setOrigin(0.5);
-    panel.add(bottomNote);
-
-    this.activeModal = panel;
-    this.activeModalOverlay = overlay;
-  },
 
   // ----------------------------------------------------------------
   // QUÀ TÂN THỦ & HƯỚNG DẪN NHẬP MÔN

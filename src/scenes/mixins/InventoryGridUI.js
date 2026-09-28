@@ -2,7 +2,9 @@ import { W, H } from '../constants.js';
 import { gameState } from '../../state/gameState.js';
 import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { getHerbByName } from '../../config/herbsData.js';
+import { ALL_MINERALS } from '../../config/mineralsData.js';
 import { ensureCurrencies } from '../../config/currencyData.js';
+import { activateModalInput } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 const COLS = 7;
@@ -10,10 +12,10 @@ const ROWS = 6;
 const PAGE_SIZE = COLS * ROWS;
 
 const CORE_NAMES = {
-  nhat_pham_so_ky: ['Nội Đan Nhất Phẩm Sơ Kỳ', '🔮', '#86efac'],
-  nhat_pham_trung_ky: ['Nội Đan Nhất Phẩm Trung Kỳ', '🔷', '#7dd3fc'],
-  nhat_pham_hau_ky: ['Nội Đan Nhất Phẩm Hậu Kỳ', '🟣', '#d8b4fe'],
-  nhat_pham_dinh_phong: ['Nội Đan Nhất Phẩm Đỉnh Phong', '🟡', '#fde68a']
+  nhat_pham_so_ky: ['Nội Đan Nhất Phẩm Sơ Kỳ', '🔮', '#86efac', 'core_nhat_pham_so_ky'],
+  nhat_pham_trung_ky: ['Nội Đan Nhất Phẩm Trung Kỳ', '🔷', '#7dd3fc', 'core_nhat_pham_trung_ky'],
+  nhat_pham_hau_ky: ['Nội Đan Nhất Phẩm Hậu Kỳ', '🟣', '#d8b4fe', 'core_nhat_pham_hau_ky'],
+  nhat_pham_dinh_phong: ['Nội Đan Nhất Phẩm Đỉnh Phong', '🟡', '#fde68a', 'core_nhat_pham_dinh_phong']
 };
 
 const MINERAL_NAMES = {
@@ -63,11 +65,15 @@ function gearSignature(item = {}) {
 
 function gearDescription(item = {}) {
   const stats = [];
-  if (item.bonusDmg) stats.push(`⚔ +${item.bonusDmg} Công`);
-  if (item.bonusHp) stats.push(`❤ +${item.bonusHp} HP`);
-  if (item.bonusDef) stats.push(`🛡 +${item.bonusDef} Giáp`);
+  if (item.bonusDmg) stats.push(`⚔ +${item.bonusDmg.toLocaleString('vi-VN')} Công`);
+  if (item.bonusHp) stats.push(`❤ +${item.bonusHp.toLocaleString('vi-VN')} HP`);
+  if (item.bonusDef) stats.push(`🛡 +${item.bonusDef.toLocaleString('vi-VN')} Giáp`);
   if (item.bonusSpd) stats.push(`💨 +${item.bonusSpd} Tốc`);
   return stats.join('  ·  ') || item.desc || 'Trang bị tu tiên';
+}
+
+function gearStat(item = {}) {
+  return gearDescription(item);
 }
 
 function buildSlots() {
@@ -78,7 +84,7 @@ function buildSlots() {
   };
 
   [
-    { id: 'ore', name: 'Khoáng Thạch', emoji: '💎', icon: 'mat_ore', count: gameState.ores, category: 'craft', type: 'material', color: '#67e8f9', desc: 'Khoáng thạch dùng để rèn đúc.' },
+    { id: 'ore', name: 'Khoáng Thạch', emoji: '💎', icon: 'mat_ore', count: gameState.ores, category: 'craft', type: 'material', color: '#67e8f9', desc: 'Khoáng thạch dùng để rèn đúc trang bị.' },
     { id: 'pelt', name: 'Da Thú', emoji: '🐺', icon: 'mat_beast_pelt', count: gameState.materials?.beastPelts, category: 'craft', type: 'material', color: '#fbbf24', desc: 'Nguyên liệu thu được từ dã thú.' },
     { id: 'fur', name: 'Lông Thú', emoji: '🪶', icon: 'mat_beast_fur', count: gameState.materials?.beastFurs, category: 'craft', type: 'material', color: '#e2e8f0', desc: 'Nguyên liệu thu được từ phi cầm.' },
     { id: 'claw', name: 'Móng Vuốt', emoji: '🐾', icon: 'mat_beast_claw', count: gameState.materials?.beastClaws, category: 'craft', type: 'material', color: '#f87171', desc: 'Móng vuốt hung thú dùng để chế tạo.' },
@@ -131,14 +137,21 @@ function buildSlots() {
     desc: gearDescription(item)
   }));
 
-  Object.entries(CORE_NAMES).forEach(([key, [name, emoji, color]]) => pushCounted({
-    id: `core_${key}`, name, emoji, color, count: gameState.materials?.beastCores?.[key],
+  Object.entries(CORE_NAMES).forEach(([key, [name, emoji, color, iconKey]]) => pushCounted({
+    id: `core_${key}`, name, emoji, color, icon: iconKey || `core_${key}`, count: gameState.materials?.beastCores?.[key],
     category: 'gem', type: 'material', desc: 'Nội đan yêu thú dùng cho đột phá và chế tạo cao cấp.'
   }));
-  Object.entries(MINERAL_NAMES).forEach(([key, [name, grade]]) => pushCounted({
-    id: `mineral_${key}`, name, emoji: '⛏️', color: '#dff8ff', count: gameState.materials?.minerals?.[key],
-    category: 'gem', type: 'material', desc: `[${grade}] Khoáng thạch phân phẩm dùng để luyện khí.`
-  }));
+  Object.entries(gameState.materials?.minerals || {}).forEach(([key, count]) => {
+    const minDef = ALL_MINERALS.find(m => m.id === key || m.id === `ore_${key}`) || null;
+    const legacy = MINERAL_NAMES[key];
+    const name = minDef?.name || legacy?.[0] || key;
+    const grade = minDef?.rankName || legacy?.[1] || 'Khoáng Thạch';
+    pushCounted({
+      id: `mineral_${key}`, name, emoji: minDef?.emoji || '⛏️', icon: minDef?.icon || 'mat_ore',
+      color: minDef?.color || '#dff8ff', count,
+      category: 'gem', type: 'material', desc: minDef?.desc || `[${grade}] Khoáng thạch dùng để luyện khí.`
+    });
+  });
 
   return slots;
 }
@@ -153,11 +166,14 @@ export function installInventoryGridUI(MainGameScene) {
   if (!MainGameScene?.prototype || MainGameScene.prototype.__inventoryGridUiInstalled) return;
   const proto = MainGameScene.prototype;
   proto.__inventoryGridUiInstalled = true;
-  const previousOpenGear = proto.openGearPanel;
-  if (typeof previousOpenGear !== 'function') return;
 
+  // =========================================================================
+  // 1. TÚI ĐỒ / HÀNH TRANG CHUẨN DUY NHẤT
+  // =========================================================================
   proto.openGearPanel = function openCompactInventory(view = 0, pageArg = 0, filterArg = 'all') {
-    if (view === -1 || view === 'equip') return previousOpenGear.call(this, -1);
+    if (view === -1 || view === 'equip') {
+      return this.openEquipmentPanel();
+    }
 
     const page = Math.max(0, Number(view === 'bag' ? pageArg : view) || 0);
     const requestedFilter = FILTERS.some(([key]) => key === filterArg) ? filterArg : (this._inventoryFilter || 'all');
@@ -175,7 +191,7 @@ export function installInventoryGridUI(MainGameScene) {
     const inner = this.add.rectangle(0, 32, W - 38, H - 128, 0x07110d, 1).setStrokeStyle(1, 0x5d5138, 1);
     const header = this.add.rectangle(0, -H / 2 + 48, W - 28, 64, 0x5b1717, 1).setStrokeStyle(2, 0xd5aa5c, 1);
     panel.add([bg, inner, header]);
-    addPanelText(this, panel, 0, -H / 2 + 48, 'TÚI ĐỒ', { fontSize: '21px', fontStyle: 'bold', color: '#ffe89a' }).setOrigin(0.5);
+    addPanelText(this, panel, 0, -H / 2 + 48, '🎒 TÚI ĐỒ HÀNH TRANG', { fontSize: '21px', fontStyle: 'bold', color: '#ffe89a' }).setOrigin(0.5);
     this.createModalCloseBtn(panel, W / 2 - 42, -H / 2 + 48);
 
     const allSlots = buildSlots();
@@ -205,7 +221,7 @@ export function installInventoryGridUI(MainGameScene) {
     const c = ensureCurrencies(gameState);
     const statusY = tabY + 34;
     addPanelText(this, panel, -235, statusY, `Trang ${currentPage + 1}/${totalPages}`, { fontSize: '11px', fontStyle: 'bold', color: '#d8c68d' }).setOrigin(0, 0.5);
-    addPanelText(this, panel, 235, statusY, `🪙 ${(c.silver || 0).toLocaleString()}   💎 ${(c.low || 0).toLocaleString()}`, { fontSize: '10px', color: '#fde68a' }).setOrigin(1, 0.5);
+    addPanelText(this, panel, 235, statusY, `🪙 ${(c.silver || 0).toLocaleString('vi-VN')}   💎 ${(c.low || 0).toLocaleString('vi-VN')}`, { fontSize: '10px', color: '#fde68a' }).setOrigin(1, 0.5);
 
     const cell = 62;
     const gap = 5;
@@ -270,15 +286,124 @@ export function installInventoryGridUI(MainGameScene) {
 
     const bottomY = H / 2 - 42;
     const equipBtn = this.add.rectangle(-118, bottomY, 214, 42, 0x5f1e1e, 1).setStrokeStyle(1.5, 0xe0a460, 1).setInteractive({ useHandCursor: true });
-    const equipTxt = this.add.text(-118, bottomY, 'TRANG BỊ ĐANG MẶC', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#fff0bc' }).setOrigin(0.5);
+    const equipTxt = this.add.text(-118, bottomY, '⚔️ TRANG BỊ ĐANG MẶC', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#fff0bc' }).setOrigin(0.5);
     const sortBtn = this.add.rectangle(118, bottomY, 214, 42, 0x5f1e1e, 1).setStrokeStyle(1.5, 0xe0a460, 1).setInteractive({ useHandCursor: true });
     const sortTxt = this.add.text(118, bottomY, 'SẮP XẾP TÚI', { fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#fff0bc' }).setOrigin(0.5);
-    equipBtn.on('pointerdown', pointer => { stopPointer(this, pointer); this.openGearPanel(-1); });
+    equipBtn.on('pointerdown', pointer => { stopPointer(this, pointer); this.openEquipmentPanel(); });
     sortBtn.on('pointerdown', pointer => { stopPointer(this, pointer); this.openGearPanel('bag', 0, requestedFilter); });
     panel.add([equipBtn, equipTxt, sortBtn, sortTxt]);
 
     this.activeModal = panel;
     this.activeModalOverlay = overlay;
-    return panel;
+    return activateModalInput(this, panel);
+  };
+
+  // =========================================================================
+  // 2. GIAO DIỆN TRANG BỊ RIÊNG BIỆT (openEquipmentPanel)
+  // =========================================================================
+  proto.openEquipmentPanel = function openEquipmentPanel(selectedSlot = null) {
+    this.closeModal();
+
+    const overlay = this.fixed(this.add.rectangle(W / 2, H / 2, W + 20, H + 20, 0x000000, 0.55), 1999998)
+      .setInteractive({ useHandCursor: false });
+    const panel = this.fixed(this.add.container(W / 2, H / 2), 2000000);
+    this.activeModal = panel;
+    this.activeModalOverlay = overlay;
+    overlay.on('pointerdown', pointer => stopPointer(this, pointer));
+
+    const bg = this.add.rectangle(0, 0, W - 14, H - 20, 0x101915, 0.99).setStrokeStyle(3, 0xb69555, 1);
+    const inner = this.add.rectangle(0, 32, W - 38, H - 128, 0x07110d, 1).setStrokeStyle(1, 0x5d5138, 1);
+    const header = this.add.rectangle(0, -H / 2 + 48, W - 28, 64, 0x5b1717, 1).setStrokeStyle(2, 0xd5aa5c, 1);
+    panel.add([bg, inner, header]);
+    addPanelText(this, panel, 0, -H / 2 + 48, '⚔️ TRANG BỊ ĐANG MẶC', { fontSize: '21px', fontStyle: 'bold', color: '#ffe89a' }).setOrigin(0.5);
+    this.createModalCloseBtn(panel, W / 2 - 42, -H / 2 + 48);
+
+    const slots = [
+      ['weapon', 'Vũ Khí', '🗡️'],
+      ['armor', 'Đạo Bào', '🥋'],
+      ['helm', 'Đạo Quán', '👑'],
+      ['boots', 'Ngự Hài', '👟'],
+      ['amulet', 'Ngọc Bội', '📿'],
+      ['shield', 'Linh Thuẫn', '🛡️']
+    ];
+
+    if (selectedSlot) {
+      const def = slots.find(([key]) => key === selectedSlot);
+      const item = gameState.equipped?.[selectedSlot];
+      const name = this.add.text(-220, -315, `${def?.[2] || '⚔️'} ${item?.name || def?.[1] || 'Trang bị'}`, {
+        fontFamily: FONT, fontSize: '24px', fontStyle: 'bold', color: '#fff19a',
+        wordWrap: { width: 440, useAdvancedWrap: true }
+      }).setOrigin(0, 0.5);
+      const desc = this.add.text(-215, -210, item ? gearStat(item) : 'Ô trang bị đang trống.', {
+        fontFamily: FONT, fontSize: '17px', color: '#e4f9ff',
+        wordWrap: { width: 430, useAdvancedWrap: true }
+      }).setOrigin(0, 0);
+      panel.add([name, desc]);
+
+      if (item) {
+        const unequipBtn = this.add.rectangle(0, 180, 430, 58, 0x7c2635, 1)
+          .setStrokeStyle(2, 0xff9aaa, 1).setInteractive({ useHandCursor: true });
+        const unequipTxt = this.add.text(0, 180, 'XÁC NHẬN THÁO TRANG BỊ', { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+        unequipBtn.on('pointerdown', pointer => {
+          stopPointer(this, pointer);
+          this.unequipGear(selectedSlot);
+          this.openEquipmentPanel();
+        });
+        panel.add([unequipBtn, unequipTxt]);
+      }
+
+      const backBtn = this.add.rectangle(0, 420, 430, 48, 0x303e50, 1)
+        .setStrokeStyle(2, 0x94b8cc, 1).setInteractive({ useHandCursor: true });
+      const backTxt = this.add.text(0, 420, '‹ QUAY LẠI TRANG BỊ', { fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#eaf8ff' }).setOrigin(0.5);
+      backBtn.on('pointerdown', pointer => {
+        stopPointer(this, pointer);
+        this.openEquipmentPanel();
+      });
+      panel.add([backBtn, backTxt]);
+      return activateModalInput(this, panel);
+    }
+
+    // Header stats overview
+    const maxHp = this.calcPlayerMaxHp ? this.calcPlayerMaxHp() : 1000;
+    const maxMp = this.calcPlayerMaxMp ? this.calcPlayerMaxMp() : 200;
+    const dmg = this.calcPlayerDmg ? this.calcPlayerDmg() : 100;
+    const defVal = this.calcPlayerDef ? this.calcPlayerDef() : 20;
+    const statBox = this.add.rectangle(0, -H / 2 + 106, W - 44, 44, 0x14281e, 1).setStrokeStyle(1, 0x6e5c3c, 1);
+    const statTxt = this.add.text(0, -H / 2 + 106, `❤️ HP: ${maxHp.toLocaleString('vi-VN')}   🔷 MP: ${maxMp.toLocaleString('vi-VN')}   ⚔️ DMG: ${dmg.toLocaleString('vi-VN')}   🛡️ DEF: ${defVal.toLocaleString('vi-VN')}`, {
+      fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#a7f3d0'
+    }).setOrigin(0.5);
+    panel.add([statBox, statTxt]);
+
+    slots.forEach(([key, label, emoji], idx) => {
+      const item = gameState.equipped?.[key];
+      const y = -195 + idx * 90;
+      const box = this.add.rectangle(0, y, 460, 74, item ? 0x0f2f24 : 0x0c1612, 1)
+        .setStrokeStyle(1.5, item ? 0x55e6a0 : 0x395646).setInteractive({ useHandCursor: !!item });
+      const title = this.add.text(-210, y - 12, `${emoji} ${label}`, {
+        fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#9aeaff'
+      }).setOrigin(0, 0.5);
+      const value = this.add.text(-210, y + 15, item ? `${item.name}  •  ${gearStat(item)}` : '[Trống - Chưa trang bị]', {
+        fontFamily: FONT, fontSize: '12.5px', color: item ? '#ffffff' : '#789080',
+        wordWrap: { width: 390, useAdvancedWrap: true }
+      }).setOrigin(0, 0.5);
+      if (item) {
+        box.on('pointerdown', pointer => {
+          stopPointer(this, pointer);
+          this.openEquipmentPanel(key);
+        });
+      }
+      panel.add([box, title, value]);
+    });
+
+    const bottomY = H / 2 - 42;
+    const bagBtn = this.add.rectangle(0, bottomY, 430, 44, 0x1d4734, 1).setStrokeStyle(1.5, 0x60e0a4, 1).setInteractive({ useHandCursor: true });
+    const bagTxt = this.add.text(0, bottomY, '🎒 QUAY LẠI TÚI ĐỒ (HÀNH TRANG)', { fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    bagBtn.on('pointerdown', pointer => {
+      stopPointer(this, pointer);
+      this.openGearPanel('bag', 0);
+    });
+    panel.add([bagBtn, bagTxt]);
+
+    return activateModalInput(this, panel);
   };
 }

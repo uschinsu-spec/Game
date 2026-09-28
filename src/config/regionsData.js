@@ -26,21 +26,21 @@ export const WORLD_REGIONS = [
       makeMap(0, 'Thanh Vân Thôn', 'Làng Khởi Nguyên & Khu An Toàn (Không Quái)', 0, 0, 'stage_0', {
         isPeaceZone: true, noRepeat: true, worldWidth: 540, worldHeight: 960,
         field: { left: 90, right: 450, top: 180, bottom: 890 },
-        panoramaKey: 'map_panorama_0', panoramaAsset: 'environment/IMG_7504.png',
+        panoramaKey: 'map_panorama_0', panoramaAsset: 'environment/map_0_thanh_van_thon.png',
         panoramaSourceWidth: 784, panoramaSourceHeight: 1334, panoramaTemplateMapId: null,
         spawn: { x: 270, y: 840 }
       }),
       makeMap(1, 'Thanh Vân Ngoại Vi', 'Khu Săn Yêu Tân Thủ (Bãi Thú Ngoại Vi)', 0, 0, 'stage_0', {
         isPeaceZone: false, worldWidth: 32000, worldHeight: 960,
         field: { left: 60, right: 31940, top: 350, bottom: 900 },
-        panoramaKey: 'map_panorama_1', panoramaAsset: 'environment/valley_panorama.png',
+        panoramaKey: 'map_panorama_1', panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.png',
         panoramaSourceWidth: 3200, panoramaSourceHeight: 960, panoramaTemplateMapId: null,
         spawn: { x: 350, y: 620 }
       }),
       makeMap(2, 'Vạn Mộc Sâm Lâm', 'Cổ Mộc Thâm Xứ (Luyện Khí Tầng 7+)', 7, 4, 'stage_1', {
         worldWidth: 32000, worldHeight: 960,
         field: { left: 60, right: 31940, top: 350, bottom: 900 },
-        panoramaKey: 'map_panorama_2', panoramaAsset: 'environment/van_moc_sam_lam.png',
+        panoramaKey: 'map_panorama_2', panoramaAsset: 'environment/map_2_van_moc_sam_lam.png',
         panoramaSourceWidth: 2880, panoramaSourceHeight: 960, panoramaTemplateMapId: null,
         spawn: { x: 350, y: 620 }
       }),

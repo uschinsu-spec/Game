@@ -1,62 +1,39 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-sword-only-v2';
-import { CombatMixin } from './scenes/mixins/CombatMixin.js?v=20260928-sword-only-v3';
-import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
-import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
-import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-bright-modal-ed67031';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-modal-manager-unified-v1';
+import { installUiModalManager } from './scenes/mixins/UiModalManager.js?v=20260928-modal-manager-unified-v1';
 import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
-import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-simple-crafting-ffe7105';
-import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=20260928-simple-primary-932c701';
-import { installSimpleCongPhapHomeUI } from './scenes/mixins/SimpleCongPhapHomeUI.js?v=20260928-single-line-congphap-22fa3d0';
-import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=20260928-welcome-fullscreen-d18e1e9';
-import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-thanh-van-image-hub-v3';
-import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-sword-only-v2';
+import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-modal-manager-unified-v1';
+import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=20260928-modal-manager-unified-v1';
+import { installSimpleCongPhapHomeUI } from './scenes/mixins/SimpleCongPhapHomeUI.js?v=20260928-modal-manager-unified-v1';
+import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=20260928-modal-manager-unified-v1';
+import { installNpcDialogUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-modal-manager-unified-v1';
+import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-modal-manager-unified-v1';
 import { installStarterGiftResourceOnly } from './scenes/mixins/StarterGiftResourceOnly.js?v=20260928-starter-resource-only-16f2fc3';
 import { installWorldResourceProgression } from './scenes/mixins/WorldResourceProgression.js?v=20260928-world-resources-a419273';
-import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-thanh-van-image-hub-v3';
+import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-pharmacopeia-clean-v4';
 import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.js?v=20260928-common-pill-ui-b25b6a2';
-import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgression.js?v=20260928-van-moc-ranks-145c118';
-import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-rank1-cores-357150f';
-import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
-import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
-import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v2';
+import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-direct-v3';
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
-import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
-import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js?v=20260928-realm-progression-v3';
-import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-spirit-stone-icons-v3';
-import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
-import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
+import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=20260928-realm-progression-unified-v1';
+import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
 
-// Một nguồn duy nhất cho toàn bộ 5 skill Kiếm: CombatMixin.js.
-// Nạp trực tiếp bản mới để không còn bất kỳ renderer/guard VFX phụ nào ghi đè.
-Object.assign(MainGameScene.prototype, CombatMixin);
-
-installRealmIndexCompatibility(MainGameScene);
-installRealmProgressionV3(MainGameScene);
-installTouchInputOptimization(MainGameScene);
-installUiCloseButtonOptimization(MainGameScene);
-installFullscreenModalOptimization(MainGameScene);
+installUiModalManager(MainGameScene);
+installRealmProgression(MainGameScene);
 installTransparentBottomMenuOptimization(MainGameScene);
 installSimpleCraftingUI(MainGameScene);
 installSimplePrimaryUI(MainGameScene);
 installSimpleCongPhapHomeUI(MainGameScene);
 installSimpleWelcomeUI(MainGameScene);
-installSimpleNpcFullscreenUI(MainGameScene);
+installNpcDialogUI(MainGameScene);
 installSimpleSkillFullscreenUI(MainGameScene);
 installStarterGiftResourceOnly(MainGameScene);
 installWorldResourceProgression(MainGameScene);
 installEarlyGamePharmacopeia(MainGameScene);
 installCommonPillRankUiFix(MainGameScene);
-installVanMocEnemyProgression(MainGameScene);
-installRankOneBeastCoreDrops(MainGameScene);
-installRareResourceInventoryUI(MainGameScene);
 installInventoryGridUI(MainGameScene);
-installVillageHubTouchFix(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
-installUiGameplayPauseOptimization(MainGameScene);
-installUnifiedUiMapIsolation(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,

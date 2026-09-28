@@ -13,7 +13,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "assets/vfx/luyen_khi_9he_7frame.png"
+SOURCE = ROOT / "assets/vfx/atlas/luyen_khi_9he_7frame.png"
 ELEMENTS = ["sword", "fire", "lightning", "metal", "water", "wind", "wood", "earth", "physical"]
 # Connected silhouettes in the first column of the generated sheet. Some
 # cross a nominal row boundary, so these bounds follow the actual artwork.
@@ -46,7 +46,9 @@ def main():
             canvas = Image.new("RGBA", (128, 64))
             canvas.alpha_composite(rgb, ((128 - w) // 2, (64 - h) // 2))
             name = f"kim_1_frame_{frame}.png" if element == "sword" else f"frame_{frame}.png"
-            canvas.save(ROOT / "assets/vfx" / element / name, optimize=True)
+            target_dir = ROOT / "assets/vfx/sword" if element == "sword" else ROOT / "assets/vfx/elemental" / element
+            target_dir.mkdir(parents=True, exist_ok=True)
+            canvas.save(target_dir / name, optimize=True)
 
 
 def keep_largest_shape(img):

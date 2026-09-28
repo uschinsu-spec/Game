@@ -31,21 +31,26 @@ export function installElementalCombatProgression(MainGameScene) {
   proto.calcPlayerElementalDmg = function calcPlayerElementalDmg(elem = 'Vật Lý') {
     const wanted = normalizeElement(elem);
     const cultivated = resolveCultivationElement();
+    const realmBase = Math.max(1, Number(this.calcPlayerBaseDmg?.()) || 5);
 
-    // Không tu hệ đó thì Damage hệ đó bằng 0.
-    // Vật Lý cũng bằng 0 nếu không tu Vật Lý hoặc không có nguồn Damage Vật Lý riêng.
-    if (!cultivated || cultivated !== wanted) return 0;
+    // Nếu đang vận hành công pháp đúng hệ: được khuếch đại cực mạnh bởi Công Pháp & Thuần Thục
+    if (cultivated && cultivated === wanted) {
+      const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
+      const masteryMul = masteryMultiplier(this);
+      const cpBonusPct = Math.max(0, Number(cp?.bonusDmgPct) || 0);
+      const masteryPct = 35 + Math.round(masteryMul * 145); // Sơ Nhập ~86% -> Viên Mãn 180%
+      const totalPct = masteryPct + cpBonusPct;
+      return Math.max(1, Math.floor(realmBase * (1 + totalPct / 100)));
+    }
 
-    const realmBase = Math.max(0, Number(this.calcPlayerBaseDmg?.()) || 0);
+    // Nếu không có công pháp chuyên biệt: Người chơi vẫn sở hữu 100% Sát Thương Cảnh Giới gốc
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    const masteryMul = masteryMultiplier(this);
-    const cpBonusPct = Math.max(0, Number(cp?.bonusDmgPct) || 0);
+    if (cp && cp.elem === 'Toàn Hệ') {
+      const bonusPct = Math.max(0, Number(cp.bonusDmgPct) || 10);
+      return Math.max(1, Math.floor(realmBase * (1 + bonusPct / 100)));
+    }
 
-    // Hệ đang tu nhận toàn bộ Damage nền cảnh giới, sau đó được khuếch đại bởi
-    // độ thuần thục công pháp và bonus riêng của công pháp.
-    const masteryPct = 35 + Math.round(masteryMul * 145); // Sơ Nhập ~86% -> Viên Mãn 180%
-    const totalPct = masteryPct + cpBonusPct;
-    return Math.max(0, Math.floor(realmBase * (1 + totalPct / 100)));
+    return realmBase;
   };
 
   proto.calcPlayerElementalDef = function calcPlayerElementalDef(elem = 'Vật Lý') {
@@ -66,7 +71,7 @@ export function installElementalCombatProgression(MainGameScene) {
 
   proto.calcPlayerDmg = function calcPlayerDmg() {
     const cultivated = resolveCultivationElement();
-    return cultivated ? this.calcPlayerElementalDmg(cultivated) : 0;
+    return cultivated ? this.calcPlayerElementalDmg(cultivated) : (this.calcPlayerBaseDmg ? this.calcPlayerBaseDmg() : 5);
   };
 
   proto.calcPlayerDef = function calcPlayerDef() {

@@ -81,22 +81,69 @@ export const EnemyMixin = {
     }
   },
 
-  spawnOneFixedEnemy(homeX, homeY, slotIndex, zone = 1) {
-    const map = ALL_MAPS[gameState.currentMapId] || ALL_MAPS[0];
+  getEnemySpawnConfig(mapId, zone = 1, slotIndex = 0) {
+    // Map 2: Vạn Mộc Sâm Lâm - Nhất Phẩm 4 giai đoạn theo zone độ sâu
+    if (Number(mapId) === 2) {
+      const strictZone = Math.max(1, Math.min(4, Number(zone) || 1));
+      const vanMocZoneConfigs = {
+        1: { monsterId: 'm_1_1', spriteNum: 5, stageLabel: 'Sơ Kỳ', color: '#a7f3d0', sizeMultiplier: 1.2 },
+        2: { monsterId: 'm_1_2', spriteNum: 4, stageLabel: 'Trung Kỳ', color: '#fde68a', sizeMultiplier: 1.4 },
+        3: { monsterId: 'm_1_3', spriteNum: 9, stageLabel: 'Hậu Kỳ', color: '#fdba74', sizeMultiplier: 1.6 },
+        4: { monsterId: 'm_1_4', spriteNum: 7, stageLabel: 'Đỉnh Phong', color: '#fb7185', sizeMultiplier: 1.8 }
+      };
+      const cfg = vanMocZoneConfigs[strictZone];
+      const monsterData = MONSTER_RANKS.find(m => m.id === cfg.monsterId) || MONSTER_RANKS[4];
+      return {
+        monsterData,
+        spriteNum: cfg.spriteNum,
+        baseScale: 0.50 * cfg.sizeMultiplier,
+        displayName: `${monsterData.name} • ${cfg.stageLabel}`,
+        nameColor: cfg.color,
+        nameFontSize: strictZone === 4 ? '10px' : (strictZone === 3 ? '9.5px' : '9px'),
+        vanMocZone: strictZone,
+        vanMocStage: cfg.stageLabel,
+        vanMocSizeMultiplier: cfg.sizeMultiplier
+      };
+    }
 
-    // Càng đi sâu vào map (zone cao), cấp độ quái trong dải quái của map đó càng nâng cao
+    // Generic spawn config for all other maps
+    const map = ALL_MAPS[mapId] || ALL_MAPS[0];
+    const mapNum = Number(mapId) || 0;
     let rankOffset = 0;
     if (zone === 1) rankOffset = (slotIndex % 2);
     else if (zone === 2) rankOffset = (slotIndex % 3);
     else if (zone >= 3) rankOffset = 1 + (slotIndex % 3);
 
-    const mIdx = Math.min(MONSTER_RANKS.length - 1, map.monsterIdxStart + rankOffset);
+    const mIdx = Math.min(MONSTER_RANKS.length - 1, (map.monsterIdxStart || 0) + rankOffset);
     const monsterData = MONSTER_RANKS[mIdx];
+    
+    // Từ Map 3 (Trúc Cơ) trở lên: Có cả quái đi đất và quái bay trên không (50/50)
+    const isFlying = (mapNum >= 3) && (slotIndex % 2 === 1);
+    const enemySpriteNum = isFlying ? ((slotIndex % 10) + 1) : (monsterData.spriteNum || ((mIdx % 16) + 1));
+    const displayName = isFlying ? `[Phi Thiên] ${monsterData.name}` : monsterData.name;
 
-    const enemySpriteNum = monsterData.spriteNum || ((mIdx % 16) + 1);
-    const baseEnemyScale = 0.50;
+    return {
+      monsterData,
+      isFlying,
+      spriteNum: enemySpriteNum,
+      baseScale: isFlying ? 0.52 : 0.50,
+      displayName,
+      nameColor: isFlying ? '#67e8f9' : '#ffd700',
+      nameFontSize: '9px'
+    };
+  },
 
-    const enemy = this.enemyGroup.create(homeX, homeY, 'enemy_' + enemySpriteNum + '_idle_0')
+  spawnOneFixedEnemy(homeX, homeY, slotIndex, zone = 1) {
+    const config = this.getEnemySpawnConfig(gameState.currentMapId, zone, slotIndex);
+    const monsterData = config.monsterData;
+    const enemySpriteNum = config.spriteNum;
+    const baseEnemyScale = config.baseScale;
+
+    const isFlying = config.isFlying || false;
+    const initialTex = isFlying ? `enemy_fly_${enemySpriteNum}_idle_0` : `enemy_${enemySpriteNum}_idle_0`;
+    const initialAnim = isFlying ? `e_enemy_fly_${enemySpriteNum}_idle` : `e_enemy_${enemySpriteNum}_idle`;
+
+    const enemy = this.enemyGroup.create(homeX, homeY, initialTex)
       .setScale(baseEnemyScale * this.perspective(homeY))
       .setDepth(Math.floor(homeY));
 
@@ -104,8 +151,9 @@ export const EnemyMixin = {
     enemy.homeX = homeX;
     enemy.homeY = homeY;
     enemy.isDead = false;
+    enemy.isFlying = isFlying;
     enemy.monsterData = monsterData;
-    enemy.isRanged = monsterData.isRanged || [3, 6, 8, 13, 15, 16].includes(enemySpriteNum);
+    enemy.isRanged = isFlying || monsterData.isRanged || [3, 6, 8, 13, 15, 16].includes(enemySpriteNum);
     enemy.baseEnemyScale = baseEnemyScale;
     enemy.hp = monsterData.hp;
     enemy.maxHp = monsterData.hp;
@@ -116,18 +164,26 @@ export const EnemyMixin = {
     enemy.roamVx = 0;
     enemy.roamVy = 0;
     enemy.enemySpriteNum = enemySpriteNum;
-    enemy.play('e_enemy_' + enemySpriteNum + '_idle', true);
+    if (config.vanMocZone) {
+      enemy.vanMocZone = config.vanMocZone;
+      enemy.vanMocStage = config.vanMocStage;
+      enemy.vanMocAsset = `enemy_${enemySpriteNum}`;
+      enemy.vanMocSizeMultiplier = config.vanMocSizeMultiplier;
+    }
+    if (this.anims.exists(initialAnim)) {
+      enemy.play(initialAnim, true);
+    }
 
     const barW = 36;
     enemy.barW = barW;
     enemy.hpBg = this.add.rectangle(homeX, homeY - 36, barW, 4, 0x111111, 0.8).setDepth(Math.floor(homeY) + 1);
     enemy.hpBar = this.add.rectangle(homeX - barW / 2, homeY - 36, barW, 4, 0xee5533)
       .setOrigin(0, 0.5).setDepth(Math.floor(homeY) + 2);
-    enemy.nameText = this.add.text(homeX, homeY - 47, `${monsterData.name}`, {
-      fontSize: '9px',
+    enemy.nameText = this.add.text(homeX, homeY - 47, config.displayName, {
+      fontSize: config.nameFontSize || '9px',
       fontFamily: 'sans-serif',
       fontStyle: 'bold',
-      color: '#ffd700',
+      color: config.nameColor || '#ffd700',
       stroke: '#000',
       strokeThickness: 2
     }).setOrigin(0.5).setDepth(Math.floor(homeY) + 3);
@@ -145,71 +201,107 @@ export const EnemyMixin = {
     return enemy;
   },
 
+  buildEnemyDropTable(enemy) {
+    const data = enemy?.monsterData;
+    if (!data) {
+      return {
+        beastPelts: 1,
+        beastFurs: 0,
+        beastClaws: 0,
+        beastBlood: 0,
+        beastHorns: 0,
+        beastCore: null
+      };
+    }
+
+    const isRankOne = data.tier >= 1 && data.tier <= 4;
+    const rawPelts = isRankOne ? Math.max(1, Phaser.Math.Between(2, 4)) : Phaser.Math.Between(2, 4);
+    const rawFurs = isRankOne ? Math.max(1, Phaser.Math.Between(1, 3)) : Phaser.Math.Between(1, 3);
+    const rawClaws = Math.random() < 0.65 ? Phaser.Math.Between(1, 2) : 0;
+    const rawBlood = isRankOne ? Math.max(1, (Math.random() < 0.55 ? Phaser.Math.Between(1, 2) : 1)) : (Math.random() < 0.55 ? Phaser.Math.Between(1, 2) : 0);
+    const rawHorns = Math.random() < 0.40 ? 1 : 0;
+
+    // Nội Đan definitions theo Monster ID (Nhất Phẩm -> tương lai mở rộng Nhị/Tam/Tứ/Ngũ Phẩm)
+    const CORE_DEFS = {
+      m_1_1: { key: 'nhat_pham_so_ky', name: 'Nội Đan Nhất Phẩm Sơ Kỳ', chance: 0.20, color: 0x6ee7b7, textColor: '#a7f3d0' },
+      m_1_2: { key: 'nhat_pham_trung_ky', name: 'Nội Đan Nhất Phẩm Trung Kỳ', chance: 0.30, color: 0x38bdf8, textColor: '#7dd3fc' },
+      m_1_3: { key: 'nhat_pham_hau_ky', name: 'Nội Đan Nhất Phẩm Hậu Kỳ', chance: 0.45, color: 0xc084fc, textColor: '#d8b4fe' },
+      m_1_4: { key: 'nhat_pham_dinh_phong', name: 'Nội Đan Nhất Phẩm Đỉnh Phong', chance: 0.70, color: 0xfbbf24, textColor: '#fde68a' }
+    };
+
+    let beastCore = null;
+    const coreDef = CORE_DEFS[data.id];
+    if (coreDef && Math.random() < coreDef.chance) {
+      beastCore = {
+        key: coreDef.key,
+        name: coreDef.name,
+        color: coreDef.color,
+        textColor: coreDef.textColor,
+        monsterId: data.id
+      };
+    }
+
+    return {
+      beastPelts: rawPelts,
+      beastFurs: rawFurs,
+      beastClaws: rawClaws,
+      beastBlood: rawBlood,
+      beastHorns: rawHorns,
+      beastCore
+    };
+  },
+
   killEnemy(enemy) {
     if (!enemy || enemy.isDead) return;
     enemy.isDead = true;
 
-    const data = enemy.monsterData;
-    if (data) {
-      if (!gameState.materials) {
-        gameState.materials = { beastPelts: 0, beastFurs: 0, beastClaws: 0, beastBlood: 0, beastHorns: 0 };
-      }
-      if (gameState.materials.beastHorns === undefined) gameState.materials.beastHorns = 0;
+    if (!gameState.materials) {
+      gameState.materials = { beastPelts: 0, beastFurs: 0, beastClaws: 0, beastBlood: 0, beastHorns: 0 };
+    }
+    if (gameState.materials.beastHorns === undefined) gameState.materials.beastHorns = 0;
+    if (!gameState.materials.beastCores || typeof gameState.materials.beastCores !== 'object') {
+      gameState.materials.beastCores = {};
+    }
 
-      const isParty = !!(gameState.party && gameState.party.isFormed);
+    const isParty = !!(gameState.party && gameState.party.isFormed);
+    const dropBundle = this.buildEnemyDropTable(enemy);
 
-      // 1. TÍNH TOÁN TỔNG NGUYÊN LIỆU RỚT RA TỪ QUÁI (RAW GROUND DROPS)
-      const rawPelts = Phaser.Math.Between(2, 4);
-      const rawFurs = Phaser.Math.Between(1, 3);
-      const rawClaws = Math.random() < 0.65 ? Phaser.Math.Between(1, 2) : 0;
-      const rawBlood = Math.random() < 0.55 ? Phaser.Math.Between(1, 2) : 0;
-      const rawHorns = Math.random() < 0.40 ? 1 : 0;
+    // XÁC ĐỊNH AI GÂY DAMAGE NHIỀU NHẤT (TOP DAMAGE CONTRIBUTOR)
+    let playerTeamDmg = 0;
+    let wildTop = { totalDmg: 0, name: 'Tán Tu', ref: null };
 
-      const dropBundle = {
-        beastPelts: rawPelts,
-        beastFurs: rawFurs,
-        beastClaws: rawClaws,
-        beastBlood: rawBlood,
-        beastHorns: rawHorns
-      };
-
-      // 2. XÁC ĐỊNH AI GÂY DAMAGE NHIỀU NHẤT (TOP DAMAGE CONTRIBUTOR)
-      let playerTeamDmg = 0;
-      let wildTop = { totalDmg: 0, name: 'Tán Tu', ref: null };
-
-      if (enemy.damageDealers) {
-        for (const key in enemy.damageDealers) {
-          const dealer = enemy.damageDealers[key];
-          if (dealer.type === 'player' || dealer.type === 'party_npc') {
-            playerTeamDmg += dealer.totalDmg;
-          } else if (dealer.type === 'wild_npc') {
-            if (dealer.totalDmg > wildTop.totalDmg) {
-              wildTop = dealer;
-            }
+    if (enemy.damageDealers) {
+      for (const key in enemy.damageDealers) {
+        const dealer = enemy.damageDealers[key];
+        if (dealer.type === 'player' || dealer.type === 'party_npc') {
+          playerTeamDmg += dealer.totalDmg;
+        } else if (dealer.type === 'wild_npc') {
+          if (dealer.totalDmg > wildTop.totalDmg) {
+            wildTop = dealer;
           }
         }
-      } else {
-        playerTeamDmg = 1; // Default
       }
-
-      let winnerInfo = {};
-      if (playerTeamDmg >= wildTop.totalDmg) {
-        winnerInfo = {
-          winnerType: isParty ? 'party' : 'player',
-          winnerName: isParty ? 'Tổ Đội 5 Người' : 'Bạn',
-          ref: this.player
-        };
-      } else {
-        winnerInfo = {
-          winnerType: 'wild_npc',
-          winnerName: wildTop.name || 'Tán Tu',
-          ref: wildTop.ref
-        };
-      }
-
-      // 3. TẠO VẬT PHẨM RỚT RA ĐẤT (GROUND DROP ENTITY - 2S ĐẾM NGƯỢC)
-      this.spawnGroundLootDrop(enemy.x, enemy.y, dropBundle, winnerInfo, isParty);
+    } else {
+      playerTeamDmg = 1;
     }
+
+    let winnerInfo = {};
+    if (playerTeamDmg >= wildTop.totalDmg) {
+      winnerInfo = {
+        winnerType: isParty ? 'party' : 'player',
+        winnerName: isParty ? 'Tổ Đội 5 Người' : 'Bạn',
+        ref: this.player
+      };
+    } else {
+      winnerInfo = {
+        winnerType: 'wild_npc',
+        winnerName: wildTop.name || 'Tán Tu',
+        ref: wildTop.ref
+      };
+    }
+
+    // TẠO VẬT PHẨM RỚT RA ĐẤT (GROUND DROP ENTITY - 2S ĐẾM NGƯỢC)
+    this.spawnGroundLootDrop(enemy.x, enemy.y, dropBundle, winnerInfo, isParty);
 
     // Hiệu ứng biến mất & ẩn quái để tối ưu bộ nhớ thay vì hủy đối tượng
     if (this.spawnVfx) {
@@ -242,7 +334,8 @@ export const EnemyMixin = {
 
     // 1. Vòng hào quang mặt đất phát sáng
     const isPlayerTeam = (winnerInfo.winnerType === 'player' || winnerInfo.winnerType === 'party');
-    const auraColor = isPlayerTeam ? (isParty ? 0x34d399 : 0xfde047) : 0x60a5fa;
+    const core = dropBundle?.beastCore;
+    const auraColor = core ? core.color : (isPlayerTeam ? (isParty ? 0x34d399 : 0xfde047) : 0x60a5fa);
 
     const aura = this.add.ellipse(0, 10, 36, 14, auraColor, 0.45);
     this.tweens.add({
@@ -255,10 +348,15 @@ export const EnemyMixin = {
       duration: 480
     });
 
-    // 2. Icon túi chiến lợi phẩm / Da thú nảy lên mặt đất
-    const bagIcon = this.textures.exists('mat_beast_pelt')
-      ? this.add.image(0, -10, 'mat_beast_pelt').setDisplaySize(28, 28)
-      : this.add.text(0, -10, '🎒', { fontSize: '18px' }).setOrigin(0.5);
+    // 2. Icon túi chiến lợi phẩm / Da thú / Nội Đan nảy lên mặt đất
+    const coreIconKey = core ? `core_${core.key}` : null;
+    const bagIcon = (core && coreIconKey && this.textures.exists(coreIconKey))
+      ? this.add.image(0, -10, coreIconKey).setDisplaySize(28, 28)
+      : (core
+        ? this.add.text(0, -10, '🔮', { fontSize: '20px' }).setOrigin(0.5)
+        : (this.textures.exists('mat_beast_pelt')
+          ? this.add.image(0, -10, 'mat_beast_pelt').setDisplaySize(28, 28)
+          : this.add.text(0, -10, '🎒', { fontSize: '18px' }).setOrigin(0.5)));
 
     this.tweens.add({
       targets: bagIcon,
@@ -268,14 +366,14 @@ export const EnemyMixin = {
     });
 
     // 3. Nhãn hiển thị đếm ngược 2s và Người có quyền nhặt (Top Damage)
-    const tagBg = this.add.rectangle(0, -32, 136, 22, 0x09111e, 0.9)
+    const tagBg = this.add.rectangle(0, -32, core ? 156 : 136, 22, 0x09111e, 0.9)
       .setStrokeStyle(1, auraColor);
 
-    const tagText = this.add.text(0, -38, '🎁 Chiến Lợi Phẩm (2s)', {
+    const tagText = this.add.text(0, -38, core ? `🔮 ${core.name} (2s)` : '🎁 Chiến Lợi Phẩm (2s)', {
       fontFamily: 'sans-serif',
-      fontSize: '8.5px',
+      fontSize: core ? '7.5px' : '8.5px',
       fontStyle: 'bold',
-      color: '#f8fafc'
+      color: core ? core.textColor : '#f8fafc'
     }).setOrigin(0.5);
 
     const subText = this.add.text(0, -26, `👑 Top Dmg: ${winnerInfo.winnerName}`, {
@@ -312,7 +410,8 @@ export const EnemyMixin = {
           ease: 'Cubic.easeIn',
           onComplete: () => {
             dropContainer.destroy();
-            this.showFloatingText(targetX, targetY - 45, `[Tán Tu] ${winnerInfo.winnerName} đã nhặt chiến lợi phẩm!`, '#93c5fd', '11px');
+            const lootName = core ? core.name : 'chiến lợi phẩm';
+            this.showFloatingText(targetX, targetY - 45, `[Tán Tu] ${winnerInfo.winnerName} đã nhặt ${lootName}!`, '#93c5fd', '11px');
           }
         });
         return;
@@ -336,18 +435,23 @@ export const EnemyMixin = {
             dropContainer.destroy();
 
             // Nhận 100% nguyên liệu
-            gameState.materials.beastPelts += dropBundle.beastPelts;
-            gameState.materials.beastFurs += dropBundle.beastFurs;
-            gameState.materials.beastClaws += dropBundle.beastClaws;
-            gameState.materials.beastBlood += dropBundle.beastBlood;
-            gameState.materials.beastHorns += dropBundle.beastHorns;
+            gameState.materials.beastPelts = (gameState.materials.beastPelts || 0) + (dropBundle.beastPelts || 0);
+            gameState.materials.beastFurs = (gameState.materials.beastFurs || 0) + (dropBundle.beastFurs || 0);
+            gameState.materials.beastClaws = (gameState.materials.beastClaws || 0) + (dropBundle.beastClaws || 0);
+            gameState.materials.beastBlood = (gameState.materials.beastBlood || 0) + (dropBundle.beastBlood || 0);
+            gameState.materials.beastHorns = (gameState.materials.beastHorns || 0) + (dropBundle.beastHorns || 0);
+
+            if (core) {
+              if (!gameState.materials.beastCores) gameState.materials.beastCores = {};
+              gameState.materials.beastCores[core.key] = (gameState.materials.beastCores[core.key] || 0) + 1;
+            }
 
             if (gameState.afkStats) {
               gameState.afkStats.kills = (gameState.afkStats.kills || 0) + 1;
-              gameState.afkStats.pelts = (gameState.afkStats.pelts || 0) + dropBundle.beastPelts;
+              gameState.afkStats.pelts = (gameState.afkStats.pelts || 0) + (dropBundle.beastPelts || 0);
             }
-            this.updateAfkBanner();
-            this.updateHUD();
+            this.updateAfkBanner?.();
+            this.updateHUD?.();
 
             let dropList = [];
             if (dropBundle.beastPelts > 0) dropList.push(`+${dropBundle.beastPelts} Da`);
@@ -355,9 +459,10 @@ export const EnemyMixin = {
             if (dropBundle.beastClaws > 0) dropList.push(`+${dropBundle.beastClaws} Móng`);
             if (dropBundle.beastBlood > 0) dropList.push(`+${dropBundle.beastBlood} Huyết`);
             if (dropBundle.beastHorns > 0) dropList.push(`+${dropBundle.beastHorns} Sừng`);
+            if (core) dropList.push(`🔮 +1 ${core.name}`);
 
-            this.showFloatingText(px, py - 35, `[100% Đơn Hành] ${dropList.join(' ')} (Tự Nhặt)`, '#fde047', '12px');
-            if (this.spawnVfx) this.spawnVfx(px, py, 0, 0.45, { tint: 0xfde047, duration: 220 });
+            this.showFloatingText(px, py - 35, `[100% Đơn Hành] ${dropList.join(' ')} (Tự Nhặt)`, core ? core.textColor : '#fde047', '12px');
+            if (this.spawnVfx) this.spawnVfx(px, py, 0, 0.45, { tint: core ? core.color : 0xfde047, duration: 220 });
           }
         });
         return;
@@ -388,6 +493,8 @@ export const EnemyMixin = {
           playerReceived[mKey] = baseEach + (playerLucky ? 1 : 0);
         });
 
+        const coreReceiver = core ? Phaser.Math.Between(0, 4) : -1;
+
         this.tweens.add({
           targets: dropContainer,
           x: px,
@@ -400,37 +507,40 @@ export const EnemyMixin = {
           onComplete: () => {
             dropContainer.destroy();
 
-            gameState.materials.beastPelts += playerReceived.beastPelts;
-            gameState.materials.beastFurs += playerReceived.beastFurs;
-            gameState.materials.beastClaws += playerReceived.beastClaws;
-            gameState.materials.beastBlood += playerReceived.beastBlood;
-            gameState.materials.beastHorns += playerReceived.beastHorns;
+            gameState.materials.beastPelts = (gameState.materials.beastPelts || 0) + playerReceived.beastPelts;
+            gameState.materials.beastFurs = (gameState.materials.beastFurs || 0) + playerReceived.beastFurs;
+            gameState.materials.beastClaws = (gameState.materials.beastClaws || 0) + playerReceived.beastClaws;
+            gameState.materials.beastBlood = (gameState.materials.beastBlood || 0) + playerReceived.beastBlood;
+            gameState.materials.beastHorns = (gameState.materials.beastHorns || 0) + playerReceived.beastHorns;
+
+            if (core && coreReceiver === 0) {
+              if (!gameState.materials.beastCores) gameState.materials.beastCores = {};
+              gameState.materials.beastCores[core.key] = (gameState.materials.beastCores[core.key] || 0) + 1;
+            }
 
             if (gameState.afkStats) {
               gameState.afkStats.kills = (gameState.afkStats.kills || 0) + 1;
               gameState.afkStats.pelts = (gameState.afkStats.pelts || 0) + playerReceived.beastPelts;
             }
-            this.updateAfkBanner();
-            this.updateHUD();
+            this.updateAfkBanner?.();
+            this.updateHUD?.();
 
-            let playerDropList = [];
-            if (playerReceived.beastPelts > 0) playerDropList.push(`+${playerReceived.beastPelts} Da`);
-            if (playerReceived.beastFurs > 0) playerDropList.push(`+${playerReceived.beastFurs} Lông`);
-            if (playerReceived.beastClaws > 0) playerDropList.push(`+${playerReceived.beastClaws} Móng`);
-            if (playerReceived.beastBlood > 0) playerDropList.push(`+${playerReceived.beastBlood} Huyết`);
-            if (playerReceived.beastHorns > 0) playerDropList.push(`+${playerReceived.beastHorns} Sừng`);
+            let dropList = [];
+            if (playerReceived.beastPelts > 0) dropList.push(`+${playerReceived.beastPelts} Da`);
+            if (playerReceived.beastFurs > 0) dropList.push(`+${playerReceived.beastFurs} Lông`);
+            if (playerReceived.beastClaws > 0) dropList.push(`+${playerReceived.beastClaws} Móng`);
+            if (playerReceived.beastBlood > 0) dropList.push(`+${playerReceived.beastBlood} Huyết`);
+            if (playerReceived.beastHorns > 0) dropList.push(`+${playerReceived.beastHorns} Sừng`);
+            if (core && coreReceiver === 0) dropList.push(`🔮 +1 ${core.name}`);
 
-            const summary = playerDropList.length > 0 ? playerDropList.join(' ') : '+1 Da (Phần Dư)';
-            this.showFloatingText(px, py - 35, `[Tổ Đội 5 Người] Chia 5 (+Dư Ngẫu Nhiên): ${summary}`, '#6ee7b7', '12px');
-            if (this.spawnVfx) this.spawnVfx(px, py, 0, 0.45, { tint: 0x34d399, duration: 220 });
-
-            // Hiển thị hiệu ứng chia cho các hiệp khách đi cùng
-            if (this.partyFollowers && this.partyFollowers.length > 0) {
-              const luckyFollower = Phaser.Utils.Array.GetRandom(this.partyFollowers);
-              if (luckyFollower && luckyFollower.sprite) {
-                this.showFloatingText(luckyFollower.sprite.x, luckyFollower.sprite.y - 35, `+1 Vật Phẩm (Chia Đội)`, '#a7f3d0', '10px');
-              }
+            this.showFloatingText(px, py - 35, `[Tổ Đội] ${dropList.length > 0 ? dropList.join(' ') : 'Nhận phần chia'}`, '#34d399', '12px');
+            if (core && coreReceiver > 0) {
+              const follower = this.partyFollowers?.[coreReceiver - 1];
+              const fx = follower?.sprite?.x ?? px;
+              const fy = follower?.sprite?.y ?? py;
+              this.showFloatingText(fx, fy - 40, `🔮 Đồng đội nhận ${core.name}`, '#a7f3d0', '10px');
             }
+            if (this.spawnVfx) this.spawnVfx(px, py, 0, 0.45, { tint: 0x34d399, duration: 220 });
           }
         });
       }

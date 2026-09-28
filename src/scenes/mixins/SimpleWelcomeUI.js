@@ -1,5 +1,6 @@
 import { W, H } from '../constants.js';
 import { gameState } from '../../state/gameState.js';
+import { fitSingleLine, stopPointer } from './UiModalManager.js';
 import {
   resetToNewGame,
   importSaveCode,
@@ -9,77 +10,20 @@ import {
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
-function stopPointer(pointer) {
-  const evt = pointer?.event;
-  if (!evt) return;
-  evt.stopPropagation?.();
-  evt.preventDefault?.();
-}
-
-function pauseWorld(scene) {
-  scene.moveTarget = null;
-  scene.player?.setVelocity?.(0, 0);
-  if (scene.joy) {
-    scene.joy.active = false;
-    scene.joy.id = null;
-    scene.joy.x = 0;
-    scene.joy.y = 0;
-  }
-  scene.joyBase?.setVisible?.(false);
-  scene.joyKnob?.setVisible?.(false);
-  if (!scene.__uiWorldPaused && scene.physics?.world?.pause) {
-    scene.physics.world.pause();
-    scene.__uiWorldPaused = true;
-  }
-}
-
-function fitSingleLine(textObj, maxWidth, minPx = 11) {
-  if (!textObj) return textObj;
-  let size = parseFloat(textObj.style?.fontSize || 16);
-  while (textObj.width > maxWidth && size > minPx) {
-    size -= 1;
-    textObj.setFontSize(size);
-  }
-  return textObj;
-}
-
 function createScreen(scene, title, subtitle) {
-  scene.closeModal();
-
-  const overlay = scene.fixed(
-    scene.add.rectangle(W / 2, H / 2, W + 12, H + 12, 0x020914, 1),
-    9998
-  ).setInteractive({ useHandCursor: false });
-  const panel = scene.fixed(scene.add.container(W / 2, H / 2), 10000);
-
-  scene.activeModal = panel;
-  scene.activeModalOverlay = overlay;
-  pauseWorld(scene);
-
-  overlay.on('pointerdown', stopPointer);
-  overlay.on('pointerup', stopPointer);
-  overlay.on('pointermove', stopPointer);
-
-  const bg = scene.add.rectangle(0, 0, W - 6, H - 6, 0x062a3b, 1)
-    .setStrokeStyle(3, 0x67e8ff, 1);
-  const topGlow = scene.add.rectangle(0, -405, W - 24, 126, 0x0b4560, 1)
-    .setStrokeStyle(1.5, 0x4de9ff, 0.95);
-  const titleTxt = scene.add.text(0, -430, title, {
-    fontFamily: FONT,
-    fontSize: '28px',
-    fontStyle: 'bold',
-    color: '#ffe45c'
-  }).setOrigin(0.5);
-  const subtitleTxt = scene.add.text(0, -388, subtitle, {
-    fontFamily: FONT,
-    fontSize: '14px',
-    fontStyle: 'bold',
-    color: '#7ff4ff'
-  }).setOrigin(0.5);
-
-  fitSingleLine(titleTxt, 430, 20);
-  fitSingleLine(subtitleTxt, 430, 12);
-  panel.add([bg, topGlow, titleTxt, subtitleTxt]);
+  const panel = scene.createModalShell(title, subtitle, {
+    noCloseBtn: true,
+    titleOriginX: 0.5,
+    titleX: 0,
+    titleY: -430,
+    titleFontSize: '28px',
+    subOriginX: 0.5,
+    subX: 0,
+    subY: -388,
+    subFontSize: '14px',
+    headerY: -405,
+    headerH: 126
+  });
   return panel;
 }
 
@@ -116,7 +60,7 @@ function addChoice(scene, panel, y, icon, title, subtitle, palette, onPress, ena
 
   if (enabled && typeof onPress === 'function') {
     box.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(scene, pointer);
       onPress();
     });
     box.on('pointerover', () => box.setFillStyle(palette.hover ?? palette.fill, 1));
@@ -169,12 +113,8 @@ function importCode(scene, code) {
   return result;
 }
 
-export function installSimpleWelcomeUI(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__simpleWelcomeUiInstalled) return;
-  const proto = MainGameScene.prototype;
-  proto.__simpleWelcomeUiInstalled = true;
-
-  proto.openWelcomeScreenModal = function openSimpleWelcomeScreenModal() {
+export const SimpleWelcomeModal = {
+  openWelcomeScreenModal() {
     const panel = createScreen(this, '☯ LINH SƠN PHI KIẾM 3D ☯', 'TU TIÊN · SĂN YÊU · PHI KIẾM');
     const localSave = hasLocalSave();
 
@@ -200,9 +140,9 @@ export function installSimpleWelcomeUI(MainGameScene) {
       fontFamily: FONT, fontSize: '12px', color: '#9df4ff'
     }).setOrigin(0.5);
     panel.add([noteBg, note, note2]);
-  };
+  },
 
-  proto.openLoadSaveModal = function openSimpleLoadSaveModal(initialStatus = '') {
+  openLoadSaveModal(initialStatus = '') {
     const panel = createScreen(this, 'TẢI TIẾN TRÌNH', 'CHỌN MỘT CÁCH KHÔI PHỤC');
     let statusText = null;
 
@@ -250,7 +190,7 @@ export function installSimpleWelcomeUI(MainGameScene) {
       fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#ecfbff'
     }).setOrigin(0.5);
     back.on('pointerdown', pointer => {
-      stopPointer(pointer);
+      stopPointer(this, pointer);
       this.openWelcomeScreenModal();
     });
 
@@ -259,5 +199,13 @@ export function installSimpleWelcomeUI(MainGameScene) {
     }).setOrigin(0.5);
     fitSingleLine(statusText, 440, 10);
     panel.add([back, backTxt, statusText]);
-  };
+  }
+};
+
+export function installSimpleWelcomeUI(MainGameScene) {
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__simpleWelcomeUiInstalled) return;
+  const proto = MainGameScene.prototype;
+  proto.__simpleWelcomeUiInstalled = true;
+
+  Object.assign(proto, SimpleWelcomeModal);
 }

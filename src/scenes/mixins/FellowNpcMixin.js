@@ -1,4 +1,6 @@
 import { gameState } from '../../state/gameState.js';
+import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
+import { REALMS } from '../../config/realmsData.js';
 
 export const SINO_VIET_NAMES = [
   'Lý Tiêu Dao', 'Hàn Lập', 'Lâm Động', 'Tiêu Viêm', 'Trương Tiểu Phàm',
@@ -31,6 +33,112 @@ export const OUTFIT_COLOR_PALETTES = [
   { name: 'Hổ Phách (Hoàng Sa)',     tint: 0xfef3c7, titleColor: '#fde68a', vfxColor: 0xfbbf24 }
 ];
 
+export const NPC_ELEMENTS = [
+  { elem: 'Kiếm',   eKey: 'kim',   isSword: true,  title: 'Kiếm Tu', color: '#99eeff', tint: 0xbbe1fa, baseRange: 260 },
+  { elem: 'Kim',    eKey: 'kim',   isSword: false, title: 'Kim Tu',  color: '#fde047', tint: 0xfef08a, baseRange: 260 },
+  { elem: 'Mộc',    eKey: 'moc',   isSword: false, title: 'Mộc Tu',  color: '#4ade80', tint: 0xd1fae5, baseRange: 250 },
+  { elem: 'Thủy',   eKey: 'thuy',  isSword: false, title: 'Thủy Tu', color: '#38bdf8', tint: 0xcffafe, baseRange: 260 },
+  { elem: 'Hỏa',    eKey: 'hoa',   isSword: false, title: 'Hỏa Tu',  color: '#fb923c', tint: 0xffedd5, baseRange: 260 },
+  { elem: 'Thổ',    eKey: 'tho',   isSword: false, title: 'Thổ Tu',  color: '#facc15', tint: 0xfef3c7, baseRange: 240 },
+  { elem: 'Phong',  eKey: 'phong', isSword: false, title: 'Phong Tu',color: '#2dd4bf', tint: 0xccfbf1, baseRange: 260 },
+  { elem: 'Lôi',    eKey: 'loi',   isSword: false, title: 'Lôi Tu',  color: '#c084fc', tint: 0xf3e8ff, baseRange: 260 },
+  { elem: 'Vật Lý', eKey: 'ly',    isMelee: true,  title: 'Thể Tu',  color: '#f43f5e', tint: 0xfecdd3, baseRange: 90 }
+];
+
+export const MAP_NPC_PROGRESSIONS = {
+  // Map 1: Thanh Vân Ngoại Vi (Phàm Nhân -> Luyện Khí Tầng 3)
+  1: [
+    { zone: 1, maxX: 4200,   realmIdx: 0,  masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 1,  masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 3, maxX: 22200,  realmIdx: 2,  masteryName: 'Tiểu Thành', masteryBonus: 0.15, vfxMul: 1.10, masteryColor: '#55ff99' },
+    { zone: 4, maxX: 999999, realmIdx: 3,  masteryName: 'Đại Thành',  masteryBonus: 0.35, vfxMul: 1.20, masteryColor: '#ffd700' }
+  ],
+  // Map 2: Vạn Mộc Sâm Lâm (Luyện Khí Tầng 3 -> Tầng 12)
+  2: [
+    { zone: 1, maxX: 4200,   realmIdx: 3,  masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 6,  masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 3, maxX: 22200,  realmIdx: 9,  masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 4, maxX: 999999, realmIdx: 12, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 3: Huyết Lạc Cấm Địa (Trúc Cơ Sơ Kỳ -> Đỉnh Phong)
+  3: [
+    { zone: 1, maxX: 4200,   realmIdx: 13, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 14, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 3, maxX: 22200,  realmIdx: 15, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 4, maxX: 999999, realmIdx: 16, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 4: Thiên Tinh Hải Thành (Trúc Cơ Hậu Kỳ -> Kim Đan Sơ Kỳ)
+  4: [
+    { zone: 1, maxX: 4200,   realmIdx: 15, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 2, maxX: 12200,  realmIdx: 16, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 3, maxX: 22200,  realmIdx: 17, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 4, maxX: 999999, realmIdx: 17, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' }
+  ],
+  // Map 5: Ngoại Hải Săn Yêu (Kim Đan Sơ Kỳ -> Đỉnh Phong)
+  5: [
+    { zone: 1, maxX: 4200,   realmIdx: 17, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 18, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 3, maxX: 22200,  realmIdx: 19, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 4, maxX: 999999, realmIdx: 20, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 6: Hư Không Cổ Điện (Kim Đan Hậu Kỳ -> Nguyên Anh Sơ Kỳ)
+  6: [
+    { zone: 1, maxX: 4200,   realmIdx: 19, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 2, maxX: 12200,  realmIdx: 20, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 3, maxX: 22200,  realmIdx: 21, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 4, maxX: 999999, realmIdx: 21, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' }
+  ],
+  // Map 7: Côn Lôn Tiên Lạc (Nguyên Anh Sơ Kỳ -> Đỉnh Phong)
+  7: [
+    { zone: 1, maxX: 4200,   realmIdx: 21, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 22, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 3, maxX: 22200,  realmIdx: 23, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 4, maxX: 999999, realmIdx: 24, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 8: Thái Hư Kiếm Cốc (Nguyên Anh Trung Kỳ -> Đỉnh Phong)
+  8: [
+    { zone: 1, maxX: 4200,   realmIdx: 22, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 2, maxX: 12200,  realmIdx: 23, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 3, maxX: 22200,  realmIdx: 24, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 4, maxX: 999999, realmIdx: 24, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 9: Hoàng Cực Thần Điện (Nguyên Anh Đỉnh Phong -> Hóa Thần Sơ Kỳ)
+  9: [
+    { zone: 1, maxX: 4200,   realmIdx: 23, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 2, maxX: 12200,  realmIdx: 24, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 3, maxX: 22200,  realmIdx: 25, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 4, maxX: 999999, realmIdx: 25, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' }
+  ],
+  // Map 10: U Minh Quỷ Quật (Hóa Thần Sơ Kỳ -> Đỉnh Phong)
+  10: [
+    { zone: 1, maxX: 4200,   realmIdx: 25, masteryName: 'Sơ Nhập',   masteryBonus: 0.00, vfxMul: 1.00, masteryColor: '#aaddff' },
+    { zone: 2, maxX: 12200,  realmIdx: 26, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 3, maxX: 22200,  realmIdx: 27, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 4, maxX: 999999, realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 11: Thần Ma Cổ Chiến Trường (Hóa Thần Trung Kỳ -> Đỉnh Phong)
+  11: [
+    { zone: 1, maxX: 4200,   realmIdx: 26, masteryName: 'Tiểu Thành', masteryBonus: 0.35, vfxMul: 1.15, masteryColor: '#55ff99' },
+    { zone: 2, maxX: 12200,  realmIdx: 27, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 3, maxX: 22200,  realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 4, maxX: 999999, realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 12: Cửu Trọng Thiên Đạo
+  12: [
+    { zone: 1, maxX: 4200,   realmIdx: 27, masteryName: 'Đại Thành',  masteryBonus: 0.80, vfxMul: 1.35, masteryColor: '#ffd700' },
+    { zone: 2, maxX: 12200,  realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 3, maxX: 22200,  realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 4, maxX: 999999, realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ],
+  // Map 13: Phi Thăng Tiên Môn
+  13: [
+    { zone: 1, maxX: 4200,   realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 2, maxX: 12200,  realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 3, maxX: 22200,  realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' },
+    { zone: 4, maxX: 999999, realmIdx: 28, masteryName: 'Viên Mãn',   masteryBonus: 1.50, vfxMul: 1.55, masteryColor: '#ff44dd' }
+  ]
+};
+
 export const FellowNpcMixin = {
 
   getRandomSinoVietName(excludeName = '') {
@@ -40,6 +148,91 @@ export const FellowNpcMixin = {
 
   getRandomOutfit() {
     return Phaser.Utils.Array.GetRandom(OUTFIT_COLOR_PALETTES);
+  },
+
+  getNpcElement(elementIdx = -1) {
+    if (elementIdx >= 0 && elementIdx < NPC_ELEMENTS.length) {
+      return NPC_ELEMENTS[elementIdx];
+    }
+    return Phaser.Utils.Array.GetRandom(NPC_ELEMENTS);
+  },
+
+  getNpcSpawnConfig(mapId, homeX, elementIdx = -1) {
+    const elemCfg = this.getNpcElement(elementIdx);
+    const mapNum = Number(mapId) || 1;
+    const zones = MAP_NPC_PROGRESSIONS[mapNum] || MAP_NPC_PROGRESSIONS[1];
+    const zoneCfg = zones.find(z => homeX < z.maxX) || zones[zones.length - 1];
+
+    const realmIdx = Math.max(0, Math.min(REALMS.length - 1, zoneCfg.realmIdx ?? 0));
+    const realmData = REALMS[realmIdx] || REALMS[0];
+
+    // Cảnh Giới -> Skill Tier & Trạng thái Bay (Khớp chính xác Player)
+    let tierLevel = 1;
+    let isFlying = false;
+
+    if (realmIdx === 0) {
+      tierLevel = 1;
+      isFlying = false;
+    } else if (realmIdx >= 1 && realmIdx <= 12) {
+      tierLevel = 1;
+      isFlying = false;
+    } else if (realmIdx >= 13 && realmIdx <= 16) {
+      tierLevel = 2;
+      isFlying = true;
+    } else if (realmIdx >= 17 && realmIdx <= 20) {
+      tierLevel = 3;
+      isFlying = true;
+    } else if (realmIdx >= 21 && realmIdx <= 24) {
+      tierLevel = 4;
+      isFlying = true;
+    } else if (realmIdx >= 25) {
+      tierLevel = 5;
+      isFlying = true;
+    }
+
+    const skillPrefix = elemCfg.isSword ? 'kiem' : elemCfg.eKey;
+    const skillId = `${skillPrefix}_${tierLevel}`;
+    const skillDef = ELEMENTAL_SKILLS.find(s => s.id === skillId) || ELEMENTAL_SKILLS.find(s => s.id === `${skillPrefix}_1`) || ELEMENTAL_SKILLS[0];
+
+    // Dùng CHÍNH XÁC chỉ số từ REALMS của Player
+    const maxHp = realmData.hp;
+    const baseDmg = realmData.dmg;
+    const baseDef = realmData.def;
+
+    const titlePrefix = `[${realmData.name} · ${elemCfg.title}]`;
+
+    return {
+      mapId: mapNum,
+      zone: zoneCfg.zone,
+      realmIdx,
+      realmMajor: realmData.major,
+      stageLabel: realmData.name,
+      tierLevel,
+      isFlying,
+      masteryName: zoneCfg.masteryName,
+      masteryBonus: zoneCfg.masteryBonus,
+      vfxMul: zoneCfg.vfxMul,
+      masteryColor: zoneCfg.masteryColor,
+      elem: elemCfg.elem,
+      elemTitle: elemCfg.title,
+      elemColor: elemCfg.color,
+      eKey: elemCfg.eKey,
+      isSword: elemCfg.isSword || false,
+      isMelee: elemCfg.isMelee || false,
+      skillId: skillDef.id,
+      skillName: skillDef.name,
+      dmgMul: skillDef.dmgMul || 1.6,
+      atkInterval: skillDef.cd > 0 ? skillDef.cd : 2000,
+      attackRange: elemCfg.baseRange || 240,
+      maxHp,
+      dmg: baseDmg,
+      def: baseDef,
+      manaMax: realmData.manaMax,
+      spiritualSense: realmData.spiritualSense,
+      tint: elemCfg.tint,
+      titlePrefix,
+      titleColor: elemCfg.color
+    };
   },
 
   // =========================================================================
@@ -53,6 +246,7 @@ export const FellowNpcMixin = {
         if (npc.nameTag) npc.nameTag.destroy();
         if (npc.hpBg) npc.hpBg.destroy();
         if (npc.hpBar) npc.hpBar.destroy();
+        if (npc.flyingSword) npc.flyingSword.destroy();
       });
     }
     this.fellowNpcs = [];
@@ -78,37 +272,64 @@ export const FellowNpcMixin = {
 
     spawnXCoords.forEach((x, idx) => {
       const y = Phaser.Math.Between(this.field.top + 40, this.field.bottom - 40);
-      const modelType = (idx % 2 === 0) ? 'dai_han' : 'tho_san';
-      this.spawnOneFellowNpc(x, y, modelType);
+      const cfg = this.getNpcSpawnConfig(curMapId, x, idx % NPC_ELEMENTS.length);
+      let modelType;
+      if (cfg.isFlying) {
+        const flyId = (idx % 20) + 1;
+        modelType = `npc_fly_${flyId}`;
+      } else {
+        modelType = (idx % 2 === 0) ? 'dai_han' : 'tho_san';
+      }
+      this.spawnOneFellowNpc(x, y, modelType, idx % NPC_ELEMENTS.length);
     });
   },
 
-  spawnOneFellowNpc(homeX, homeY, modelType = 'dai_han') {
+  spawnOneFellowNpc(homeX, homeY, modelType = null, elementIdx = -1) {
+    const curMapId = gameState.currentMapId ?? 0;
     const name = this.getRandomSinoVietName();
-    const outfit = this.getRandomOutfit();
-    const initialAnim = `${modelType}_idle`;
+    const cfg = this.getNpcSpawnConfig(curMapId, homeX, elementIdx);
+    
+    if (!modelType || (cfg.isFlying && !modelType.startsWith('npc_fly_'))) {
+      if (cfg.isFlying) {
+        const flyId = Phaser.Math.Between(1, 20);
+        modelType = `npc_fly_${flyId}`;
+      } else {
+        modelType = (Math.random() < 0.5) ? 'dai_han' : 'tho_san';
+      }
+    }
 
-    const sprite = this.physics.add.sprite(homeX, homeY, `${modelType}_idle_1`)
+    const initialAnim = cfg.isFlying ? `${modelType}_fly` : `${modelType}_idle`;
+    const initialTexture = cfg.isFlying ? `${modelType}_fly_1` : `${modelType}_idle_1`;
+
+    const sprite = this.physics.add.sprite(homeX, homeY, initialTexture)
       .setScale(0.72)
-      .setTint(outfit.tint)
-      .setDepth(Math.floor(homeY));
+      .setTint(cfg.tint)
+      .setDepth(Math.floor(homeY) + (cfg.isFlying ? 10 : 0));
     sprite.setCollideWorldBounds(true);
     sprite.body.setSize(44, 70).setOffset(42, 40);
     if (this.anims.exists(initialAnim)) sprite.play(initialAnim);
 
-    const shadow = this.add.ellipse(homeX, homeY + 30, 36, 12, 0x000000, 0.4).setDepth(Math.floor(homeY) - 1);
+    const shadow = this.add.ellipse(homeX, homeY + (cfg.isFlying ? 22 : 30), cfg.isFlying ? 30 : 36, cfg.isFlying ? 10 : 12, 0x000000, cfg.isFlying ? 0.35 : 0.4).setDepth(Math.floor(homeY) - 1);
+    
+    // Phi Kiếm ngự dưới chân NPC nếu là cảnh giới Trúc Cơ trở lên
+    let flyingSword = null;
+    if (cfg.isFlying && this.textures.exists('flying_sword')) {
+      flyingSword = this.add.image(homeX, homeY + 4, 'flying_sword')
+        .setScale(0.60)
+        .setDepth(Math.floor(homeY) + 9)
+        .setTint(cfg.tint);
+    }
 
-    const titlePrefix = (modelType === 'dai_han') ? '⚔️ Tán Tu Đao' : '🪓 Thợ Săn Rìu';
-    const nameTag = this.add.text(homeX, homeY - 48, `${titlePrefix} · ${name}`, {
+    const nameTag = this.add.text(homeX, homeY - 48, `${cfg.titlePrefix} ${name}`, {
       fontFamily: 'Be Vietnam Pro, sans-serif',
       fontSize: '8.5px',
       fontStyle: 'bold',
-      color: outfit.titleColor || '#7dd3fc',
+      color: cfg.titleColor || '#7dd3fc',
       stroke: '#000000',
       strokeThickness: 2
     }).setOrigin(0.5).setDepth(Math.floor(homeY) + 3);
 
-    const barW = 32;
+    const barW = 34;
     const hpBg = this.add.rectangle(homeX, homeY - 37, barW, 3, 0x111111, 0.8).setDepth(Math.floor(homeY) + 1);
     const hpBar = this.add.rectangle(homeX - barW / 2, homeY - 37, barW, 3, 0x34d399)
       .setOrigin(0, 0.5).setDepth(Math.floor(homeY) + 2);
@@ -131,24 +352,45 @@ export const FellowNpcMixin = {
       barW,
       name,
       modelType,
-      titlePrefix,
-      tint: outfit.tint,
-      outfitName: outfit.name,
-      vfxColor: outfit.vfxColor,
+      elementIdx,
       homeX,
       homeY,
-      hp: 100,
-      maxHp: 100,
-      dmg: Phaser.Math.Between(1, 3),
+      // Realm & Elemental configuration
+      isVanMoc: cfg.isVanMoc,
+      zone: cfg.zone,
+      realmTier: cfg.realmTier,
+      realmName: cfg.realmName,
+      stageLabel: cfg.stageLabel,
+      masteryName: cfg.masteryName,
+      masteryBonus: cfg.masteryBonus,
+      vfxMul: cfg.vfxMul,
+      masteryColor: cfg.masteryColor,
+      elem: cfg.elem,
+      elemTitle: cfg.elemTitle,
+      elemColor: cfg.elemColor,
+      eKey: cfg.eKey,
+      isSword: cfg.isSword,
+      isMelee: cfg.isMelee,
+      skillId: cfg.skillId,
+      skillName: cfg.skillName,
+      dmgMul: cfg.dmgMul,
+      titlePrefix: cfg.titlePrefix,
+      tint: cfg.tint,
+      hp: cfg.maxHp,
+      maxHp: cfg.maxHp,
+      dmg: cfg.dmg,
+      def: cfg.def,
       speed: Phaser.Math.Between(120, 145),
       searchRange: 520,
-      attackRange: 75,
-      atkInterval: Phaser.Math.Between(650, 950),
+      attackRange: cfg.attackRange || 240,
+      atkInterval: cfg.atkInterval || 2000,
       lastAttack: 0,
       attackUntil: 0,
       targetEnemy: null,
       isDead: false,
-      respawnTime: 0
+      respawnTime: 0,
+      isFlying: cfg.isFlying,
+      flyingSword
     };
 
     this.fellowNpcs.push(npcData);
@@ -214,6 +456,12 @@ export const FellowNpcMixin = {
       const hpBar = this.add.rectangle(sx - barW / 2, sy - 37, barW, 3, 0x34d399)
         .setOrigin(0, 0.5).setDepth(Math.floor(sy) + 2);
 
+      const pRealmIdx = Math.max(0, Math.min(REALMS.length - 1, gameState.realmIdx ?? 0));
+      const pRealm = REALMS[pRealmIdx] || REALMS[0];
+      const followerHp = Math.max(100, Math.floor(pRealm.hp * 0.9));
+      const followerDmg = Math.max(5, Math.floor(pRealm.dmg * 0.85));
+      const followerDef = Math.floor((pRealm.def || 0) * 0.85);
+
       return {
         sprite,
         shadow,
@@ -227,9 +475,10 @@ export const FellowNpcMixin = {
         title: def.title,
         offsetX: def.offsetX,
         offsetY: def.offsetY,
-        hp: 150,
-        maxHp: 150,
-        dmg: Phaser.Math.Between(2, 4),
+        hp: followerHp,
+        maxHp: followerHp,
+        dmg: followerDmg,
+        def: followerDef,
         speed: 155,
         attackRange: 75,
         atkInterval: Phaser.Math.Between(550, 800),
@@ -447,6 +696,7 @@ export const FellowNpcMixin = {
           npc.nameTag.setVisible(false);
           npc.hpBg.setVisible(false);
           npc.hpBar.setVisible(false);
+          if (npc.flyingSword) npc.flyingSword.setVisible(false);
         }
         continue;
       }
@@ -459,17 +709,59 @@ export const FellowNpcMixin = {
         npc.nameTag.setVisible(true);
         npc.hpBg.setVisible(true);
         npc.hpBar.setVisible(true);
+        if (npc.flyingSword) npc.flyingSword.setVisible(true);
       }
 
-      // Cập nhật vị trí UI đi theo sprite
+      // Cập nhật vị trí UI & Phi Kiếm đi theo sprite
       const sx = npc.sprite.x;
       const sy = npc.sprite.y;
       const pScale = 0.72 * this.perspective(sy);
-      npc.sprite.setScale(pScale).setDepth(Math.floor(sy));
-      npc.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale).setDepth(Math.floor(sy) - 1);
-      npc.nameTag.setPosition(sx, sy - 48).setDepth(Math.floor(sy) + 3);
-      npc.hpBg.setPosition(sx, sy - 37).setDepth(Math.floor(sy) + 1);
-      npc.hpBar.setPosition(sx - npc.barW / 2, sy - 37).setDepth(Math.floor(sy) + 2);
+      
+      if (npc.isFlying) {
+        // 1. Bay lượn bồng bềnh trên không trung
+        const hoverOffset = Math.sin(time * 0.0035 + (npc.homeX || 0)) * 6;
+        // Origin 0.78 đưa thân ảnh NPC bay cao hẳn lên trời so với bóng mặt đất
+        npc.sprite.setOrigin(0.5, 0.78);
+        npc.sprite.setScale(pScale).setDepth(Math.floor(sy) + 10);
+        
+        // Nghiêng nhẹ phi hành theo hướng di chuyển (Bank Tilt)
+        const vx = npc.sprite.body ? npc.sprite.body.velocity.x : 0;
+        const targetTilt = Phaser.Math.Clamp(vx * 0.0007, -0.15, 0.15);
+        npc.sprite.rotation = Phaser.Math.Linear(npc.sprite.rotation || 0, targetTilt, 0.12);
+        
+        // Bóng đổ nằm trên mặt đất, kích thước thu nhỏ & mờ nhẹ
+        const shadowScale = pScale * (0.75 + 0.03 * Math.sin(time * 0.0035));
+        npc.shadow.setPosition(sx, sy + 22 * pScale)
+          .setScale(shadowScale, shadowScale * 0.45)
+          .setAlpha(0.32)
+          .setDepth(Math.floor(sy) - 1);
+
+        // Phi Kiếm ngự ngay dưới bàn chân đang lơ lửng
+        if (npc.flyingSword) {
+          const swordY = sy - 18 * pScale + hoverOffset;
+          npc.flyingSword.setPosition(sx, swordY)
+            .setScale(0.60 * pScale)
+            .setRotation(npc.sprite.rotation)
+            .setFlipX(npc.sprite.flipX)
+            .setDepth(Math.floor(sy) + 9)
+            .setVisible(true);
+        }
+
+        // Tên & Thanh máu ở phía trên đầu nhân vật bay
+        const uiY = sy - 84 * pScale + hoverOffset;
+        npc.nameTag.setPosition(sx, uiY - 14).setDepth(Math.floor(sy) + 15);
+        npc.hpBg.setPosition(sx, uiY).setDepth(Math.floor(sy) + 12);
+        npc.hpBar.setPosition(sx - npc.barW / 2, uiY).setDepth(Math.floor(sy) + 13);
+      } else {
+        npc.sprite.setOrigin(0.5, 0.5);
+        npc.sprite.rotation = 0;
+        npc.sprite.setScale(pScale).setDepth(Math.floor(sy));
+        npc.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale, pScale * 0.33).setAlpha(0.4).setDepth(Math.floor(sy) - 1);
+        npc.nameTag.setPosition(sx, sy - 48).setDepth(Math.floor(sy) + 3);
+        npc.hpBg.setPosition(sx, sy - 37).setDepth(Math.floor(sy) + 1);
+        npc.hpBar.setPosition(sx - npc.barW / 2, sy - 37).setDepth(Math.floor(sy) + 2);
+        if (npc.flyingSword) npc.flyingSword.setVisible(false);
+      }
 
       // 2. Xử lý Hồi Sinh khi Chết
       if (npc.isDead) {
@@ -511,7 +803,8 @@ export const FellowNpcMixin = {
             const vy = Math.sin(angle) * npc.speed + wildPushVy;
             npc.sprite.setVelocity(vx, vy);
             npc.sprite.setFlipX(vx < 0);
-            npc.sprite.play(`${npc.modelType}_run`, true);
+            const moveAnim = npc.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_run`;
+            npc.sprite.play(moveAnim, true);
           }
         } else {
           npc.sprite.setVelocity(wildPushVx * 0.4, wildPushVy * 0.4);
@@ -519,33 +812,14 @@ export const FellowNpcMixin = {
 
           if (time >= npc.lastAttack + npc.atkInterval && time >= npc.attackUntil) {
             npc.lastAttack = time;
-            npc.attackUntil = time + 380;
-            npc.sprite.play(`${npc.modelType}_attack`, true);
-
-            this.time.delayedCall(160, () => {
-              if (target && target.active && !target.isDead && npc && !npc.isDead) {
-                const isCrit = Math.random() < 0.15;
-                let dmg = npc.dmg || 2;
-                if (isCrit) dmg = Math.floor(dmg * 1.8);
-                this.damageEnemy(target, dmg, isCrit, {
-                  type: 'wild_npc',
-                  name: npc.name,
-                  title: npc.titlePrefix || 'Tán Tu',
-                  ref: npc
-                });
-                this.spawnVfx(target.x, target.y, 0, 0.45, { tint: 0x99eeff, duration: 180 });
-
-                if (target.isDead || target.hp <= 0) {
-                  npc.targetEnemy = null;
-                }
-              }
-            });
+            this.castFellowNpcElementalSkill(npc, target);
           }
         }
       } else {
         npc.sprite.setVelocity(wildPushVx * 0.5, wildPushVy * 0.5);
         if (time >= npc.attackUntil) {
-          npc.sprite.play(`${npc.modelType}_idle`, true);
+          const idleAnim = npc.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_idle`;
+          npc.sprite.play(idleAnim, true);
           // Hồi HP tự động khi không chiến đấu (2% maxHp/s ≈ mỗi frame 60fps ~= 0.033% mọi 16ms)
           if (npc.hp < npc.maxHp) {
             npc.hp = Math.min(npc.maxHp, npc.hp + Math.max(1, Math.floor(npc.maxHp * 0.02)));
@@ -555,6 +829,458 @@ export const FellowNpcMixin = {
         }
       }
     }
+  },
+
+  // =========================================================================
+  // 4. THI TRIỂN PHÁP THUẬT / KỸ NĂNG 9 HỆ (TIER 1 - 5) CHO NPC
+  // =========================================================================
+  // 4. THI TRIỂN PHÁP THUẬT / KỸ NĂNG COMBO (1 - 5 CHIÊU LIÊN HOÀN THEO CẢNH GIỚI)
+  // =========================================================================
+  castFellowNpcElementalSkill(npc, target) {
+    if (!npc || npc.isDead || !target || !target.active || target.isDead) return;
+
+    npc.sprite.setFlipX(target.x < npc.sprite.x);
+    npc.sprite.play(`${npc.modelType}_attack`, true);
+
+    const tierLevel = Math.max(1, Math.min(5, npc.tierLevel || 1));
+    const vfxMul = npc.vfxMul || 1.0;
+    const masteryColor = npc.masteryColor || npc.elemColor || '#7dd3fc';
+
+    // Thời gian duy trì thế công kích theo số lượng combo (1 -> 5 chiêu)
+    const comboDurations = [0, 420, 680, 950, 1250, 1600];
+    npc.attackUntil = this.time.now + (comboDurations[tierLevel] || 500);
+
+    // Tên chuỗi combo theo cảnh giới
+    const comboTitles = [
+      '',
+      `[${npc.elem} • Sơ Khởi]`,
+      `[Trúc Cơ • Song Trảm Combo]`,
+      `[Kim Đan • Tam Liên Combo]`,
+      `[Nguyên Anh • Tứ Tuyệt Combo]`,
+      `[Hóa Thần • Ngũ Thần Đại Combo]`
+    ];
+
+    this.showFloatingText(
+      npc.sprite.x,
+      npc.sprite.y - 52,
+      `${comboTitles[tierLevel]} ${npc.skillName}!`,
+      masteryColor,
+      '10px'
+    );
+
+    const baseCalculatedDmg = Math.max(1, Math.floor(npc.dmg * (npc.dmgMul || 1.6) * (1 + (npc.masteryBonus || 0))));
+
+    // 1. THỂ TU: Combo cận chiến 1 -> 5 quyền cước liên hoàn
+    if (npc.isMelee) {
+      this.executeNpcMeleeCombo(npc, target, tierLevel, baseCalculatedDmg, vfxMul);
+      return;
+    }
+
+    // 2. PHÁP TU / KIẾM TU: Chuỗi Combo Pháp Thuật 1 -> 5 Chiêu
+    // Tier 1: 1 Chiêu (Đạn Đạo Sơ Giai)
+    if (tierLevel === 1) {
+      this.executeNpcSkillTier1(npc, target, baseCalculatedDmg, vfxMul);
+    }
+    // Tier 2 (Trúc Cơ): Combo 2 Chiêu (Tier 1 -> Tier 2)
+    else if (tierLevel === 2) {
+      this.executeNpcSkillTier1(npc, target, Math.floor(baseCalculatedDmg * 0.60), vfxMul);
+      this.time.delayedCall(200, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier2(npc, target, Math.floor(baseCalculatedDmg * 0.85), vfxMul);
+      });
+    }
+    // Tier 3 (Kim Đan): Combo 3 Chiêu (Tier 1 -> Tier 2 -> Tier 3 Trận Pháp)
+    else if (tierLevel === 3) {
+      this.executeNpcSkillTier1(npc, target, Math.floor(baseCalculatedDmg * 0.45), vfxMul);
+      this.time.delayedCall(180, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier2(npc, target, Math.floor(baseCalculatedDmg * 0.65), vfxMul);
+      });
+      this.time.delayedCall(380, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier3(npc, target, Math.floor(baseCalculatedDmg * 0.95), vfxMul);
+      });
+    }
+    // Tier 4 (Nguyên Anh): Combo 4 Chiêu (Tier 1 -> Tier 2 -> Tier 3 -> Tier 4 Vạn Kiếm / Hỗn Độn Đạn Mạc)
+    else if (tierLevel === 4) {
+      this.executeNpcSkillTier1(npc, target, Math.floor(baseCalculatedDmg * 0.40), vfxMul);
+      this.time.delayedCall(160, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier2(npc, target, Math.floor(baseCalculatedDmg * 0.55), vfxMul);
+      });
+      this.time.delayedCall(340, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier3(npc, target, Math.floor(baseCalculatedDmg * 0.75), vfxMul);
+      });
+      this.time.delayedCall(560, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier4(npc, target, Math.floor(baseCalculatedDmg * 1.15), vfxMul);
+      });
+    }
+    // Tier 5 (Hóa Thần & Phi Thăng): Combo 5 Chiêu Toàn Khai (Tier 1 -> Tier 2 -> Tier 3 -> Tier 4 -> Tier 5 Diệt Thế Thần Kiếm)
+    else if (tierLevel >= 5) {
+      this.executeNpcSkillTier1(npc, target, Math.floor(baseCalculatedDmg * 0.35), vfxMul);
+      this.time.delayedCall(150, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier2(npc, target, Math.floor(baseCalculatedDmg * 0.45), vfxMul);
+      });
+      this.time.delayedCall(320, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier3(npc, target, Math.floor(baseCalculatedDmg * 0.65), vfxMul);
+      });
+      this.time.delayedCall(520, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier4(npc, target, Math.floor(baseCalculatedDmg * 0.90), vfxMul);
+      });
+      this.time.delayedCall(760, () => {
+        if (!npc || npc.isDead) return;
+        this.executeNpcSkillTier5(npc, target, Math.floor(baseCalculatedDmg * 1.65), vfxMul);
+      });
+    }
+  },
+
+  // Combo Cận Chiến (Thể Tu)
+  executeNpcMeleeCombo(npc, target, comboCount = 1, baseCalculatedDmg = 100, vfxMul = 1.0) {
+    const eKey = npc.eKey || 'ly';
+    const hitInterval = 140;
+
+    for (let hit = 1; hit <= comboCount; hit++) {
+      this.time.delayedCall(hit * hitInterval, () => {
+        if (!npc || npc.isDead) return;
+        const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 160);
+        if (!curTarget) return;
+
+        const isLastHit = (hit === comboCount);
+        const isCrit = Math.random() < (0.20 + hit * 0.04);
+        const dmgRatio = 0.5 + (hit / comboCount) * 0.8;
+        let finalDmg = Math.max(1, Math.floor(baseCalculatedDmg * dmgRatio));
+        if (isCrit) finalDmg = Math.floor(finalDmg * 1.85);
+
+        this.damageEnemy(curTarget, finalDmg, isCrit, {
+          type: 'wild_npc',
+          name: npc.name,
+          title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+          ref: npc
+        });
+
+        const impactKey = this.textures.exists(`vfx_${eKey}_impact`)
+          ? `vfx_${eKey}_impact`
+          : (this.textures.exists(`vfx_${eKey}_1_7`) ? `vfx_${eKey}_1_7` : 'vfx_impact_frame7');
+
+        if (this.textures.exists(impactKey)) {
+          const imp = this.add.sprite(curTarget.x, curTarget.y - 15, impactKey)
+            .setDepth(Math.floor(curTarget.y) + 55)
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setScale((0.75 + hit * 0.15) * vfxMul);
+          this.tweens.add({
+            targets: imp,
+            scaleX: (1.2 + hit * 0.2) * vfxMul,
+            scaleY: (1.2 + hit * 0.2) * vfxMul,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => imp.destroy()
+          });
+        }
+        this.spawnVfx(curTarget.x, curTarget.y - 15, 0, (0.5 + hit * 0.12) * vfxMul, { tint: 0xf43f5e, duration: 180 });
+
+        if (isLastHit && comboCount >= 4 && this.cameras?.main) {
+          const distToP = Phaser.Math.Distance.Between(curTarget.x, curTarget.y, this.player?.x || 0, this.player?.y || 0);
+          if (distToP <= 450) this.cameras.main.shake(180, 0.008);
+        }
+      });
+    }
+  },
+
+  // Chiêu 1: Đạn Đạo Phóng Thẳng Sơ Cấp
+  executeNpcSkillTier1(npc, target, calculatedDmg = 100, vfxMul = 1.0) {
+    if (!npc || npc.isDead) return;
+    const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 450);
+    const tx = curTarget ? curTarget.x : npc.sprite.x + (npc.sprite.flipX ? -200 : 200);
+    const ty = curTarget ? curTarget.y : npc.sprite.y;
+    const eKey = npc.eKey || 'kim';
+
+    const projKey = this.textures.exists(`vfx_${eKey}_1_0`)
+      ? `vfx_${eKey}_1_0`
+      : (this.textures.exists(`vfx_${eKey}_1`)
+        ? `vfx_${eKey}_1`
+        : (npc.isSword ? 'vfx_kim_1_0' : 'vfx_hoa_1'));
+
+    const startX = npc.sprite.x;
+    const startY = npc.sprite.y - 15;
+
+    const proj = this.add.sprite(startX, startY, projKey)
+      .setDepth(Math.floor(npc.sprite.y) + 50)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(0.65 * vfxMul);
+
+    if (this.anims.exists(`anim_vfx_${eKey}_1`)) {
+      proj.play(`anim_vfx_${eKey}_1`);
+    }
+
+    const angle = Phaser.Math.Angle.Between(startX, startY, tx, ty - 15);
+    proj.setRotation(angle);
+
+    const dist = Phaser.Math.Distance.Between(startX, startY, tx, ty - 15);
+    const dur = Math.max(80, Math.round((dist / 380) * 1000));
+
+    this.tweens.add({
+      targets: proj,
+      x: tx,
+      y: ty - 15,
+      duration: dur,
+      ease: 'Linear',
+      onComplete: () => {
+        proj.destroy();
+
+        const impactKey = this.textures.exists(`vfx_${eKey}_1_7`)
+          ? `vfx_${eKey}_1_7`
+          : (this.textures.exists(`vfx_${eKey}_impact`)
+            ? `vfx_${eKey}_impact`
+            : 'vfx_impact_frame7');
+
+        if (this.textures.exists(impactKey)) {
+          const imp = this.add.sprite(tx, ty - 15, impactKey)
+            .setDepth(Math.floor(ty) + 55)
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setScale(0.85 * vfxMul);
+          this.tweens.add({
+            targets: imp,
+            scaleX: 1.3 * vfxMul,
+            scaleY: 1.3 * vfxMul,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => imp.destroy()
+          });
+        }
+
+        if (curTarget && curTarget.active && !curTarget.isDead) {
+          const isCrit = Math.random() < 0.18;
+          let finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
+
+          this.damageEnemy(curTarget, finalDmg, isCrit, {
+            type: 'wild_npc',
+            name: npc.name,
+            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            ref: npc
+          });
+
+          const tintColor = Phaser.Display.Color.HexStringToColor(npc.elemColor || '#ffd700').color;
+          this.spawnVfx(tx, ty - 15, 0, 0.5 * vfxMul, { tint: tintColor, duration: 180 });
+        }
+      }
+    });
+  },
+
+  // Chiêu 2: Khí Kình / Phi Đao Trúc Cơ Cao Tốc
+  executeNpcSkillTier2(npc, target, calculatedDmg = 120, vfxMul = 1.0) {
+    if (!npc || npc.isDead) return;
+    const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 450);
+    const tx = curTarget ? curTarget.x : npc.sprite.x + (npc.sprite.flipX ? -220 : 220);
+    const ty = curTarget ? curTarget.y : npc.sprite.y;
+    const eKey = npc.eKey || 'kim';
+
+    const projKey = this.textures.exists(`vfx_${eKey}_2`)
+      ? `vfx_${eKey}_2`
+      : (this.textures.exists(`vfx_${eKey}_1_0`) ? `vfx_${eKey}_1_0` : 'vfx_kim_1_0');
+
+    const startX = npc.sprite.x;
+    const startY = npc.sprite.y - 18;
+
+    const proj = this.add.sprite(startX, startY, projKey)
+      .setDepth(Math.floor(npc.sprite.y) + 52)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(0.85 * vfxMul);
+
+    const angle = Phaser.Math.Angle.Between(startX, startY, tx, ty - 15);
+    proj.setRotation(angle);
+
+    const dist = Phaser.Math.Distance.Between(startX, startY, tx, ty - 15);
+    const dur = Math.max(70, Math.round((dist / 460) * 1000));
+
+    this.tweens.add({
+      targets: proj,
+      x: tx,
+      y: ty - 15,
+      duration: dur,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        proj.destroy();
+
+        if (curTarget && curTarget.active && !curTarget.isDead) {
+          const isCrit = Math.random() < 0.22;
+          let finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
+
+          this.damageEnemy(curTarget, finalDmg, isCrit, {
+            type: 'wild_npc',
+            name: npc.name,
+            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            ref: npc
+          });
+
+          const tintColor = Phaser.Display.Color.HexStringToColor(npc.elemColor || '#ffd700').color;
+          this.spawnVfx(tx, ty - 15, 0, 0.7 * vfxMul, { tint: tintColor, duration: 200 });
+        }
+      }
+    });
+  },
+
+  // Chiêu 3: Đại Trận Pháp Nguyên Tố (Kim Đan)
+  executeNpcSkillTier3(npc, target, calculatedDmg = 150, vfxMul = 1.0) {
+    if (!npc || npc.isDead) return;
+    const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 450);
+    const tx = curTarget ? curTarget.x : npc.sprite.x + (npc.sprite.flipX ? -200 : 200);
+    const ty = curTarget ? curTarget.y : npc.sprite.y;
+    const eKey = npc.eKey || 'kim';
+
+    const arrayKey = this.textures.exists(`vfx_${eKey}_3`) ? `vfx_${eKey}_3` : 'vfx_kim_3_0';
+    const arrayImg = this.add.image(tx, ty, arrayKey)
+      .setDepth(Math.floor(ty) - 5)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(1.2 * vfxMul)
+      .setAlpha(0.2);
+
+    this.tweens.add({
+      targets: arrayImg,
+      alpha: 0.9,
+      scaleX: 1.5 * vfxMul,
+      scaleY: 1.5 * vfxMul,
+      duration: 380,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => arrayImg.destroy()
+    });
+
+    for (let tick = 0; tick < 3; tick++) {
+      this.time.delayedCall(tick * 260, () => {
+        if (!this.enemies) return;
+        const isCrit = Math.random() < 0.20;
+        const tickDmg = Math.max(1, Math.floor(calculatedDmg / 3));
+        this.enemies.forEach(e => {
+          if (!e || !e.active || e.isDead) return;
+          if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 160) {
+            this.damageEnemy(e, tickDmg, isCrit && tick === 0, {
+              type: 'wild_npc',
+              name: npc.name,
+              title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+              ref: npc
+            });
+            this.spawnVfx(e.x, e.y - 15, 0, 0.6 * vfxMul, { duration: 180 });
+          }
+        });
+      });
+    }
+  },
+
+  // Chiêu 4: Hỗn Độn Đạn Mạc / Vạn Kiếm Quy Tông (Nguyên Anh)
+  executeNpcSkillTier4(npc, target, calculatedDmg = 200, vfxMul = 1.0) {
+    if (!npc || npc.isDead) return;
+    const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 450);
+    const tx = curTarget ? curTarget.x : npc.sprite.x + (npc.sprite.flipX ? -200 : 200);
+    const ty = curTarget ? curTarget.y : npc.sprite.y;
+    const eKey = npc.eKey || 'kim';
+
+    const swarmKey = this.textures.exists(`vfx_${eKey}_4`) ? `vfx_${eKey}_4` : (this.textures.exists(`vfx_${eKey}_1`) ? `vfx_${eKey}_1` : 'vfx_kim_1_0');
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * 2 * Math.PI) / 6;
+      const sx = tx + Math.cos(angle) * 120;
+      const sy = ty + Math.sin(angle) * 75 - 170;
+      this.time.delayedCall(i * 45, () => {
+        const missile = this.add.sprite(sx, sy, swarmKey)
+          .setDepth(Math.floor(ty) + 40)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setScale(0.75 * vfxMul);
+        this.tweens.add({
+          targets: missile,
+          x: tx + Phaser.Math.Between(-35, 35),
+          y: ty + Phaser.Math.Between(-20, 20),
+          duration: 240,
+          ease: 'Cubic.easeIn',
+          onComplete: () => {
+            missile.destroy();
+            this.spawnVfx(missile.x, missile.y, 0, 0.5 * vfxMul, { duration: 150 });
+          }
+        });
+      });
+    }
+
+    this.time.delayedCall(340, () => {
+      if (!this.enemies) return;
+      const isCrit = Math.random() < 0.25;
+      const finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
+      this.enemies.forEach(e => {
+        if (!e || !e.active || e.isDead) return;
+        if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 180) {
+          this.damageEnemy(e, finalDmg, isCrit, {
+            type: 'wild_npc',
+            name: npc.name,
+            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            ref: npc
+          });
+        }
+      });
+    });
+  },
+
+  // Chiêu 5: Diệt Thế Thần Kiếm / Cự Thạch / Nghiệp Hỏa Giáng Trần (Hóa Thần)
+  executeNpcSkillTier5(npc, target, calculatedDmg = 300, vfxMul = 1.0) {
+    if (!npc || npc.isDead) return;
+    const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 450);
+    const tx = curTarget ? curTarget.x : npc.sprite.x + (npc.sprite.flipX ? -200 : 200);
+    const ty = curTarget ? curTarget.y : npc.sprite.y;
+    const eKey = npc.eKey || 'kim';
+
+    const colossusKey = this.textures.exists(`vfx_${eKey}_5`) ? `vfx_${eKey}_5` : (this.textures.exists('vfx_giant_tru_tien_sword') ? 'vfx_giant_tru_tien_sword' : 'vfx_kim_1_0');
+    const giant = this.add.sprite(tx, ty - 350, colossusKey)
+      .setDepth(Math.floor(ty) + 80)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(1.25 * vfxMul);
+
+    this.tweens.add({
+      targets: giant,
+      y: ty - 15,
+      duration: 340,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        giant.destroy();
+        const distToPlayer = Phaser.Math.Distance.Between(tx, ty, this.player?.x || 0, this.player?.y || 0);
+        if (distToPlayer <= 550 && this.cameras?.main) {
+          this.cameras.main.shake(260, 0.012);
+        }
+
+        const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
+        if (this.textures.exists(shockKey)) {
+          const shock = this.add.image(tx, ty, shockKey)
+            .setDepth(Math.floor(ty) + 40)
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setScale(0.5);
+          this.tweens.add({
+            targets: shock,
+            scaleX: 2.4 * vfxMul,
+            scaleY: 2.4 * vfxMul,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => shock.destroy()
+          });
+        }
+
+        if (this.enemies) {
+          const isCrit = Math.random() < 0.28;
+          const finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
+          this.enemies.forEach(e => {
+            if (!e || !e.active || e.isDead) return;
+            if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 240) {
+              this.damageEnemy(e, finalDmg, isCrit, {
+                type: 'wild_npc',
+                name: npc.name,
+                title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+                ref: npc
+              });
+              this.spawnVfx(e.x, e.y - 15, 0, 0.9 * vfxMul, { duration: 240 });
+            }
+          });
+        }
+      }
+    });
   },
 
   findNearestEnemyForNpc(x, y, maxDist = 550) {
@@ -576,7 +1302,8 @@ export const FellowNpcMixin = {
 
   takeFellowNpcDamage(npc, rawDmg = 15) {
     if (!npc || npc.isDead) return;
-    const dmg = Math.max(1, Math.floor(rawDmg));
+    const defMitigation = (npc.def || 0) * 0.4;
+    const dmg = Math.max(1, Math.floor(rawDmg - defMitigation));
     npc.hp = Math.max(0, npc.hp - dmg);
 
     const ratio = Math.max(0, npc.hp / npc.maxHp);
@@ -599,6 +1326,7 @@ export const FellowNpcMixin = {
     npc.sprite.setTint(0x666666).setAlpha(0.35);
     if (npc.hpBar) npc.hpBar.setVisible(false);
     if (npc.hpBg) npc.hpBg.setVisible(false);
+    if (npc.flyingSword) npc.flyingSword.setVisible(false);
 
     this.showFloatingText(npc.sprite.x, npc.sprite.y - 45, `[${npc.name}] Bại Trận!`, '#fca5a5', '11px');
     this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.5, { tint: 0x94a3b8, duration: 250 });
@@ -609,16 +1337,39 @@ export const FellowNpcMixin = {
     npc.isDead = false;
     npc.name = this.getRandomSinoVietName(npc.name);
     
-    // Tự động thay đổi màu sắc trang phục mới khi tái sinh
-    const newOutfit = this.getRandomOutfit();
-    npc.tint = newOutfit.tint;
-    npc.outfitName = newOutfit.name;
-    npc.vfxColor = newOutfit.vfxColor;
+    const curMapId = gameState.currentMapId ?? 0;
+    const cfg = this.getNpcSpawnConfig(curMapId, npc.homeX, npc.elementIdx);
 
-    npc.nameTag.setText(`${npc.titlePrefix} · ${npc.name}`);
-    npc.nameTag.setColor(newOutfit.titleColor || '#7dd3fc');
+    npc.isVanMoc = cfg.isVanMoc;
+    npc.zone = cfg.zone;
+    npc.realmTier = cfg.realmTier;
+    npc.realmName = cfg.realmName;
+    npc.stageLabel = cfg.stageLabel;
+    npc.masteryName = cfg.masteryName;
+    npc.masteryBonus = cfg.masteryBonus;
+    npc.vfxMul = cfg.vfxMul;
+    npc.masteryColor = cfg.masteryColor;
+    npc.elem = cfg.elem;
+    npc.elemTitle = cfg.elemTitle;
+    npc.elemColor = cfg.elemColor;
+    npc.eKey = cfg.eKey;
+    npc.isSword = cfg.isSword;
+    npc.isMelee = cfg.isMelee;
+    npc.skillId = cfg.skillId;
+    npc.skillName = cfg.skillName;
+    npc.dmgMul = cfg.dmgMul;
+    npc.titlePrefix = cfg.titlePrefix;
+    npc.tint = cfg.tint;
+    npc.maxHp = cfg.maxHp;
+    npc.hp = cfg.maxHp;
+    npc.dmg = cfg.dmg;
+    npc.def = cfg.def;
+    npc.attackRange = cfg.attackRange || 240;
+    npc.atkInterval = cfg.atkInterval || 2000;
 
-    npc.hp = npc.maxHp;
+    npc.nameTag.setText(`${cfg.titlePrefix} ${npc.name}`);
+    npc.nameTag.setColor(cfg.titleColor || '#7dd3fc');
+
     if (npc.hpBar) {
       npc.hpBar.width = npc.barW;
       npc.hpBar.setVisible(true);
@@ -631,8 +1382,22 @@ export const FellowNpcMixin = {
       .setTint(npc.tint)
       .setAlpha(1);
 
-    npc.sprite.play(`${npc.modelType}_idle`, true);
-    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.6, { tint: npc.vfxColor || 0x38bdf8, duration: 300 });
-    this.showFloatingText(npc.sprite.x, npc.sprite.y - 50, `[${npc.name}] Tái Sinh (${newOutfit.name})!`, newOutfit.titleColor || '#67e8f9', '11px');
+    npc.isFlying = cfg.isFlying;
+    if (cfg.isFlying && !npc.modelType.startsWith('npc_fly_')) {
+      const flyId = Phaser.Math.Between(1, 20);
+      npc.modelType = `npc_fly_${flyId}`;
+    } else if (!cfg.isFlying && npc.modelType.startsWith('npc_fly_')) {
+      npc.modelType = (Math.random() < 0.5) ? 'dai_han' : 'tho_san';
+    }
+
+    if (npc.flyingSword) {
+      npc.flyingSword.setTint(cfg.tint).setVisible(cfg.isFlying);
+    } else if (cfg.isFlying && this.textures.exists('flying_sword')) {
+      npc.flyingSword = this.add.image(npc.homeX, npc.homeY + 4, 'flying_sword').setScale(0.60).setDepth(Math.floor(npc.homeY) + 9).setTint(cfg.tint);
+    }
+    const respawnAnim = cfg.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_idle`;
+    npc.sprite.play(respawnAnim, true);
+    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.6, { tint: cfg.tint || 0x38bdf8, duration: 300 });
+    this.showFloatingText(npc.sprite.x, npc.sprite.y - 50, `[${npc.name}] Tái Sinh!`, cfg.titleColor || '#67e8f9', '11px');
   }
 };
