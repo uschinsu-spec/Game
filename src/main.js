@@ -1,7 +1,9 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
+import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-ad7cd281';
 
 installTouchInputOptimization(MainGameScene);
+installUiCloseButtonOptimization(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
