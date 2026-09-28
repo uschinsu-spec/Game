@@ -17,6 +17,7 @@ import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgre
 import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-rank1-cores-357150f';
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
+import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v1';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -41,6 +42,8 @@ installRankOneBeastCoreDrops(MainGameScene);
 installRareResourceInventoryUI(MainGameScene);
 // Final inventory renderer: compact slots, click-for-details, and true duplicate stacking.
 installInventoryGridUI(MainGameScene);
+// Fix Thanh Van Village touch highlighting and direct gate exit before final UI wrappers.
+installVillageHubTouchFix(MainGameScene);
 // Hard pause must wrap all final gameplay/UI methods first.
 installUiGameplayPauseOptimization(MainGameScene);
 // MUST be absolutely last: normalizes every modal child to screen-space and disables
