@@ -4,7 +4,7 @@ const CORE_DEFS = {
   m_1_1: { key: 'nhat_pham_so_ky', name: 'Nội Đan Nhất Phẩm Sơ Kỳ', chance: 0.20, color: 0x6ee7b7, textColor: '#a7f3d0' },
   m_1_2: { key: 'nhat_pham_trung_ky', name: 'Nội Đan Nhất Phẩm Trung Kỳ', chance: 0.30, color: 0x38bdf8, textColor: '#7dd3fc' },
   m_1_3: { key: 'nhat_pham_hau_ky', name: 'Nội Đan Nhất Phẩm Hậu Kỳ', chance: 0.45, color: 0xc084fc, textColor: '#d8b4fe' },
-  m_1_4: { key: 'nhat_pham_dinh_phong', name: 'Nội Đan Nhất Phẩm Đỉnh Phong', chance: 0.70, bossChance: 1.00, color: 0xfbbf24, textColor: '#fde68a' }
+  m_1_4: { key: 'nhat_pham_dinh_phong', name: 'Nội Đan Nhất Phẩm Đỉnh Phong', chance: 0.70, color: 0xfbbf24, textColor: '#fde68a' }
 };
 
 function ensureCoreBag() {
@@ -22,8 +22,7 @@ function coreForEnemy(enemy) {
   const data = enemy?.monsterData;
   const def = data ? CORE_DEFS[data.id] : null;
   if (!def) return null;
-  const chance = enemy?.isBoss && def.bossChance != null ? def.bossChance : def.chance;
-  return { ...def, chance, monsterId: data.id, monsterName: data.name, rank: data.rank };
+  return { ...def, monsterId: data.id, monsterName: data.name, rank: data.rank };
 }
 
 function stopTrackingDrop(scene, drop) {
