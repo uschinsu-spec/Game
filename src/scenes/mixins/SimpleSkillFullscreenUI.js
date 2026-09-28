@@ -1,22 +1,14 @@
-import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
+import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-sword-only-v1';
 import { gameState } from '../../state/gameState.js';
 import { W, H } from '../constants.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 const OVERLAY_DEPTH = 999998;
 const PANEL_DEPTH = 1000000;
-const ELEMENTS = ['Kiếm', 'Kim', 'Hỏa', 'Thủy', 'Thổ', 'Mộc', 'Phong', 'Lôi', 'Vật Lý'];
+const ELEMENTS = ['Kiếm'];
 
 const PALETTES = {
-  'Kiếm': [0x0b5f79, 0x67e8f9, '#a5f3fc'],
-  'Kim': [0x665415, 0xfde047, '#fef08a'],
-  'Hỏa': [0x7a271a, 0xfb7185, '#fecdd3'],
-  'Thủy': [0x164e8a, 0x60a5fa, '#bfdbfe'],
-  'Thổ': [0x6b4218, 0xfbbf24, '#fde68a'],
-  'Mộc': [0x14532d, 0x4ade80, '#bbf7d0'],
-  'Phong': [0x155e75, 0x22d3ee, '#cffafe'],
-  'Lôi': [0x581c87, 0xc084fc, '#e9d5ff'],
-  'Vật Lý': [0x3f3f46, 0xd4d4d8, '#f4f4f5']
+  'Kiếm': [0x0b5f79, 0x67e8f9, '#a5f3fc']
 };
 
 function stopPointer(scene, pointer) {
@@ -83,18 +75,12 @@ function addButton(scene, panel, x, y, w, h, label, action, opts = {}) {
 }
 
 function renderElementTabs(scene, panel, activeElem) {
-  ELEMENTS.forEach((elem, idx) => {
-    const col = idx % 3;
-    const row = Math.floor(idx / 3);
-    const x = -160 + col * 160;
-    const y = -338 + row * 52;
-    const [fill, stroke, color] = PALETTES[elem] || PALETTES['Kiếm'];
-    addButton(scene, panel, x, y, 148, 42, elem, () => scene.openSkillPanel(elem), {
-      fill: elem === activeElem ? fill : 0x102536,
-      stroke: elem === activeElem ? stroke : 0x31546a,
-      color: elem === activeElem ? color : '#9bb6c6',
-      fontSize: '13px'
-    });
+  const [fill, stroke, color] = PALETTES['Kiếm'];
+  addButton(scene, panel, 0, -320, 474, 44, 'KIẾM ĐẠO — 5 THẦN THÔNG GỐC', null, {
+    fill,
+    stroke,
+    color,
+    fontSize: '14px'
   });
 }
 
@@ -105,13 +91,13 @@ function learnedSet(scene) {
 function renderList(scene, panel, activeElem) {
   renderElementTabs(scene, panel, activeElem);
   const learned = learnedSet(scene);
-  const skills = ELEMENTAL_SKILLS.filter(s => s.elem === activeElem).slice(0, 5);
+  const skills = ELEMENTAL_SKILLS.slice(0, 5);
 
   skills.forEach((skill, idx) => {
-    const y = -142 + idx * 93;
+    const y = -235 + idx * 93;
     const isLearned = learned.has(skill.id);
     const isEquipped = (gameState.equippedSkillIds || []).includes(skill.id);
-    const [fill, stroke, color] = PALETTES[activeElem] || PALETTES['Kiếm'];
+    const [fill, stroke, color] = PALETTES['Kiếm'];
     const box = scene.add.rectangle(0, y, 474, 78, isEquipped ? fill : 0x0d293a, 1)
       .setStrokeStyle(2, isEquipped ? stroke : 0x35627a, 1)
       .setInteractive({ useHandCursor: true });
@@ -128,22 +114,22 @@ function renderList(scene, panel, activeElem) {
     fitSingleLine(status, 390, 9);
     box.on('pointerdown', p => {
       stopPointer(scene, p);
-      scene.openSkillPanel(activeElem, skill.id);
+      scene.openSkillPanel('Kiếm', skill.id);
     });
     panel.add([box, name, status, arrow]);
   });
 
-  addButton(scene, panel, 0, 360, 474, 48, 'THÁO TOÀN BỘ KỸ NĂNG', () => {
+  addButton(scene, panel, 0, 275, 474, 48, 'THÁO TOÀN BỘ KỸ NĂNG', () => {
     gameState.equippedSkillIds = [];
     scene.createSkillBar?.();
-    scene.openSkillPanel(activeElem);
+    scene.openSkillPanel('Kiếm');
   }, { fill: 0x6b1b2c, stroke: 0xfb7185, color: '#ffe4e8', fontSize: '13px' });
 }
 
 function renderDetail(scene, panel, activeElem, skill) {
   const learned = learnedSet(scene).has(skill.id);
   const equipped = (gameState.equippedSkillIds || []).includes(skill.id);
-  const [fill, stroke, color] = PALETTES[activeElem] || PALETTES['Kiếm'];
+  const [fill, stroke, color] = PALETTES['Kiếm'];
 
   const badge = scene.add.rectangle(0, -310, 474, 74, fill, 1).setStrokeStyle(2, stroke, 1);
   const title = scene.add.text(0, -320, skill.name, {
@@ -162,7 +148,7 @@ function renderDetail(scene, panel, activeElem, skill) {
       fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#8feeff'
     }).setOrigin(0, 0.5);
   fitSingleLine(meta, 430, 10);
-  const desc = scene.add.text(-215, -165, skill.desc || 'Thần thông tu tiên.', {
+  const desc = scene.add.text(-215, -165, skill.desc || 'Kiếm đạo thần thông.', {
     fontFamily: FONT, fontSize: '15px', color: '#e5f8ff', lineSpacing: 7,
     wordWrap: { width: 430, useAdvancedWrap: true }
   }).setOrigin(0, 0);
@@ -176,20 +162,21 @@ function renderDetail(scene, panel, activeElem, skill) {
     addButton(scene, panel, 0, 95, 474, 58, 'THÁO KỸ NĂNG', () => {
       gameState.equippedSkillIds = (gameState.equippedSkillIds || []).filter(id => id !== skill.id);
       scene.createSkillBar?.();
-      scene.openSkillPanel(activeElem, skill.id);
+      scene.openSkillPanel('Kiếm', skill.id);
     }, { fill: 0x6b1b2c, stroke: 0xfb7185, color: '#ffe4e8', fontSize: '15px' });
   } else {
     addButton(scene, panel, 0, 95, 474, 58, 'XÁC NHẬN TRANG BỊ', () => {
-      const ids = [...(gameState.equippedSkillIds || [])].filter(id => id !== skill.id);
+      const swordIds = new Set(ELEMENTAL_SKILLS.map(s => s.id));
+      const ids = [...(gameState.equippedSkillIds || [])].filter(id => swordIds.has(id) && id !== skill.id);
       if (ids.length < 5) ids.push(skill.id);
       else ids[4] = skill.id;
       gameState.equippedSkillIds = ids;
       scene.createSkillBar?.();
-      scene.openSkillPanel(activeElem, skill.id);
+      scene.openSkillPanel('Kiếm', skill.id);
     }, { fill: 0x146044, stroke: 0x61ffc0, color: '#d5ffeb', fontSize: '15px' });
   }
 
-  addButton(scene, panel, 0, 174, 474, 52, '‹ QUAY LẠI DANH SÁCH', () => scene.openSkillPanel(activeElem), {
+  addButton(scene, panel, 0, 174, 474, 52, '‹ QUAY LẠI DANH SÁCH', () => scene.openSkillPanel('Kiếm'), {
     fill: 0x293f50, stroke: 0x82c6df, color: '#e9faff', fontSize: '13px'
   });
 }
@@ -200,14 +187,16 @@ export function installSimpleSkillFullscreenUI(MainGameScene) {
   proto.__simpleSkillFullscreenInstalled = true;
 
   proto.openSkillPanel = function openSimpleSkillPanel(activeElem = 'Kiếm', selectedSkillId = null) {
-    if (!ELEMENTS.includes(activeElem)) activeElem = 'Kiếm';
-    const panel = createShell(this, 'TÀNG KINH CÁC', selectedSkillId ? `${activeElem} • CHI TIẾT THẦN THÔNG` : '9 ĐẠI HỆ THẦN THÔNG');
+    activeElem = 'Kiếm';
+    const swordIds = new Set(ELEMENTAL_SKILLS.map(s => s.id));
+    gameState.equippedSkillIds = (gameState.equippedSkillIds || []).filter(id => swordIds.has(id));
+    const panel = createShell(this, 'TÀNG KINH CÁC — KIẾM ĐẠO', selectedSkillId ? 'CHI TIẾT THẦN THÔNG KIẾM' : '5 THẦN THÔNG KIẾM GỐC');
     if (selectedSkillId) {
-      const skill = ELEMENTAL_SKILLS.find(s => s.id === selectedSkillId && s.elem === activeElem);
-      if (skill) renderDetail(this, panel, activeElem, skill);
-      else renderList(this, panel, activeElem);
+      const skill = ELEMENTAL_SKILLS.find(s => s.id === selectedSkillId);
+      if (skill) renderDetail(this, panel, 'Kiếm', skill);
+      else renderList(this, panel, 'Kiếm');
     } else {
-      renderList(this, panel, activeElem);
+      renderList(this, panel, 'Kiếm');
     }
   };
 }
