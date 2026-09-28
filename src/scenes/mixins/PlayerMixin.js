@@ -1,6 +1,6 @@
 /**
  * PlayerMixin.js
- * Quản lý: createPlayer, calcStats, performDash, toggleFlyingSword,
+ * Quản lý: createPlayer, calcStats, performDash, flyingSword,
  *           nearestEnemy, createVfxPool, spawnVfx, perspective, fixed
  */
 import { REALMS } from '../../config/realmsData.js';
@@ -31,11 +31,9 @@ export const PlayerMixin = {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
   },
 
-  // 1. Khí Huyết (HP)
   calcPlayerMaxHp() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let hp = realm.hp;
-    // Cộng thêm từ trang bị đang mang (Đạo Bào, Ngọc Bội...)
     if (gameState.equipped) {
       if (gameState.equipped.armor?.bonusHp) hp += gameState.equipped.armor.bonusHp;
       if (gameState.equipped.amulet?.bonusHp) hp += gameState.equipped.amulet.bonusHp;
@@ -45,9 +43,7 @@ export const PlayerMixin = {
       if (sect && sect.hpBonus) hp = Math.floor(hp * (1 + sect.hpBonus / 100));
     }
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp && cp.bonusHpPct) {
-      hp = Math.floor(hp * (1 + cp.bonusHpPct / 100));
-    }
+    if (cp && cp.bonusHpPct) hp = Math.floor(hp * (1 + cp.bonusHpPct / 100));
     (gameState.inventory?.formations || []).forEach(fName => {
       const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
       if (fObj && fObj.bonusHp) hp += fObj.bonusHp;
@@ -55,56 +51,72 @@ export const PlayerMixin = {
     return hp;
   },
 
-  // 2. Pháp Lực (Mana / MP)
   calcPlayerMaxMp() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let mp = (realm.manaMax || 100);
-    if (gameState.equipped?.amulet?.bonusMp) {
-      mp += gameState.equipped.amulet.bonusMp;
-    }
+    if (gameState.equipped?.amulet?.bonusMp) mp += gameState.equipped.amulet.bonusMp;
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp && cp.bonusMpPct) {
-      mp = Math.floor(mp * (1 + cp.bonusMpPct / 100));
-    }
-    if (gameState.sectId === 'thuy_nguyet_cung') {
-      mp = Math.floor(mp * 1.25);
-    }
+    if (cp && cp.bonusMpPct) mp = Math.floor(mp * (1 + cp.bonusMpPct / 100));
+    if (gameState.sectId === 'thuy_nguyet_cung') mp = Math.floor(mp * 1.25);
     return mp;
   },
 
-  // 3. Thần Thức (Spiritual Sense - Tăng Tốc Độ Đánh)
   calcPlayerSpiritualSense() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let sense = (realm.spiritualSense || 10);
-    if (gameState.equipped?.boots?.bonusSpd) {
-      sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
-    }
+    if (gameState.equipped?.boots?.bonusSpd) sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
-    if (cp && cp.bonusSensePct) {
-      sense = Math.floor(sense * (1 + cp.bonusSensePct / 100));
-    }
-    if (gameState.sectId === 'thien_loi_tong') {
-      sense = Math.floor(sense * 1.2);
-    }
+    if (cp && cp.bonusSensePct) sense = Math.floor(sense * (1 + cp.bonusSensePct / 100));
+    if (gameState.sectId === 'thien_loi_tong') sense = Math.floor(sense * 1.2);
     return sense;
   },
 
-  // 4. Tốc Độ Đánh / Khoảng Cách Đòn Đánh (ms) dựa trên Thần Thức
+  // Tốc độ đánh cân bằng theo cảnh giới.
+  // Luyện Khí Sơ Kỳ (realmIdx = 1) = đúng 2 giây / 1 đòn.
+  // Các cảnh giới sau giảm dần interval nhưng không còn rơi xuống mức quá nhanh như trước.
   calcPlayerAtkInterval() {
+    const realmIdx = Math.max(0, Number(gameState.realmIdx) || 0);
+    const baseByRealm = {
+      0: 2200, // Phàm Nhân
+      1: 2000, // Luyện Khí Sơ Kỳ
+      2: 1850, // Luyện Khí Trung Kỳ
+      3: 1700, // Luyện Khí Hậu Kỳ
+      4: 1550, // Luyện Khí Đỉnh Phong
+      5: 1450,
+      6: 1350,
+      7: 1250,
+      8: 1150,
+      9: 1050,
+      10: 980,
+      11: 920,
+      12: 860,
+      13: 800,
+      14: 750,
+      15: 700,
+      16: 650,
+      17: 600,
+      18: 560,
+      19: 520,
+      20: 480
+    };
+
+    let interval = baseByRealm[realmIdx] ?? 2000;
+
+    // Thần Thức chỉ tạo hiệu chỉnh nhỏ để không phá cân bằng đầu game.
     const sense = this.calcPlayerSpiritualSense();
-    // Thần Thức càng cao -> Tốc đánh càng nhanh
-    let interval = Math.max(85, 620 - Math.floor(sense * 1.5));
-    if (gameState.sectId === 'van_kiem_tong') {
-      interval = Math.floor(interval * 0.82);
-    }
-    return Math.max(80, interval);
+    const realmBaseSense = REALMS[realmIdx]?.spiritualSense || 10;
+    const bonusSense = Math.max(0, sense - realmBaseSense);
+    interval -= Math.min(220, Math.floor(bonusSense * 2));
+
+    // Vạn Kiếm Tông vẫn có lợi thế tốc đánh nhưng bị giới hạn an toàn.
+    if (gameState.sectId === 'van_kiem_tong') interval = Math.floor(interval * 0.90);
+
+    return Math.max(450, interval);
   },
 
-  // 5. Sát Thương Cơ Bản (Base Raw Damage)
   calcPlayerBaseDmg() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let dmg = realm.dmg;
-    // Cộng thêm từ vũ khí & trang sức đang trang bị
     if (gameState.equipped) {
       if (gameState.equipped.weapon?.bonusDmg) dmg += gameState.equipped.weapon.bonusDmg;
       if (gameState.equipped.amulet?.bonusDmg) dmg += gameState.equipped.amulet.bonusDmg;
@@ -120,34 +132,26 @@ export const PlayerMixin = {
     return dmg;
   },
 
-  // 6. Sát Thương Theo Từng Hệ (Tu Luyện Hệ Nào Tăng Damage Hệ Đó)
   calcPlayerElementalDmg(elem = 'Vật Lý') {
     const baseDmg = this.calcPlayerBaseDmg();
     let bonusPct = 0;
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp) {
-      if (cp.elem === 'Toàn Hệ') {
-        bonusPct += (cp.bonusDmgPct || 10);
-      } else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) {
-        // Tăng mạnh sát thương của hệ công pháp đang tu luyện
-        bonusPct += (cp.bonusDmgPct || 30);
-      }
+      if (cp.elem === 'Toàn Hệ') bonusPct += (cp.bonusDmgPct || 10);
+      else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) bonusPct += (cp.bonusDmgPct || 30);
     }
     return Math.max(1, Math.floor(baseDmg * (1 + bonusPct / 100)));
   },
 
-  // 7. Tổng Sát Thương / Công Kích Toàn Diện
   calcPlayerDmg() {
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     const activeElem = cp ? cp.elem : 'Vật Lý';
     return this.calcPlayerElementalDmg(activeElem);
   },
 
-  // 8. Hộ Thể Giáp Cơ Bản (Tăng Cho Tất Cả Các Hệ Khi Lên Cấp Cảnh Giới)
   calcPlayerBaseDef() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let def = realm.def;
-    // Cộng thêm từ Mũ & Khiên/Thuẫn đang trang bị
     if (gameState.equipped) {
       if (gameState.equipped.helm?.bonusDef) def += gameState.equipped.helm.bonusDef;
       if (gameState.equipped.shield?.bonusDef) def += gameState.equipped.shield.bonusDef;
@@ -163,23 +167,17 @@ export const PlayerMixin = {
     return def;
   },
 
-  // 9. Giáp Theo Từng Hệ (Tu Luyện Hệ Nào Tăng DEF Hệ Đó + Lên Cấp Tăng Toàn Hệ)
   calcPlayerElementalDef(elem = 'Vật Lý') {
     const baseDef = this.calcPlayerBaseDef();
     let bonusDefPct = 0;
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp) {
-      if (cp.elem === 'Toàn Hệ') {
-        bonusDefPct += (cp.bonusDefPct || 10);
-      } else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) {
-        // Tăng mạnh giáp của hệ công pháp đang tu luyện
-        bonusDefPct += (cp.bonusDefPct || 35);
-      }
+      if (cp.elem === 'Toàn Hệ') bonusDefPct += (cp.bonusDefPct || 10);
+      else if (cp.elem === elem || (cp.elem === 'Kiếm' && elem === 'Kim') || (cp.elem === 'Kim' && elem === 'Kiếm')) bonusDefPct += (cp.bonusDefPct || 35);
     }
     return Math.floor(baseDef * (1 + bonusDefPct / 100));
   },
 
-  // 10. Giáp Tổng Quát
   calcPlayerDef() {
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     const activeElem = cp ? cp.elem : 'Vật Lý';
@@ -192,7 +190,6 @@ export const PlayerMixin = {
       if (this.openCongPhapPanel) this.openCongPhapPanel();
       return;
     }
-
     gameState.isMeditating = !gameState.isMeditating;
     if (gameState.isMeditating) {
       this.player.setVelocity(0, 0);
@@ -207,13 +204,9 @@ export const PlayerMixin = {
   },
 
   toggleResting() {
-    // Nếu đang ở trạng thái chiến đấu / đang chết thì không nghỉ được
     if (this.dead) return;
-
     gameState.isResting = !gameState.isResting;
-
     if (gameState.isResting) {
-      // Dưỡng sức: dừng di chuyển, tắt autoFight
       this.player.setVelocity(0, 0);
       this.moveTarget = null;
       this.player.play('p_idle', true);
@@ -223,27 +216,18 @@ export const PlayerMixin = {
     } else {
       this.showFloatingText(this.player.x, this.player.y - 70, '⚔ KẾT THÚC DƯỠNG SỨC', '#ffd700', '13px');
     }
-    // Cập nhật lại nút bên sidebar
     this.createSideToggleButtons();
     this.updateHUD();
   },
 
   cancelRestingState(reason = '') {
     let wasActive = false;
-    if (gameState.isResting) {
-      gameState.isResting = false;
-      wasActive = true;
-    }
-    if (gameState.isMeditating) {
-      gameState.isMeditating = false;
-      wasActive = true;
-    }
+    if (gameState.isResting) { gameState.isResting = false; wasActive = true; }
+    if (gameState.isMeditating) { gameState.isMeditating = false; wasActive = true; }
     if (wasActive) {
       if (this.createSideToggleButtons) this.createSideToggleButtons();
       this.updateHUD();
-      if (reason && this.player && this.player.active) {
-        this.showFloatingText(this.player.x, this.player.y - 70, reason, '#ffd700', '13px');
-      }
+      if (reason && this.player && this.player.active) this.showFloatingText(this.player.x, this.player.y - 70, reason, '#ffd700', '13px');
     }
   },
 
@@ -309,91 +293,45 @@ export const PlayerMixin = {
       .setScale(scale).setAlpha(alpha).setAngle(opts.angle || 0).setDepth(opts.depth || y + 2);
     if (opts.tint) v.setTint(opts.tint);
     this.tweens.killTweensOf(v);
-    this.tweens.add({
-      targets: v,
-      scaleX: scale * grow, scaleY: scale * grow,
-      alpha: 0,
-      duration,
-      ease: opts.ease || 'Cubic.easeOut',
-      onComplete: () => { v.setActive(false).setVisible(false); }
-    });
+    this.tweens.add({ targets: v, scaleX: scale * grow, scaleY: scale * grow, alpha: 0, duration, ease: opts.ease || 'Cubic.easeOut', onComplete: () => { v.setActive(false).setVisible(false); } });
     return v;
   },
 
-  // Perspective scale (y position → depth scale)
   perspective(y) {
     const t = Phaser.Math.Clamp((y - this.field.top) / (this.field.bottom - this.field.top), 0, 1);
     return 0.65 + 0.55 * t;
   },
 
-  // Helper: set scrollFactor=0 + depth for fixed UI elements
-  fixed(o, d = 100) {
-    return o.setScrollFactor(0).setDepth(d);
-  },
+  fixed(o, d = 100) { return o.setScrollFactor(0).setDepth(d); },
 
   showFloatingText(x, y, text, color = '#ffffff', fontSize = '12px') {
-    const txt = this.add.text(x, y, text, {
-      fontSize,
-      fontFamily: 'sans-serif',
-      fontStyle: 'bold',
-      color,
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(20000);
-
-    this.tweens.add({
-      targets: txt,
-      y: y - 45,
-      alpha: 0,
-      duration: 1100,
-      ease: 'Cubic.easeOut',
-      onComplete: () => txt.destroy()
-    });
+    const txt = this.add.text(x, y, text, { fontSize, fontFamily: 'sans-serif', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setDepth(20000);
+    this.tweens.add({ targets: txt, y: y - 45, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => txt.destroy() });
   },
 
   getSkillMastery(skillId) {
     if (!gameState.skillMastery) gameState.skillMastery = {};
-    if (!gameState.skillMastery[skillId]) {
-      gameState.skillMastery[skillId] = { tierIdx: 0, exp: 0 };
-    }
+    if (!gameState.skillMastery[skillId]) gameState.skillMastery[skillId] = { tierIdx: 0, exp: 0 };
     const data = gameState.skillMastery[skillId];
     const tier = SKILL_MASTERY_TIERS[data.tierIdx] || SKILL_MASTERY_TIERS[0];
     const nextTier = SKILL_MASTERY_TIERS[data.tierIdx + 1] || null;
-    return {
-      tierIdx: data.tierIdx,
-      exp: data.exp,
-      tier,
-      nextTier,
-      isMax: !nextTier
-    };
+    return { tierIdx: data.tierIdx, exp: data.exp, tier, nextTier, isMax: !nextTier };
   },
 
   gainSkillExp(skillId, amt = 1) {
     const mastery = this.getSkillMastery(skillId);
     if (mastery.isMax) return mastery;
-
     const skillObj = ELEMENTAL_SKILLS.find(s => s.id === skillId);
     const sName = skillObj ? skillObj.name : skillId;
-    
     gameState.skillMastery[skillId].exp += amt;
     const curTier = mastery.tier;
-
     if (gameState.skillMastery[skillId].exp >= curTier.expReq && mastery.nextTier) {
       gameState.skillMastery[skillId].tierIdx++;
       gameState.skillMastery[skillId].exp = 0;
       const newTier = SKILL_MASTERY_TIERS[gameState.skillMastery[skillId].tierIdx];
-      
       this.spawnVfx(this.player.x, this.player.y, 0, 1.4, { tint: newTier.badgeBg, duration: 600 });
-      this.showFloatingText(
-        this.player.x,
-        this.player.y - 85,
-        `⚡ [${sName}] ĐỘT PHÁ [${newTier.name.toUpperCase()}]! (ST +${Math.round(newTier.dmgBonus * 100)}%)`,
-        newTier.color,
-        '15px'
-      );
-      if (this.createSkillBar) {
-        this.createSkillBar();
-      }
+      this.showFloatingText(this.player.x, this.player.y - 85, `⚡ [${sName}] ĐỘT PHÁ [${newTier.name.toUpperCase()}]! (ST +${Math.round(newTier.dmgBonus * 100)}%)`, newTier.color, '15px');
+      if (this.createSkillBar) this.createSkillBar();
     }
     return this.getSkillMastery(skillId);
   },
