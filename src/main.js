@@ -22,6 +22,7 @@ import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMaste
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
 import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js?v=20260928-realm-progression-v3';
+import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-merchant-talisman-formation-v1';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
 import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
@@ -48,6 +49,7 @@ installInventoryGridUI(MainGameScene);
 installVillageHubTouchFix(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
+installMerchantTalismanFormationShop(MainGameScene);
 installUiGameplayPauseOptimization(MainGameScene);
 installUnifiedUiMapIsolation(MainGameScene);
 
