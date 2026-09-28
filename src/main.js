@@ -1,7 +1,7 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-ad7cd281';
-import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-fullscreen-ui-6f2fcdd';
+import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-wrap-color-ef4883e';
 
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
