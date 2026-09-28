@@ -98,6 +98,21 @@ export function installFullscreenModalOptimization(MainGameScene) {
     optimizePanel(this);
   };
 
+  // Freeze the gameplay loop while any modal is open. This stops enemy AI,
+  // attacks, portals and auto-combat behind the UI while keeping UI input alive.
+  const originalUpdate = proto.update;
+  if (typeof originalUpdate === 'function' && !originalUpdate.__modalFreezeWrapped) {
+    const wrappedUpdate = function updateWithModalFreeze(time, delta) {
+      if (this.isModalOpen?.()) {
+        resetWorldTouch(this);
+        return;
+      }
+      return originalUpdate.call(this, time, delta);
+    };
+    wrappedUpdate.__modalFreezeWrapped = true;
+    proto.update = wrappedUpdate;
+  }
+
   Object.getOwnPropertyNames(proto).forEach(name => {
     if (!/^open[A-Z]/.test(name)) return;
     const original = proto[name];
