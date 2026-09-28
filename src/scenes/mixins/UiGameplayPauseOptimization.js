@@ -1,8 +1,12 @@
-function uiPaused(scene) {
-  return !!(scene?.__uiWorldPaused || scene?.isModalOpen?.());
+function stopPointer(scene, pointer) {
+  scene?.input?.stopPropagation?.();
+  const evt = pointer?.event;
+  evt?.stopPropagation?.();
+  evt?.preventDefault?.();
 }
 
 function stopMotion(scene) {
+  if (!scene) return;
   scene.moveTarget = null;
   scene.player?.setVelocity?.(0, 0);
   if (scene.joy) {
@@ -18,17 +22,16 @@ function stopMotion(scene) {
 function freezeWorld(scene) {
   if (!scene) return;
   stopMotion(scene);
+  scene.__uiHardPaused = true;
+  scene.__uiWorldPaused = true;
 
   if (scene.physics?.world?.pause && !scene.physics.world.isPaused) {
     scene.physics.world.pause();
   }
-  scene.__uiWorldPaused = true;
-
   if (!scene.__uiTweensPaused && scene.tweens?.pauseAll) {
     scene.tweens.pauseAll();
     scene.__uiTweensPaused = true;
   }
-
   if (!scene.__uiAnimationsPaused && scene.anims?.pauseAll) {
     scene.anims.pauseAll();
     scene.__uiAnimationsPaused = true;
@@ -36,7 +39,8 @@ function freezeWorld(scene) {
 }
 
 function resumeWorld(scene) {
-  if (!scene) return;
+  if (!scene || (scene.__uiTransitionDepth || 0) > 0) return;
+  if (scene.activeModal?.active || scene.activeModalOverlay?.active) return;
 
   if (scene.physics?.world?.isPaused && scene.physics.world.resume) {
     scene.physics.world.resume();
@@ -48,80 +52,128 @@ function resumeWorld(scene) {
     scene.anims.resumeAll();
   }
 
+  scene.__uiHardPaused = false;
   scene.__uiWorldPaused = false;
   scene.__uiTweensPaused = false;
   scene.__uiAnimationsPaused = false;
 }
 
+function uiPaused(scene) {
+  return !!scene?.__uiHardPaused;
+}
+
 function wrapBlockedMethod(proto, name, fallbackValue) {
   const original = proto[name];
-  if (typeof original !== 'function' || original.__uiPauseWrapped) return;
-  const wrapped = function uiPausedMethodGuard(...args) {
+  if (typeof original !== 'function' || original.__hardUiPauseWrapped) return;
+  const wrapped = function hardUiPauseGuard(...args) {
     if (uiPaused(this)) return fallbackValue;
     return original.apply(this, args);
   };
-  wrapped.__uiPauseWrapped = true;
+  wrapped.__hardUiPauseWrapped = true;
   proto[name] = wrapped;
 }
 
 export function installUiGameplayPauseOptimization(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__uiGameplayPauseInstalled) return;
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__uiGameplayPauseInstalledV2) return;
   const proto = MainGameScene.prototype;
-  proto.__uiGameplayPauseInstalled = true;
+  proto.__uiGameplayPauseInstalledV2 = true;
+
+  proto.enterUiHardPause = function enterUiHardPause() {
+    freezeWorld(this);
+  };
+  proto.exitUiHardPause = function exitUiHardPause() {
+    resumeWorld(this);
+  };
 
   const originalUpdate = proto.update;
-  if (typeof originalUpdate === 'function' && !originalUpdate.__uiPauseWrapped) {
-    const wrappedUpdate = function updateWithUiSafeMode(...args) {
+  if (typeof originalUpdate === 'function' && !originalUpdate.__hardUiPauseWrapped) {
+    const wrappedUpdate = function updateWithHardUiPause(...args) {
       if (uiPaused(this)) {
         stopMotion(this);
         return;
       }
       return originalUpdate.apply(this, args);
     };
-    wrappedUpdate.__uiPauseWrapped = true;
+    wrappedUpdate.__hardUiPauseWrapped = true;
     proto.update = wrappedUpdate;
   }
 
-  // Mọi modal hiện tại và modal mới đều tự đưa world vào trạng thái khu an toàn.
+  // Wrap every final open* UI method AFTER all simplified UI modules are installed.
+  // Transition depth prevents closeModal() inside one UI->another UI transition from
+  // resuming the world for even a single frame.
   Object.getOwnPropertyNames(proto).forEach(name => {
     if (!/^open[A-Z]/.test(name)) return;
     const original = proto[name];
-    if (typeof original !== 'function' || original.__uiSafeOpenWrapped) return;
-    const wrapped = function openWithFullGamePause(...args) {
-      const result = original.apply(this, args);
+    if (typeof original !== 'function' || original.__hardUiOpenWrapped) return;
+    const wrapped = function openWithHardUiPause(...args) {
+      this.__uiTransitionDepth = (this.__uiTransitionDepth || 0) + 1;
       freezeWorld(this);
-      return result;
+      try {
+        return original.apply(this, args);
+      } finally {
+        this.__uiTransitionDepth = Math.max(0, (this.__uiTransitionDepth || 1) - 1);
+        if (this.activeModal?.active || this.activeModalOverlay?.active) freezeWorld(this);
+      }
     };
-    wrapped.__uiSafeOpenWrapped = true;
+    wrapped.__hardUiOpenWrapped = true;
     proto[name] = wrapped;
   });
 
-  // Đóng UI thì toàn bộ world tiếp tục lại đúng trạng thái trước đó.
   const originalCloseModal = proto.closeModal;
-  if (typeof originalCloseModal === 'function' && !originalCloseModal.__uiSafeCloseWrapped) {
-    const wrappedClose = function closeWithWorldResume(...args) {
+  if (typeof originalCloseModal === 'function' && !originalCloseModal.__hardUiCloseWrapped) {
+    const wrappedClose = function closeWithHardUiResume(...args) {
       const result = originalCloseModal.apply(this, args);
-      resumeWorld(this);
+      if ((this.__uiTransitionDepth || 0) > 0) {
+        freezeWorld(this);
+      } else {
+        resumeWorld(this);
+      }
       return result;
     };
-    wrappedClose.__uiSafeCloseWrapped = true;
+    wrappedClose.__hardUiCloseWrapped = true;
     proto.closeModal = wrappedClose;
   }
 
-  // Dừng các tick nền như tụ khí, hồi phục, vườn và các tiến trình theo giây.
-  wrapBlockedMethod(proto, 'onSecondTick');
+  // Final close button. It stops Phaser propagation itself and closes on pointerdown
+  // so combat/world input can never steal the tap.
+  proto.createModalCloseBtn = function createHardPauseCloseButton(panel) {
+    const x = 205;
+    const y = -432;
+    const bg = this.add.rectangle(x, y, 108, 52, 0xc01835, 1)
+      .setStrokeStyle(3, 0xffc7d0, 1)
+      .setInteractive({ useHandCursor: true });
+    const txt = this.add.text(x, y, 'ĐÓNG', {
+      fontFamily: 'Be Vietnam Pro, sans-serif', fontSize: '16px',
+      fontStyle: 'bold', color: '#ffffff', stroke: '#5b0816', strokeThickness: 2
+    }).setOrigin(0.5);
 
-  // Không cho AI/đạn/đòn đánh mới sinh ra khi UI đang mở.
-  wrapBlockedMethod(proto, 'enemyAttack');
-  wrapBlockedMethod(proto, 'enemyShootProjectile');
+    let done = false;
+    const closeNow = pointer => {
+      stopPointer(this, pointer);
+      if (done) return;
+      done = true;
+      stopMotion(this);
+      this.closeModal();
+    };
+    bg.on('pointerdown', closeNow);
+    bg.on('pointerup', pointer => stopPointer(this, pointer));
+    panel?.add?.([bg, txt]);
+    return bg;
+  };
 
-  // Nếu một đòn đã được lên lịch trước khi UI mở, vẫn chặn sát thương phát sinh.
-  wrapBlockedMethod(proto, 'takePlayerDamage');
-  wrapBlockedMethod(proto, 'takePartyFollowerDamage');
-
-  // Không cho input chiến đấu hoặc portal kích hoạt xuyên qua UI.
-  wrapBlockedMethod(proto, 'basicAttack');
-  wrapBlockedMethod(proto, 'castSkill');
-  wrapBlockedMethod(proto, 'performDash');
-  wrapBlockedMethod(proto, 'triggerPortalTeleport');
+  // Gameplay/timer entry points that must behave exactly like a safe zone while UI is open.
+  [
+    'onSecondTick',
+    'enemyAttack',
+    'enemyShootProjectile',
+    'takePlayerDamage',
+    'takePartyFollowerDamage',
+    'basicAttack',
+    'castSkill',
+    'performDash',
+    'triggerPortalTeleport',
+    'respawnEnemy',
+    'spawnVfx',
+    'spawnSpellVfx'
+  ].forEach(name => wrapBlockedMethod(proto, name));
 }
