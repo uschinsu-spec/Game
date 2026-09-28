@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-skill-mastery-vfx-v4';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-vfx-original-restore-v1';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
 import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-bright-modal-ed67031';
@@ -18,6 +18,7 @@ import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDr
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js?v=20260928-village-touch-exit-5s-v2';
+import { installSkillMasteryRealmGuard } from './scenes/mixins/SkillMasteryRealmGuard.js?v=20260928-vfx-original-restore-v2';
 import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v2';
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
@@ -47,6 +48,7 @@ installRankOneBeastCoreDrops(MainGameScene);
 installRareResourceInventoryUI(MainGameScene);
 installInventoryGridUI(MainGameScene);
 installVillageHubTouchFix(MainGameScene);
+installSkillMasteryRealmGuard(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
