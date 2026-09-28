@@ -1,7 +1,8 @@
 import { MainGameScene, W, H } from './scenes/MainScene.js';
 import { installTouchInputOptimization } from './scenes/mixins/TouchInputOptimization.js?v=20260928-safe-touch-2908207';
 import { installUiCloseButtonOptimization } from './scenes/mixins/UiCloseButtonOptimization.js?v=20260928-close-daf1cd9';
-import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-fullscreen-v2-4a8f7f0';
+import { installFullscreenModalOptimization } from './scenes/mixins/FullscreenModalOptimization.js?v=20260928-bright-modal-ed67031';
+import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-simple-crafting-ffe7105';
 import { installSimplePrimaryUI } from './scenes/mixins/SimplePrimaryUI.js?v=20260928-simple-primary-932c701';
 import { installSimpleCongPhapHomeUI } from './scenes/mixins/SimpleCongPhapHomeUI.js?v=20260928-single-line-congphap-22fa3d0';
@@ -9,11 +10,12 @@ import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=202
 import { installSimpleNpcFullscreenUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-npc-fullscreen-d9ed7f8';
 import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-skill-fullscreen-1d6de02';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
-import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-map-ui-isolation-9d6db7f';
+import { installUnifiedUiMapIsolation } from './scenes/mixins/UnifiedUiMapIsolation.js?v=20260928-bright-isolation-29997cc';
 
 installTouchInputOptimization(MainGameScene);
 installUiCloseButtonOptimization(MainGameScene);
 installFullscreenModalOptimization(MainGameScene);
+installTransparentBottomMenuOptimization(MainGameScene);
 installSimpleCraftingUI(MainGameScene);
 installSimplePrimaryUI(MainGameScene);
 installSimpleCongPhapHomeUI(MainGameScene);
