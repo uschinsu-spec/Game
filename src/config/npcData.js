@@ -330,7 +330,10 @@ export const NPCS_DATA = [
         color: '#ef4444',
         execute: (scene) => {
           scene.closeModal();
-          scene.switchMap(1, 350, 620);
+          // Spawn outside the 100px return-portal radius to prevent an
+          // immediate bounce back into the village on the next update tick.
+          scene.portalCooldownUntil = (scene.time?.now || 0) + 3500;
+          scene.switchMap(1, 420, 620);
           return { success: true };
         }
       },

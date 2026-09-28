@@ -1,4 +1,4 @@
-import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v2';
+import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v3';
 import { W, H } from '../constants.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';

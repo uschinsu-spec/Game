@@ -2,7 +2,7 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v2';
+import { NPCS_DATA } from '../../config/npcData.js?v=20260928-thanh-van-image-hub-v3';
 import { gameState } from '../../state/gameState.js';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
