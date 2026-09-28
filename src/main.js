@@ -15,7 +15,7 @@ import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacop
 import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.js?v=20260928-common-pill-ui-b25b6a2';
 import { installVanMocEnemyProgression } from './scenes/mixins/VanMocEnemyProgression.js?v=20260928-no-boss-e6b0b4a';
 import { installRankOneBeastCoreDrops } from './scenes/mixins/RankOneBeastCoreDrops.js?v=20260928-no-boss-core-f148e91';
-import { installNoBossSystem } from './scenes/mixins/NoBossSystem.js?v=20260928-no-boss-global-44f8296';
+import { installNoBossSystem } from './scenes/mixins/NoBossSystem.js?v=20260928-no-boss-global-bdd18a7';
 import { installRareResourceInventoryUI } from './scenes/mixins/RareResourceInventoryUI.js?v=20260928-rare-inventory-aeb0de9';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
 import { installUiGameplayPauseOptimization } from './scenes/mixins/UiGameplayPauseOptimization.js?v=20260928-hard-pause-2e30108';
