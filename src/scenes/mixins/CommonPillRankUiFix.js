@@ -1,4 +1,4 @@
-import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
+import { CRAFTING_SYSTEM, getPlayerPillRank } from '../../config/craftingData.js';
 import { gameState } from '../../state/gameState.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
@@ -14,7 +14,7 @@ function isThanhVanArea(scene) {
   return id === 0 || id === 1;
 }
 
-function addRankTabs(scene, activeRank) {
+function addRankTabs(scene, activeRank, earlyOnly = false) {
   const panel = scene.activeModal;
   if (!panel?.active) return;
 
@@ -23,14 +23,14 @@ function addRankTabs(scene, activeRank) {
     .setInteractive({ useHandCursor: false });
   panel.add(blocker);
 
-  const addTab = (x, rank, label) => {
+  const addTab = (x, y, w, rank, label) => {
     const active = rank === activeRank;
-    const bg = scene.add.rectangle(x, -270, 220, 54, active ? 0x176b55 : 0x123443, 1)
+    const bg = scene.add.rectangle(x, y, w, 42, active ? 0x176b55 : 0x123443, 1)
       .setStrokeStyle(2, active ? 0x7dffca : 0x4b8192, 1)
       .setInteractive({ useHandCursor: true });
-    const txt = scene.add.text(x, -270, label, {
+    const txt = scene.add.text(x, y, label, {
       fontFamily: FONT,
-      fontSize: '14px',
+      fontSize: '11px',
       fontStyle: 'bold',
       color: active ? '#edfff5' : '#c8edf6'
     }).setOrigin(0.5);
@@ -41,16 +41,28 @@ function addRankTabs(scene, activeRank) {
     panel.add([bg, txt]);
   };
 
-  addTab(-116, 0, '🌱 PHÀM PHẨM');
-  addTab(116, 1, '💊 NHẤT PHẨM');
+  if (earlyOnly) {
+    addTab(-116, -270, 220, 0, '🌱 PHÀM PHẨM');
+    addTab(116, -270, 220, 1, '💊 NHẤT PHẨM');
+    const note = scene.add.text(0, -222, 'Thanh Vân chỉ mở tối đa Đan Dược Nhất Phẩm', {
+      fontFamily: FONT,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#a9f5ff'
+    }).setOrigin(0.5);
+    panel.add(note);
+    return;
+  }
 
-  const note = scene.add.text(0, -222, 'Thanh Vân chỉ mở tối đa Đan Dược Nhất Phẩm', {
-    fontFamily: FONT,
-    fontSize: '10px',
-    fontStyle: 'bold',
-    color: '#a9f5ff'
-  }).setOrigin(0.5);
-  panel.add(note);
+  const ranks = [
+    [0, 'PHÀM'], [1, 'NHẤT'], [2, 'NHỊ'],
+    [3, 'TAM'], [4, 'TỨ'], [5, 'NGŨ']
+  ];
+  ranks.forEach(([rank, label], idx) => {
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+    addTab(-164 + col * 164, -292 + row * 48, 150, rank, label);
+  });
 }
 
 function addCommonBackOverride(scene) {
@@ -81,15 +93,24 @@ export function installCommonPillRankUiFix(MainGameScene) {
   if (typeof previousOpen !== 'function') return;
 
   proto.openCraftingPanel = function openCraftingWithCommonRank(currentTab = 'pills', pillRankFilter = null, itemName = null) {
-    if (!isThanhVanArea(this) || currentTab !== 'pills') {
+    if (currentTab !== 'pills') {
       return previousOpen.call(this, currentTab, pillRankFilter, itemName);
     }
 
+    const earlyOnly = isThanhVanArea(this);
     const realItem = itemName ? CRAFTING_SYSTEM.pills.find(p => p.name === itemName) : null;
-    const wantsCommon = (realItem && Number(realItem.pillRank) === 0) || (!itemName && (pillRankFilter == null || Number(pillRankFilter) === 0));
+    let requestedRank = realItem
+      ? Number(realItem.pillRank ?? 0)
+      : (pillRankFilter == null ? getPlayerPillRank(gameState.realmIdx) : Number(pillRankFilter));
+
+    if (!Number.isFinite(requestedRank)) requestedRank = 0;
+    requestedRank = Math.max(0, Math.min(earlyOnly ? 1 : 5, requestedRank));
+    const wantsCommon = requestedRank === 0;
 
     if (!wantsCommon) {
-      return previousOpen.call(this, 'pills', Math.min(1, Math.max(1, Number(pillRankFilter) || 1)), itemName);
+      const result = previousOpen.call(this, 'pills', requestedRank, itemName);
+      if (!itemName) addRankTabs(this, requestedRank, earlyOnly);
+      return result;
     }
 
     const savedPills = [...CRAFTING_SYSTEM.pills];
@@ -106,7 +127,7 @@ export function installCommonPillRankUiFix(MainGameScene) {
     }
 
     if (itemName) addCommonBackOverride(this);
-    else addRankTabs(this, 0);
+    else addRankTabs(this, 0, earlyOnly);
     return result;
   };
 }
