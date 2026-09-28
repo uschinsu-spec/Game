@@ -1,19 +1,17 @@
 import { W, H } from '../constants.js';
 
 function resetJoy(scene) {
-  if (!scene || !scene.joy) return;
+  if (!scene?.joy) return;
   scene.joy.active = false;
   scene.joy.id = null;
   scene.joy.x = 0;
   scene.joy.y = 0;
-  if (scene.joyBase?.setVisible) scene.joyBase.setVisible(false);
-  if (scene.joyKnob?.setVisible) scene.joyKnob.setVisible(false);
+  scene.joyBase?.setVisible?.(false);
+  scene.joyKnob?.setVisible?.(false);
 }
 
 function isReservedUiZone(pointer) {
   if (!pointer) return true;
-  // Toàn bộ HUD phía trên, skill/menu phía dưới và sidebar bên phải
-  // được dành riêng cho UI, tuyệt đối không khởi tạo joystick/world input.
   return pointer.y < 155 || pointer.y > H - 150 || pointer.x > W - 58;
 }
 
@@ -22,7 +20,8 @@ export function installTouchInputOptimization(MainGameScene) {
   const proto = MainGameScene.prototype;
   proto.__touchInputOptimized = true;
 
-  // Override joystick động: UI luôn có ưu tiên cao hơn world/combat input.
+  // Chỉ thay joystick động. Không bật topOnly và không chặn event UI toàn cục,
+  // vì modal/Container trên mobile cần giữ nguyên thứ tự xử lý input của Phaser.
   proto.createDynamicTouchControls = function createDynamicTouchControlsOptimized() {
     resetJoy(this);
 
@@ -42,59 +41,43 @@ export function installTouchInputOptimization(MainGameScene) {
       221
     );
 
-    // Bảo đảm chỉ GameObject ở trên cùng nhận input khi nhiều lớp VFX/UI chồng nhau.
-    if (this.input?.setTopOnly) this.input.setTopOnly(true);
-    else if (this.input) this.input.topOnly = true;
-
-    // Nếu hàm bị gọi lại, tháo listener cũ trước để tránh nhân đôi input.
     const old = this._touchInputHandlers;
     if (old && this.input) {
       this.input.off('pointerdown', old.pointerDown);
       this.input.off('pointermove', old.pointerMove);
       this.input.off('pointerup', old.release);
       this.input.off('pointerupoutside', old.release);
-      this.input.off('gameout', old.gameOut);
-      this.input.off('gameobjectdown', old.gameObjectDown);
       if (old.blur) window.removeEventListener('blur', old.blur);
       if (old.visibility) document.removeEventListener('visibilitychange', old.visibility);
     }
 
     const release = (pointer) => {
-      if (!pointer || this.joy.id === pointer.id || !this.joy.active) {
-        resetJoy(this);
-      }
-    };
-
-    const gameObjectDown = () => {
-      // Khi người chơi bấm bất kỳ GameObject interactive nào (UI, portal...),
-      // hủy joystick/tap-to-move đang giữ để thao tác UI không bị combat chiếm mất.
-      resetJoy(this);
-      this.moveTarget = null;
+      if (!pointer || this.joy.id === pointer.id || !this.joy.active) resetJoy(this);
     };
 
     const pointerDown = (pointer, currentlyOver = []) => {
       if (!pointer) return;
 
+      // Modal đang mở: tuyệt đối không tạo joystick.
       if (this.isModalOpen?.()) {
         resetJoy(this);
         return;
       }
 
-      // Phaser truyền danh sách interactive objects bên dưới pointer.
-      // Có object => đây là thao tác UI/world-interactive, không phải joystick.
+      // UI/portal/NPC interactive đang nằm dưới ngón tay: để GameObject đó xử lý.
+      // Đây là phần sửa chính cho lỗi đang combat mà UI không bấm được.
       if (Array.isArray(currentlyOver) && currentlyOver.length > 0) {
         resetJoy(this);
-        this.moveTarget = null;
         return;
       }
 
+      // Dành riêng toàn bộ vùng HUD/skill/menu/sidebar cho UI.
       if (isReservedUiZone(pointer)) {
         resetJoy(this);
-        this.moveTarget = null;
         return;
       }
 
-      // Không cho ngón tay thứ hai cướp joystick đang hoạt động.
+      // Ngón tay thứ hai không được cướp joystick của ngón đang điều khiển.
       if (this.joy.active && this.joy.id !== pointer.id) return;
 
       this.joy.active = true;
@@ -127,34 +110,20 @@ export function installTouchInputOptimization(MainGameScene) {
       this.joy.y = dy / max;
     };
 
-    const gameOut = () => resetJoy(this);
     const blur = () => resetJoy(this);
     const visibility = () => {
       if (document.hidden) resetJoy(this);
     };
 
-    this._touchInputHandlers = {
-      pointerDown,
-      pointerMove,
-      release,
-      gameOut,
-      gameObjectDown,
-      blur,
-      visibility
-    };
-
+    this._touchInputHandlers = { pointerDown, pointerMove, release, blur, visibility };
     this.input.on('pointerdown', pointerDown);
     this.input.on('pointermove', pointerMove);
     this.input.on('pointerup', release);
     this.input.on('pointerupoutside', release);
-    this.input.on('gameout', gameOut);
-    this.input.on('gameobjectdown', gameObjectDown);
-    window.addEventListener('blur', blur, { passive: true });
-    document.addEventListener('visibilitychange', visibility, { passive: true });
+    window.addEventListener('blur', blur);
+    document.addEventListener('visibilitychange', visibility);
   };
 
-  // Chuyển map phải xóa hoàn toàn trạng thái touch cũ; nếu không joy.active có thể
-  // giữ true và khóa Auto vì Auto chỉ chạy khi !joy.active.
   const originalSwitchMap = proto.switchMap;
   if (typeof originalSwitchMap === 'function') {
     proto.switchMap = function switchMapWithTouchReset(...args) {
