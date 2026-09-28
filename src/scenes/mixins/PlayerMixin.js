@@ -71,16 +71,29 @@ export const PlayerMixin = {
     return sense;
   },
 
-  // Tốc độ đánh lấy trực tiếp từ Thần Thức.
-  // Chuẩn cân bằng: Luyện Khí Sơ Kỳ có 20 Thần Thức = 2000ms / đòn.
-  // Khi Thần Thức tăng từ cảnh giới, trang bị, công pháp... thì tốc đánh tăng tự nhiên.
-  // Hàm lũy thừa 0.6 giúp late-game nhanh hơn nhưng không tăng mất kiểm soát.
+  // Tốc độ đánh lấy trực tiếp từ tổng Thần Thức sau mọi bonus.
+  // Chuẩn: 20 Thần Thức = 2000ms/đòn, 5700 Thần Thức ≈ 500ms/đòn.
+  // Đường cong logarit giữ giá trị cho đan dược/trang bị mà không làm tốc đánh mất kiểm soát.
   calcPlayerAtkInterval() {
     const sense = Math.max(1, this.calcPlayerSpiritualSense());
     const BASE_SENSE = 20;
+    const HUA_SHEN_PEAK_SENSE = 5700;
     const BASE_INTERVAL = 2000;
-    const interval = Math.round(BASE_INTERVAL * Math.pow(BASE_SENSE / sense, 0.60));
-    return Math.max(450, Math.min(2600, interval));
+    const HUA_SHEN_PEAK_INTERVAL = 500;
+    const MIN_INTERVAL = 450;
+    const MAX_INTERVAL = 2600;
+
+    if (sense <= BASE_SENSE) {
+      const lowSenseInterval = Math.round(BASE_INTERVAL * (BASE_SENSE / sense));
+      return Math.max(BASE_INTERVAL, Math.min(MAX_INTERVAL, lowSenseInterval));
+    }
+
+    const progress = Math.log(sense / BASE_SENSE) / Math.log(HUA_SHEN_PEAK_SENSE / BASE_SENSE);
+    const interval = Math.round(
+      BASE_INTERVAL - (BASE_INTERVAL - HUA_SHEN_PEAK_INTERVAL) * progress
+    );
+
+    return Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL, interval));
   },
 
   calcPlayerBaseDmg() {
