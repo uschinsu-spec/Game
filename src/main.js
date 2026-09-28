@@ -21,7 +21,7 @@ import { installVillageHubTouchFix } from './scenes/mixins/VillageHubTouchFix.js
 import { installSkillMasteryRealmGuard } from './scenes/mixins/SkillMasteryRealmGuard.js?v=20260928-vfx-original-restore-v2';
 import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMasteryProgression.js?v=20260928-cp-mastery-realm-v2';
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
-import { installMasteryDesignedVfx } from './scenes/mixins/MasteryDesignedVfx.js?v=20260928-mastery-designed-vfx-v1';
+import { installSwordMasteryRestore } from './scenes/mixins/SwordMasteryRestore.js?v=20260928-sword-mastery-restore-v1';
 import { installRealmIndexCompatibility } from './scenes/mixins/RealmIndexCompatibility.js?v=20260928-realm-schema-v3';
 import { installRealmProgressionV3 } from './scenes/mixins/RealmProgressionV3.js?v=20260928-realm-progression-v3';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-spirit-stone-icons-v3';
@@ -52,7 +52,7 @@ installVillageHubTouchFix(MainGameScene);
 installSkillMasteryRealmGuard(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
-installMasteryDesignedVfx(MainGameScene);
+installSwordMasteryRestore(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
 installUiGameplayPauseOptimization(MainGameScene);
 installUnifiedUiMapIsolation(MainGameScene);
