@@ -145,7 +145,7 @@ function makeLocalFaction(regionId, provinceName, provinceIndex, slot, tier) {
   const specialtyB = pick(profile.specialties, slot + provinceIndex + 1);
   const resourceA = pick(profile.resources, slot + provinceIndex);
   const resourceB = pick(profile.resources, slot + provinceIndex + 2);
-  const tierOffset = tier === '霸主' ? 2 : tier === 'đại tông' ? 1 : 0;
+  const tierOffset = tier === 'bá chủ' ? 2 : tier === 'đại tông' ? 1 : 0;
 
   return Object.freeze({
     id: `nl_faction_${regionId}_${slugifyVi(provinceName)}_${slot + 1}`,
@@ -158,7 +158,7 @@ function makeLocalFaction(regionId, provinceName, provinceIndex, slot, tier) {
     specialties: Object.freeze([...new Set([specialtyA, specialtyB])]),
     controlledResources: Object.freeze([...new Set([resourceA, resourceB])]),
     power: factionPower(profile, provinceIndex, tierOffset),
-    recruitment: tier === '霸主'
+    recruitment: tier === 'bá chủ'
       ? 'Tuyển chọn nghiêm ngặt; ưu tiên thiên tài linh căn, truyền nhân và người có chiến công cấp Châu.'
       : tier === 'đại tông'
         ? 'Mở sơn môn định kỳ; có ngoại môn, nội môn, chân truyền và trưởng lão viện.'
@@ -199,7 +199,7 @@ export const TRANSCONTINENTAL_SECTS = Object.freeze(SECTS.map(sect => Object.fre
 
 export function getProvinceFactionProfile(regionId, provinceName, provinceIndex = 0) {
   const localFactions = Object.freeze([
-    makeLocalFaction(regionId, provinceName, provinceIndex, 0, '霸主'),
+    makeLocalFaction(regionId, provinceName, provinceIndex, 0, 'bá chủ'),
     makeLocalFaction(regionId, provinceName, provinceIndex, 1, 'đại tông'),
     makeLocalFaction(regionId, provinceName, provinceIndex, 2, 'đại tông'),
     makeLocalFaction(regionId, provinceName, provinceIndex, 3, 'trung tông'),
