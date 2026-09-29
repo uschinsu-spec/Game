@@ -1,7 +1,7 @@
 /**
  * worldRegistry.js
  * SINGLE SOURCE OF TRUTH / READ API for the entire map system.
- * Runtime maps + Nam Lăng hierarchy + access + travel + panorama registry all resolve here.
+ * Runtime maps + zones + Nam Lăng hierarchy + access + travel + panorama registry all resolve here.
  */
 import {
   PLAYABLE_REGIONS,
@@ -13,6 +13,7 @@ import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint }
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 
 export const START_MAP_ID = 0;
+export const DEFAULT_ZONE_COUNT = 4;
 export {
   PLAYABLE_REGIONS,
   ALL_PLAYABLE_MAPS,
@@ -28,6 +29,8 @@ export {
 const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
 const nodeById = new Map(NAM_LANG_WORLD_NODES.map(node => [node.id, node]));
 const childrenByParent = new Map();
+const zoneCache = new Map();
+
 for (const node of NAM_LANG_WORLD_NODES) {
   const key = node.parentId ?? '__root__';
   if (!childrenByParent.has(key)) childrenByParent.set(key, []);
@@ -51,6 +54,73 @@ export function getMapById(mapId) {
 
 export function normalizeMapId(mapId) {
   return findMapById(mapId)?.id ?? START_MAP_ID;
+}
+
+/**
+ * Authoritative longitudinal zones for gameplay content.
+ * Explicit map zones win. Maps without authored zones receive four deterministic
+ * generated bands from their playable field. Enemy/herb/NPC systems must use
+ * these helpers instead of hard-coded x thresholds.
+ */
+export function getMapZones(mapId) {
+  const map = findMapById(mapId);
+  if (!map) return [];
+  if (zoneCache.has(map.id)) return zoneCache.get(map.id);
+
+  const fieldLeft = Number(map.field?.left ?? 60);
+  const fieldRight = Number(map.field?.right ?? (Number(map.worldWidth || 2880) - 60));
+  const authored = Array.isArray(map.zones) ? map.zones : [];
+  let zones;
+
+  if (authored.length > 0) {
+    zones = authored
+      .map((zone, index) => {
+        const previousX1 = index > 0 ? Number(authored[index - 1]?.x1) : fieldLeft;
+        const x0 = Number.isFinite(Number(zone.x0)) ? Number(zone.x0) : previousX1;
+        const x1 = Number.isFinite(Number(zone.x1)) ? Number(zone.x1) : fieldRight;
+        return Object.freeze({
+          ...zone,
+          zoneNumber: index + 1,
+          x0: Math.max(fieldLeft, Math.min(fieldRight, x0)),
+          x1: Math.max(fieldLeft, Math.min(fieldRight, x1))
+        });
+      })
+      .filter(zone => zone.x1 > zone.x0)
+      .sort((a, b) => a.x0 - b.x0);
+  } else {
+    const span = Math.max(1, fieldRight - fieldLeft);
+    zones = Array.from({ length: DEFAULT_ZONE_COUNT }, (_, index) => {
+      const x0 = fieldLeft + span * (index / DEFAULT_ZONE_COUNT);
+      const x1 = index === DEFAULT_ZONE_COUNT - 1
+        ? fieldRight
+        : fieldLeft + span * ((index + 1) / DEFAULT_ZONE_COUNT);
+      return Object.freeze({
+        id: `zone_${index + 1}`,
+        name: `Khu Vực ${index + 1}`,
+        zoneNumber: index + 1,
+        x0: Math.round(x0),
+        x1: Math.round(x1),
+        generated: true
+      });
+    });
+  }
+
+  const frozen = Object.freeze(zones);
+  zoneCache.set(map.id, frozen);
+  return frozen;
+}
+
+export function getMapZoneAtX(mapId, x) {
+  const zones = getMapZones(mapId);
+  if (!zones.length) return null;
+  const px = Number(x);
+  if (!Number.isFinite(px)) return zones[0];
+  return zones.find(zone => px >= zone.x0 && px < zone.x1)
+    || (px < zones[0].x0 ? zones[0] : zones[zones.length - 1]);
+}
+
+export function getMapZoneNumberAtX(mapId, x) {
+  return Number(getMapZoneAtX(mapId, x)?.zoneNumber || 1);
 }
 
 export function getWorldNode(nodeId) {
