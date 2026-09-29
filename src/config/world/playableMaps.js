@@ -30,6 +30,7 @@ function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
   const isSafeHub = template.type === 'hub' || opts.isPeaceZone === true;
   const hasCustomPanorama = opts.panoramaAsset != null || opts.panoramaTemplateMapId != null;
   const useSharedWildernessPanorama = opts.useSharedWildernessPanorama ?? (!isSafeHub && !hasCustomPanorama);
+  const noRepeat = opts.noRepeat ?? (useSharedWildernessPanorama ? false : template.type === 'hub');
 
   const worldWidth = opts.worldWidth ?? (useSharedWildernessPanorama
     ? SHARED_WILDERNESS_PANORAMA.worldWidth
@@ -60,7 +61,7 @@ function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
     worldPath: opts.worldPath ?? null,
     access,
     isPeaceZone: opts.isPeaceZone ?? false,
-    noRepeat: opts.noRepeat ?? (useSharedWildernessPanorama ? false : template.type === 'hub'),
+    noRepeat,
     worldWidth,
     worldHeight,
     field: Object.freeze(field),
@@ -85,7 +86,7 @@ function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
       chunkWidth: opts.chunkWidth ?? template.runtime?.chunkWidth ?? 1024,
       activeChunkRadius: opts.activeChunkRadius ?? template.runtime?.activeChunkRadius ?? 1,
       objectPooling: opts.objectPooling ?? template.runtime?.objectPooling ?? true,
-      repeatPanorama: useSharedWildernessPanorama || !opts.noRepeat
+      repeatPanorama: !noRepeat && (useSharedWildernessPanorama || template.visual?.repeatPanorama === true)
     })
   });
 }
