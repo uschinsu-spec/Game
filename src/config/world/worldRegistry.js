@@ -12,8 +12,26 @@ import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './nam
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v1';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 
+export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v4';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
+
+// ES modules imported with different query strings become different in-memory modules.
+// Fail fast if a future change loads this registry through more than one URL.
+const REGISTRY_SINGLETON_KEY = Symbol.for('linh-son-phi-kiem.worldRegistry.singleton');
+const existingRegistryInstance = globalThis[REGISTRY_SINGLETON_KEY];
+if (existingRegistryInstance && existingRegistryInstance.url !== import.meta.url) {
+  throw new Error(
+    `[MAP SYSTEM SINGLETON] worldRegistry đang bị nạp bằng nhiều URL: ${existingRegistryInstance.url} | ${import.meta.url}`
+  );
+}
+if (!existingRegistryInstance) {
+  globalThis[REGISTRY_SINGLETON_KEY] = Object.freeze({
+    url: import.meta.url,
+    version: MAP_SYSTEM_VERSION
+  });
+}
+
 export {
   PLAYABLE_REGIONS,
   ALL_PLAYABLE_MAPS,
