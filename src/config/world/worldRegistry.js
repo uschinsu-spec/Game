@@ -2,6 +2,7 @@
  * worldRegistry.js
  * SINGLE SOURCE OF TRUTH / READ API for the entire map system.
  * Runtime maps + zones + Nam Lăng hierarchy + access + travel + panorama registry all resolve here.
+ * Province lore/faction atlas is exposed through the same read API; it never creates maps.
  */
 import {
   PLAYABLE_REGIONS,
@@ -12,8 +13,19 @@ import {
 import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v2';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
+import {
+  NAM_LANG_REGION_ATLAS,
+  PROVINCE_ATLAS_VERSION,
+  getProvinceAtlasProfile,
+  getRegionAtlasProfile
+} from './namLangProvinceAtlas.js?v=20260929-atlas-v1';
+import {
+  FACTION_ATLAS_VERSION,
+  TRANSCONTINENTAL_SECTS,
+  getProvinceFactionProfile
+} from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v5';
+export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v6-atlas';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
@@ -43,13 +55,21 @@ export {
   STARTER_WORLD_IDS,
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
-  getMapTemplate
+  NAM_LANG_REGION_ATLAS,
+  PROVINCE_ATLAS_VERSION,
+  FACTION_ATLAS_VERSION,
+  TRANSCONTINENTAL_SECTS,
+  getMapTemplate,
+  getProvinceAtlasProfile,
+  getProvinceFactionProfile,
+  getRegionAtlasProfile
 };
 
 const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
 const nodeById = new Map(NAM_LANG_WORLD_NODES.map(node => [node.id, node]));
 const childrenByParent = new Map();
 const zoneCache = new Map();
+const enrichedNodeCache = new Map();
 
 for (const node of NAM_LANG_WORLD_NODES) {
   const key = node.parentId ?? '__root__';
@@ -61,6 +81,76 @@ const nodeByMapId = new Map(
     .filter(node => Number.isInteger(node.playableMapId))
     .map(node => [Number(node.playableMapId), node])
 );
+
+function regionIdFromNode(node) {
+  if (!node) return null;
+  if (node.type === 'great_region') return String(node.id).split('.')[2] || null;
+  if (node.type === 'province') return String(node.parentId || '').split('.')[2] || null;
+  return null;
+}
+
+function enrichWorldNode(rawNode) {
+  if (!rawNode) return null;
+  if (enrichedNodeCache.has(rawNode.id)) return enrichedNodeCache.get(rawNode.id);
+
+  let enriched = rawNode;
+  if (rawNode.type === 'great_region') {
+    const regionId = regionIdFromNode(rawNode);
+    const regionAtlas = getRegionAtlasProfile(regionId);
+    const regionalSects = TRANSCONTINENTAL_SECTS.filter(sect => sect.influenceRegions.includes(regionId));
+    if (regionAtlas) {
+      enriched = Object.freeze({
+        ...rawNode,
+        atlasVersion: PROVINCE_ATLAS_VERSION,
+        climate: regionAtlas.climate,
+        signatureProducts: Object.freeze([...regionAtlas.products]),
+        signatureMinerals: Object.freeze([...regionAtlas.minerals]),
+        signatureEnemies: Object.freeze([...regionAtlas.enemies]),
+        dominantElements: Object.freeze([...regionAtlas.elements]),
+        transcontinentalSects: Object.freeze(regionalSects.map(sect => Object.freeze({
+          id: sect.id,
+          name: sect.name,
+          elem: sect.elem,
+          headquarters: sect.headquarters
+        })))
+      });
+    }
+  } else if (rawNode.type === 'province') {
+    const regionId = regionIdFromNode(rawNode);
+    const provinceSiblings = (childrenByParent.get(rawNode.parentId) || []).filter(node => node.type === 'province');
+    const provinceIndex = Math.max(0, provinceSiblings.findIndex(node => node.id === rawNode.id));
+    const atlas = getProvinceAtlasProfile(regionId, rawNode.name, provinceIndex);
+    const factions = getProvinceFactionProfile(regionId, rawNode.name, provinceIndex);
+    const factionNames = factions.factions.map(faction => faction.name);
+    const cultivationFactions = Object.freeze([...new Set([
+      ...(rawNode.cultivationFactions || []),
+      ...factionNames
+    ])]);
+
+    enriched = Object.freeze({
+      ...rawNode,
+      desc: rawNode.id === STARTER_WORLD_IDS.province ? `${rawNode.desc}\n${atlas.desc}` : atlas.desc,
+      atlasVersion: atlas.atlasVersion,
+      factionAtlasVersion: factions.atlasVersion,
+      climate: atlas.climate,
+      capital: rawNode.capital || atlas.capital,
+      notableCities: atlas.notableCities,
+      notableTowns: atlas.notableTowns,
+      notableVillages: atlas.notableVillages,
+      secretRealms: atlas.secretRealms,
+      forbiddenZones: atlas.forbiddenZones,
+      products: atlas.products,
+      minerals: atlas.minerals,
+      enemyProfile: atlas.enemyProfile,
+      provinceGenerationCounts: atlas.generationCounts,
+      cultivationFactions,
+      factionProfile: factions
+    });
+  }
+
+  enrichedNodeCache.set(rawNode.id, enriched);
+  return enriched;
+}
 
 /** Strict lookup for validation/access/travel. Never silently redirects. */
 export function findMapById(mapId) {
@@ -153,12 +243,17 @@ export function getMapZoneNumberAtX(mapId, x) {
   return Number(getMapZoneAtX(mapId, x)?.zoneNumber || 1);
 }
 
+/** Canonical world read: province/region nodes are enriched with the atlas here. */
 export function getWorldNode(nodeId) {
-  return nodeById.get(nodeId) || null;
+  return enrichWorldNode(nodeById.get(nodeId) || null);
 }
 
 export function getWorldChildren(parentId) {
-  return [...(childrenByParent.get(parentId ?? '__root__') || [])];
+  return (childrenByParent.get(parentId ?? '__root__') || []).map(enrichWorldNode);
+}
+
+export function getAllWorldNodes() {
+  return NAM_LANG_WORLD_NODES.map(enrichWorldNode);
 }
 
 export function getWorldAncestors(nodeId, includeSelf = false) {
@@ -180,7 +275,7 @@ export function getWorldBreadcrumb(nodeId) {
 }
 
 export function getWorldNodeForMap(mapId) {
-  return nodeByMapId.get(Number(mapId)) || null;
+  return enrichWorldNode(nodeByMapId.get(Number(mapId)) || null);
 }
 
 export function getMapAccess(mapId) {
