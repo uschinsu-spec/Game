@@ -13,13 +13,24 @@
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at center, #0f172a 0%, #060b13 100%); touch-action: none; overscroll-behavior: none; font-family: 'Be Vietnam Pro', 'Philosopher', sans-serif; }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #102b32 0%, #091a24 45%, #071418 100%); touch-action: none; }
 canvas { display: block; box-shadow: 0 0 36px rgba(0, 0, 0, 0.35); touch-action: none; }
-#loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fef08a; background: radial-gradient(circle at center, #172554 0%, #030712 100%); z-index: 999; letter-spacing: .15em; font-family: 'Philosopher', 'Be Vietnam Pro', serif; font-weight: 700; font-size: 24px; text-shadow: 0 0 20px rgba(234, 179, 8, 0.8), 0 0 40px rgba(56, 189, 248, 0.5); transition: opacity 0.5s ease; }
+#loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fef08a; background: radial-gradient(circle at center, #172554 0%, #030712 100%); z-index: 999; letter-spacing: .15em; font-family: 'Philosopher', 'Be Vietnam Pro', serif; font-weight: 700; font-size: 24px; text-align: center; text-shadow: 0 0 20px rgba(234, 179, 8, 0.8), 0 0 40px rgba(56, 189, 248, 0.5); transition: opacity 0.5s ease; }
 #loading .subtitle { font-size: 13px; color: #93c5fd; margin-top: 10px; letter-spacing: .25em; text-transform: uppercase; }
+#loading .progress-track { width: min(72vw, 360px); height: 8px; margin-top: 28px; overflow: hidden; border: 1px solid rgba(147, 197, 253, .65); border-radius: 999px; background: rgba(2, 6, 23, .75); box-shadow: 0 0 18px rgba(56, 189, 248, .22); }
+#loading .progress-fill { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #38bdf8, #fef08a); transition: width .14s linear; }
+#loading .status { min-height: 18px; margin-top: 12px; color: #bae6fd; font: 600 11px/1.45 'Be Vietnam Pro', sans-serif; letter-spacing: .04em; text-shadow: none; }
+#loading.is-error { padding: 28px; color: #fecaca; background: radial-gradient(circle at center, #3f1118 0%, #130308 100%); }
+#loading.is-error .progress-track { display: none; }
+#loading.is-error .status { max-width: 560px; color: #fecaca; font-size: 13px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 </head>
 <body>
-<div id="loading"><div>LINH SƠN PHI KIẾM 3D</div><div class="subtitle">☯ TU TIÊN TRUYỀN KỲ ☯</div></div>
+<div id="loading" role="status" aria-live="polite">
+  <div>LINH SƠN PHI KIẾM 3D</div>
+  <div class="subtitle">☯ TU TIÊN TRUYỀN KỲ ☯</div>
+  <div class="progress-track"><div id="loading-progress" class="progress-fill"></div></div>
+  <div id="loading-status" class="status">Đang khởi tạo thế giới...</div>
+</div>
 <div id="file-protocol-warning" style="display:none;position:fixed;inset:0;background:#061118;color:#fef08a;z-index:99999;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif;">
   <div style="font-size:42px;margin-bottom:16px;">⚠️</div>
   <h2 style="color:#ef4444;margin:0 0 12px 0;">KHÔNG THỂ CHẠY TRỰC TIẾP TỪ FILE://</h2>
@@ -27,6 +38,58 @@ canvas { display: block; box-shadow: 0 0 36px rgba(0, 0, 0, 0.35); touch-action:
 </div>
 <div id="game"></div>
 <script>
+window.__GAME_BOOT__ = (() => {
+  let lastPercent = -1;
+  let failedAssets = 0;
+  const root = () => document.getElementById('loading');
+  const status = () => document.getElementById('loading-status');
+  const progressBar = () => document.getElementById('loading-progress');
+  const setStatus = message => { const el = status(); if (el) el.textContent = message; };
+  return {
+    stage(message) { setStatus(message); },
+    progress(value) {
+      const percent = Math.max(0, Math.min(100, Math.round(Number(value || 0) * 100)));
+      if (percent === lastPercent) return;
+      lastPercent = percent;
+      const bar = progressBar();
+      if (bar) bar.style.width = percent + '%';
+      setStatus(`Đang tải tài nguyên bản đồ... ${percent}%`);
+    },
+    assetError() {
+      failedAssets += 1;
+      setStatus(`Đang hoàn tất tải tài nguyên... (${failedAssets} tệp sẽ dùng phương án dự phòng)`);
+    },
+    ready() {
+      const el = root();
+      if (!el) return;
+      const bar = progressBar();
+      if (bar) bar.style.width = '100%';
+      setStatus('Đã sẵn sàng');
+      el.style.pointerEvents = 'none';
+      requestAnimationFrame(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 520);
+      });
+    },
+    fail(error) {
+      const el = root();
+      if (!el) return;
+      el.classList.add('is-error');
+      const message = error?.message || String(error || 'Lỗi không xác định');
+      setStatus(`Không thể khởi động Game. Hãy tải lại trang. Chi tiết: ${message}`);
+    }
+  };
+})();
+
+window.addEventListener('error', event => {
+  if (event?.target && event.target !== window && event.target.tagName === 'SCRIPT') {
+    window.__GAME_BOOT__?.fail(new Error('Không tải được thư viện hoặc mã Game.'));
+    return;
+  }
+  if (event?.error) window.__GAME_BOOT__?.fail(event.error);
+}, true);
+window.addEventListener('unhandledrejection', event => window.__GAME_BOOT__?.fail(event.reason));
+
 if (window.location.protocol === 'file:') {
   const warn = document.getElementById('file-protocol-warning');
   if (warn) warn.style.display = 'flex';
@@ -34,15 +97,6 @@ if (window.location.protocol === 'file:') {
   if (ld) ld.style.display = 'none';
 }
 </script>
-<script type="module" src="./src/main.js?v=20260929-single-map-system-v4-unified-item-system"></script>
-<script>
-window.addEventListener('load', () => setTimeout(() => {
-  const e = document.getElementById('loading');
-  if (e && window.location.protocol !== 'file:') {
-    e.style.opacity = '0';
-    setTimeout(() => e.remove(), 500);
-  }
-}, 600));
-</script>
+<script type="module" src="./src/main.js?v=20260929-map-smoke-fix-v5"></script>
 </body>
 </html>

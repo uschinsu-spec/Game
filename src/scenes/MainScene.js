@@ -49,6 +49,10 @@ export class MainGameScene extends Phaser.Scene {
 
   preload() {
     const A = './assets/';
+    const bootUi = window.__GAME_BOOT__;
+    bootUi?.stage('Đang chuẩn bị tài nguyên bản đồ...');
+    this.load.on('progress', value => bootUi?.progress(value));
+    this.load.on('loaderror', () => bootUi?.assetError());
 
     this.load.image('flying_sword', A + 'characters/player/flying_sword.png');
     this.load.spritesheet('player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
@@ -174,6 +178,7 @@ export class MainGameScene extends Phaser.Scene {
     this.time.addEvent({ delay: 200, callback: () => this.updateMinimap(), loop: true });
     this.time.addEvent({ delay: 30000, callback: () => { try { exportSaveCode(); } catch (e) {} }, loop: true });
     this.time.delayedCall(250, () => this.openWelcomeScreenModal());
+    window.__GAME_BOOT__?.ready();
   }
 
   update(time, delta) {

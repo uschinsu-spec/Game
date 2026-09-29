@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260929-single-map-system-v4';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260929-map-smoke-fix-v5';
 import { installUiModalManager } from './scenes/mixins/UiModalManager.js?v=20260928-modal-manager-unified-v1';
 import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-modal-manager-unified-v1';
@@ -64,5 +64,15 @@ export const config = {
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
 };
 
-if (document.readyState === 'complete' || document.readyState === 'interactive') window.game = new Phaser.Game(config);
-else window.addEventListener('DOMContentLoaded', () => { window.game = new Phaser.Game(config); });
+function startGame() {
+  try {
+    window.__GAME_BOOT__?.stage('Đang khởi tạo Phaser...');
+    window.game = new Phaser.Game(config);
+  } catch (error) {
+    window.__GAME_BOOT__?.fail(error);
+    throw error;
+  }
+}
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') startGame();
+else window.addEventListener('DOMContentLoaded', startGame, { once: true });
