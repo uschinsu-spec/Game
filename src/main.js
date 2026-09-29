@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260928-modal-manager-unified-v1';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260929-world-map-system-v1';
 import { installUiModalManager } from './scenes/mixins/UiModalManager.js?v=20260928-modal-manager-unified-v1';
 import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-modal-manager-unified-v1';
@@ -16,6 +16,8 @@ import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMaste
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=20260928-realm-progression-unified-v1';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
+import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-world-map-system-v1';
+import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-world-map-system-v1';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
@@ -34,6 +36,9 @@ installInventoryGridUI(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
+// Cài cuối để override map/portal/UI cũ bằng World Registry tập trung.
+installWorldMapRuntime(MainGameScene);
+installWorldMapHierarchyUI(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
