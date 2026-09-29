@@ -52,6 +52,16 @@ export function installWorldMapRuntime(MainGameScene) {
   const proto = MainGameScene.prototype;
   proto.__worldMapRuntimeInstalled = true;
 
+  // Runtime luôn lấy map từ World Registry mới. Điều này cũng tránh phụ thuộc cache module cũ trong MainScene.
+  proto.applyMapRuntimeConfig = function applyMapRuntimeConfigFromRegistry(mapId) {
+    const map = getMapById(mapId);
+    this.currentMap = map;
+    this.worldW = Number(map?.worldWidth || 2880);
+    this.worldH = Number(map?.worldHeight || 960);
+    this.field = { ...(map?.field || { left: 60, right: this.worldW - 60, top: 350, bottom: Math.min(900, this.worldH - 60) }) };
+    return map;
+  };
+
   const originalCreate = proto.create;
   if (typeof originalCreate === 'function') {
     proto.create = function createWithWorldProgress(...args) {
