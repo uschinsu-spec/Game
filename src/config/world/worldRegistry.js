@@ -39,8 +39,18 @@ const nodeByMapId = new Map(
     .map(node => [Number(node.playableMapId), node])
 );
 
+/** Strict lookup for validation/access/travel. Never silently redirects. */
+export function findMapById(mapId) {
+  return mapById.get(Number(mapId)) || null;
+}
+
+/** Safe gameplay lookup. Invalid/stale save IDs fall back to the start map. */
 export function getMapById(mapId) {
-  return mapById.get(Number(mapId)) || mapById.get(START_MAP_ID);
+  return findMapById(mapId) || findMapById(START_MAP_ID);
+}
+
+export function normalizeMapId(mapId) {
+  return findMapById(mapId)?.id ?? START_MAP_ID;
 }
 
 export function getWorldNode(nodeId) {
@@ -74,12 +84,13 @@ export function getWorldNodeForMap(mapId) {
 }
 
 export function getMapAccess(mapId) {
-  return getMapById(mapId)?.access || { minRealmIdx: 0, requiresQuestId: null, requiresFactionId: null };
+  const map = findMapById(mapId);
+  return map?.access || null;
 }
 
 export function canEnterMap(mapId, state) {
-  const map = getMapById(mapId);
-  if (!map) return { ok: false, reason: 'MAP_NOT_FOUND' };
+  const map = findMapById(mapId);
+  if (!map) return { ok: false, reason: 'MAP_NOT_FOUND', map: null };
   const access = map.access || {};
   const realmIdx = Number(state?.realmIdx || 0);
   if (realmIdx < Number(access.minRealmIdx || 0)) {
@@ -89,29 +100,33 @@ export function canEnterMap(mapId, state) {
 }
 
 export function getTravelRoutesForMap(mapId) {
-  const sourceMap = getMapById(mapId);
-  return getRawTravelRoutesForMap(mapId).map(route => {
-    const targetMap = getMapById(route.toMapId);
+  const sourceMap = findMapById(mapId);
+  if (!sourceMap) return [];
+
+  return getRawTravelRoutesForMap(sourceMap.id).flatMap(route => {
+    const targetMap = findMapById(route.toMapId);
+    if (!targetMap) return [];
     const source = resolveAnchorPoint(route.sourceAnchor, sourceMap, { x: 350, y: 620 });
-    const target = resolveAnchorPoint(route.targetSpawn, targetMap, targetMap?.spawn || { x: 350, y: 620 });
-    return {
+    const target = resolveAnchorPoint(route.targetSpawn, targetMap, targetMap.spawn || { x: 350, y: 620 });
+    return [{
       ...route,
       x: source.x,
       y: source.y,
-      targetMapId: route.toMapId,
+      targetMapId: targetMap.id,
       targetSpawnX: target.x,
-      targetSpawnY: target.y,
-      minRealm: Number(targetMap?.access?.minRealmIdx || 0)
-    };
+      targetSpawnY: target.y
+    }];
   });
 }
 
 export function resolvePanoramaMap(mapOrId) {
-  let map = typeof mapOrId === 'object' ? mapOrId : getMapById(mapOrId);
+  let map = typeof mapOrId === 'object' && mapOrId
+    ? mapOrId
+    : (findMapById(mapOrId) || getMapById(START_MAP_ID));
   const visited = new Set();
   while (map && !map.panoramaAsset && map.panoramaTemplateMapId != null && !visited.has(map.id)) {
     visited.add(map.id);
-    map = getMapById(map.panoramaTemplateMapId);
+    map = findMapById(map.panoramaTemplateMapId);
   }
   return map || getMapById(START_MAP_ID);
 }
