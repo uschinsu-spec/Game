@@ -1,8 +1,21 @@
 /**
  * namLangWorld.js
- * Cây địa lý Nam Lăng Đại Lục ở dạng dữ liệu phẳng, tối ưu cho mobile.
- * Chỉ materialize các nút quan trọng; quy mô hàng trăm quốc/quận/thành được lưu bằng profile sinh dữ liệu.
+ * Canonical geographic hierarchy for Nam Lăng Đại Lục.
+ *
+ * IMPORTANT:
+ * - DATA ONLY. No Phaser, teleport, panorama or UI logic lives here.
+ * - Huge lore scale is stored as profiles/counts; only important/visited nodes are materialized.
+ * - Runtime map authority remains worldRegistry.js + WorldMapRuntime.js.
  */
+import {
+  THANH_LINH_PROVINCES,
+  THANH_CHAU_PROFILE,
+  DAI_LY_PROFILE,
+  NAM_SON_PROFILE,
+  THANH_HA_PROFILE,
+  THANH_HA_LOCATION_SPECS,
+  STARTER_PROGRESSION
+} from './starterWorldContent.js?v=20260929-starter-world-v2';
 
 export const WORLD_NODE_TYPES = Object.freeze({
   CONTINENT: 'continent',
@@ -34,16 +47,25 @@ function slugifyVi(value) {
     .replace(/^_+|_+$/g, '');
 }
 
+function freezeNested(value) {
+  if (Array.isArray(value)) return Object.freeze(value.map(freezeNested));
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.entries(value).forEach(([key, child]) => { out[key] = freezeNested(child); });
+    return Object.freeze(out);
+  }
+  return value;
+}
+
 function makeNode(id, type, name, parentId, extra = {}) {
-  return Object.freeze({ id, type, name, parentId: parentId ?? null, ...extra });
+  return Object.freeze({ id, type, name, parentId: parentId ?? null, ...freezeNested(extra) });
 }
 
 const GREAT_REGION_SPECS = [
   {
     id: 'thanh_linh', name: 'Thanh Linh Vực',
     desc: 'Nhân tộc đông đúc, sơn thủy ôn hòa, linh điền và thành trấn dày đặc; vùng khởi đầu của người chơi.',
-    theme: 'starter_human',
-    provinces: ['Thanh Châu','Linh Châu','Bạch Hà Châu','Vân Mộng Châu','Thiên Hà Châu','Ngọc Tuyền Châu','Cửu Phong Châu','Lạc Hà Châu','Trường Phong Châu','Minh Khê Châu','Huyền Lâm Châu','An Sơn Châu']
+    theme: 'starter_human', provinces: THANH_LINH_PROVINCES.map(p => p.name), provinceMeta: THANH_LINH_PROVINCES
   },
   {
     id: 'nam_hoang', name: 'Nam Hoang Vực',
@@ -102,6 +124,7 @@ export const STARTER_WORLD_IDS = Object.freeze({
   nation: 'nl.nation.thanh_chau.dai_ly',
   commandery: 'nl.commandery.dai_ly.nam_son',
   city: 'nl.city.nam_son.thanh_ha',
+  thanhHaHub: 'nl.loc.thanh_ha.thanh_ha_thanh',
   map0: 'nl.loc.thanh_ha.thanh_van_thon',
   map1: 'nl.loc.thanh_ha.thanh_van_ngoai_vi',
   map2: 'nl.loc.thanh_ha.van_moc_sam_lam',
@@ -110,8 +133,10 @@ export const STARTER_WORLD_IDS = Object.freeze({
 
 const nodes = [
   makeNode(NAM_LANG_ROOT_ID, WORLD_NODE_TYPES.CONTINENT, 'Nam Lăng Đại Lục', null, {
-    desc: 'Đại lục tu tiên khổng lồ gồm 9 Đại Vực và 108 Châu. Hệ thống chỉ dựng chi tiết khu vực người chơi thực sự cần.',
-    counts: { greatRegions: 9, provinces: 108 }
+    desc: 'Đại lục tu tiên khổng lồ gồm 9 Đại Vực và 108 Châu. Chỉ materialize địa điểm quan trọng hoặc đã được tuyến truyện/người chơi chạm tới.',
+    counts: { greatRegions: 9, provinces: 108 },
+    materializationRule: WORLD_SCALE_PROFILE.materializationRule,
+    progression: STARTER_PROGRESSION
   })
 ];
 
@@ -122,74 +147,128 @@ for (const region of GREAT_REGION_SPECS) {
     theme: region.theme,
     counts: { provinces: 12 }
   }));
+
   region.provinces.forEach((provinceName, index) => {
     const provinceId = `nl.prov.${region.id}.${slugifyVi(provinceName)}`;
+    const meta = region.provinceMeta?.[index] || null;
+    const isThanhChau = provinceId === STARTER_WORLD_IDS.province;
     nodes.push(makeNode(provinceId, WORLD_NODE_TYPES.PROVINCE, provinceName, regionId, {
-      desc: `${provinceName} thuộc ${region.name}. Quốc gia, quận, thành và thôn trấn được materialize theo nhu cầu thay vì tạo hàng loạt file map.`,
+      desc: isThanhChau ? THANH_CHAU_PROFILE.desc : (meta?.desc || `${provinceName} thuộc ${region.name}. Nội dung con materialize theo nhu cầu.`),
+      theme: meta?.theme || region.theme,
       provinceIndex: index + 1,
       generationProfile: {
-        nations: WORLD_SCALE_PROFILE.provinceNationRange,
-        materializedByDefault: provinceId === STARTER_WORLD_IDS.province
-      }
+        nations: isThanhChau ? THANH_CHAU_PROFILE.politicalEntityCount : WORLD_SCALE_PROFILE.provinceNationRange,
+        materializedByDefault: isThanhChau
+      },
+      ...(isThanhChau ? {
+        counts: {
+          politicalEntities: THANH_CHAU_PROFILE.politicalEntityCount,
+          majorStates: THANH_CHAU_PROFILE.majorStateCount,
+          mediumStates: THANH_CHAU_PROFILE.mediumStateCount,
+          smallStates: THANH_CHAU_PROFILE.smallStateCount
+        },
+        notablePowers: THANH_CHAU_PROFILE.notablePoliticalPowers,
+        cultivationFactions: THANH_CHAU_PROFILE.cultivationFactions,
+        factionOverlayRule: THANH_CHAU_PROFILE.factionOverlayRule
+      } : {})
     }));
   });
 }
 
+// Named Thanh Châu powers are materialized as data nodes; the remaining entities stay in the generation profile.
 const thanhChauNations = [
-  ['dai_ly', 'Đại Ly Quốc', true], ['thien_vo', 'Thiên Võ Hoàng Triều', false], ['dai_chu', 'Đại Chu Quốc', false],
-  ['van_kiem', 'Vạn Kiếm Quốc', false], ['bac_minh', 'Bắc Minh Quốc', false], ['thanh_ho', 'Thanh Hồ Yêu Quốc', false],
-  ['cuu_son', 'Cửu Sơn Liên Minh', false], ['nam_man', 'Nam Man Bộ Tộc', false]
+  ['dai_ly', 'Đại Ly Quốc', true, 'nation'],
+  ['thien_vo', 'Thiên Võ Hoàng Triều', false, 'dynasty'],
+  ['dai_chu', 'Đại Chu Hoàng Triều', false, 'dynasty'],
+  ['van_kiem', 'Vạn Kiếm Quốc', false, 'sect_state'],
+  ['thanh_ho', 'Thanh Hồ Yêu Quốc', false, 'demon_state'],
+  ['cuu_son', 'Cửu Sơn Liên Minh', false, 'city_alliance'],
+  ['nam_man', 'Nam Man Bộ Tộc', false, 'tribal_union'],
+  ['thien_ha', 'Thiên Hà Thủy Quốc', false, 'water_state']
 ];
-for (const [id, name, materialized] of thanhChauNations) {
+for (const [id, name, materialized, governmentType] of thanhChauNations) {
+  const isDaiLy = id === 'dai_ly';
   nodes.push(makeNode(`nl.nation.thanh_chau.${id}`, WORLD_NODE_TYPES.NATION, name, STARTER_WORLD_IDS.province, {
-    desc: materialized ? 'Quốc gia khởi đầu được khai triển chi tiết.' : 'Thế lực lớn đã biết tên; nội dung chi tiết sẽ materialize khi tuyến truyện hoặc người chơi tiến đến.',
-    generationProfile: { commanderies: WORLD_SCALE_PROFILE.nationCommanderyRange }, materialized
+    desc: isDaiLy
+      ? 'Quốc gia hạng trung ở phía nam Thanh Châu và là quốc gia khởi đầu của người chơi.'
+      : 'Thế lực lớn đã biết tên; lãnh thổ chi tiết sẽ materialize khi tuyến truyện hoặc người chơi tiến đến.',
+    governmentType,
+    generationProfile: { commanderies: isDaiLy ? DAI_LY_PROFILE.commanderyCount : WORLD_SCALE_PROFILE.nationCommanderyRange },
+    materialized,
+    ...(isDaiLy ? {
+      counts: { commanderies: DAI_LY_PROFILE.commanderyCount },
+      capital: DAI_LY_PROFILE.capital,
+      strategicRegions: DAI_LY_PROFILE.strategicRegions,
+      powerScale: DAI_LY_PROFILE.powerScale
+    } : {})
   }));
 }
 
+// A small named subset is shown; the canonical count remains exactly 108 commanderies.
 const daiLyCommanderies = [
-  ['nam_son', 'Nam Sơn Quận', true], ['bach_ha', 'Bạch Hà Quận', false], ['van_linh', 'Vạn Linh Quận', false],
-  ['thien_phong', 'Thiên Phong Quận', false], ['linh_tuyen', 'Linh Tuyền Quận', false], ['huyen_son', 'Huyền Sơn Quận', false],
-  ['lac_van', 'Lạc Vân Quận', false], ['cuu_khe', 'Cửu Khê Quận', false], ['dong_lam', 'Đông Lâm Quận', false]
+  ['nam_son', 'Nam Sơn Quận', true], ['bac_ha', 'Bắc Hà Quận', false], ['dong_lam', 'Đông Lâm Quận', false],
+  ['tay_nguyen', 'Tây Nguyên Quận', false], ['thanh_giang', 'Thanh Giang Quận', false], ['van_phong', 'Vạn Phong Quận', false],
+  ['hac_son', 'Hắc Sơn Quận', false], ['linh_ho', 'Linh Hồ Quận', false], ['trung_kinh', 'Trung Kinh Trực Lệ', false]
 ];
 for (const [id, name, materialized] of daiLyCommanderies) {
+  const isNamSon = id === 'nam_son';
   nodes.push(makeNode(`nl.commandery.dai_ly.${id}`, WORLD_NODE_TYPES.COMMANDERY, name, STARTER_WORLD_IDS.nation, {
-    desc: materialized ? 'Quận khởi đầu, nơi Thanh Hà Thành tọa lạc.' : 'Quận thuộc Đại Ly Quốc; chưa dựng Combat Map cụ thể.',
-    generationProfile: { cities: WORLD_SCALE_PROFILE.commanderyCityRange }, materialized
+    desc: isNamSon ? NAM_SON_PROFILE.desc : 'Đơn vị hành chính thuộc Đại Ly Quốc; chưa dựng Combat Map cụ thể.',
+    generationProfile: { cities: isNamSon ? NAM_SON_PROFILE.cityCount : WORLD_SCALE_PROFILE.commanderyCityRange },
+    materialized,
+    ...(isNamSon ? {
+      counts: { cities: NAM_SON_PROFILE.cityCount, townsAtLeast: NAM_SON_PROFILE.minimumTownCount, villagesAtLeast: NAM_SON_PROFILE.minimumVillageCount },
+      capital: NAM_SON_PROFILE.capital,
+      materializedLocationTarget: NAM_SON_PROFILE.materializedLocationTarget,
+      capitalServices: NAM_SON_PROFILE.capitalServices
+    } : {})
   }));
 }
 
+// Named city-territories are a browseable subset of Nam Sơn's 132 major thành/phủ.
 const namSonCities = [
   ['thanh_ha', 'Thanh Hà Thành Vực', true], ['bach_ngoc', 'Bạch Ngọc Thành Vực', false], ['linh_son', 'Linh Sơn Thành Vực', false],
   ['van_thuy', 'Vân Thủy Thành Vực', false], ['huyen_moc', 'Huyền Mộc Thành Vực', false], ['xich_phong', 'Xích Phong Thành Vực', false],
   ['cuu_truc', 'Cửu Trúc Thành Vực', false], ['thien_uyen', 'Thiên Uyên Thành Vực', false], ['lac_ha', 'Lạc Hà Thành Vực', false]
 ];
 for (const [id, name, materialized] of namSonCities) {
+  const isThanhHa = id === 'thanh_ha';
   nodes.push(makeNode(`nl.city.nam_son.${id}`, WORLD_NODE_TYPES.CITY_TERRITORY, name, STARTER_WORLD_IDS.commandery, {
-    desc: materialized ? 'Lãnh thổ thành quản lý Thanh Vân Thôn và nhiều khu vực phụ cận.' : 'Thành vực thuộc Nam Sơn Quận; chưa dựng chi tiết.',
-    generationProfile: { settlements: WORLD_SCALE_PROFILE.citySettlementRange }, materialized
+    desc: isThanhHa ? THANH_HA_PROFILE.desc : 'Thành Vực thuộc Nam Sơn Quận; chi tiết sẽ materialize theo tuyến khám phá.',
+    generationProfile: { settlements: isThanhHa ? THANH_HA_PROFILE.villages + THANH_HA_PROFILE.towns : WORLD_SCALE_PROFILE.citySettlementRange },
+    materialized,
+    ...(isThanhHa ? {
+      counts: {
+        villages: THANH_HA_PROFILE.villages,
+        towns: THANH_HA_PROFILE.towns,
+        mountainRanges: THANH_HA_PROFILE.mountainRanges,
+        largeForests: THANH_HA_PROFILE.largeForests,
+        miningZones: THANH_HA_PROFILE.miningZones,
+        spiritLakes: THANH_HA_PROFILE.spiritLakes,
+        cultivationFamilies: THANH_HA_PROFILE.cultivationFamilies,
+        minorSects: THANH_HA_PROFILE.minorSects,
+        smallSecretRealms: THANH_HA_PROFILE.smallSecretRealms,
+        localForbiddenZones: THANH_HA_PROFILE.localForbiddenZones
+      },
+      materializedLocationTarget: THANH_HA_PROFILE.materializedLocationTarget
+    } : {})
   }));
 }
 
-const thanhHaLocations = [
-  [STARTER_WORLD_IDS.map0, 'Thanh Vân Thôn', 0, 'safe_hub', 'Thôn khởi đầu và khu an toàn.'],
-  [STARTER_WORLD_IDS.map1, 'Thanh Vân Ngoại Vi', 1, 'field', 'Ngoại vi rộng lớn quanh thôn, khu săn yêu đầu tiên.'],
-  [STARTER_WORLD_IDS.map2, 'Vạn Mộc Sâm Lâm', 2, 'field', 'Cổ lâm nhiều tầng nguy hiểm và linh dược.'],
-  [STARTER_WORLD_IDS.map3, 'Huyết Lạc Cấm Địa', 3, 'dungeon_field', 'Cấm địa cấp địa phương, không đại diện cho đại cấm địa Nam Lăng.'],
-  ['nl.loc.thanh_ha.thanh_ha_thanh', 'Thanh Hà Thành', null, 'major_hub', 'Hub cấp Thành, trung tâm thương mại và giao thông của Thanh Hà Thành Vực.'],
-  ['nl.loc.thanh_ha.bach_ha_tran', 'Bạch Hà Trấn', null, 'town', 'Trấn ven sông thuộc Thanh Hà Thành Vực.'],
-  ['nl.loc.thanh_ha.thanh_moc_tran', 'Thanh Mộc Trấn', null, 'town', 'Trấn gần vùng rừng và linh mộc.'],
-  ['nl.loc.thanh_ha.hac_son_tran', 'Hắc Sơn Trấn', null, 'town', 'Trấn khai khoáng dưới chân Hắc Sơn.'],
-  ['nl.loc.thanh_ha.linh_duoc_coc', 'Linh Dược Cốc', null, 'resource', 'Khu thu thập linh thảo địa phương.'],
-  ['nl.loc.thanh_ha.hac_thach_mo', 'Hắc Thạch Khoáng Động', null, 'dungeon', 'Khoáng động cấp thấp và trung.'],
-  ['nl.loc.thanh_ha.co_tu_dong_phu', 'Cổ Tu Động Phủ', null, 'secret', 'Động phủ bí mật có thể mở theo sự kiện.'],
-  ['nl.loc.thanh_ha.co_truyen_tong', 'Cổ Truyền Tống Trận', null, 'travel', 'Điểm giao thông cổ đại, dùng cho tuyến mở rộng sau này.']
-];
-for (const [id, name, playableMapId, locationKind, desc] of thanhHaLocations) {
-  nodes.push(makeNode(id, WORLD_NODE_TYPES.LOCATION, name, STARTER_WORLD_IDS.city, {
-    desc, playableMapId, locationKind, materialized: playableMapId != null, status: playableMapId != null ? 'playable' : 'planned'
+for (const spec of THANH_HA_LOCATION_SPECS) {
+  const id = `nl.loc.thanh_ha.${spec.slug}`;
+  nodes.push(makeNode(id, WORLD_NODE_TYPES.LOCATION, spec.name, STARTER_WORLD_IDS.city, {
+    desc: spec.desc,
+    playableMapId: Number.isInteger(spec.playableMapId) ? spec.playableMapId : null,
+    locationKind: spec.kind,
+    status: spec.status,
+    materialized: Number.isInteger(spec.playableMapId),
+    services: spec.services || null,
+    unlockHint: spec.unlockHint || null
   }));
 }
 
 export const NAM_LANG_WORLD_NODES = Object.freeze(nodes);
-export const GREAT_REGION_DEFS = Object.freeze(GREAT_REGION_SPECS.map(region => Object.freeze({ ...region, provinces: Object.freeze([...region.provinces]) })));
+export const GREAT_REGION_DEFS = Object.freeze(
+  GREAT_REGION_SPECS.map(region => Object.freeze({ ...region, provinces: Object.freeze([...region.provinces]) }))
+);
