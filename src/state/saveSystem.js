@@ -4,7 +4,7 @@
  */
 import { gameState } from './gameState.js';
 import { migrateLegacyRealmIndex } from '../config/realmMigration.js';
-import { normalizeMapId } from '../config/world/worldRegistry.js?v=20260929-single-map-system-v2';
+import { normalizeMapId } from '../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { createInitialWorldProgress, ensureWorldProgress } from './worldProgress.js';
 
 export const SAVE_VERSION = 4;
