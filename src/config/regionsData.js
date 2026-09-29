@@ -1,14 +1,14 @@
 /**
- * regionsData.js
- * Compatibility facade. Code cũ tiếp tục import WORLD_REGIONS / ALL_MAPS / getMapById,
- * còn dữ liệu thế giới lớn nằm trong src/config/world/*.
+ * @deprecated Compatibility-only facade.
+ *
+ * There is NO map data or map logic in this file.
+ * The single source of truth is ./world/worldRegistry.js.
+ * New code must import worldRegistry.js directly.
  */
 export {
   PLAYABLE_REGIONS as WORLD_REGIONS,
   ALL_PLAYABLE_MAPS as ALL_MAPS,
-  SHARED_WILDERNESS_PANORAMA
-} from './world/playableMaps.js?v=20260929-shared-panorama-v1';
-export {
+  SHARED_WILDERNESS_PANORAMA,
   START_MAP_ID,
   getMapById,
   getWorldNode,
@@ -27,4 +27,4 @@ export {
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
   getMapTemplate
-} from './world/worldRegistry.js?v=20260929-shared-panorama-v1';
+} from './world/worldRegistry.js?v=20260929-single-map-system-v1';
