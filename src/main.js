@@ -20,6 +20,7 @@ import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=202
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v4';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
+import { installBootAssetOptimization } from './scenes/mixins/BootAssetOptimization.js?v=20260929-p0-boot-assets-v1';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
@@ -49,6 +50,10 @@ installMapContentZoneRuntime(MainGameScene);
 // Fail fast if a future change reintroduces duplicate/conflicting map systems.
 assertSingleMapSystem(MainGameScene);
 
+// P0 boot gate is installed last so it can replace legacy preload wrappers without
+// disturbing the authoritative map/item runtime ownership above.
+installBootAssetOptimization(MainGameScene);
+
 export const config = {
   type: Phaser.AUTO,
   width: W || 540,
@@ -63,7 +68,8 @@ export const config = {
   input: { touch: { capture: true }, activePointers: 3 },
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // GitHub Pages may return transient 503s when the large texture catalog is
-  // requested in one burst. A smaller queue is more reliable on mobile too.
+  // requested in one burst. The boot queue is now tiny; this limit mainly applies
+  // to post-boot/background runtime assets.
   loader: { maxParallelDownloads: 12 }
 };
 
