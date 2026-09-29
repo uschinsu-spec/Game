@@ -11,6 +11,7 @@ import {
   MAP_TEMPLATES,
   NAM_LANG_ROOT_ID,
   NAM_LANG_WORLD_NODES,
+  PLAYABLE_REGIONS,
   SHARED_WILDERNESS_PANORAMA,
   getMapZones,
   getWorldChildren,
@@ -21,6 +22,17 @@ import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v1
 const EXPECTED_RUNTIME_OWNER = 'WorldMapRuntime';
 const EXPECTED_UI_OWNER = 'WorldMapHierarchyUI';
 const EXPECTED_CONTENT_ZONE_OWNER = 'MapContentZoneRuntime';
+const EXPECTED_ACTIVE_FUNCTIONS = Object.freeze({
+  switchMap: 'switchMapFromRegistry',
+  createWorld: 'createWorldFromRegistry',
+  createMapPortals: 'createMapPortalsFromRegistry',
+  openMapPanel: 'openHierarchicalWorldMap',
+  initBattlefield: 'initBattlefieldFromUnifiedZones',
+  getEnemySpawnConfig: 'getEnemySpawnConfigFromUnifiedMap',
+  initHerbs: 'initHerbsFromUnifiedZones',
+  initMineralNodes: 'initMineralNodesFromUnifiedZones',
+  getNpcSpawnConfig: 'getNpcSpawnConfigFromUnifiedZones'
+});
 
 function duplicateValues(values) {
   const seen = new Set();
@@ -35,6 +47,19 @@ function duplicateValues(values) {
 function pushDuplicates(errors, label, values) {
   const duplicates = duplicateValues(values);
   if (duplicates.length) errors.push(`${label} bị trùng: ${duplicates.join(', ')}`);
+}
+
+function assertActiveFunctions(errors, proto) {
+  for (const [method, expectedName] of Object.entries(EXPECTED_ACTIVE_FUNCTIONS)) {
+    const fn = proto?.[method];
+    if (typeof fn !== 'function') {
+      errors.push(`Thiếu active method ${method}().`);
+      continue;
+    }
+    if (fn.name !== expectedName) {
+      errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là ${expectedName}.`);
+    }
+  }
 }
 
 export function assertSingleMapSystem(MainGameScene) {
@@ -54,17 +79,17 @@ export function assertSingleMapSystem(MainGameScene) {
     if (proto.__mapContentZoneOwner !== EXPECTED_CONTENT_ZONE_OWNER) {
       errors.push(`Map content-zone owner phải là ${EXPECTED_CONTENT_ZONE_OWNER}, hiện tại: ${String(proto.__mapContentZoneOwner)}`);
     }
-    if (typeof proto.switchMap !== 'function') errors.push('Thiếu switchMap() từ WorldMapRuntime.');
-    if (typeof proto.createWorld !== 'function') errors.push('Thiếu createWorld() từ WorldMapRuntime.');
-    if (typeof proto.createMapPortals !== 'function') errors.push('Thiếu createMapPortals() từ WorldMapRuntime.');
-    if (typeof proto.openMapPanel !== 'function') errors.push('Thiếu openMapPanel() từ WorldMapHierarchyUI.');
-    if (typeof proto.initBattlefield !== 'function') errors.push('Thiếu initBattlefield() dùng unified zones.');
-    if (typeof proto.initHerbs !== 'function') errors.push('Thiếu initHerbs() dùng unified zones.');
-    if (typeof proto.initMineralNodes !== 'function') errors.push('Thiếu initMineralNodes() dùng unified zones.');
-    if (typeof proto.getNpcSpawnConfig !== 'function') errors.push('Thiếu getNpcSpawnConfig() dùng unified zones.');
+    assertActiveFunctions(errors, proto);
   }
 
-  // 2) Runtime map catalog + zone geometry integrity.
+  // 2) Runtime catalog itself must be a SINGLE Nam Lăng catalog.
+  if (PLAYABLE_REGIONS.length !== 1 || PLAYABLE_REGIONS[0]?.id !== 'nam_lang') {
+    errors.push(`Runtime catalog phải chỉ có 1 root nam_lang; hiện có ${PLAYABLE_REGIONS.length}.`);
+  }
+  if (PLAYABLE_REGIONS[0]?.maps !== ALL_PLAYABLE_MAPS) {
+    errors.push('PLAYABLE_REGIONS[0].maps phải dùng trực tiếp ALL_PLAYABLE_MAPS, không được tạo catalog song song.');
+  }
+
   const mapIds = ALL_PLAYABLE_MAPS.map(map => Number(map.id));
   pushDuplicates(errors, 'Map ID', mapIds);
 
@@ -78,6 +103,14 @@ export function assertSingleMapSystem(MainGameScene) {
     }
     if (map.locationNodeId && !getWorldNode(map.locationNodeId)) {
       errors.push(`Map ${map.id} trỏ locationNodeId không tồn tại: ${map.locationNodeId}`);
+    }
+
+    // Old save IDs may remain, but they are compatibility records only, never a second world tree.
+    if (map.legacyCompatibility) {
+      if (!map.worldHidden) errors.push(`Legacy map ${map.id} phải worldHidden=true.`);
+      if (map.locationNodeId) errors.push(`Legacy map ${map.id} không được gắn vào canonical world hierarchy.`);
+    } else if (Number(map.id) <= 3 && !map.locationNodeId) {
+      errors.push(`Starter map ${map.id} phải có canonical locationNodeId.`);
     }
 
     const template = MAP_TEMPLATES[map.templateId];
@@ -133,6 +166,8 @@ export function assertSingleMapSystem(MainGameScene) {
       const map = mapById.get(Number(node.playableMapId));
       if (!map) {
         errors.push(`World node ${node.id} trỏ playableMapId không tồn tại: ${node.playableMapId}`);
+      } else if (map.legacyCompatibility) {
+        errors.push(`World node ${node.id} không được trỏ đến legacy compatibility map ${map.id}.`);
       } else if (map.locationNodeId && map.locationNodeId !== node.id) {
         errors.push(`Liên kết map/node không đối xứng: map ${map.id} -> ${map.locationNodeId}, node ${node.id} -> ${node.playableMapId}`);
       }
@@ -151,8 +186,13 @@ export function assertSingleMapSystem(MainGameScene) {
   // 4) Travel graph integrity. Access requirements live only on destination maps.
   pushDuplicates(errors, 'Travel route ID', TRAVEL_ROUTES.map(route => route.id));
   for (const route of TRAVEL_ROUTES) {
-    if (!mapById.has(Number(route.fromMapId))) errors.push(`Route ${route.id} có fromMapId không tồn tại: ${route.fromMapId}`);
-    if (!mapById.has(Number(route.toMapId))) errors.push(`Route ${route.id} có toMapId không tồn tại: ${route.toMapId}`);
+    const source = mapById.get(Number(route.fromMapId));
+    const target = mapById.get(Number(route.toMapId));
+    if (!source) errors.push(`Route ${route.id} có fromMapId không tồn tại: ${route.fromMapId}`);
+    if (!target) errors.push(`Route ${route.id} có toMapId không tồn tại: ${route.toMapId}`);
+    if (source?.legacyCompatibility || target?.legacyCompatibility) {
+      errors.push(`Canonical travel route ${route.id} không được nối vào legacy compatibility map.`);
+    }
     if ('minRealm' in route || 'minRealmIdx' in route || 'requiresQuestId' in route || 'requiresFactionId' in route) {
       errors.push(`Route ${route.id} đang chứa access rule riêng; phải lấy access từ destination map.`);
     }
@@ -180,7 +220,10 @@ export function assertSingleMapSystem(MainGameScene) {
     runtimeOwner: EXPECTED_RUNTIME_OWNER,
     uiOwner: EXPECTED_UI_OWNER,
     contentZoneOwner: EXPECTED_CONTENT_ZONE_OWNER,
+    runtimeCatalogCount: PLAYABLE_REGIONS.length,
     playableMapCount: ALL_PLAYABLE_MAPS.length,
+    canonicalMapCount: ALL_PLAYABLE_MAPS.filter(map => !map.legacyCompatibility).length,
+    legacyCompatibilityMapCount: ALL_PLAYABLE_MAPS.filter(map => map.legacyCompatibility).length,
     worldNodeCount: NAM_LANG_WORLD_NODES.length,
     greatRegionCount: greatRegions.length,
     provinceCount: provinces.length,
