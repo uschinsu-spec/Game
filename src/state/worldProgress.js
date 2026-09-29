@@ -31,7 +31,10 @@ export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
     regionProgress: {},
     currentLocationNodeId: null
   };
-  markMapVisited({ worldProgress: state }, currentMapId, { unlockWaypoint: true });
+  const holder = { worldProgress: state };
+  // Luôn giữ điểm hồi hương Map 0 để save legacy ở map ngoài cây Nam Lăng không bị mắc kẹt.
+  markMapVisited(holder, START_MAP_ID, { unlockWaypoint: true });
+  if (Number(currentMapId) !== START_MAP_ID) markMapVisited(holder, currentMapId, { unlockWaypoint: true });
   return state;
 }
 
@@ -51,7 +54,8 @@ export function ensureWorldProgress(gameStateLike) {
     currentLocationNodeId: typeof source.currentLocationNodeId === 'string' ? source.currentLocationNodeId : null
   };
   gameStateLike.worldProgress = normalized;
-  markMapVisited(gameStateLike, currentMapId, { unlockWaypoint: true });
+  markMapVisited(gameStateLike, START_MAP_ID, { unlockWaypoint: true });
+  if (currentMapId !== START_MAP_ID) markMapVisited(gameStateLike, currentMapId, { unlockWaypoint: true });
   return normalized;
 }
 
