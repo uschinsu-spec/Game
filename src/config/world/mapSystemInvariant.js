@@ -22,14 +22,17 @@ import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v1
 const EXPECTED_RUNTIME_OWNER = 'WorldMapRuntime';
 const EXPECTED_UI_OWNER = 'WorldMapHierarchyUI';
 const EXPECTED_CONTENT_ZONE_OWNER = 'MapContentZoneRuntime';
+const EXPECTED_STREAMING_OWNER = 'MapZoneAssetStreaming';
 const EXPECTED_ACTIVE_FUNCTIONS = Object.freeze({
   switchMap: 'switchMapFromRegistry',
   createWorld: 'createWorldFromRegistry',
   createMapPortals: 'createMapPortalsFromRegistry',
   openMapPanel: 'openHierarchicalWorldMap',
-  initBattlefield: 'initBattlefieldFromUnifiedZones',
+  // MapZoneAssetStreaming is the active execution wrapper; it delegates spawn
+  // rules/geometry to MapContentZoneRuntime after the zone assets are ready.
+  initBattlefield: 'streamedInitBattlefield',
   getEnemySpawnConfig: 'getEnemySpawnConfigFromUnifiedMap',
-  initHerbs: 'initHerbsFromUnifiedZones',
+  initHerbs: 'streamedInitHerbs',
   initMineralNodes: 'initMineralNodesFromUnifiedZones',
   getNpcSpawnConfig: 'getNpcSpawnConfigFromUnifiedZones'
 });
@@ -78,6 +81,9 @@ export function assertSingleMapSystem(MainGameScene) {
     }
     if (proto.__mapContentZoneOwner !== EXPECTED_CONTENT_ZONE_OWNER) {
       errors.push(`Map content-zone owner phải là ${EXPECTED_CONTENT_ZONE_OWNER}, hiện tại: ${String(proto.__mapContentZoneOwner)}`);
+    }
+    if (proto.__mapZoneAssetStreamingOwner !== EXPECTED_STREAMING_OWNER) {
+      errors.push(`Map zone-streaming owner phải là ${EXPECTED_STREAMING_OWNER}, hiện tại: ${String(proto.__mapZoneAssetStreamingOwner)}`);
     }
     assertActiveFunctions(errors, proto);
   }
@@ -220,6 +226,7 @@ export function assertSingleMapSystem(MainGameScene) {
     runtimeOwner: EXPECTED_RUNTIME_OWNER,
     uiOwner: EXPECTED_UI_OWNER,
     contentZoneOwner: EXPECTED_CONTENT_ZONE_OWNER,
+    streamingOwner: EXPECTED_STREAMING_OWNER,
     runtimeCatalogCount: PLAYABLE_REGIONS.length,
     playableMapCount: ALL_PLAYABLE_MAPS.length,
     canonicalMapCount: ALL_PLAYABLE_MAPS.filter(map => !map.legacyCompatibility).length,
