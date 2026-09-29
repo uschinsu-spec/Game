@@ -1,8 +1,8 @@
 /**
  * worldRegistry.js
  * SINGLE SOURCE OF TRUTH / READ API for the entire map system.
- * Runtime maps + zones + Nam Lăng hierarchy + access + travel + panorama registry all resolve here.
- * Province lore/faction atlas is exposed through the same read API; it never creates maps.
+ * Runtime maps + zones + Human Realm hierarchy + access + travel + panorama registry all resolve here.
+ * World lore/faction atlases never create runtime maps.
  */
 import {
   PLAYABLE_REGIONS,
@@ -11,6 +11,14 @@ import {
   SHARED_WILDERNESS_PANORAMA
 } from './playableMaps.js?v=20260929-single-map-system-v2';
 import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v2';
+import {
+  HUMAN_REALM_ROOT_ID,
+  HUMAN_REALM_VERSION,
+  HUMAN_REALM_SCALE,
+  HUMAN_REALM_CONTINENTS,
+  HUMAN_REALM_WORLD_NODES,
+  NEW_HUMAN_REALM_CONTINENT_SPECS
+} from './humanRealmWorld.js?v=20260929-human-realm-v1';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import {
@@ -25,12 +33,10 @@ import {
   getProvinceFactionProfile
 } from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v6-atlas';
+export const MAP_SYSTEM_VERSION = '20260929-human-realm-five-continents-v1';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
-// ES modules imported with different query strings become different in-memory modules.
-// Fail fast if a future change loads this registry through more than one URL.
 const REGISTRY_SINGLETON_KEY = Symbol.for('linh-son-phi-kiem.worldRegistry.singleton');
 const existingRegistryInstance = globalThis[REGISTRY_SINGLETON_KEY];
 if (existingRegistryInstance && existingRegistryInstance.url !== import.meta.url) {
@@ -50,6 +56,12 @@ export {
   ALL_PLAYABLE_MAPS,
   RUNTIME_MAP_IDS,
   SHARED_WILDERNESS_PANORAMA,
+  HUMAN_REALM_ROOT_ID,
+  HUMAN_REALM_VERSION,
+  HUMAN_REALM_SCALE,
+  HUMAN_REALM_CONTINENTS,
+  HUMAN_REALM_WORLD_NODES,
+  NEW_HUMAN_REALM_CONTINENT_SPECS,
   NAM_LANG_WORLD_NODES,
   NAM_LANG_ROOT_ID,
   STARTER_WORLD_IDS,
@@ -66,26 +78,26 @@ export {
 };
 
 const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
-const nodeById = new Map(NAM_LANG_WORLD_NODES.map(node => [node.id, node]));
+const nodeById = new Map(HUMAN_REALM_WORLD_NODES.map(node => [node.id, node]));
 const childrenByParent = new Map();
 const zoneCache = new Map();
 const enrichedNodeCache = new Map();
 
-for (const node of NAM_LANG_WORLD_NODES) {
+for (const node of HUMAN_REALM_WORLD_NODES) {
   const key = node.parentId ?? '__root__';
   if (!childrenByParent.has(key)) childrenByParent.set(key, []);
   childrenByParent.get(key).push(node);
 }
 const nodeByMapId = new Map(
-  NAM_LANG_WORLD_NODES
+  HUMAN_REALM_WORLD_NODES
     .filter(node => Number.isInteger(node.playableMapId))
     .map(node => [Number(node.playableMapId), node])
 );
 
-function regionIdFromNode(node) {
+function namLangRegionIdFromNode(node) {
   if (!node) return null;
-  if (node.type === 'great_region') return String(node.id).split('.')[2] || null;
-  if (node.type === 'province') return String(node.parentId || '').split('.')[2] || null;
+  if (node.type === 'great_region' && String(node.id).startsWith('nl.gr.')) return String(node.id).split('.')[2] || null;
+  if (node.type === 'province' && String(node.parentId || '').startsWith('nl.gr.')) return String(node.parentId).split('.')[2] || null;
   return null;
 }
 
@@ -93,9 +105,12 @@ function enrichWorldNode(rawNode) {
   if (!rawNode) return null;
   if (enrichedNodeCache.has(rawNode.id)) return enrichedNodeCache.get(rawNode.id);
 
+  // Four new continents are born with complete province/faction metadata in humanRealmWorld.js.
+  // Only legacy-stable Nam Lăng nodes need the existing Nam Lăng atlas overlay here.
   let enriched = rawNode;
-  if (rawNode.type === 'great_region') {
-    const regionId = regionIdFromNode(rawNode);
+  const regionId = namLangRegionIdFromNode(rawNode);
+
+  if (rawNode.type === 'great_region' && regionId) {
     const regionAtlas = getRegionAtlasProfile(regionId);
     const regionalSects = TRANSCONTINENTAL_SECTS.filter(sect => sect.influenceRegions.includes(regionId));
     if (regionAtlas) {
@@ -115,8 +130,7 @@ function enrichWorldNode(rawNode) {
         })))
       });
     }
-  } else if (rawNode.type === 'province') {
-    const regionId = regionIdFromNode(rawNode);
+  } else if (rawNode.type === 'province' && regionId) {
     const provinceSiblings = (childrenByParent.get(rawNode.parentId) || []).filter(node => node.type === 'province');
     const provinceIndex = Math.max(0, provinceSiblings.findIndex(node => node.id === rawNode.id));
     const atlas = getProvinceAtlasProfile(regionId, rawNode.name, provinceIndex);
@@ -166,12 +180,6 @@ export function normalizeMapId(mapId) {
   return findMapById(mapId)?.id ?? START_MAP_ID;
 }
 
-/**
- * Authoritative longitudinal zones for gameplay content.
- * Explicit map zones win. Maps without authored zones receive four deterministic
- * generated bands from their playable field. Enemy/herb/NPC systems must use
- * these helpers instead of hard-coded x thresholds.
- */
 export function getMapZones(mapId) {
   const map = findMapById(mapId);
   if (!map) return [];
@@ -243,7 +251,7 @@ export function getMapZoneNumberAtX(mapId, x) {
   return Number(getMapZoneAtX(mapId, x)?.zoneNumber || 1);
 }
 
-/** Canonical world read: province/region nodes are enriched with the atlas here. */
+/** Canonical world read: every node in Nhân Giới resolves here. */
 export function getWorldNode(nodeId) {
   return enrichWorldNode(nodeById.get(nodeId) || null);
 }
@@ -253,7 +261,7 @@ export function getWorldChildren(parentId) {
 }
 
 export function getAllWorldNodes() {
-  return NAM_LANG_WORLD_NODES.map(enrichWorldNode);
+  return HUMAN_REALM_WORLD_NODES.map(enrichWorldNode);
 }
 
 export function getWorldAncestors(nodeId, includeSelf = false) {
