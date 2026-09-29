@@ -13,7 +13,7 @@ import {
   getTravelRoutesForMap,
   resolvePanoramaMap,
   getPanoramaPreloadEntries
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v2';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v3';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
 
@@ -157,7 +157,7 @@ export function installWorldMapRuntime(MainGameScene) {
     return getTravelRoutesForMap(fromMapId).find(route => Number(route.targetMapId) === target) || null;
   };
 
-  // Direct implementation: every actual transition is validated here.
+  // Direct implementation: EVERY actual transition is validated here.
   proto.switchMap = function switchMapFromRegistry(mapId, spawnX, spawnY) {
     this.resetJoy?.();
     this.moveTarget = null;
@@ -167,6 +167,14 @@ export function installWorldMapRuntime(MainGameScene) {
 
     const fromMapId = Number(gameState.currentMapId);
     const map = access.map;
+    const now = Number(this.time?.now || 0);
+
+    // Thanh Vân re-entry protection is enforced at the central transition layer,
+    // so no hotspot, portal, fast-travel caller or future UI can bypass it.
+    if (Number(map.id) === 0 && fromMapId !== 0 && now < Number(this.villageReentryBlockedUntil || 0)) {
+      return this.currentMap || getMapById(fromMapId);
+    }
+
     const linkedRoute = this.getDirectMapRoute(fromMapId, map.id);
 
     // If this is a registered route, its destination spawn is authoritative.
@@ -230,8 +238,6 @@ export function installWorldMapRuntime(MainGameScene) {
     }
 
     const now = Number(this.time?.now || 0);
-    if (targetMapId === 0 && now < Number(this.villageReentryBlockedUntil || 0)) return;
-
     const fromMapId = Number(gameState.currentMapId);
     const key = this.getPortalCooldownKey(fromMapId, targetMapId);
     if ((this[key] || 0) > now) return;
