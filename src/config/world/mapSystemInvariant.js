@@ -26,7 +26,7 @@ import {
   getWorldNode,
   getWorldDetailProfile,
   hasHumanRealmDetailBlueprint
-} from './worldRegistry.js?v=20260929-human-realm-detail-v1';
+} from './worldRegistry.js?v=20260929-single-map-system-v1';
 import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v2';
 
 const EXPECTED_RUNTIME_OWNER = 'WorldMapRuntime';
