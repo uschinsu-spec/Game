@@ -1,7 +1,7 @@
 /**
  * WorldMapHierarchyUI.js
  * SINGLE WORLD MAP UI OWNER.
- * Nhân Giới → Đại Lục → Đại Vực → Châu → Quốc/Thế lực → Quận → Thành Vực → Location.
+ * Nhân Giới → Đại Lục → cấu trúc lãnh thổ riêng của từng Đại Lục → các cấp địa phương.
  */
 import { REALMS } from '../../config/realmsData.js';
 import {
@@ -77,6 +77,7 @@ function compactList(items, limit = 4) {
 }
 
 function nodeTypeText(node) {
+  if (node?.displayTypeLabel) return node.displayTypeLabel;
   if (node.type === 'location' && node.locationKind) {
     return LOCATION_KIND_LABEL[node.locationKind] || TYPE_LABEL[node.type];
   }
@@ -103,6 +104,9 @@ function scaleSummary(node) {
   const fmt = value => Array.isArray(value) ? `${formatNumber(value[0])}–${formatNumber(value[1])}` : formatNumber(value);
 
   if (c.continents) parts.push(`${formatNumber(c.continents)} Đại Lục`);
+  if (c.primaryRegions) parts.push(`${formatNumber(c.primaryRegions)} ${node.primaryRegionLabel || 'vùng cấp cao'}`);
+  if (c.territories) parts.push(`${formatNumber(c.territories)} ${node.secondaryRegionLabel || 'đơn vị cấp hai'}`);
+  if (c.subdivisions) parts.push(`${formatNumber(c.subdivisions)} ${node.subdivisionLabel || 'đơn vị trực thuộc'}`);
   if (c.greatRegions) parts.push(`${formatNumber(c.greatRegions)} Đại Vực`);
   if (c.provinces) parts.push(`${formatNumber(c.provinces)} Châu`);
   if (c.politicalEntities) parts.push(`${formatNumber(c.politicalEntities)} chính thể`);
@@ -128,6 +132,7 @@ function scaleSummary(node) {
 function extraDetailLines(node) {
   const lines = [];
   const c = node.counts || {};
+  if (node.structureSummary) lines.push(`Kết cấu: ${node.structureSummary}`);
   if (node.position) lines.push(`Phương vị: ${node.position}`);
   if (node.climate) lines.push(`Khí hậu/địa thế: ${node.climate}`);
   if (node.capital) lines.push(`Trung tâm: ${node.capital}`);
@@ -287,8 +292,9 @@ function renderNodeDetail(scene, panel, node) {
         fontFamily: FONT, fontSize: '11px', color: '#a9eaff', align: 'center', lineSpacing: 4
       }).setOrigin(0.5));
   } else {
-    panel.add(scene.add.text(0, 175, 'ĐỊA ĐIỂM DỮ LIỆU • CHƯA DỰNG COMBAT/HUB MAP', {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#ffcf7a'
+    panel.add(scene.add.text(0, 175, `${nodeTypeText(node)} DỮ LIỆU • CHƯA MATERIALIZE THÀNH COMBAT/HUB MAP`, {
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#ffcf7a', align: 'center',
+      wordWrap: { width: 430, useAdvancedWrap: true }
     }).setOrigin(0.5));
   }
 

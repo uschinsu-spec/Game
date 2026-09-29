@@ -18,7 +18,7 @@ import {
   HUMAN_REALM_CONTINENTS,
   HUMAN_REALM_WORLD_NODES,
   NEW_HUMAN_REALM_CONTINENT_SPECS
-} from './humanRealmWorld.js?v=20260929-human-realm-v1';
+} from './humanRealmWorld.js?v=20260929-human-realm-v2';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import {
@@ -33,7 +33,7 @@ import {
   getProvinceFactionProfile
 } from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-human-realm-five-continents-v1';
+export const MAP_SYSTEM_VERSION = '20260929-human-realm-distinct-continents-v2';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
@@ -105,8 +105,8 @@ function enrichWorldNode(rawNode) {
   if (!rawNode) return null;
   if (enrichedNodeCache.has(rawNode.id)) return enrichedNodeCache.get(rawNode.id);
 
-  // Four new continents are born with complete province/faction metadata in humanRealmWorld.js.
-  // Only legacy-stable Nam Lăng nodes need the existing Nam Lăng atlas overlay here.
+  // New continents already carry their own atlas/faction metadata.
+  // Only legacy-stable Nam Lăng nodes receive the Nam Lăng atlas overlay.
   let enriched = rawNode;
   const regionId = namLangRegionIdFromNode(rawNode);
 
@@ -166,12 +166,10 @@ function enrichWorldNode(rawNode) {
   return enriched;
 }
 
-/** Strict lookup for validation/access/travel. Never silently redirects. */
 export function findMapById(mapId) {
   return mapById.get(Number(mapId)) || null;
 }
 
-/** Safe gameplay lookup. Removed/stale save IDs fall back to Map 0. */
 export function getMapById(mapId) {
   return findMapById(mapId) || findMapById(START_MAP_ID);
 }
@@ -251,7 +249,6 @@ export function getMapZoneNumberAtX(mapId, x) {
   return Number(getMapZoneAtX(mapId, x)?.zoneNumber || 1);
 }
 
-/** Canonical world read: every node in Nhân Giới resolves here. */
 export function getWorldNode(nodeId) {
   return enrichWorldNode(nodeById.get(nodeId) || null);
 }

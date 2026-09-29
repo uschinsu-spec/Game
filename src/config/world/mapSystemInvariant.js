@@ -2,8 +2,12 @@
  * mapSystemInvariant.js
  * Runtime + data integrity guard for the ONE authoritative map/world system.
  *
- * Canonical world contract:
- * Nhân Giới -> 5 Đại Lục -> 45 Đại Vực -> 540 Châu.
+ * Canonical Human Realm contract:
+ * - Nam Lăng: 9 Đại Vực / 108 Châu
+ * - Đông Huyền: 8 Tiên Vực / 64 Đạo
+ * - Tây Mạc: 7 Hoang Vực / 49 Lĩnh
+ * - Bắc Minh: 6 Hàn Thiên / 72 Phủ
+ * - Trung Vực: 12 Thánh Vực / 144 Châu
  * Runtime remains strictly Maps 0,1,2 inside Nam Lăng.
  */
 import {
@@ -27,7 +31,14 @@ const EXPECTED_UI_OWNER = 'WorldMapHierarchyUI';
 const EXPECTED_CONTENT_ZONE_OWNER = 'MapContentZoneRuntime';
 const EXPECTED_STREAMING_OWNER = 'MapZoneAssetStreaming';
 const EXPECTED_MAP_IDS = Object.freeze([0, 1, 2]);
-const EXPECTED_WORLD = Object.freeze({ continents: 5, greatRegions: 45, provinces: 540 });
+const EXPECTED_WORLD = Object.freeze({ continents: 5, primaryRegions: 42, territories: 437 });
+const EXPECTED_CONTINENTS = Object.freeze({
+  south: Object.freeze({ primary: 9, secondary: 108, perPrimary: 12, primaryLabel: 'ĐẠI VỰC', secondaryLabel: 'CHÂU' }),
+  east: Object.freeze({ primary: 8, secondary: 64, perPrimary: 8, primaryLabel: 'TIÊN VỰC', secondaryLabel: 'ĐẠO' }),
+  west: Object.freeze({ primary: 7, secondary: 49, perPrimary: 7, primaryLabel: 'HOANG VỰC', secondaryLabel: 'LĨNH' }),
+  north: Object.freeze({ primary: 6, secondary: 72, perPrimary: 12, primaryLabel: 'HÀN THIÊN', secondaryLabel: 'PHỦ' }),
+  central: Object.freeze({ primary: 12, secondary: 144, perPrimary: 12, primaryLabel: 'THÁNH VỰC', secondaryLabel: 'CHÂU' })
+});
 const EXPECTED_ACTIVE_FUNCTIONS = Object.freeze({
   switchMap: 'switchMapFromRegistry',
   createWorld: 'createWorldFromRegistry',
@@ -66,9 +77,7 @@ function assertActiveFunctions(errors, proto) {
       errors.push(`Thiếu active method ${method}().`);
       continue;
     }
-    if (fn.name !== expectedName) {
-      errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là ${expectedName}.`);
-    }
+    if (fn.name !== expectedName) errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là ${expectedName}.`);
   }
 }
 
@@ -79,51 +88,30 @@ export function assertSingleMapSystem(MainGameScene) {
   if (!proto) {
     errors.push('Không tìm thấy MainGameScene.prototype.');
   } else {
-    if (proto.__mapRuntimeOwner !== EXPECTED_RUNTIME_OWNER) {
-      errors.push(`Map runtime owner phải là ${EXPECTED_RUNTIME_OWNER}, hiện tại: ${String(proto.__mapRuntimeOwner)}`);
-    }
-    if (proto.__worldMapUiOwner !== EXPECTED_UI_OWNER) {
-      errors.push(`World-map UI owner phải là ${EXPECTED_UI_OWNER}, hiện tại: ${String(proto.__worldMapUiOwner)}`);
-    }
-    if (proto.__mapContentZoneOwner !== EXPECTED_CONTENT_ZONE_OWNER) {
-      errors.push(`Map content-zone owner phải là ${EXPECTED_CONTENT_ZONE_OWNER}, hiện tại: ${String(proto.__mapContentZoneOwner)}`);
-    }
-    if (proto.__mapZoneAssetStreamingOwner !== EXPECTED_STREAMING_OWNER) {
-      errors.push(`Map zone-streaming owner phải là ${EXPECTED_STREAMING_OWNER}, hiện tại: ${String(proto.__mapZoneAssetStreamingOwner)}`);
-    }
+    if (proto.__mapRuntimeOwner !== EXPECTED_RUNTIME_OWNER) errors.push(`Map runtime owner phải là ${EXPECTED_RUNTIME_OWNER}, hiện tại: ${String(proto.__mapRuntimeOwner)}`);
+    if (proto.__worldMapUiOwner !== EXPECTED_UI_OWNER) errors.push(`World-map UI owner phải là ${EXPECTED_UI_OWNER}, hiện tại: ${String(proto.__worldMapUiOwner)}`);
+    if (proto.__mapContentZoneOwner !== EXPECTED_CONTENT_ZONE_OWNER) errors.push(`Map content-zone owner phải là ${EXPECTED_CONTENT_ZONE_OWNER}, hiện tại: ${String(proto.__mapContentZoneOwner)}`);
+    if (proto.__mapZoneAssetStreamingOwner !== EXPECTED_STREAMING_OWNER) errors.push(`Map zone-streaming owner phải là ${EXPECTED_STREAMING_OWNER}, hiện tại: ${String(proto.__mapZoneAssetStreamingOwner)}`);
     assertActiveFunctions(errors, proto);
   }
 
-  // Runtime catalog remains one catalog with only Maps 0-2.
-  if (PLAYABLE_REGIONS.length !== 1 || PLAYABLE_REGIONS[0]?.id !== 'nam_lang') {
-    errors.push(`Runtime catalog phải chỉ có 1 catalog nam_lang; hiện có ${PLAYABLE_REGIONS.length}.`);
-  }
-  if (PLAYABLE_REGIONS[0]?.maps !== ALL_PLAYABLE_MAPS) {
-    errors.push('PLAYABLE_REGIONS[0].maps phải dùng trực tiếp ALL_PLAYABLE_MAPS, không được tạo catalog song song.');
-  }
-  if (!sameNumberList(RUNTIME_MAP_IDS, EXPECTED_MAP_IDS)) {
-    errors.push(`RUNTIME_MAP_IDS phải chính xác là [0,1,2], hiện tại: [${RUNTIME_MAP_IDS.join(',')}].`);
-  }
+  if (PLAYABLE_REGIONS.length !== 1 || PLAYABLE_REGIONS[0]?.id !== 'nam_lang') errors.push(`Runtime catalog phải chỉ có 1 catalog nam_lang; hiện có ${PLAYABLE_REGIONS.length}.`);
+  if (PLAYABLE_REGIONS[0]?.maps !== ALL_PLAYABLE_MAPS) errors.push('PLAYABLE_REGIONS[0].maps phải dùng trực tiếp ALL_PLAYABLE_MAPS, không được tạo catalog song song.');
+  if (!sameNumberList(RUNTIME_MAP_IDS, EXPECTED_MAP_IDS)) errors.push(`RUNTIME_MAP_IDS phải chính xác là [0,1,2], hiện tại: [${RUNTIME_MAP_IDS.join(',')}].`);
 
   const mapIds = ALL_PLAYABLE_MAPS.map(map => Number(map.id));
   pushDuplicates(errors, 'Map ID', mapIds);
-  if (!sameNumberList(mapIds, EXPECTED_MAP_IDS)) {
-    errors.push(`ALL_PLAYABLE_MAPS phải chỉ có [0,1,2], hiện tại: [${mapIds.join(',')}].`);
-  }
+  if (!sameNumberList(mapIds, EXPECTED_MAP_IDS)) errors.push(`ALL_PLAYABLE_MAPS phải chỉ có [0,1,2], hiện tại: [${mapIds.join(',')}].`);
 
   const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
   for (const map of ALL_PLAYABLE_MAPS) {
     if (!Number.isInteger(Number(map.id))) errors.push(`Map có ID không hợp lệ: ${String(map.id)}`);
     if (!map.name) errors.push(`Map ${map.id} thiếu name.`);
     if (!MAP_TEMPLATES[map.templateId]) errors.push(`Map ${map.id} dùng template không tồn tại: ${String(map.templateId)}`);
-    if (!(Number(map.worldWidth) > 0) || !(Number(map.worldHeight) > 0)) {
-      errors.push(`Map ${map.id} có kích thước world không hợp lệ.`);
-    }
-    if (!map.locationNodeId) {
-      errors.push(`Map ${map.id} bắt buộc phải có canonical locationNodeId.`);
-    } else if (!getWorldNode(map.locationNodeId)) {
-      errors.push(`Map ${map.id} trỏ locationNodeId không tồn tại: ${map.locationNodeId}`);
-    }
+    if (!(Number(map.worldWidth) > 0) || !(Number(map.worldHeight) > 0)) errors.push(`Map ${map.id} có kích thước world không hợp lệ.`);
+    if (!map.locationNodeId) errors.push(`Map ${map.id} bắt buộc phải có canonical locationNodeId.`);
+    else if (!getWorldNode(map.locationNodeId)) errors.push(`Map ${map.id} trỏ locationNodeId không tồn tại: ${map.locationNodeId}`);
+
     for (const forbiddenField of ['legacyCompatibility', 'worldHidden', 'legacyOrigin']) {
       if (forbiddenField in map) errors.push(`Map ${map.id} còn field legacy "${forbiddenField}".`);
     }
@@ -131,11 +119,8 @@ export function assertSingleMapSystem(MainGameScene) {
     const template = MAP_TEMPLATES[map.templateId];
     const isSafeHub = map.isPeaceZone === true || template?.type === 'hub';
     if (isSafeHub && map.useSharedWildernessPanorama) errors.push(`Safe hub map ${map.id} không được dùng shared wilderness panorama.`);
-    if (EXPECTED_MAP_IDS.includes(Number(map.id)) && map.useSharedWildernessPanorama) {
-      errors.push(`Map ${map.id} phải giữ panorama riêng, không được dùng shared wilderness panorama.`);
-    }
-    if (map.useSharedWildernessPanorama &&
-        (map.panoramaKey !== SHARED_WILDERNESS_PANORAMA.key || map.panoramaAsset !== SHARED_WILDERNESS_PANORAMA.asset)) {
+    if (EXPECTED_MAP_IDS.includes(Number(map.id)) && map.useSharedWildernessPanorama) errors.push(`Map ${map.id} phải giữ panorama riêng, không được dùng shared wilderness panorama.`);
+    if (map.useSharedWildernessPanorama && (map.panoramaKey !== SHARED_WILDERNESS_PANORAMA.key || map.panoramaAsset !== SHARED_WILDERNESS_PANORAMA.asset)) {
       errors.push(`Map ${map.id} khai báo shared panorama nhưng key/asset không khớp registry chung.`);
     }
 
@@ -149,7 +134,6 @@ export function assertSingleMapSystem(MainGameScene) {
     }
   }
 
-  // One Human Realm root, 5 continents, each exactly 9 Đại Vực / 108 Châu.
   const nodeIds = HUMAN_REALM_WORLD_NODES.map(node => node.id);
   pushDuplicates(errors, 'World node ID', nodeIds);
   const nodeIdSet = new Set(nodeIds);
@@ -159,28 +143,40 @@ export function assertSingleMapSystem(MainGameScene) {
   }
 
   const continents = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'continent');
-  const greatRegions = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'great_region');
-  const provinces = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province');
+  const primaryRegions = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'great_region');
+  const territories = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province');
   const rootContinents = getWorldChildren(HUMAN_REALM_ROOT_ID).filter(node => node.type === 'continent');
 
-  if (continents.length !== EXPECTED_WORLD.continents || rootContinents.length !== EXPECTED_WORLD.continents) {
-    errors.push(`Nhân Giới phải có đúng 5 Đại Lục; hiện có ${continents.length} (${rootContinents.length} node trực tiếp).`);
-  }
-  if (greatRegions.length !== EXPECTED_WORLD.greatRegions) errors.push(`Nhân Giới phải có đúng 45 Đại Vực; hiện có ${greatRegions.length}.`);
-  if (provinces.length !== EXPECTED_WORLD.provinces) errors.push(`Nhân Giới phải có đúng 540 Châu; hiện có ${provinces.length}.`);
+  if (continents.length !== EXPECTED_WORLD.continents || rootContinents.length !== EXPECTED_WORLD.continents) errors.push(`Nhân Giới phải có đúng 5 Đại Lục; hiện có ${continents.length} (${rootContinents.length} node trực tiếp).`);
+  if (primaryRegions.length !== EXPECTED_WORLD.primaryRegions) errors.push(`Nhân Giới phải có đúng 42 vùng cấp cao; hiện có ${primaryRegions.length}.`);
+  if (territories.length !== EXPECTED_WORLD.territories) errors.push(`Nhân Giới phải có đúng 437 đơn vị cấp hai; hiện có ${territories.length}.`);
 
   const continentIds = new Set(continents.map(node => node.id));
   if (!continentIds.has(NAM_LANG_ROOT_ID)) errors.push('Nam Lăng Đại Lục phải tồn tại như Nam Đại Lục của Nhân Giới.');
 
   for (const continent of continents) {
     if (continent.parentId !== HUMAN_REALM_ROOT_ID) errors.push(`${continent.name} phải trực thuộc Nhân Giới.`);
+    const key = continent.humanRealmContinentId;
+    const expected = EXPECTED_CONTINENTS[key];
+    if (!expected) {
+      errors.push(`${continent.name} thiếu cấu trúc canonical.`);
+      continue;
+    }
+
     const regions = getWorldChildren(continent.id).filter(node => node.type === 'great_region');
-    if (regions.length !== 9) errors.push(`${continent.name} phải có đúng 9 Đại Vực, hiện có ${regions.length}.`);
-    const continentProvinceCount = regions.reduce((sum, region) => sum + getWorldChildren(region.id).filter(node => node.type === 'province').length, 0);
-    if (continentProvinceCount !== 108) errors.push(`${continent.name} phải có đúng 108 Châu, hiện có ${continentProvinceCount}.`);
+    const territoryCount = regions.reduce((sum, region) => sum + getWorldChildren(region.id).filter(node => node.type === 'province').length, 0);
+    if (regions.length !== expected.primary) errors.push(`${continent.name} phải có đúng ${expected.primary} ${expected.primaryLabel}, hiện có ${regions.length}.`);
+    if (territoryCount !== expected.secondary) errors.push(`${continent.name} phải có đúng ${expected.secondary} ${expected.secondaryLabel}, hiện có ${territoryCount}.`);
+
     for (const region of regions) {
-      const regionProvinces = getWorldChildren(region.id).filter(node => node.type === 'province');
-      if (regionProvinces.length !== 12) errors.push(`${region.name} phải có đúng 12 Châu, hiện có ${regionProvinces.length}.`);
+      const children = getWorldChildren(region.id).filter(node => node.type === 'province');
+      if (children.length !== expected.perPrimary) errors.push(`${region.name} phải có đúng ${expected.perPrimary} ${expected.secondaryLabel}, hiện có ${children.length}.`);
+      if (key !== 'south' && region.displayTypeLabel !== expected.primaryLabel) errors.push(`${region.name} phải hiển thị cấp ${expected.primaryLabel}.`);
+      if (key !== 'south') {
+        for (const child of children) {
+          if (child.displayTypeLabel !== expected.secondaryLabel) errors.push(`${child.name} phải hiển thị cấp ${expected.secondaryLabel}.`);
+        }
+      }
     }
   }
 
@@ -191,9 +187,7 @@ export function assertSingleMapSystem(MainGameScene) {
   const playableNodes = HUMAN_REALM_WORLD_NODES.filter(node => node.playableMapId != null);
   const playableNodeMapIds = playableNodes.map(node => Number(node.playableMapId));
   pushDuplicates(errors, 'playableMapId của world node', playableNodeMapIds);
-  if (!sameNumberList([...playableNodeMapIds].sort((a, b) => a - b), EXPECTED_MAP_IDS)) {
-    errors.push(`World node playable phải chỉ trỏ [0,1,2], hiện tại: [${playableNodeMapIds.join(',')}].`);
-  }
+  if (!sameNumberList([...playableNodeMapIds].sort((a, b) => a - b), EXPECTED_MAP_IDS)) errors.push(`World node playable phải chỉ trỏ [0,1,2], hiện tại: [${playableNodeMapIds.join(',')}].`);
   for (const node of playableNodes) {
     const map = mapById.get(Number(node.playableMapId));
     if (!map) errors.push(`World node ${node.id} trỏ playableMapId không tồn tại: ${node.playableMapId}`);
@@ -204,9 +198,7 @@ export function assertSingleMapSystem(MainGameScene) {
   pushDuplicates(errors, 'locationNodeId của playable map', linkedLocationIds);
   for (const map of ALL_PLAYABLE_MAPS) {
     const node = getWorldNode(map.locationNodeId);
-    if (node && Number(node.playableMapId) !== Number(map.id)) {
-      errors.push(`Map ${map.id} -> ${map.locationNodeId} nhưng world node không trỏ ngược đúng map.`);
-    }
+    if (node && Number(node.playableMapId) !== Number(map.id)) errors.push(`Map ${map.id} -> ${map.locationNodeId} nhưng world node không trỏ ngược đúng map.`);
   }
 
   pushDuplicates(errors, 'Travel route ID', TRAVEL_ROUTES.map(route => route.id));
@@ -215,12 +207,8 @@ export function assertSingleMapSystem(MainGameScene) {
     const target = mapById.get(Number(route.toMapId));
     if (!source) errors.push(`Route ${route.id} có fromMapId không tồn tại: ${route.fromMapId}`);
     if (!target) errors.push(`Route ${route.id} có toMapId không tồn tại: ${route.toMapId}`);
-    if (!EXPECTED_MAP_IDS.includes(Number(route.fromMapId)) || !EXPECTED_MAP_IDS.includes(Number(route.toMapId))) {
-      errors.push(`Route ${route.id} tham chiếu map ngoài [0,1,2].`);
-    }
-    if ('minRealm' in route || 'minRealmIdx' in route || 'requiresQuestId' in route || 'requiresFactionId' in route) {
-      errors.push(`Route ${route.id} đang chứa access rule riêng; phải lấy access từ destination map.`);
-    }
+    if (!EXPECTED_MAP_IDS.includes(Number(route.fromMapId)) || !EXPECTED_MAP_IDS.includes(Number(route.toMapId))) errors.push(`Route ${route.id} tham chiếu map ngoài [0,1,2].`);
+    if ('minRealm' in route || 'minRealmIdx' in route || 'requiresQuestId' in route || 'requiresFactionId' in route) errors.push(`Route ${route.id} đang chứa access rule riêng; phải lấy access từ destination map.`);
   }
 
   const panoramaAssetByKey = new Map();
@@ -231,9 +219,7 @@ export function assertSingleMapSystem(MainGameScene) {
     else panoramaAssetByKey.set(map.panoramaKey, map.panoramaAsset);
   }
 
-  if (errors.length) {
-    throw new Error(`[MAP SYSTEM INVARIANT] Phát hiện ${errors.length} lỗi:\n- ${errors.join('\n- ')}`);
-  }
+  if (errors.length) throw new Error(`[MAP SYSTEM INVARIANT] Phát hiện ${errors.length} lỗi:\n- ${errors.join('\n- ')}`);
 
   return Object.freeze({
     ok: true,
@@ -248,8 +234,8 @@ export function assertSingleMapSystem(MainGameScene) {
     worldRootCount: worldRoots.length,
     worldNodeCount: HUMAN_REALM_WORLD_NODES.length,
     continentCount: continents.length,
-    greatRegionCount: greatRegions.length,
-    provinceCount: provinces.length,
+    primaryRegionCount: primaryRegions.length,
+    territoryCount: territories.length,
     playableWorldNodeCount: playableNodes.length,
     travelRouteCount: TRAVEL_ROUTES.length
   });
