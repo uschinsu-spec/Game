@@ -15,6 +15,7 @@ import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMaste
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=20260928-realm-progression-unified-v1';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
+import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-elemental-items-v1';
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-single-map-system-v2';
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v2';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v2';
@@ -35,6 +36,7 @@ installInventoryGridUI(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
+installElementalItemSystem(MainGameScene);
 
 // Exactly one active map runtime and one active map UI.
 installWorldMapRuntime(MainGameScene);
