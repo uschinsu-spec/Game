@@ -206,11 +206,15 @@ function startDeferredRuntimeLoad(scene, saved) {
 
   queueDeferredRuntimeAssets(scene);
 
-  const finish = () => activateDeferredRuntime(scene, saved);
-  scene.load.once('complete', finish);
-  scene.load.on('loaderror', file => {
+  const onDeferredError = file => {
     console.warn('[P0 boot] Deferred asset failed:', file?.key || file?.src || 'unknown');
-  });
+  };
+  const finish = () => {
+    scene.load.off('loaderror', onDeferredError);
+    activateDeferredRuntime(scene, saved);
+  };
+  scene.load.once('complete', finish);
+  scene.load.on('loaderror', onDeferredError);
 
   const busy = typeof scene.load.isLoading === 'function' ? scene.load.isLoading() : false;
   if (!busy) scene.load.start();
@@ -259,8 +263,17 @@ function ensurePanoramaThenSwitch(scene, originalSwitchMap, args) {
   const onComplete = () => finishTransition();
   const onError = file => {
     if (file?.key !== key) return;
-    console.warn('[P0 boot] Panorama failed, using runtime fallback:', key);
-    finishTransition();
+    cleanup();
+    const pending = scene.__pendingMapTransition;
+    if (pending && Number(pending.args?.[0]) === Number(mapId)) scene.__pendingMapTransition = null;
+    console.warn('[P0 boot] Panorama failed; map transition cancelled:', key);
+    scene.showFloatingText?.(
+      scene.player?.x || 270,
+      (scene.player?.y || 620) - 70,
+      'Không tải được bản đồ. Hãy thử lại.',
+      '#ff7777',
+      '13px'
+    );
   };
 
   scene.load.once(fileEvent, onComplete);
@@ -305,11 +318,22 @@ export function installBootAssetOptimization(MainGameScene) {
       initBattlefield: this.initBattlefield,
       initFellowNpcs: this.initFellowNpcs,
       initHerbs: this.initHerbs,
-      spawnVfx: this.spawnVfx
+      spawnVfx: this.spawnVfx,
+      castSkill: this.castSkill,
+      basicAttack: this.basicAttack,
+      updateFellowNpcs: this.updateFellowNpcs,
+      updateHerbs: this.updateHerbs
     };
 
     // Allow the normal scene create path to build the map, player and HUD now,
     // while heavy gameplay systems stay dormant until their assets are loaded.
+    // Keep update loops and village helpers safe before deferred systems exist.
+    this.npcsGroup = [];
+    this.fellowNpcs = [];
+    this.herbsGroup = [];
+    this.mineralNodes = [];
+    this.partyFollowers = this.partyFollowers || [];
+
     this.createAnimations = () => createBootPlayerAnimations(this);
     this.createNpcs = () => {};
     this.createVfxPool = () => { this.vfxPool = this.add.group(); };
@@ -317,6 +341,10 @@ export function installBootAssetOptimization(MainGameScene) {
     this.initFellowNpcs = () => {};
     this.initHerbs = () => {};
     this.spawnVfx = () => null;
+    this.castSkill = () => false;
+    this.basicAttack = () => false;
+    this.updateFellowNpcs = () => {};
+    this.updateHerbs = () => {};
 
     const result = originalCreate.apply(this, args);
 
