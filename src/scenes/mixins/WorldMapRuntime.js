@@ -56,9 +56,13 @@ export function installWorldMapRuntime(MainGameScene) {
   proto.applyMapRuntimeConfig = function applyMapRuntimeConfigFromRegistry(mapId) {
     const map = getMapById(mapId);
     this.currentMap = map;
-    this.worldW = Number(map?.worldWidth || 2880);
+    // Map 4–13 là ID legacy chưa được materialize vào cây Nam Lăng; giữ kích thước 2880 cũ để save cũ không đổi hành vi.
+    const legacyCompat = Number(map?.id) >= 4 && !map?.locationNodeId;
+    this.worldW = legacyCompat ? 2880 : Number(map?.worldWidth || 2880);
     this.worldH = Number(map?.worldHeight || 960);
-    this.field = { ...(map?.field || { left: 60, right: this.worldW - 60, top: 350, bottom: Math.min(900, this.worldH - 60) }) };
+    this.field = legacyCompat
+      ? { left: 60, right: 2820, top: 350, bottom: 900 }
+      : { ...(map?.field || { left: 60, right: this.worldW - 60, top: 350, bottom: Math.min(900, this.worldH - 60) }) };
     return map;
   };
 
