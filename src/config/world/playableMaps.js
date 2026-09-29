@@ -9,8 +9,8 @@
  * - Tất cả map chiến đấu ngoài các ngoại lệ trên mặc định dùng 1 panorama chung,
  *   lặp ngang bằng TileSprite trên world 32.000px giống Thanh Vân Ngoại Vi.
  */
-import { getMapTemplate } from './mapTemplates.js';
-import { STARTER_WORLD_IDS } from './namLangWorld.js';
+import { getMapTemplate } from './mapTemplates.js?v=20260929-single-map-system-v1';
+import { STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v1';
 
 const DEFAULT_FIELD = Object.freeze({ left: 60, right: 2820, top: 350, bottom: 900 });
 const DEFAULT_SPAWN = Object.freeze({ x: 350, y: 620 });
