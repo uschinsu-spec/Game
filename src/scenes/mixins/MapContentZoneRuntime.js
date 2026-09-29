@@ -14,7 +14,7 @@ import {
   getMapById,
   getMapZones,
   getMapZoneNumberAtX
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v3';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
 import { MAP_NPC_PROGRESSIONS } from './FellowNpcMixin.js';
 
