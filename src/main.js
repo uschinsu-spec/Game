@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260929-single-map-system-v3';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20260929-single-map-system-v4';
 import { installUiModalManager } from './scenes/mixins/UiModalManager.js?v=20260928-modal-manager-unified-v1';
 import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20260928-modal-manager-unified-v1';
@@ -15,10 +15,10 @@ import { installElementalCombatProgression } from './scenes/mixins/ElementalComb
 import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=20260928-realm-progression-unified-v1';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
 import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-elemental-items-v1';
-import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-single-map-system-v3';
-import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v3';
-import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v3';
-import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v3';
+import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-single-map-system-v4';
+import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v4';
+import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
+import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
