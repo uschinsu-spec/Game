@@ -6,6 +6,7 @@
  * New code must import worldRegistry.js directly.
  */
 export {
+  MAP_SYSTEM_VERSION,
   PLAYABLE_REGIONS as WORLD_REGIONS,
   ALL_PLAYABLE_MAPS as ALL_MAPS,
   SHARED_WILDERNESS_PANORAMA,
