@@ -1,12 +1,7 @@
 /**
- * WorldMapModal.js
- * Quản lý: openMapPanel (Bản đồ thế giới) - Chuyển sang SimplePrimaryUI
+ * @deprecated
+ * Legacy placeholder kept only so old imports do not break.
+ * The game has one map UI owner: scenes/mixins/WorldMapHierarchyUI.js.
+ * Do not add openMapPanel() here.
  */
-import { CharacterMapPrimaryModal } from '../mixins/SimplePrimaryUI.js';
-
-export const WorldMapModal = {
-  openMapPanel(...args) {
-    return CharacterMapPrimaryModal.openMapPanel.apply(this, args);
-  }
-};
-
+export const WorldMapModal = Object.freeze({});
