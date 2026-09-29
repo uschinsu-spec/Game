@@ -3,15 +3,19 @@
  * Runtime + data integrity guard for the ONE authoritative map system.
  *
  * Fails fast during boot if a future change reintroduces a second map runtime,
- * world-map UI, map-zone geometry owner, or conflicting world data.
+ * world-map UI, map-zone geometry owner, duplicate registry data or conflicting panorama/travel rules.
  */
 import {
   ALL_PLAYABLE_MAPS,
+  MAP_SYSTEM_VERSION,
   MAP_TEMPLATES,
+  NAM_LANG_ROOT_ID,
   NAM_LANG_WORLD_NODES,
+  SHARED_WILDERNESS_PANORAMA,
   getMapZones,
+  getWorldChildren,
   getWorldNode
-} from './worldRegistry.js?v=20260929-single-map-system-v3';
+} from './worldRegistry.js?v=20260929-single-map-system-v1';
 import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v1';
 
 const EXPECTED_RUNTIME_OWNER = 'WorldMapRuntime';
@@ -76,6 +80,20 @@ export function assertSingleMapSystem(MainGameScene) {
       errors.push(`Map ${map.id} trỏ locationNodeId không tồn tại: ${map.locationNodeId}`);
     }
 
+    const template = MAP_TEMPLATES[map.templateId];
+    const isSafeHub = map.isPeaceZone === true || template?.type === 'hub';
+    if (isSafeHub && map.useSharedWildernessPanorama) {
+      errors.push(`Safe hub map ${map.id} không được dùng shared wilderness panorama.`);
+    }
+    if ([0, 1, 2].includes(Number(map.id)) && map.useSharedWildernessPanorama) {
+      errors.push(`Map ${map.id} phải giữ panorama riêng, không được dùng shared wilderness panorama.`);
+    }
+    if (map.useSharedWildernessPanorama) {
+      if (map.panoramaKey !== SHARED_WILDERNESS_PANORAMA.key || map.panoramaAsset !== SHARED_WILDERNESS_PANORAMA.asset) {
+        errors.push(`Map ${map.id} khai báo shared panorama nhưng key/asset không khớp registry chung.`);
+      }
+    }
+
     const zones = getMapZones(map.id);
     if (!map.isPeaceZone && zones.length === 0) errors.push(`Map ${map.id} không có zone geometry.`);
     let previousX1 = null;
@@ -90,10 +108,22 @@ export function assertSingleMapSystem(MainGameScene) {
     }
   }
 
-  // 3) Hierarchy integrity and reciprocal playable-map links.
+  // 3) Nam Lăng hierarchy: exact 9 Đại Vực / 108 Châu + reciprocal runtime links.
   const nodeIds = NAM_LANG_WORLD_NODES.map(node => node.id);
   pushDuplicates(errors, 'World node ID', nodeIds);
   const nodeIdSet = new Set(nodeIds);
+  const greatRegions = NAM_LANG_WORLD_NODES.filter(node => node.type === 'great_region');
+  const provinces = NAM_LANG_WORLD_NODES.filter(node => node.type === 'province');
+  const rootChildren = getWorldChildren(NAM_LANG_ROOT_ID).filter(node => node.type === 'great_region');
+  if (greatRegions.length !== 9 || rootChildren.length !== 9) {
+    errors.push(`Nam Lăng phải có đúng 9 Đại Vực, hiện có ${greatRegions.length} (${rootChildren.length} node trực tiếp).`);
+  }
+  if (provinces.length !== 108) errors.push(`Nam Lăng phải có đúng 108 Châu, hiện có ${provinces.length}.`);
+
+  const playableNodeMapIds = NAM_LANG_WORLD_NODES
+    .filter(node => node.playableMapId != null)
+    .map(node => Number(node.playableMapId));
+  pushDuplicates(errors, 'playableMapId của world node', playableNodeMapIds);
 
   for (const node of NAM_LANG_WORLD_NODES) {
     if (node.parentId && !nodeIdSet.has(node.parentId)) {
@@ -109,27 +139,26 @@ export function assertSingleMapSystem(MainGameScene) {
     }
   }
 
-  const linkedLocationIds = ALL_PLAYABLE_MAPS
-    .filter(map => map.locationNodeId)
-    .map(map => map.locationNodeId);
+  const linkedLocationIds = ALL_PLAYABLE_MAPS.filter(map => map.locationNodeId).map(map => map.locationNodeId);
   pushDuplicates(errors, 'locationNodeId của playable map', linkedLocationIds);
+  for (const map of ALL_PLAYABLE_MAPS.filter(map => map.locationNodeId)) {
+    const node = getWorldNode(map.locationNodeId);
+    if (node && Number(node.playableMapId) !== Number(map.id)) {
+      errors.push(`Map ${map.id} -> ${map.locationNodeId} nhưng world node không trỏ ngược đúng map.`);
+    }
+  }
 
-  // 4) Travel graph integrity. Access requirements live on destination maps,
-  // not duplicated inside routes.
+  // 4) Travel graph integrity. Access requirements live only on destination maps.
   pushDuplicates(errors, 'Travel route ID', TRAVEL_ROUTES.map(route => route.id));
   for (const route of TRAVEL_ROUTES) {
-    if (!mapById.has(Number(route.fromMapId))) {
-      errors.push(`Route ${route.id} có fromMapId không tồn tại: ${route.fromMapId}`);
-    }
-    if (!mapById.has(Number(route.toMapId))) {
-      errors.push(`Route ${route.id} có toMapId không tồn tại: ${route.toMapId}`);
-    }
+    if (!mapById.has(Number(route.fromMapId))) errors.push(`Route ${route.id} có fromMapId không tồn tại: ${route.fromMapId}`);
+    if (!mapById.has(Number(route.toMapId))) errors.push(`Route ${route.id} có toMapId không tồn tại: ${route.toMapId}`);
     if ('minRealm' in route || 'minRealmIdx' in route || 'requiresQuestId' in route || 'requiresFactionId' in route) {
       errors.push(`Route ${route.id} đang chứa access rule riêng; phải lấy access từ destination map.`);
     }
   }
 
-  // 5) A panorama key may be reused only when it resolves to the same asset.
+  // 5) A panorama key may be reused only when it resolves to the exact same asset.
   const panoramaAssetByKey = new Map();
   for (const map of ALL_PLAYABLE_MAPS) {
     if (!map.panoramaKey || !map.panoramaAsset) continue;
@@ -147,11 +176,15 @@ export function assertSingleMapSystem(MainGameScene) {
 
   return Object.freeze({
     ok: true,
+    version: MAP_SYSTEM_VERSION,
     runtimeOwner: EXPECTED_RUNTIME_OWNER,
     uiOwner: EXPECTED_UI_OWNER,
     contentZoneOwner: EXPECTED_CONTENT_ZONE_OWNER,
     playableMapCount: ALL_PLAYABLE_MAPS.length,
     worldNodeCount: NAM_LANG_WORLD_NODES.length,
+    greatRegionCount: greatRegions.length,
+    provinceCount: provinces.length,
+    sharedPanoramaMapCount: ALL_PLAYABLE_MAPS.filter(map => map.useSharedWildernessPanorama).length,
     travelRouteCount: TRAVEL_ROUTES.length
   });
 }
