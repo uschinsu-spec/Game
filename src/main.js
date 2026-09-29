@@ -61,7 +61,10 @@ export const config = {
   },
   scene: [MainGameScene],
   input: { touch: { capture: true }, activePointers: 3 },
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  // GitHub Pages may return transient 503s when the large texture catalog is
+  // requested in one burst. A smaller queue is more reliable on mobile too.
+  loader: { maxParallelDownloads: 12 }
 };
 
 function startGame() {
