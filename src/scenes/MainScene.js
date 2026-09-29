@@ -1,17 +1,11 @@
 /**
- * MainScene.js  —  Core Scene (Orchestrator)
- * ============================================
- * Chỉ chứa: constructor, preload, create, update, switchMap, createAnimations.
- * Mọi logic nghiệp vụ được tách vào các Mixin module riêng biệt:
- *
- *   mixins/HudMixin.js     — HUD, Nav, Skill Bar, AFK, Joystick, Minimap
- *   mixins/CombatMixin.js  — basicAttack, castSkill, VFX, damage, gainExp
- *   mixins/EnemyMixin.js   — initBattlefield, spawnOneEnemy, killEnemy, AI
- *   mixins/PlayerMixin.js  — createPlayer, stats, dash, flyingSword, utilities
- *   mixins/ModalMixin.js   — 7 panel UI (Map, Skill, Sect, Crafting, Gear, etc.)
+ * MainScene.js — Core Scene (Orchestrator)
+ * ========================================
+ * Chỉ chứa lifecycle + gameplay loop + animation.
+ * Toàn bộ map runtime do WorldMapRuntime.js sở hữu duy nhất.
+ * Toàn bộ world-map UI do WorldMapHierarchyUI.js sở hữu duy nhất.
  */
-import { REALMS } from '../config/realmsData.js';
-import { ALL_MAPS, getMapById } from '../config/regionsData.js?v=20260928-thanh-van-image-hub-v3';
+import { getMapById } from '../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-mastery-vfx-v4';
 import { W, H } from './constants.js';
@@ -55,13 +49,6 @@ export class MainGameScene extends Phaser.Scene {
 
   preload() {
     const A = './assets/';
-    const loadedPanoramaKeys = new Set();
-    ALL_MAPS.forEach(map => {
-      if (map.panoramaAsset && !loadedPanoramaKeys.has(map.panoramaKey)) {
-        this.load.image(map.panoramaKey, A + map.panoramaAsset);
-        loadedPanoramaKeys.add(map.panoramaKey);
-      }
-    });
 
     this.load.image('flying_sword', A + 'characters/player/flying_sword.png');
     this.load.spritesheet('player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
@@ -95,7 +82,6 @@ export class MainGameScene extends Phaser.Scene {
       this.load.image(`tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.png`);
     }
 
-    // 20 Flying NPCs (Trúc Cơ trở lên)
     for (let i = 1; i <= 20; i++) {
       for (let f = 1; f <= 8; f++) {
         const pad = String(f).padStart(2, '0');
@@ -252,7 +238,7 @@ export class MainGameScene extends Phaser.Scene {
           if (gameState.afkSettings?.autoSkill && !isAttacking) {
             for (const sId of gameState.equippedSkillIds) {
               if (!sId || this.activeSkillCds[sId] > 0) continue;
-              if (sId === 'basic_attack' && dist > 115) continue; // Cận chiến: phải áp sát mới tung đòn
+              if (sId === 'basic_attack' && dist > 115) continue;
               if (this.isFlyingSword) this.isFlyingSword = false;
               this.castSkill(sId);
               casted = true;
@@ -274,7 +260,7 @@ export class MainGameScene extends Phaser.Scene {
           if (gameState.afkSettings?.autoSkill && onScreen && !isAttacking) {
             for (const sId of gameState.equippedSkillIds) {
               if (!sId || this.activeSkillCds[sId] > 0) continue;
-              if (sId === 'basic_attack' && dist > 120) continue; // Đánh thường cận chiến: chỉ đánh khi đã chạy đến sát quái (<=120px)
+              if (sId === 'basic_attack' && dist > 120) continue;
               if (this.isFlyingSword) this.isFlyingSword = false;
               this.player.setFlipX(target.x < this.player.x);
               this.castSkill(sId);
@@ -285,7 +271,6 @@ export class MainGameScene extends Phaser.Scene {
           if (!casted) {
             const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
             const hasReadyRangedSkill = gameState.equippedSkillIds.some(sId => sId && sId !== 'basic_attack' && !(this.activeSkillCds[sId] > 0));
-            // Nếu có chiêu tầm xa sẵn sàng: giữ cự ly 220px bắn phép; nếu cần đánh thường cận chiến: CHẠY ÁP SÁT ĐẾN CẬN CHIẾN (85px)!
             const stopDist = hasReadyRangedSkill ? 220 : (hasBasicEquipped ? 85 : 220);
 
             if (dist > stopDist) {
@@ -299,9 +284,7 @@ export class MainGameScene extends Phaser.Scene {
               if (this.isFlyingSword) this.isFlyingSword = false;
               vx = 0; vy = 0;
               this.player.setFlipX(target.x < this.player.x);
-              if (hasBasicEquipped && dist <= 125 && !isAttacking) {
-                this.basicAttack();
-              }
+              if (hasBasicEquipped && dist <= 125 && !isAttacking) this.basicAttack();
             }
           }
         }
@@ -416,56 +399,6 @@ export class MainGameScene extends Phaser.Scene {
     if (!this.anims.exists('anim_vfx_kiem_1')) this.anims.create({ key: 'anim_vfx_kiem_1', frames: [0,1,2,3,4,5,6].map(f => ({ key: `vfx_kim_1_${f}` })), frameRate: 9, repeat: -1 });
     if (!this.anims.exists('anim_vfx_kim_2_fly')) this.anims.create({ key: 'anim_vfx_kim_2_fly', frames: [0,1].map(f => ({ key: `vfx_kim_2_${f}` })), frameRate: 8, repeat: -1 });
     if (!this.anims.exists('anim_vfx_kim_2_hit')) this.anims.create({ key: 'anim_vfx_kim_2_hit', frames: [2,3,4,5,6,7].map(f => ({ key: `vfx_kim_2_${f}` })), frameRate: 14, repeat: 0 });
-  }
-
-  applyMapRuntimeConfig(mapId) {
-    const map = getMapById(mapId); this.currentMap = map; this.worldW = map.worldWidth || 2880; this.worldH = map.worldHeight || H; this.field = { ...(map.field || { left: 60, right: this.worldW - 60, top: 350, bottom: 900 }) }; return map;
-  }
-  getMapPanoramaKey(map = this.currentMap) { return map?.panoramaKey && this.textures.exists(map.panoramaKey) ? map.panoramaKey : 'map_panorama_0'; }
-  createWorld() {
-    const map = this.currentMap || this.applyMapRuntimeConfig(gameState.currentMapId); const panoramaKey = this.getMapPanoramaKey(map); if (this.bg) this.bg.destroy();
-    this.bg = (map.noRepeat || map.isPeaceZone || map.worldWidth <= 2880) ? this.add.image(this.worldW / 2, this.worldH / 2, panoramaKey).setDisplaySize(this.worldW, this.worldH).setDepth(-10) : this.add.tileSprite(this.worldW / 2, this.worldH / 2, this.worldW, this.worldH, panoramaKey).setDepth(-10);
-  }
-  switchMap(mapId, spawnX, spawnY) {
-    this.resetJoy?.();
-    this.moveTarget = null;
-    const map = this.applyMapRuntimeConfig(mapId); gameState.currentMapId = map.id; this.physics.world.setBounds(0, 0, this.worldW, this.worldH); this.cameras.main.setBounds(0, 0, this.worldW, this.worldH); if (this.bg) this.bg.destroy();
-    const panoramaKey = this.getMapPanoramaKey(map); this.bg = (map.noRepeat || map.isPeaceZone || map.worldWidth <= 2880) ? this.add.image(this.worldW / 2, this.worldH / 2, panoramaKey).setDisplaySize(this.worldW, this.worldH).setDepth(-10) : this.add.tileSprite(this.worldW / 2, this.worldH / 2, this.worldW, this.worldH, panoramaKey).setDepth(-10);
-    const sx = spawnX ?? map.spawn?.x ?? 350, sy = spawnY ?? map.spawn?.y ?? 620; if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0); this.moveTarget = null;
-    this.createNpcs(); this.createMapPortals(); this.syncVillageHubMode(); this.initBattlefield(); this.initFellowNpcs(); this.initHerbs(); this.updateHUD();
-    this.resetJoy?.();
-    return map;
-  }
-
-  createMapPortals() {
-    if (this.activePortals) this.activePortals.forEach(p => p.container?.destroy());
-    this.activePortals = [];
-    const curMapId = gameState.currentMapId, portalDefs = [];
-    if (curMapId === 1) {
-      portalDefs.push({ x: 250, y: 620, targetMapId: 0, targetSpawnX: 270, targetSpawnY: 760, title: 'THANH VÂN THÔN', sub: 'QUAY VỀ THÔN LÀNG AN TOÀN', minRealm: 0 });
-      portalDefs.push({ x: this.worldW - 350, y: 620, targetMapId: 2, targetSpawnX: 350, targetSpawnY: 620, title: 'VẠN MỘC SÂM LÂM', sub: 'LỐI VÀO CỔ MỘC BÍ CẢNH', minRealm: 2 });
-    } else if (curMapId === 2) {
-      portalDefs.push({ x: 250, y: 620, targetMapId: 1, targetSpawnX: 31500, targetSpawnY: 620, title: 'THANH VÂN NGOẠI VI', sub: 'QUAY VỀ NGOẠI VI', minRealm: 0 });
-      portalDefs.push({ x: this.worldW - 350, y: 620, targetMapId: 3, targetSpawnX: 350, targetSpawnY: 620, title: 'HUYẾT LẠC CẤM ĐỊA', sub: 'TIẾN VÀO NHỊ PHẨM CẤM KHU', minRealm: 4 });
-    } else if (curMapId === 3) portalDefs.push({ x: 250, y: 620, targetMapId: 2, targetSpawnX: 31500, targetSpawnY: 620, title: 'VẠN MỘC SÂM LÂM', sub: 'QUAY VỀ CỔ MỘC', minRealm: 2 });
-    portalDefs.forEach(def => {
-      const container = this.add.container(def.x, def.y).setDepth(Math.floor(def.y) - 5);
-      const groundGfx = this.add.graphics().setScale(1.25, 0.46); const rainbowColors = [0x00ffff,0xff00ff,0xffd700,0x00ff88,0x9d4edd,0xff6b00];
-      for (let r=92;r>=20;r-=14) { groundGfx.lineStyle(3,rainbowColors[(r/14)%rainbowColors.length],0.75); groundGfx.strokeCircle(0,0,r); }
-      groundGfx.fillStyle(0x00ffff,0.18).fillCircle(0,0,96); container.add(groundGfx);
-      const hit = this.add.ellipse(0,0,240,90,0x00ffff,0.001).setInteractive({useHandCursor:true}); hit.on('pointerdown',p=>{p?.event?.stopPropagation();this.triggerPortalTeleport(def);}); container.add(hit);
-      this.tweens.add({targets:groundGfx,angle:360,duration:11000,repeat:-1,ease:'Linear'});
-      const sign=this.add.container(0,-225); const bg=this.add.graphics(); bg.fillStyle(0x061426,0.9).fillRoundedRect(-145,-34,290,68,14); bg.lineStyle(2.5,0x00ffff,0.95).strokeRoundedRect(-145,-34,290,68,14); sign.add(bg);
-      sign.add(this.add.text(0,-12,`🌀 ${def.title} 🌀`,{fontFamily:'sans-serif',fontSize:'17px',fontStyle:'bold',color:'#fff',stroke:'#003366',strokeThickness:4}).setOrigin(0.5));
-      sign.add(this.add.text(0,14,`[ ${def.sub} ]`,{fontFamily:'sans-serif',fontSize:'10.5px',fontStyle:'bold',color:'#66ffcc',stroke:'#000',strokeThickness:2}).setOrigin(0.5)); container.add(sign); this.activePortals.push({...def,container});
-    });
-  }
-  getPortalCooldownKey(fromMapId,toMapId){return `portal_${fromMapId}_${toMapId}`;}
-  triggerPortalTeleport(portal){
-    if(portal.minRealm&&gameState.realmIdx<portal.minRealm){this.showFloatingText(this.player.x,this.player.y-70,`Tu vi chưa đủ! Cần cảnh giới [${REALMS[portal.minRealm]?.name||'cao hơn'}] để bước vào Tiên Môn!`,'#ff5555','14px');return;}
-    const now=Number(this.time?.now||0);
-    if(Number(portal?.targetMapId)===0 && now<Number(this.villageReentryBlockedUntil||0)){return;}
-    const fromMapId=gameState.currentMapId; const key=this.getPortalCooldownKey(fromMapId,portal.targetMapId); if((this[key]||0)>now)return; this[key]=now+3500; this.switchMap(portal.targetMapId,portal.targetSpawnX,portal.targetSpawnY);
   }
 }
 
