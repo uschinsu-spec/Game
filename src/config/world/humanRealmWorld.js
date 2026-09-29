@@ -10,11 +10,11 @@
 import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID } from './namLangWorld.js?v=20260929-single-map-system-v2';
 
 export const HUMAN_REALM_ROOT_ID = 'hr';
-export const HUMAN_REALM_VERSION = '20260929-human-realm-distinct-continents-v2';
+export const HUMAN_REALM_VERSION = '20260929-human-realm-mortal-east-v3';
 
 const CONTINENT_STRUCTURES = Object.freeze({
   south: Object.freeze({ primaryLabel: 'Đại Vực', primaryCount: 9, secondaryLabel: 'Châu', secondaryPerPrimary: 12, secondaryCount: 108 }),
-  east: Object.freeze({ primaryLabel: 'Tiên Vực', primaryCount: 8, secondaryLabel: 'Đạo', secondaryPerPrimary: 8, secondaryCount: 64 }),
+  east: Object.freeze({ primaryLabel: 'Huyền Vực', primaryCount: 8, secondaryLabel: 'Đạo', secondaryPerPrimary: 8, secondaryCount: 64 }),
   west: Object.freeze({ primaryLabel: 'Hoang Vực', primaryCount: 7, secondaryLabel: 'Lĩnh', secondaryPerPrimary: 7, secondaryCount: 49 }),
   north: Object.freeze({ primaryLabel: 'Hàn Thiên', primaryCount: 6, secondaryLabel: 'Phủ', secondaryPerPrimary: 12, secondaryCount: 72 }),
   central: Object.freeze({ primaryLabel: 'Thánh Vực', primaryCount: 12, secondaryLabel: 'Châu', secondaryPerPrimary: 12, secondaryCount: 144 })
@@ -211,9 +211,9 @@ function makeTerritoryNode(continent, region, regionNodeId, regionIndex, territo
 const NEW_CONTINENT_SPECS = Object.freeze([
   freezeNested({
     id: 'east', name: 'Đông Huyền Đại Lục', position: 'Đông',
-    primaryLabel: 'Tiên Vực', secondaryLabel: 'Đạo', secondaryPerPrimary: 8,
+    primaryLabel: 'Huyền Vực', secondaryLabel: 'Đạo', secondaryPerPrimary: 8,
     alignment: 'chính đạo / hải tu / kiếm tu', realmRange: [6, 25],
-    desc: 'Phương Đông chia thành các Tiên Vực do đạo thống lớn quản lĩnh; dưới mỗi Tiên Vực là các Đạo, thiên về sơn hải, long mạch và truyền thừa chuyên môn.',
+    desc: 'Phương Đông chia thành tám Huyền Vực do các đạo thống lớn, hoàng triều tu chân và thế gia cổ kiểm soát; dưới mỗi Huyền Vực là tám Đạo, thiên về sơn hải, long mạch và truyền thừa chuyên môn.',
     climate: 'gió biển, linh vũ, sơn hải và lôi bạo theo mùa',
     products: ['Long Linh Thảo', 'Hải Tâm Châu', 'Tử Tiêu Lôi Trúc', 'Thanh Long Mộc', 'Đông Hải Linh Dịch'],
     minerals: ['Hải Lam Tinh', 'Lôi Văn Thạch', 'Long Mạch Ngọc', 'Canh Kim Kiếm Tinh'],
@@ -221,14 +221,14 @@ const NEW_CONTINENT_SPECS = Object.freeze([
     factionKinds: ['Kiếm Tông', 'Thủy Cung', 'Lôi Điện', 'Long Tộc', 'Phù Môn', 'Tu Tiên Gia Tộc'],
     factionSuffixes: ['Thiên Kiếm Tông', 'Thương Hải Cung', 'Cửu Lôi Điện', 'Thanh Long Đạo Viện', 'Đông Huyền Phù Môn', 'Vân Hải Thế Gia'],
     regions: [
-      ['thanh_long','Thanh Long Tiên Vực','long','Long','thanh long mạch và mộc linh cổ địa',['Mộc','Thủy','Phong'],'Thanh Long Thánh Tông'],
-      ['thuong_hai','Thương Hải Tiên Vực','ocean','Hải','đại dương, quần đảo và thương cảng tu tiên',['Thủy','Phong','Lôi'],'Thương Hải Tiên Cung'],
-      ['thien_kiem','Thiên Kiếm Tiên Vực','sword','Kiếm','kiếm sơn, kiếm mộ và phi kiếm truyền thừa',['Kiếm','Kim','Phong'],'Thiên Kiếm Thánh Tông'],
-      ['loi_trach','Lôi Trạch Tiên Vực','thunder','Lôi','lôi trạch, thiên lôi và yêu thú lôi hệ',['Lôi','Thủy','Kim'],'Cửu Tiêu Lôi Tông'],
-      ['van_moc','Vạn Mộc Tiên Vực','forest','Mộc','thần mộc, dược cốc và mộc linh sinh cơ',['Mộc','Thổ','Thủy'],'Vạn Mộc Trường Sinh Tông'],
-      ['linh_phu','Linh Phù Tiên Vực','talisman','Phù','phù đạo, trận pháp và linh văn cổ',['Kim','Mộc','Lôi'],'Thiên Phù Đạo Cung'],
-      ['long_uyen','Long Uyên Tiên Vực','dragon','Uyên','long uyên, giao long và thủy phủ cổ',['Thủy','Lôi','Vật Lý'],'Long Uyên Thần Cung'],
-      ['nhat_thang','Nhật Thăng Tiên Vực','sunrise','Nhật','linh quang nhật xuất, hỏa khí và quang pháp',['Hỏa','Kim','Phong'],'Nhật Thăng Tiên Tông']
+      ['thanh_long','Thanh Long Huyền Vực','long','Long','thanh long mạch và mộc linh cổ địa',['Mộc','Thủy','Phong'],'Thanh Long Thánh Tông'],
+      ['thuong_hai','Thương Hải Huyền Vực','ocean','Hải','đại dương, quần đảo và thương cảng tu tiên',['Thủy','Phong','Lôi'],'Thương Hải Tiên Cung'],
+      ['thien_kiem','Thiên Kiếm Huyền Vực','sword','Kiếm','kiếm sơn, kiếm mộ và phi kiếm truyền thừa',['Kiếm','Kim','Phong'],'Thiên Kiếm Thánh Tông'],
+      ['loi_trach','Lôi Trạch Huyền Vực','thunder','Lôi','lôi trạch, thiên lôi và yêu thú lôi hệ',['Lôi','Thủy','Kim'],'Cửu Tiêu Lôi Tông'],
+      ['van_moc','Vạn Mộc Huyền Vực','forest','Mộc','thần mộc, dược cốc và mộc linh sinh cơ',['Mộc','Thổ','Thủy'],'Vạn Mộc Trường Sinh Tông'],
+      ['linh_phu','Linh Phù Huyền Vực','talisman','Phù','phù đạo, trận pháp và linh văn cổ',['Kim','Mộc','Lôi'],'Thiên Phù Đạo Cung'],
+      ['long_uyen','Long Uyên Huyền Vực','dragon','Uyên','long uyên, giao long và thủy phủ cổ',['Thủy','Lôi','Vật Lý'],'Long Uyên Thần Cung'],
+      ['nhat_thang','Nhật Thăng Huyền Vực','sunrise','Nhật','linh quang nhật xuất, hỏa khí và quang pháp',['Hỏa','Kim','Phong'],'Nhật Thăng Tiên Tông']
     ]
   }),
   freezeNested({
@@ -345,8 +345,8 @@ const humanRealmNodes = [
     displayTypeLabel: 'NHÂN GIỚI',
     name: 'Nhân Giới',
     parentId: null,
-    desc: 'Nhân Giới gồm 5 Đại Lục nhưng mỗi Đại Lục có chế độ phân chia riêng: Nam Lăng 9 Đại Vực/108 Châu; Đông Huyền 8 Tiên Vực/64 Đạo; Tây Mạc 7 Hoang Vực/49 Lĩnh; Bắc Minh 6 Hàn Thiên/72 Phủ; Trung Vực 12 Thánh Vực/144 Châu.',
-    structureSummary: 'Nam: 9 Đại Vực → 108 Châu • Đông: 8 Tiên Vực → 64 Đạo • Tây: 7 Hoang Vực → 49 Lĩnh • Bắc: 6 Hàn Thiên → 72 Phủ • Trung: 12 Thánh Vực → 144 Châu',
+    desc: 'Nhân Giới gồm 5 Đại Lục nhưng mỗi Đại Lục có chế độ phân chia riêng: Nam Lăng 9 Đại Vực/108 Châu; Đông Huyền 8 Huyền Vực/64 Đạo; Tây Mạc 7 Hoang Vực/49 Lĩnh; Bắc Minh 6 Hàn Thiên/72 Phủ; Trung Vực 12 Thánh Vực/144 Châu.',
+    structureSummary: 'Nam: 9 Đại Vực → 108 Châu • Đông: 8 Huyền Vực → 64 Đạo • Tây: 7 Hoang Vực → 49 Lĩnh • Bắc: 6 Hàn Thiên → 72 Phủ • Trung: 12 Thánh Vực → 144 Châu',
     counts: Object.freeze({ continents: 5, primaryRegions: 42, territories: 437 }),
     materializationRule: HUMAN_REALM_SCALE.materializationRule,
     status: 'canonical_world_root'
