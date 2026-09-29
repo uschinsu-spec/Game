@@ -7,7 +7,6 @@ import { installSimpleWelcomeUI } from './scenes/mixins/SimpleWelcomeUI.js?v=202
 import { installNpcDialogUI } from './scenes/mixins/SimpleNpcFullscreenUI.js?v=20260928-modal-manager-unified-v1';
 import { installSimpleSkillFullscreenUI } from './scenes/mixins/SimpleSkillFullscreenUI.js?v=20260928-modal-manager-unified-v1';
 import { installStarterGiftResourceOnly } from './scenes/mixins/StarterGiftResourceOnly.js?v=20260928-starter-resource-only-16f2fc3';
-import { installWorldResourceProgression } from './scenes/mixins/WorldResourceProgression.js?v=20260928-world-resources-a419273';
 import { installEarlyGamePharmacopeia } from './scenes/mixins/EarlyGamePharmacopeia.js?v=20260928-pharmacopeia-clean-v4';
 import { installCommonPillRankUiFix } from './scenes/mixins/CommonPillRankUiFix.js?v=20260928-common-pill-ui-b25b6a2';
 import { installInventoryGridUI } from './scenes/mixins/InventoryGridUI.js?v=20260928-stacked-grid-5c655cb';
@@ -28,7 +27,6 @@ installSimpleWelcomeUI(MainGameScene);
 installNpcDialogUI(MainGameScene);
 installSimpleSkillFullscreenUI(MainGameScene);
 installStarterGiftResourceOnly(MainGameScene);
-installWorldResourceProgression(MainGameScene);
 installEarlyGamePharmacopeia(MainGameScene);
 installCommonPillRankUiFix(MainGameScene);
 installInventoryGridUI(MainGameScene);
