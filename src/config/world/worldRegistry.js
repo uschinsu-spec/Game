@@ -1,14 +1,29 @@
 /**
  * worldRegistry.js
- * API đọc duy nhất cho hệ thống map: runtime map + cây Nam Lăng + travel.
+ * SINGLE SOURCE OF TRUTH / READ API for the entire map system.
+ * Runtime maps + Nam Lăng hierarchy + access + travel + panorama registry all resolve here.
  */
-import { PLAYABLE_REGIONS, ALL_PLAYABLE_MAPS } from './playableMaps.js?v=20260929-shared-panorama-v1';
-import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-shared-panorama-v1';
-import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-shared-panorama-v1';
-import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-shared-panorama-v1';
+import {
+  PLAYABLE_REGIONS,
+  ALL_PLAYABLE_MAPS,
+  SHARED_WILDERNESS_PANORAMA
+} from './playableMaps.js?v=20260929-single-map-system-v1';
+import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v1';
+import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v1';
+import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 
 export const START_MAP_ID = 0;
-export { PLAYABLE_REGIONS, ALL_PLAYABLE_MAPS, NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS, MAP_TEMPLATES, PANORAMA_STANDARD, getMapTemplate };
+export {
+  PLAYABLE_REGIONS,
+  ALL_PLAYABLE_MAPS,
+  SHARED_WILDERNESS_PANORAMA,
+  NAM_LANG_WORLD_NODES,
+  NAM_LANG_ROOT_ID,
+  STARTER_WORLD_IDS,
+  MAP_TEMPLATES,
+  PANORAMA_STANDARD,
+  getMapTemplate
+};
 
 const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
 const nodeById = new Map(NAM_LANG_WORLD_NODES.map(node => [node.id, node]));
@@ -107,8 +122,4 @@ export function getPanoramaPreloadEntries() {
     if (map.panoramaAsset && !unique.has(map.panoramaKey)) unique.set(map.panoramaKey, map.panoramaAsset);
   }
   return [...unique.entries()].map(([key, asset]) => ({ key, asset }));
-}
-
-export function getLegacyPlayableRegions() {
-  return PLAYABLE_REGIONS;
 }
