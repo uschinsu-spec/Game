@@ -18,7 +18,7 @@ import {
   HUMAN_REALM_CONTINENTS,
   HUMAN_REALM_WORLD_NODES,
   NEW_HUMAN_REALM_CONTINENT_SPECS
-} from './humanRealmWorld.js?v=20260929-human-realm-v2';
+} from './humanRealmWorld.js?v=20260929-human-realm-v3';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import {
@@ -33,7 +33,7 @@ import {
   getProvinceFactionProfile
 } from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-human-realm-distinct-continents-v2';
+export const MAP_SYSTEM_VERSION = '20260929-human-realm-mortal-east-v3';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
