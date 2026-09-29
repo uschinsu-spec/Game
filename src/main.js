@@ -20,8 +20,9 @@ import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=202
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v4';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
 import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260929-zone-stream-v1';
+import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20260929-item-icon-stream-v1';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
-import { installBootAssetOptimization } from './scenes/mixins/BootAssetOptimization.js?v=20260929-p0-boot-assets-v2';
+import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20260929-p0-boot-assets-v3';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
@@ -43,20 +44,24 @@ installElementalItemSystem(MainGameScene);
 // Exactly one active item runtime. Category registries are data stores, not separate item systems.
 assertSingleItemSystem(MainGameScene);
 
-// Exactly one active map runtime, one map UI, one map-zone geometry provider.
+// Exactly one active map runtime, one map UI, and one map-zone geometry provider.
 installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
 
-// Stream enemy/NPC/VFX by the canonical active map/zone. This wraps the map-zone
-// content methods before the boot gate snapshots/restores them.
+// Stream enemy/NPC/VFX by the canonical active map/zone.
 installMapZoneAssetStreaming(MainGameScene);
+
+// Item icons are layered after the item + zone runtimes so this wrapper can
+// stream owned inventory icons and remove beast-loot icons from combat-shared.
+installItemIconStreaming(MainGameScene);
 
 // Fail fast if a future change reintroduces duplicate/conflicting map systems.
 assertSingleMapSystem(MainGameScene);
 
 // Boot gate remains last: current panorama + player + first-screen HUD only.
-installBootAssetOptimization(MainGameScene);
+// V3 does not enumerate/load GAME_ITEM_ICONS at boot or idle time.
+installBootAssetOptimizationV3(MainGameScene);
 
 export const config = {
   type: Phaser.AUTO,
