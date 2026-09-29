@@ -1,11 +1,11 @@
 /**
  * WorldMapHierarchyUI.js
  * SINGLE WORLD MAP UI OWNER.
- * Nam Lăng → Đại Vực → Châu → Quốc/Thế lực → Quận → Thành Vực → Location.
+ * Nhân Giới → Đại Lục → Đại Vực → Châu → Quốc/Thế lực → Quận → Thành Vực → Location.
  */
 import { REALMS } from '../../config/realmsData.js';
 import {
-  NAM_LANG_ROOT_ID,
+  HUMAN_REALM_ROOT_ID,
   canEnterMap,
   getMapById,
   getWorldBreadcrumb,
@@ -21,6 +21,7 @@ const FONT = 'Be Vietnam Pro, sans-serif';
 const PAGE_SIZE = 6;
 const MAP_UI_OWNER = 'WorldMapHierarchyUI';
 const TYPE_LABEL = Object.freeze({
+  realm: 'NHÂN GIỚI',
   continent: 'ĐẠI LỤC',
   great_region: 'ĐẠI VỰC',
   province: 'CHÂU',
@@ -87,7 +88,7 @@ function nodeStatus(node) {
     if (Number(node.playableMapId) === Number(gameState.currentMapId)) return 'ĐANG Ở ĐÂY';
     return hasVisitedMap(gameState, node.playableMapId) ? 'ĐÃ KHÁM PHÁ' : 'CHƯA ĐẾN';
   }
-  if (node.status === 'planned' || node.materialized === false) return 'DỮ LIỆU THẾ GIỚI';
+  if (node.status === 'planned' || node.materialized === false || node.status === 'world_data') return 'DỮ LIỆU THẾ GIỚI';
   return isNodeDiscovered(gameState, node.id) ? 'ĐÃ BIẾT' : 'CHƯA KHÁM PHÁ';
 }
 
@@ -101,6 +102,7 @@ function scaleSummary(node) {
   const parts = [];
   const fmt = value => Array.isArray(value) ? `${formatNumber(value[0])}–${formatNumber(value[1])}` : formatNumber(value);
 
+  if (c.continents) parts.push(`${formatNumber(c.continents)} Đại Lục`);
   if (c.greatRegions) parts.push(`${formatNumber(c.greatRegions)} Đại Vực`);
   if (c.provinces) parts.push(`${formatNumber(c.provinces)} Châu`);
   if (c.politicalEntities) parts.push(`${formatNumber(c.politicalEntities)} chính thể`);
@@ -126,6 +128,8 @@ function scaleSummary(node) {
 function extraDetailLines(node) {
   const lines = [];
   const c = node.counts || {};
+  if (node.position) lines.push(`Phương vị: ${node.position}`);
+  if (node.climate) lines.push(`Khí hậu/địa thế: ${node.climate}`);
   if (node.capital) lines.push(`Trung tâm: ${node.capital}`);
   if (c.mountainRanges || c.largeForests || c.miningZones || c.spiritLakes) {
     lines.push(`Địa hình: ${c.mountainRanges || 0} sơn mạch • ${c.largeForests || 0} đại lâm • ${c.miningZones || 0} khoáng khu • ${c.spiritLakes || 0} linh hồ`);
@@ -133,9 +137,14 @@ function extraDetailLines(node) {
   if (c.cultivationFamilies || c.minorSects || c.smallSecretRealms || c.localForbiddenZones) {
     lines.push(`Tu tiên: ${c.cultivationFamilies || 0} gia tộc • ${c.minorSects || 0} tiểu tông • ${c.smallSecretRealms || 0} bí cảnh • ${c.localForbiddenZones || 0} cấm địa`);
   }
-  if (node.materializedLocationTarget) {
-    lines.push(`Playable mục tiêu: ${node.materializedLocationTarget[0]}–${node.materializedLocationTarget[1]} địa điểm quan trọng`);
-  }
+  if (node.materializedLocationTarget) lines.push(`Playable mục tiêu: ${node.materializedLocationTarget[0]}–${node.materializedLocationTarget[1]} địa điểm quan trọng`);
+  if (node.notableCities?.length) lines.push(`Thành thị: ${compactList(node.notableCities, 3)}`);
+  if (node.notableTowns?.length) lines.push(`Trấn: ${compactList(node.notableTowns, 3)}`);
+  if (node.secretRealms?.length) lines.push(`Bí cảnh: ${compactList(node.secretRealms, 3)}`);
+  if (node.forbiddenZones?.length) lines.push(`Cấm địa: ${compactList(node.forbiddenZones, 2)}`);
+  if (node.products?.length || node.signatureProducts?.length) lines.push(`Sản vật: ${compactList(node.products || node.signatureProducts, 4)}`);
+  if (node.minerals?.length || node.signatureMinerals?.length) lines.push(`Khoáng vật: ${compactList(node.minerals || node.signatureMinerals, 3)}`);
+  if (node.enemyProfile) lines.push(`Enemy: cảnh giới ${node.enemyProfile.minRealmIdx}–${node.enemyProfile.maxRealmIdx} • Boss ${node.enemyProfile.bossRealmIdx}`);
   if (node.notablePowers?.length) lines.push(`Thế lực: ${compactList(node.notablePowers, 4)}`);
   if (node.cultivationFactions?.length) lines.push(`Tông môn: ${compactList(node.cultivationFactions, 3)}`);
   if (node.strategicRegions?.length) lines.push(`Khu chiến lược: ${compactList(node.strategicRegions, 5)}`);
@@ -182,7 +191,7 @@ function renderBrowser(scene, panel, node, page = 0) {
   shown.forEach((child, idx) => {
     const y = -205 + idx * 82;
     const status = nodeStatus(child);
-    const discovered = isNodeDiscovered(gameState, child.id) || child.type === 'great_region' || child.type === 'province';
+    const discovered = isNodeDiscovered(gameState, child.id) || ['realm', 'continent', 'great_region', 'province'].includes(child.type);
     const current = Number(child.playableMapId) === Number(gameState.currentMapId);
     const box = scene.add.rectangle(0, y, 476, 70, current ? 0x155a48 : 0x0d3347, 1)
       .setStrokeStyle(1.5, discovered ? 0x4fbcd8 : 0x526474, 1)
@@ -191,13 +200,11 @@ function renderBrowser(scene, panel, node, page = 0) {
       fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#7adfff'
     }).setOrigin(0, 0.5);
     const name = scene.add.text(-216, y + 2, child.name, {
-      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
-      color: discovered ? '#fff1a8' : '#bbc7cd',
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: discovered ? '#fff1a8' : '#bbc7cd',
       wordWrap: { width: 310, useAdvancedWrap: true }
     }).setOrigin(0, 0.5);
     const state = scene.add.text(210, y, status, {
-      fontFamily: FONT, fontSize: '10.5px', fontStyle: 'bold',
-      color: current ? '#7dffca' : '#a9eaff', align: 'right'
+      fontFamily: FONT, fontSize: '10.5px', fontStyle: 'bold', color: current ? '#7dffca' : '#a9eaff', align: 'right'
     }).setOrigin(1, 0.5);
     box.on('pointerdown', pointer => {
       stopPointer(scene, pointer);
@@ -303,8 +310,7 @@ export function installWorldMapHierarchyUI(MainGameScene) {
   proto.__worldMapUiOwner = MAP_UI_OWNER;
   proto.__worldMapHierarchyUiInstalled = true;
 
-  // Direct implementation only. There is no fallback to any legacy flat map UI.
-  proto.openMapPanel = function openHierarchicalWorldMap(activeNodeId = NAM_LANG_ROOT_ID, selectedMapId = null, page = 0) {
+  proto.openMapPanel = function openHierarchicalWorldMap(activeNodeId = HUMAN_REALM_ROOT_ID, selectedMapId = null, page = 0) {
     ensureWorldProgress(gameState);
 
     if (selectedMapId != null) {
@@ -312,11 +318,11 @@ export function installWorldMapHierarchyUI(MainGameScene) {
       if (selectedNode) activeNodeId = selectedNode.id;
     }
 
-    if (LEGACY_TO_ROOT.has(activeNodeId)) activeNodeId = NAM_LANG_ROOT_ID;
+    if (LEGACY_TO_ROOT.has(activeNodeId)) activeNodeId = HUMAN_REALM_ROOT_ID;
     let node = getWorldNode(activeNodeId);
-    if (!node) node = getWorldNodeForMap(gameState.currentMapId) || getWorldNode(NAM_LANG_ROOT_ID);
+    if (!node) node = getWorldNodeForMap(gameState.currentMapId) || getWorldNode(HUMAN_REALM_ROOT_ID);
 
-    const panel = this.createModalShell('ĐẠI BẢN ĐỒ NAM LĂNG', `${nodeTypeText(node)} • ${node.name}`, {
+    const panel = this.createModalShell('ĐẠI BẢN ĐỒ NHÂN GIỚI', `${nodeTypeText(node)} • ${node.name}`, {
       subtitleColor: '#9aeaff', headerFill: 0x0a3b52, bgFill: 0x062a3b
     });
 

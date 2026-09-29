@@ -4,7 +4,7 @@
  * Mọi Map ID / World Node ID đều được xác thực bằng worldRegistry duy nhất.
  */
 import {
-  NAM_LANG_ROOT_ID,
+  HUMAN_REALM_ROOT_ID,
   START_MAP_ID,
   findMapById,
   normalizeMapId,
@@ -35,7 +35,7 @@ export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
   const validCurrentMapId = normalizeMapId(currentMapId);
   const state = {
     schemaVersion: WORLD_PROGRESS_SCHEMA,
-    discoveredNodeIds: [NAM_LANG_ROOT_ID],
+    discoveredNodeIds: [HUMAN_REALM_ROOT_ID],
     visitedMapIds: [],
     unlockedWaypointMapIds: [],
     defeatedMapBosses: [],
@@ -45,7 +45,6 @@ export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
     currentLocationNodeId: null
   };
   const holder = { worldProgress: state };
-  // Luôn giữ điểm hồi hương Map 0 để save cũ không bị mắc kẹt.
   markMapVisited(holder, START_MAP_ID, { unlockWaypoint: true });
   if (validCurrentMapId !== START_MAP_ID) markMapVisited(holder, validCurrentMapId, { unlockWaypoint: true });
   return state;
@@ -63,7 +62,7 @@ export function ensureWorldProgress(gameStateLike) {
 
   const normalized = {
     schemaVersion: WORLD_PROGRESS_SCHEMA,
-    discoveredNodeIds: uniqueValidNodeIds(source.discoveredNodeIds),
+    discoveredNodeIds: uniqueValidNodeIds([HUMAN_REALM_ROOT_ID, ...(source.discoveredNodeIds || [])]),
     visitedMapIds: uniqueValidMapIds(source.visitedMapIds),
     unlockedWaypointMapIds: uniqueValidMapIds(source.unlockedWaypointMapIds),
     defeatedMapBosses: uniqueStrings(source.defeatedMapBosses),
@@ -85,7 +84,7 @@ export function discoverNode(gameStateLike, nodeId) {
   const ids = new Set(progress.discoveredNodeIds || []);
   const ancestors = getWorldAncestors(nodeId, true);
   ancestors.forEach(node => ids.add(node.id));
-  ids.add(NAM_LANG_ROOT_ID);
+  ids.add(HUMAN_REALM_ROOT_ID);
   progress.discoveredNodeIds = uniqueValidNodeIds([...ids]);
   return progress;
 }
@@ -98,7 +97,7 @@ export function markMapVisited(gameStateLike, mapId, opts = {}) {
   if (!gameStateLike.worldProgress) {
     gameStateLike.worldProgress = {
       schemaVersion: WORLD_PROGRESS_SCHEMA,
-      discoveredNodeIds: [NAM_LANG_ROOT_ID],
+      discoveredNodeIds: [HUMAN_REALM_ROOT_ID],
       visitedMapIds: [],
       unlockedWaypointMapIds: [],
       defeatedMapBosses: [],
