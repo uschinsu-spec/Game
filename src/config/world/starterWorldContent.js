@@ -90,18 +90,18 @@ export const THANH_HA_HUB_SERVICES = Object.freeze([
 ]);
 
 export const STARTER_PROGRESSION = Object.freeze([
-  'Thanh Vân Thôn', 'Thanh Vân Ngoại Vi', 'Vạn Mộc Sâm Lâm', 'Huyết Lạc Cấm Địa',
+  'Thanh Vân Thôn', 'Thanh Vân Ngoại Vi', 'Vạn Mộc Sâm Lâm',
   'Thanh Hà Thành', 'Nam Sơn Quận', 'Đại Ly Quốc', 'Thanh Châu', 'Thanh Linh Vực', 'Nam Lăng Đại Lục'
 ]);
 
 // World nodes known/materialized in the Thanh Hà territory.
-// Only entries with playableMapId are real runtime combat/hub maps today.
+// Only Map 0-2 carry playableMapId. Every other location is world data only and
+// cannot enter the runtime until it is deliberately added to playableMaps.js.
 export const THANH_HA_LOCATION_SPECS = Object.freeze([
   Object.freeze({ slug: 'thanh_van_thon', name: 'Thanh Vân Thôn', playableMapId: 0, kind: 'safe_hub', status: 'playable', desc: 'Thôn khởi đầu và khu an toàn; dân cư sống bằng hái thuốc, săn thú, khai thác gỗ và vận chuyển.' }),
   Object.freeze({ slug: 'thanh_van_ngoai_vi', name: 'Thanh Vân Ngoại Vi', playableMapId: 1, kind: 'field', status: 'playable', desc: 'Ngoại vi rộng 32.000px, khu săn yêu và luyện cấp đầu tiên.' }),
   Object.freeze({ slug: 'van_moc_sam_lam', name: 'Vạn Mộc Sâm Lâm', playableMapId: 2, kind: 'field', status: 'playable', desc: 'Cổ lâm địa phương nhiều tầng nguy hiểm, linh thảo và yêu thú; không phải đại lâm cấp đại lục.' }),
-  Object.freeze({ slug: 'huyet_lac_cam_dia', name: 'Huyết Lạc Cấm Địa', playableMapId: 3, kind: 'forbidden_zone', status: 'playable', desc: 'Cấm địa địa phương hình thành từ cổ chiến trường; boss Huyết Lạc Ma Quân chỉ là danh hiệu địa phương.' }),
-  Object.freeze({ slug: 'thanh_ha_thanh', name: 'Thanh Hà Thành', kind: 'major_hub', status: 'planned', desc: 'Hub cấp Thành thứ hai; mở gameplay thương hội, đấu giá, tông môn, gia tộc, truyền tống và phi chu.', services: THANH_HA_HUB_SERVICES, unlockHint: 'Sau tuyến Huyết Lạc Cấm Địa nhận Thanh Hà Thành Lệnh.' }),
+  Object.freeze({ slug: 'thanh_ha_thanh', name: 'Thanh Hà Thành', kind: 'major_hub', status: 'planned', desc: 'Hub cấp Thành thứ hai; mở gameplay thương hội, đấu giá, tông môn, gia tộc, truyền tống và phi chu.', services: THANH_HA_HUB_SERVICES, unlockHint: 'Sau khi hoàn tất tuyến Vạn Mộc Sâm Lâm và nhận Thanh Hà Thành Lệnh.' }),
   Object.freeze({ slug: 'thanh_phong_tran', name: 'Thanh Phong Trấn', kind: 'town', status: 'planned', desc: 'Trấn cửa ngõ phía đông Thanh Hà, trung chuyển hàng hóa và tán tu.' }),
   Object.freeze({ slug: 'bach_thach_tran', name: 'Bạch Thạch Trấn', kind: 'town', status: 'planned', desc: 'Trấn đá trắng, gần các mỏ khoáng cấp thấp.' }),
   Object.freeze({ slug: 'hac_son_tran', name: 'Hắc Sơn Trấn', kind: 'town', status: 'planned', desc: 'Trấn khai khoáng dưới chân Hắc Sơn.' }),
@@ -110,7 +110,7 @@ export const THANH_HA_LOCATION_SPECS = Object.freeze([
   Object.freeze({ slug: 'linh_thu_son', name: 'Linh Thú Sơn', kind: 'field', status: 'planned', desc: 'Sơn địa sinh sống của linh thú, phù hợp săn bắt và ngự thú.' }),
   Object.freeze({ slug: 'thien_ha_ho', name: 'Thiên Hà Hồ', kind: 'lake', status: 'planned', desc: 'Linh hồ lớn trong Thành Vực; thủy hệ tài nguyên và yêu thú xuất hiện theo thời tiết.' }),
   Object.freeze({ slug: 'co_tu_dong_phu', name: 'Cổ Tu Động Phủ', kind: 'secret', status: 'planned', desc: 'Động phủ cổ mở bằng sự kiện hoặc manh mối, không hiện hoàn toàn từ đầu.' }),
-  Object.freeze({ slug: 'huyet_ma_dong', name: 'Huyết Ma Động', kind: 'dungeon', status: 'planned', desc: 'Nhánh ma khí liên quan Huyết Lạc, dùng cho nhiệm vụ hậu cấm địa.' }),
+  Object.freeze({ slug: 'huyet_ma_dong', name: 'Huyết Ma Động', kind: 'dungeon', status: 'planned', desc: 'Ma khí tụ trong động sâu, dùng cho tuyến nhiệm vụ nguy hiểm cấp Thành Vực.' }),
   Object.freeze({ slug: 'co_truyen_tong_tran', name: 'Cổ Truyền Tống Trận', kind: 'travel', status: 'planned', desc: 'Trận pháp giao thông cổ, về sau kết nối tuyến xa trong Nam Sơn.' }),
   Object.freeze({ slug: 'bach_van_son', name: 'Bạch Vân Sơn', kind: 'mountain', status: 'planned', desc: 'Sơn mạch mây trắng có động phủ nhỏ và điểm hái dược.' }),
   Object.freeze({ slug: 'thanh_truc_lam', name: 'Thanh Trúc Lâm', kind: 'field', status: 'planned', desc: 'Rừng trúc nhẹ, thích hợp tài nguyên Mộc hệ và nhiệm vụ sơ cấp.' }),
@@ -129,4 +129,4 @@ export const THANH_HA_LOCATION_SPECS = Object.freeze([
   Object.freeze({ slug: 'nam_son_co_dao', name: 'Nam Sơn Cổ Đạo', kind: 'travel', status: 'planned', desc: 'Cổ đạo dẫn ra khỏi Thanh Hà Thành Vực và tiến sâu vào Nam Sơn Quận.' })
 ]);
 
-export const STARTER_WORLD_CONTENT_VERSION = '20260929-starter-world-v2';
+export const STARTER_WORLD_CONTENT_VERSION = '20260929-starter-world-v3';
