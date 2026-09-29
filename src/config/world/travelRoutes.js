@@ -1,9 +1,17 @@
 /**
  * travelRoutes.js
- * Mọi portal/đường chuyển map nằm ở một nơi, không hard-code rải rác trong Scene.
+ * Mọi đường chuyển map nằm ở một nơi, không hard-code tọa độ chuyển map rải rác trong Scene.
+ * portalVisible=false dùng cho đường đi được kích hoạt bởi hotspot/NPC thay vì portal hiển thị.
  */
 
 export const TRAVEL_ROUTES = Object.freeze([
+  Object.freeze({
+    id: 'route_map0_to_map1', fromMapId: 0, toMapId: 1,
+    sourceAnchor: Object.freeze({ x: 270, y: 760 }),
+    targetSpawn: Object.freeze({ x: 420, y: 620 }),
+    portalVisible: false,
+    title: 'THANH VÂN NGOẠI VI', sub: 'RỜI THANH VÂN THÔN'
+  }),
   Object.freeze({
     id: 'route_map1_to_map0', fromMapId: 1, toMapId: 0,
     sourceAnchor: Object.freeze({ side: 'left', offset: 250, y: 620 }),
