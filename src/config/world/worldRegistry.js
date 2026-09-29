@@ -2,7 +2,7 @@
  * worldRegistry.js
  * SINGLE SOURCE OF TRUTH / READ API for the entire map system.
  * Runtime maps + zones + Human Realm hierarchy + access + travel + panorama registry all resolve here.
- * World lore/faction atlases never create runtime maps.
+ * World lore/faction/detail atlases never create runtime maps.
  */
 import {
   PLAYABLE_REGIONS,
@@ -19,6 +19,13 @@ import {
   HUMAN_REALM_WORLD_NODES,
   NEW_HUMAN_REALM_CONTINENT_SPECS
 } from './humanRealmWorld.js?v=20260929-human-realm-v3';
+import {
+  HUMAN_REALM_DETAIL_VERSION,
+  HUMAN_REALM_DETAIL_COUNTS,
+  hasHumanRealmDetailBlueprint,
+  getHumanRealmDetailProfile,
+  getAllHumanRealmDetailProfiles
+} from './humanRealmDetailedAtlas.js?v=20260929-human-realm-detail-v1';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import {
@@ -33,7 +40,7 @@ import {
   getProvinceFactionProfile
 } from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-human-realm-mortal-east-v3';
+export const MAP_SYSTEM_VERSION = '20260929-human-realm-detailed-atlas-v4';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
@@ -62,6 +69,8 @@ export {
   HUMAN_REALM_CONTINENTS,
   HUMAN_REALM_WORLD_NODES,
   NEW_HUMAN_REALM_CONTINENT_SPECS,
+  HUMAN_REALM_DETAIL_VERSION,
+  HUMAN_REALM_DETAIL_COUNTS,
   NAM_LANG_WORLD_NODES,
   NAM_LANG_ROOT_ID,
   STARTER_WORLD_IDS,
@@ -74,7 +83,10 @@ export {
   getMapTemplate,
   getProvinceAtlasProfile,
   getProvinceFactionProfile,
-  getRegionAtlasProfile
+  getRegionAtlasProfile,
+  hasHumanRealmDetailBlueprint,
+  getHumanRealmDetailProfile,
+  getAllHumanRealmDetailProfiles
 };
 
 const mapById = new Map(ALL_PLAYABLE_MAPS.map(map => [Number(map.id), map]));
@@ -159,6 +171,15 @@ function enrichWorldNode(rawNode) {
       provinceGenerationCounts: atlas.generationCounts,
       cultivationFactions,
       factionProfile: factions
+    });
+  }
+
+  const detailedAtlas = getHumanRealmDetailProfile(rawNode.id);
+  if (detailedAtlas) {
+    enriched = Object.freeze({
+      ...enriched,
+      detailedAtlasVersion: HUMAN_REALM_DETAIL_VERSION,
+      detailedAtlas
     });
   }
 
@@ -259,6 +280,10 @@ export function getWorldChildren(parentId) {
 
 export function getAllWorldNodes() {
   return HUMAN_REALM_WORLD_NODES.map(enrichWorldNode);
+}
+
+export function getWorldDetailProfile(nodeId) {
+  return getHumanRealmDetailProfile(nodeId);
 }
 
 export function getWorldAncestors(nodeId, includeSelf = false) {
