@@ -35,6 +35,7 @@ export const MAP_RUNTIME_PROFILE = Object.freeze({
 
 function makeTemplate(id, type, biome, extra = {}) {
   const runtime = MAP_RUNTIME_PROFILE[type] || MAP_RUNTIME_PROFILE.field;
+  const isHub = type === 'hub';
   return Object.freeze({
     id,
     type,
@@ -51,13 +52,16 @@ function makeTemplate(id, type, biome, extra = {}) {
       tintable: true,
       weatherReady: true,
       dayNightReady: true,
+      sharedWildernessEligible: !isHub,
+      repeatPanorama: !isHub,
+      safeHubVisual: isHub,
       ...(extra.visual || {})
     }),
     runtime: Object.freeze({
       chunkWidth: extra.chunkWidth ?? runtime.chunkWidth,
       activeChunkRadius: extra.activeChunkRadius ?? runtime.activeChunkRadius,
-      objectPooling: extra.objectPooling ?? (type !== 'hub'),
-      seedDrivenDecor: extra.seedDrivenDecor ?? (type !== 'hub'),
+      objectPooling: extra.objectPooling ?? !isHub,
+      seedDrivenDecor: extra.seedDrivenDecor ?? !isHub,
       lazyAssets: true
     })
   });
@@ -69,6 +73,7 @@ const templateSpecs = [
   ['HUB_TOWN_01', 'hub', 'town'], ['HUB_TOWN_02', 'hub', 'town'], ['HUB_TOWN_03', 'hub', 'town'],
   ['HUB_CITY_SMALL_01', 'hub', 'city'], ['HUB_CITY_SMALL_02', 'hub', 'city'], ['HUB_CITY_SMALL_03', 'hub', 'city'],
   ['HUB_CITY_LARGE_01', 'hub', 'city'], ['HUB_CITY_LARGE_02', 'hub', 'city'], ['HUB_CAPITAL_01', 'hub', 'capital'],
+  ['HUB_SECT_01', 'hub', 'sect'], ['HUB_SECT_02', 'hub', 'sect'], ['HUB_SECT_MAJOR_01', 'hub', 'sect'],
 
   ['FIELD_GRASSLAND_01', 'field', 'grassland'], ['FIELD_GRASSLAND_02', 'field', 'grassland'],
   ['FIELD_FOREST_01', 'field', 'forest'], ['FIELD_FOREST_02', 'field', 'forest'], ['FIELD_FOREST_03', 'field', 'forest'],
