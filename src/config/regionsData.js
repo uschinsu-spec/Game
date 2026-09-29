@@ -10,9 +10,13 @@ export {
   ALL_PLAYABLE_MAPS as ALL_MAPS,
   SHARED_WILDERNESS_PANORAMA,
   START_MAP_ID,
+  DEFAULT_ZONE_COUNT,
   findMapById,
   getMapById,
   normalizeMapId,
+  getMapZones,
+  getMapZoneAtX,
+  getMapZoneNumberAtX,
   getWorldNode,
   getWorldChildren,
   getWorldAncestors,
@@ -29,4 +33,4 @@ export {
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
   getMapTemplate
-} from './world/worldRegistry.js?v=20260929-single-map-system-v2';
+} from './world/worldRegistry.js?v=20260929-single-map-system-v3';
