@@ -114,9 +114,21 @@ export function getMapZoneAtX(mapId, x) {
   const zones = getMapZones(mapId);
   if (!zones.length) return null;
   const px = Number(x);
-  if (!Number.isFinite(px)) return zones[0];
-  return zones.find(zone => px >= zone.x0 && px < zone.x1)
-    || (px < zones[0].x0 ? zones[0] : zones[zones.length - 1]);
+  if (!Number.isFinite(px) || px <= zones[0].x0) return zones[0];
+
+  for (let index = 0; index < zones.length; index++) {
+    const zone = zones[index];
+    if (px >= zone.x0 && px < zone.x1) return zone;
+    const next = zones[index + 1];
+    if (next && px >= zone.x1 && px < next.x0) {
+      // Authored gaps are transition buffers. Assign them to the nearest zone,
+      // never accidentally to the last zone on the map.
+      const distanceToCurrent = px - zone.x1;
+      const distanceToNext = next.x0 - px;
+      return distanceToCurrent <= distanceToNext ? zone : next;
+    }
+  }
+  return zones[zones.length - 1];
 }
 
 export function getMapZoneNumberAtX(mapId, x) {
