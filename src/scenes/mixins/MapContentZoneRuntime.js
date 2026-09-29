@@ -10,13 +10,13 @@ import { MONSTER_RANKS } from '../../config/monstersData.js';
 import { getHerbsByRank } from '../../config/herbsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { REALMS } from '../../config/realmsData.js';
+import { getNpcProgressionForMap } from '../../config/world/mapNpcProgressions.js?v=20260929-single-map-system-v2';
 import {
   getMapById,
   getMapZones,
   getMapZoneNumberAtX
 } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
-import { MAP_NPC_PROGRESSIONS } from './FellowNpcMixin.js';
 
 const OWNER = 'MapContentZoneRuntime';
 const ENEMY_ZONE_STEPS = Object.freeze([450, 300, 220, 160]);
@@ -141,16 +141,15 @@ function installEnemyZoneRuntime(proto) {
 
     const mIdx = Math.min(MONSTER_RANKS.length - 1, (map.monsterIdxStart || 0) + rankOffset);
     const monsterData = MONSTER_RANKS[mIdx];
-    const isFlying = mapNum >= 3 && slotIndex % 2 === 1;
-    const spriteNum = isFlying ? ((slotIndex % 10) + 1) : (monsterData.spriteNum || ((mIdx % 16) + 1));
+    const spriteNum = monsterData.spriteNum || ((mIdx % 16) + 1);
 
     return {
       monsterData,
-      isFlying,
+      isFlying: false,
       spriteNum,
-      baseScale: isFlying ? 0.52 : 0.50,
-      displayName: isFlying ? `[Phi Thiên] ${monsterData.name}` : monsterData.name,
-      nameColor: isFlying ? '#67e8f9' : '#ffd700',
+      baseScale: 0.50,
+      displayName: monsterData.name,
+      nameColor: '#ffd700',
       nameFontSize: '9px'
     };
   };
@@ -214,8 +213,8 @@ function installNpcZoneRuntime(proto) {
   proto.getNpcSpawnConfig = function getNpcSpawnConfigFromUnifiedZones(mapId, homeX, elementIdx = -1) {
     const elemCfg = this.getNpcElement(elementIdx);
     const map = getMapById(mapId);
-    const mapNum = Number(map.id) || 1;
-    const progression = MAP_NPC_PROGRESSIONS[mapNum] || MAP_NPC_PROGRESSIONS[1];
+    const mapNum = Number(map.id) || 0;
+    const progression = getNpcProgressionForMap(mapNum);
     const zoneNumber = clampZoneNumber(getMapZoneNumberAtX(mapNum, homeX), progression.length);
     const zoneCfg = progression[zoneNumber - 1] || progression[progression.length - 1];
 
@@ -224,6 +223,8 @@ function installNpcZoneRuntime(proto) {
     let tierLevel = 1;
     let isFlying = false;
 
+    // Tier behavior is realm-driven, never map-ID-driven. This keeps future
+    // materialized Nam Lăng locations compatible without inventing hidden maps.
     if (realmIdx >= 13 && realmIdx <= 16) {
       tierLevel = 2;
       isFlying = true;

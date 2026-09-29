@@ -1,11 +1,13 @@
 /**
  * namLangWorld.js
- * Canonical geographic hierarchy for Nam Lăng Đại Lục.
+ * THE canonical geographic hierarchy for the entire game.
  *
- * IMPORTANT:
- * - DATA ONLY. No Phaser, teleport, panorama or UI logic lives here.
- * - Huge lore scale is stored as profiles/counts; only important/visited nodes are materialized.
- * - Runtime map authority remains worldRegistry.js + WorldMapRuntime.js.
+ * Rules:
+ * - Exactly one world root: Nam Lăng Đại Lục.
+ * - Exactly 9 Đại Vực and 108 Châu (12 Châu per Đại Vực).
+ * - This file is DATA ONLY: no scene, teleport, panorama or duplicate map catalog.
+ * - Only locations carrying playableMapId are runtime maps; currently IDs 0,1,2.
+ * - Future locations remain hierarchy/lore data until materialized through playableMaps.js.
  */
 import {
   THANH_LINH_PROVINCES,
@@ -15,7 +17,7 @@ import {
   THANH_HA_PROFILE,
   THANH_HA_LOCATION_SPECS,
   STARTER_PROGRESSION
-} from './starterWorldContent.js?v=20260929-starter-world-v2';
+} from './starterWorldContent.js?v=20260929-starter-world-v3';
 
 export const WORLD_NODE_TYPES = Object.freeze({
   CONTINENT: 'continent',
@@ -30,6 +32,7 @@ export const WORLD_NODE_TYPES = Object.freeze({
 export const WORLD_SCALE_PROFILE = Object.freeze({
   greatRegions: 9,
   provinces: 108,
+  provincesPerGreatRegion: 12,
   provinceNationRange: Object.freeze([80, 280]),
   nationCommanderyRange: Object.freeze([60, 220]),
   commanderyCityRange: Object.freeze([50, 200]),
@@ -63,56 +66,48 @@ function makeNode(id, type, name, parentId, extra = {}) {
 
 const GREAT_REGION_SPECS = [
   {
-    id: 'thanh_linh', name: 'Thanh Linh Vực',
+    id: 'thanh_linh', name: 'Thanh Linh Vực', theme: 'starter_human',
     desc: 'Nhân tộc đông đúc, sơn thủy ôn hòa, linh điền và thành trấn dày đặc; vùng khởi đầu của người chơi.',
-    theme: 'starter_human', provinces: THANH_LINH_PROVINCES.map(p => p.name), provinceMeta: THANH_LINH_PROVINCES
+    provinces: THANH_LINH_PROVINCES.map(p => p.name), provinceMeta: THANH_LINH_PROVINCES
   },
   {
-    id: 'nam_hoang', name: 'Nam Hoang Vực',
+    id: 'nam_hoang', name: 'Nam Hoang Vực', theme: 'beast_poison',
     desc: 'Man hoang cổ lâm, độc chướng, yêu thú và bộ tộc cổ; địa bàn săn yêu và ngự thú.',
-    theme: 'beast_poison',
     provinces: ['Man Châu','Vạn Độc Châu','Yêu Lâm Châu','Xích Mãng Châu','Hắc Trạch Châu','Cổ Thụ Châu','Thiên Thú Châu','Linh Xà Châu','Hoang Mộc Châu','Vạn Trùng Châu','Nam Man Châu','Thần Mộc Châu']
   },
   {
-    id: 'thuong_hai', name: 'Thương Hải Vực',
+    id: 'thuong_hai', name: 'Thương Hải Vực', theme: 'ocean_trade',
     desc: 'Bờ biển, quần đảo và tuyến thương hải khổng lồ; hải yêu, phi chu và thương hội phát triển.',
-    theme: 'ocean_trade',
     provinces: ['Hải Châu','Thiên Tinh Châu','Bích Hải Châu','Vân Hải Châu','Long Đảo Châu','Thương Lan Châu','Hải Nguyệt Châu','Triều Âm Châu','Hắc Thủy Châu','Tinh La Châu','Vạn Đảo Châu','Thiên Nhai Châu']
   },
   {
-    id: 'van_son', name: 'Vạn Sơn Vực',
+    id: 'van_son', name: 'Vạn Sơn Vực', theme: 'mountain_mining',
     desc: 'Sơn mạch liên miên, linh khoáng và địa hỏa; trung tâm luyện khí, khai khoáng và pháp bảo.',
-    theme: 'mountain_mining',
     provinces: ['Thạch Châu','Thiên Sơn Châu','Cửu Nhạc Châu','Huyền Thiết Châu','Xích Đồng Châu','Kim Nham Châu','Vạn Khoáng Châu','Địa Hỏa Châu','Long Mạch Châu','Thiết Sơn Châu','Cổ Nhạc Châu','Huyền Phong Châu']
   },
   {
-    id: 'dong_huyen', name: 'Đông Huyền Vực',
+    id: 'dong_huyen', name: 'Đông Huyền Vực', theme: 'sword_sects',
     desc: 'Kiếm tông san sát, kiếm cốc và kiếm mộ trải khắp; thánh địa của kiếm tu Nam Lăng.',
-    theme: 'sword_sects',
     provinces: ['Kiếm Châu','Thái Hư Châu','Vạn Kiếm Châu','Thanh Phong Châu','Tử Tiêu Châu','Huyền Kiếm Châu','Linh Kiếm Châu','Cổ Kiếm Châu','Bạch Đế Châu','Thiên Kiếm Châu','Vô Cực Châu','Xích Tiêu Châu']
   },
   {
-    id: 'trung_thien', name: 'Trung Thiên Vực',
+    id: 'trung_thien', name: 'Trung Thiên Vực', theme: 'central_high_cultivation',
     desc: 'Trung tâm linh mạch Nam Lăng, đại thành và đại tông môn hội tụ; khu vực quyền lực cao nhất của đại lục.',
-    theme: 'central_high_cultivation',
     provinces: ['Trung Châu','Thiên Đô Châu','Thánh Linh Châu','Thần Đô Châu','Cửu Thiên Châu','Thái Nhất Châu','Hạo Thiên Châu','Tử Vi Châu','Vạn Pháp Châu','Tiên Hà Châu','Càn Khôn Châu','Thiên Nguyên Châu']
   },
   {
-    id: 'tay_hoang', name: 'Tây Hoang Vực',
+    id: 'tay_hoang', name: 'Tây Hoang Vực', theme: 'desert_ruins',
     desc: 'Hoang mạc vô tận, di tích cổ và thành bang ốc đảo; nơi chôn vùi nhiều truyền thừa thất lạc.',
-    theme: 'desert_ruins',
     provinces: ['Sa Châu','Hoang Châu','Xích Sa Châu','Cổ Mạc Châu','Hắc Sa Châu','Nhật Viêm Châu','Thạch Lâm Châu','Thiên Mạc Châu','Di Tích Châu','Kim Sa Châu','Huyền Sa Châu','Vô Tận Châu']
   },
   {
-    id: 'bac_han', name: 'Bắc Hàn Vực',
+    id: 'bac_han', name: 'Bắc Hàn Vực', theme: 'ice_snow',
     desc: 'Băng nguyên, tuyết sơn và hàn hồ; tài nguyên băng hệ quý hiếm nhưng môi trường khắc nghiệt.',
-    theme: 'ice_snow',
     provinces: ['Hàn Châu','Tuyết Châu','Băng Châu','Bắc Minh Châu','Huyền Băng Châu','Thiên Tuyết Châu','Cực Hàn Châu','Bạch Sương Châu','Hàn Nguyệt Châu','Băng Nguyên Châu','Tuyết Sơn Châu','Cửu Hàn Châu']
   },
   {
-    id: 'huyet_u', name: 'Huyết U Vực',
+    id: 'huyet_u', name: 'Huyết U Vực', theme: 'demonic_battlefield',
     desc: 'Cổ chiến trường, ma địa và âm mạch; vùng nguy hiểm cao, tập trung ma tu và đại cấm địa.',
-    theme: 'demonic_battlefield',
     provinces: ['Huyết Châu','U Châu','Cửu U Châu','Ma Châu','Minh Châu','Huyết Ngục Châu','Táng Hồn Châu','Quỷ Châu','Vạn Cốt Châu','Âm Sơn Châu','Cổ Chiến Châu','Ma Uyên Châu']
   }
 ];
@@ -127,13 +122,12 @@ export const STARTER_WORLD_IDS = Object.freeze({
   thanhHaHub: 'nl.loc.thanh_ha.thanh_ha_thanh',
   map0: 'nl.loc.thanh_ha.thanh_van_thon',
   map1: 'nl.loc.thanh_ha.thanh_van_ngoai_vi',
-  map2: 'nl.loc.thanh_ha.van_moc_sam_lam',
-  map3: 'nl.loc.thanh_ha.huyet_lac_cam_dia'
+  map2: 'nl.loc.thanh_ha.van_moc_sam_lam'
 });
 
 const nodes = [
   makeNode(NAM_LANG_ROOT_ID, WORLD_NODE_TYPES.CONTINENT, 'Nam Lăng Đại Lục', null, {
-    desc: 'Đại lục tu tiên khổng lồ gồm 9 Đại Vực và 108 Châu. Chỉ materialize địa điểm quan trọng hoặc đã được tuyến truyện/người chơi chạm tới.',
+    desc: 'Đại lục tu tiên duy nhất của hệ thống bản đồ, gồm đúng 9 Đại Vực và 108 Châu. Địa điểm con chỉ materialize khi gameplay thực sự cần.',
     counts: { greatRegions: 9, provinces: 108 },
     materializationRule: WORLD_SCALE_PROFILE.materializationRule,
     progression: STARTER_PROGRESSION
@@ -141,6 +135,10 @@ const nodes = [
 ];
 
 for (const region of GREAT_REGION_SPECS) {
+  if (region.provinces.length !== WORLD_SCALE_PROFILE.provincesPerGreatRegion) {
+    throw new Error(`[NAM LANG WORLD] ${region.name} phải có đúng 12 Châu, hiện có ${region.provinces.length}.`);
+  }
+
   const regionId = `nl.gr.${region.id}`;
   nodes.push(makeNode(regionId, WORLD_NODE_TYPES.GREAT_REGION, region.name, NAM_LANG_ROOT_ID, {
     desc: region.desc,
@@ -175,7 +173,6 @@ for (const region of GREAT_REGION_SPECS) {
   });
 }
 
-// Named Thanh Châu powers are materialized as data nodes; the remaining entities stay in the generation profile.
 const thanhChauNations = [
   ['dai_ly', 'Đại Ly Quốc', true, 'nation'],
   ['thien_vo', 'Thiên Võ Hoàng Triều', false, 'dynasty'],
@@ -204,7 +201,6 @@ for (const [id, name, materialized, governmentType] of thanhChauNations) {
   }));
 }
 
-// A small named subset is shown; the canonical count remains exactly 108 commanderies.
 const daiLyCommanderies = [
   ['nam_son', 'Nam Sơn Quận', true], ['bac_ha', 'Bắc Hà Quận', false], ['dong_lam', 'Đông Lâm Quận', false],
   ['tay_nguyen', 'Tây Nguyên Quận', false], ['thanh_giang', 'Thanh Giang Quận', false], ['van_phong', 'Vạn Phong Quận', false],
@@ -225,7 +221,6 @@ for (const [id, name, materialized] of daiLyCommanderies) {
   }));
 }
 
-// Named city-territories are a browseable subset of Nam Sơn's 132 major thành/phủ.
 const namSonCities = [
   ['thanh_ha', 'Thanh Hà Thành Vực', true], ['bach_ngoc', 'Bạch Ngọc Thành Vực', false], ['linh_son', 'Linh Sơn Thành Vực', false],
   ['van_thuy', 'Vân Thủy Thành Vực', false], ['huyen_moc', 'Huyền Mộc Thành Vực', false], ['xich_phong', 'Xích Phong Thành Vực', false],
@@ -266,6 +261,12 @@ for (const spec of THANH_HA_LOCATION_SPECS) {
     services: spec.services || null,
     unlockHint: spec.unlockHint || null
   }));
+}
+
+const greatRegionCount = nodes.filter(node => node.type === WORLD_NODE_TYPES.GREAT_REGION).length;
+const provinceCount = nodes.filter(node => node.type === WORLD_NODE_TYPES.PROVINCE).length;
+if (greatRegionCount !== 9 || provinceCount !== 108) {
+  throw new Error(`[NAM LANG WORLD] Sai cấu trúc canonical: ${greatRegionCount} Đại Vực / ${provinceCount} Châu.`);
 }
 
 export const NAM_LANG_WORLD_NODES = Object.freeze(nodes);

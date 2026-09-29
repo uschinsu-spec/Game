@@ -1,6 +1,7 @@
 /**
  * travelRoutes.js
- * Mọi đường chuyển map nằm ở một nơi, không hard-code tọa độ chuyển map rải rác trong Scene.
+ * Mọi đường chuyển map runtime nằm ở một nơi duy nhất.
+ * Chỉ các Map 0-2 tồn tại; không giữ route ẩn/legacy tới map đã xóa.
  * portalVisible=false dùng cho đường đi được kích hoạt bởi hotspot/NPC thay vì portal hiển thị.
  */
 
@@ -29,18 +30,6 @@ export const TRAVEL_ROUTES = Object.freeze([
     sourceAnchor: Object.freeze({ side: 'left', offset: 250, y: 620 }),
     targetSpawn: Object.freeze({ side: 'right', offset: 500, y: 620 }),
     title: 'THANH VÂN NGOẠI VI', sub: 'QUAY VỀ NGOẠI VI'
-  }),
-  Object.freeze({
-    id: 'route_map2_to_map3', fromMapId: 2, toMapId: 3,
-    sourceAnchor: Object.freeze({ side: 'right', offset: 350, y: 620 }),
-    targetSpawn: Object.freeze({ side: 'left', offset: 350, y: 620 }),
-    title: 'HUYẾT LẠC CẤM ĐỊA', sub: 'TIẾN VÀO CẤM ĐỊA TRÚC CƠ'
-  }),
-  Object.freeze({
-    id: 'route_map3_to_map2', fromMapId: 3, toMapId: 2,
-    sourceAnchor: Object.freeze({ side: 'left', offset: 250, y: 620 }),
-    targetSpawn: Object.freeze({ side: 'right', offset: 500, y: 620 }),
-    title: 'VẠN MỘC SÂM LÂM', sub: 'QUAY VỀ CỔ MỘC'
   })
 ]);
 

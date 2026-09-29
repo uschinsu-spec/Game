@@ -1,18 +1,18 @@
 /**
  * playableMaps.js
- * ONE runtime map catalog for the whole game.
+ * THE ONLY runtime map catalog for the whole game.
  *
  * Geographic/lore scale lives in namLangWorld.js. Runtime maps are only the
- * locations that actually have a Phaser scene representation. There is no
- * second "region map system" here: every runtime map belongs to the single
- * Nam Lăng runtime catalog.
+ * locations that actually have a scene representation. There is no legacy,
+ * parallel or compatibility runtime catalog.
  *
- * Panorama rules:
- * - Map 0 Thanh Vân Thôn, Map 1 Thanh Vân Ngoại Vi, Map 2 Vạn Mộc Sâm Lâm keep custom panoramas.
- * - Cities / sects / safe hubs never use the shared wilderness panorama.
- * - Normal wilderness/combat maps reuse one shared panorama through TileSprite.
- * - Map IDs 4..13 are retained only for old-save compatibility and are hidden
- *   from the canonical Nam Lăng hierarchy until they are rematerialized there.
+ * Current runtime contract is intentionally strict:
+ * - Map 0: Thanh Vân Thôn
+ * - Map 1: Thanh Vân Ngoại Vi
+ * - Map 2: Vạn Mộc Sâm Lâm
+ *
+ * New locations in the 9 Đại Vực / 108 Châu hierarchy stay as world data until
+ * they are deliberately materialized into this single catalog.
  */
 import { getMapTemplate } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import { STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v1';
@@ -20,6 +20,10 @@ import { STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-syste
 const DEFAULT_FIELD = Object.freeze({ left: 60, right: 2820, top: 350, bottom: 900 });
 const DEFAULT_SPAWN = Object.freeze({ x: 350, y: 620 });
 
+export const RUNTIME_MAP_IDS = Object.freeze([0, 1, 2]);
+
+// Kept as a reusable asset definition for future maps. It is not a second map
+// system and does not create a runtime map by itself.
 export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   key: 'map_panorama_wilderness_shared',
   asset: 'environment/map_shared_wilderness_panorama.png',
@@ -67,9 +71,6 @@ function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
     access,
     isPeaceZone: opts.isPeaceZone ?? false,
     noRepeat,
-    legacyCompatibility: opts.legacyCompatibility === true,
-    worldHidden: opts.worldHidden === true,
-    legacyOrigin: opts.legacyOrigin ?? null,
     worldWidth,
     worldHeight,
     field: Object.freeze(field),
@@ -108,7 +109,7 @@ const STARTER_PATH = Object.freeze({
   city: 'Thanh Hà Thành Vực'
 });
 
-const STARTER_RUNTIME_MAPS = [
+export const ALL_PLAYABLE_MAPS = Object.freeze([
   makeMap(0, 'Thanh Vân Thôn', 'Thôn Khởi Nguyên & Khu An Toàn', 0, 0, 'stage_0', {
     templateId: 'HUB_VILLAGE_01', locationNodeId: STARTER_WORLD_IDS.map0, worldPath: STARTER_PATH,
     isPeaceZone: true, noRepeat: true, worldWidth: 540, worldHeight: 960,
@@ -144,69 +145,14 @@ const STARTER_RUNTIME_MAPS = [
       { id: 'ancient', name: 'Thiên Niên Cổ Lâm', x0: 16000, x1: 24000, realmRange: [9, 11] },
       { id: 'abyss', name: 'Vạn Mộc Thâm Uyên', x0: 24000, x1: 31940, realmRange: [12, 12] }
     ]
-  }),
-  makeMap(3, 'Huyết Lạc Cấm Địa', 'Cấm địa cấp địa phương (Trúc Cơ+)', 13, 8, 'stage_2', {
-    templateId: 'FIELD_DARKLAND_01', locationNodeId: STARTER_WORLD_IDS.map3, worldPath: STARTER_PATH,
-    spawn: { x: 350, y: 620 }, waypointMode: 'auto_on_visit',
-    zones: [
-      { id: 'blood_mist', name: 'Huyết Vụ Hoang Nguyên', x0: 650, x1: 8000, realmRange: [13, 13] },
-      { id: 'bones', name: 'Bạch Cốt Lâm', x0: 8000, x1: 16000, realmRange: [14, 14] },
-      { id: 'blood_demon', name: 'Huyết Ma Cốc', x0: 16000, x1: 24000, realmRange: [15, 15] },
-      { id: 'deep', name: 'Huyết Lạc Thâm Uyên', x0: 24000, x1: 31940, realmRange: [16, 16] }
-    ]
   })
-];
-
-// These IDs existed before the Nam Lăng hierarchy redesign. They remain valid so
-// old saves/admin tools do not break, but they are NOT a second geography tree.
-// They have no locationNodeId and are hidden from the canonical world map.
-const LEGACY_COMPATIBILITY_MAPS = [
-  makeMap(4, 'Thiên Tinh Hải Thành', 'Legacy Compatibility Hub', 14, 12, 'stage_3', {
-    templateId: 'HUB_CITY_LARGE_01', isPeaceZone: true, panoramaTemplateMapId: 0,
-    legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Vạn Tinh Hải Vực'
-  }),
-  makeMap(5, 'Ngoại Hải Săn Yêu', 'Legacy Compatibility Field', 17, 12, 'stage_4', {
-    templateId: 'FIELD_COAST_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Vạn Tinh Hải Vực'
-  }),
-  makeMap(6, 'Hư Không Cổ Điện', 'Legacy Compatibility Dungeon', 19, 16, 'stage_5', {
-    templateId: 'DUNGEON_RUINS_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Vạn Tinh Hải Vực'
-  }),
-  makeMap(7, 'Côn Lôn Tiên Lạc', 'Legacy Compatibility Field', 21, 16, 'stage_6', {
-    templateId: 'FIELD_IMMORTAL_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Thần Châu Thánh Địa'
-  }),
-  makeMap(8, 'Thái Hư Kiếm Cốc', 'Legacy Compatibility Field', 23, 18, 'stage_7', {
-    templateId: 'FIELD_VALLEY_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Thần Châu Thánh Địa'
-  }),
-  makeMap(9, 'Hoàng Cực Thần Điện', 'Legacy Compatibility Hub', 24, 18, 'stage_8', {
-    templateId: 'HUB_CAPITAL_01', isPeaceZone: true, panoramaTemplateMapId: 0,
-    legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Thần Châu Thánh Địa'
-  }),
-  makeMap(10, 'U Minh Quỷ Quật', 'Legacy Compatibility Dungeon', 25, 20, 'stage_9', {
-    templateId: 'DUNGEON_ABYSS_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Man Hoang Cổ Vực'
-  }),
-  makeMap(11, 'Thần Ma Cổ Chiến Trường', 'Legacy Compatibility Field', 26, 20, 'stage_10', {
-    templateId: 'FIELD_BATTLEFIELD_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Man Hoang Cổ Vực'
-  }),
-  makeMap(12, 'Cửu Trọng Thiên Đạo', 'Legacy Compatibility Field', 27, 20, 'stage_10', {
-    templateId: 'FIELD_IMMORTAL_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Thái Hư Tiên Đạo'
-  }),
-  makeMap(13, 'Phi Thăng Tiên Môn', 'Legacy Compatibility Dungeon', 28, 20, 'stage_11', {
-    templateId: 'DUNGEON_SECRET_REALM_01', legacyCompatibility: true, worldHidden: true, legacyOrigin: 'Thái Hư Tiên Đạo'
-  })
-];
-
-export const ALL_PLAYABLE_MAPS = Object.freeze([
-  ...STARTER_RUNTIME_MAPS,
-  ...LEGACY_COMPATIBILITY_MAPS
 ]);
 
-// Compatibility export name retained for old code. It now exposes exactly ONE
-// runtime catalog, matching the canonical Nam Lăng world tree.
 export const PLAYABLE_REGIONS = Object.freeze([
   Object.freeze({
     id: 'nam_lang',
     name: 'Nam Lăng Đại Lục',
-    desc: 'Runtime catalog duy nhất. Geography thật được quản lý bởi namLangWorld.js.',
+    desc: 'Runtime catalog duy nhất; cây địa lý 9 Đại Vực / 108 Châu được quản lý bởi namLangWorld.js.',
     maps: ALL_PLAYABLE_MAPS
   })
 ]);
