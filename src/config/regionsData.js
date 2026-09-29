@@ -3,7 +3,11 @@
  * Compatibility facade. Code cũ tiếp tục import WORLD_REGIONS / ALL_MAPS / getMapById,
  * còn dữ liệu thế giới lớn nằm trong src/config/world/*.
  */
-export { PLAYABLE_REGIONS as WORLD_REGIONS, ALL_PLAYABLE_MAPS as ALL_MAPS } from './world/playableMaps.js';
+export {
+  PLAYABLE_REGIONS as WORLD_REGIONS,
+  ALL_PLAYABLE_MAPS as ALL_MAPS,
+  SHARED_WILDERNESS_PANORAMA
+} from './world/playableMaps.js?v=20260929-shared-panorama-v1';
 export {
   START_MAP_ID,
   getMapById,
@@ -23,4 +27,4 @@ export {
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
   getMapTemplate
-} from './world/worldRegistry.js';
+} from './world/worldRegistry.js?v=20260929-shared-panorama-v1';
