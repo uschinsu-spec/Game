@@ -14,7 +14,8 @@ import { installCongPhapMasteryProgression } from './scenes/mixins/CongPhapMaste
 import { installElementalCombatProgression } from './scenes/mixins/ElementalCombatProgression.js?v=20260928-elemental-combat-v1';
 import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=20260928-realm-progression-unified-v1';
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
-import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-elemental-items-v2';
+import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-unified-item-system';
+import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=20260929-unified-item-system';
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-single-map-system-v4';
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v4';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
@@ -36,6 +37,9 @@ installCongPhapMasteryProgression(MainGameScene);
 installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
 installElementalItemSystem(MainGameScene);
+
+// Exactly one active item runtime. Category registries are data stores, not separate item systems.
+assertSingleItemSystem(MainGameScene);
 
 // Exactly one active map runtime, one map UI, and one map-zone geometry provider.
 installWorldMapRuntime(MainGameScene);
