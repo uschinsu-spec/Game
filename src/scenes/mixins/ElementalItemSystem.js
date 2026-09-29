@@ -11,39 +11,58 @@ import {
   ELEMENTAL_PILLS,
   ELEMENTAL_TALISMANS,
   ELEMENTAL_CATALOG_STATS,
+  LEGACY_ELEMENTAL_MIGRATION,
   getElementalIconMeta,
+  getElementalItemById,
+  getElementalItemByName,
   rollElementalItemDrop
 } from '../../config/elementalItemCatalog.js';
 
 let registered = false;
+let migrationPasses = 0;
 
-function pushUnique(target, additions) {
-  if (!Array.isArray(target)) return;
+function pushUnique(target, additions, label='registry') {
+  if (!Array.isArray(target)) return { added:0, skipped:0 };
   const ids = new Set(target.map(item => item?.id).filter(Boolean));
+  const names = new Set(target.map(item => item?.name).filter(Boolean));
+  const icons = new Set(target.map(item => item?.icon).filter(Boolean));
+  let added = 0;
+  let skipped = 0;
+
   additions.forEach(item => {
-    if (!ids.has(item.id)) {
-      target.push(item);
-      ids.add(item.id);
+    const duplicate = (item.id && ids.has(item.id)) || (item.name && names.has(item.name)) || (item.icon && icons.has(item.icon));
+    if (duplicate) {
+      skipped += 1;
+      return;
     }
+    target.push(item);
+    if (item.id) ids.add(item.id);
+    if (item.name) names.add(item.name);
+    if (item.icon) icons.add(item.icon);
+    added += 1;
   });
+
+  if (skipped && typeof console !== 'undefined') {
+    console.info(`[ItemRegistry] ${label}: bỏ qua ${skipped} định nghĩa trùng ID/tên/icon.`);
+  }
+  return { added, skipped };
 }
 
 /**
- * Gắn catalog mới vào các registry cũ để toàn bộ UI hiện tại (túi đồ, luyện đan,
- * phù lục, linh thảo, khoáng thạch, trang bị) dùng chung dữ liệu mà không cần
- * tạo thêm một hệ inventory song song.
+ * Chỉ có một inventory runtime. Catalog V2 được gắn vào registry hiện hữu bằng ID/tên/icon duy nhất,
+ * không tạo thêm kho đồ song song.
  */
 export function registerElementalItemDefinitions() {
   if (registered) return ELEMENTAL_CATALOG_STATS;
   registered = true;
 
-  pushUnique(ALL_ITEMS, ELEMENTAL_GEAR_ITEMS);
-  pushUnique(ALL_HERBS, ELEMENTAL_HERBS);
-  pushUnique(ALL_MINERALS, ELEMENTAL_ORES);
+  pushUnique(ALL_ITEMS, ELEMENTAL_GEAR_ITEMS, 'gear');
+  pushUnique(ALL_HERBS, ELEMENTAL_HERBS, 'herbs');
+  pushUnique(ALL_MINERALS, ELEMENTAL_ORES, 'ores');
   if (!Array.isArray(CRAFTING_SYSTEM.pills)) CRAFTING_SYSTEM.pills = [];
   if (!Array.isArray(CRAFTING_SYSTEM.talismans)) CRAFTING_SYSTEM.talismans = [];
-  pushUnique(CRAFTING_SYSTEM.pills, ELEMENTAL_PILLS);
-  pushUnique(CRAFTING_SYSTEM.talismans, ELEMENTAL_TALISMANS);
+  pushUnique(CRAFTING_SYSTEM.pills, ELEMENTAL_PILLS, 'pills');
+  pushUnique(CRAFTING_SYSTEM.talismans, ELEMENTAL_TALISMANS, 'talismans');
 
   return ELEMENTAL_CATALOG_STATS;
 }
@@ -61,7 +80,35 @@ function ensureStores() {
 }
 
 function addCount(store, key, amount=1) {
+  if (!key) return;
   store[key] = Math.max(0, Number(store[key]) || 0) + Math.max(1, Number(amount) || 1);
+}
+
+function migrateCountedStore(store, mapping) {
+  if (!store || typeof store !== 'object' || !(mapping instanceof Map)) return 0;
+  let moved = 0;
+  for (const [oldKey, newKey] of mapping.entries()) {
+    if (!newKey || oldKey === newKey) continue;
+    const count = Number(store[oldKey] || 0);
+    if (count <= 0) continue;
+    store[newKey] = (Number(store[newKey]) || 0) + count;
+    delete store[oldKey];
+    moved += count;
+  }
+  return moved;
+}
+
+/**
+ * Gộp item V1 đã lưu vào item V2 tương ứng. Gear/phù giữ ID/tên nên không cần đổi.
+ * Hàm idempotent: gọi nhiều lần không nhân đôi số lượng.
+ */
+export function migrateLegacyElementalInventory() {
+  ensureStores();
+  migrationPasses += 1;
+  const movedPills = migrateCountedStore(gameState.inventory.pills, LEGACY_ELEMENTAL_MIGRATION.pillNames);
+  const movedHerbs = migrateCountedStore(gameState.herbs, LEGACY_ELEMENTAL_MIGRATION.herbNames);
+  const movedOres = migrateCountedStore(gameState.materials.minerals, LEGACY_ELEMENTAL_MIGRATION.oreIds);
+  return { movedPills, movedHerbs, movedOres, pass:migrationPasses };
 }
 
 export function addElementalItemToInventory(item, amount=1) {
@@ -73,20 +120,11 @@ export function addElementalItemToInventory(item, amount=1) {
     case 'gear':
       for (let i = 0; i < qty; i += 1) gameState.inventory.items.push({ ...item });
       break;
-    case 'pill':
-      addCount(gameState.inventory.pills, item.name, qty);
-      break;
-    case 'talisman':
-      addCount(gameState.inventory.talismans, item.name, qty);
-      break;
-    case 'herb':
-      addCount(gameState.herbs, item.name, qty);
-      break;
-    case 'ore':
-      addCount(gameState.materials.minerals, item.id, qty);
-      break;
-    default:
-      return false;
+    case 'pill': addCount(gameState.inventory.pills, item.name, qty); break;
+    case 'talisman': addCount(gameState.inventory.talismans, item.name, qty); break;
+    case 'herb': addCount(gameState.herbs, item.name, qty); break;
+    case 'ore': addCount(gameState.materials.minerals, item.id, qty); break;
+    default: return false;
   }
   return true;
 }
@@ -102,11 +140,7 @@ function roundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/**
- * Tạo icon vector 48x48 ngay trong runtime.
- * Không thêm hàng trăm PNG vào repo, nhưng mỗi item vẫn có texture key riêng,
- * màu hệ + viền phẩm + ký hiệu loại vật phẩm rõ ràng trên mobile.
- */
+/** Sinh texture 48x48 theo nhu cầu. Không preload toàn bộ 612 icon lúc khởi động. */
 export function ensureElementalItemTexture(scene, item) {
   if (!scene?.textures || !item?.icon || scene.textures.exists(item.icon)) return item?.icon || null;
   if (typeof document === 'undefined') return null;
@@ -141,11 +175,9 @@ export function ensureElementalItemTexture(scene, item) {
   ctx.font = '700 15px sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.fillText(meta.kindCode, 24, 21);
-
   ctx.font = '700 8px sans-serif';
   ctx.fillStyle = meta.systemColor;
   ctx.fillText(meta.systemCode, 15, 38);
-
   ctx.fillStyle = meta.rankColor;
   ctx.beginPath();
   ctx.arc(39, 38, 6.5, 0, Math.PI * 2);
@@ -158,8 +190,22 @@ export function ensureElementalItemTexture(scene, item) {
   return item.icon;
 }
 
-export function createAllElementalItemTextures(scene) {
-  ALL_ELEMENTAL_ITEMS.forEach(item => ensureElementalItemTexture(scene, item));
+function collectOwnedElementalItems() {
+  ensureStores();
+  const unique = new Map();
+  const add = item => { if (item?.id) unique.set(item.id, item); };
+
+  (gameState.inventory.items || []).forEach(item => add(getElementalItemById(item?.catalogItemId || item?.id) || item));
+  Object.values(gameState.equipped || {}).forEach(item => add(getElementalItemById(item?.catalogItemId || item?.id) || item));
+  Object.keys(gameState.inventory.pills || {}).forEach(name => add(getElementalItemByName(name)));
+  Object.keys(gameState.inventory.talismans || {}).forEach(name => add(getElementalItemByName(name)));
+  Object.keys(gameState.herbs || {}).forEach(name => add(getElementalItemByName(name)));
+  Object.keys(gameState.materials.minerals || {}).forEach(id => add(getElementalItemById(id)));
+  return [...unique.values()];
+}
+
+export function ensureOwnedElementalItemTextures(scene) {
+  collectOwnedElementalItems().forEach(item => ensureElementalItemTexture(scene, item));
 }
 
 function itemDropColor(item) {
@@ -170,7 +216,8 @@ function itemDropColor(item) {
 
 function awardLabel(item) {
   const kind = { gear:'Trang Bị', pill:'Đan Dược', talisman:'Phù Chú', herb:'Linh Thảo', ore:'Khoáng Thạch' }[item.kind] || 'Vật Phẩm';
-  return `${kind} • Hệ ${item.elementName} • ${item.realm}`;
+  const affinity = item.elementName ? `Hệ ${item.elementName}` : (item.affinityName ? `Thuộc tính ${item.affinityName}` : 'Dùng Chung');
+  return `${kind} • ${affinity} • ${item.realm}`;
 }
 
 function spawnCatalogGroundDrop(scene, x, y, item, winnerInfo={}, isParty=false) {
@@ -196,7 +243,6 @@ function spawnCatalogGroundDrop(scene, x, y, item, winnerInfo={}, isParty=false)
 
   container.add([aura, iconBg, icon, labelBg, label, sub]);
   scene.elementalGroundDrops.push(container);
-
   scene.tweens.add({ targets:aura, scaleX:1.35, scaleY:1.35, alpha:0.12, duration:520, yoyo:true, repeat:-1 });
   scene.tweens.add({ targets:icon, y:{ from:-26, to:-8 }, duration:420, ease:'Bounce.easeOut' });
 
@@ -209,9 +255,7 @@ function spawnCatalogGroundDrop(scene, x, y, item, winnerInfo={}, isParty=false)
     if (idx >= 0) scene.elementalGroundDrops.splice(idx, 1);
 
     if (!playerOwns || !playerReceivesPartyShare) {
-      const msg = !playerOwns
-        ? `${winnerInfo.winnerName || 'Tán Tu'} đã nhặt ${item.name}`
-        : `Đồng đội nhận ${item.name}`;
+      const msg = !playerOwns ? `${winnerInfo.winnerName || 'Tán Tu'} đã nhặt ${item.name}` : `Đồng đội nhận ${item.name}`;
       scene.showFloatingText?.(x, y - 55, msg, '#a7c7e7', '10px');
       container.destroy();
       return;
@@ -250,25 +294,26 @@ export function installElementalItemSystem(MainGameScene) {
     return spawnCatalogGroundDrop(this, x, y, item, winnerInfo, isParty);
   };
 
-  // Sinh texture trước khi người chơi có thể mở túi đồ.
-  const originalCreate = proto.create;
-  proto.create = function elementalItemsCreateWrapper(...args) {
-    const result = originalCreate.apply(this, args);
-    createAllElementalItemTextures(this);
-    return result;
-  };
+  // Túi đồ là nơi cần icon nhiều nhất: chỉ sinh icon cho item người chơi thực sự sở hữu.
+  const originalOpenGearPanel = proto.openGearPanel;
+  if (typeof originalOpenGearPanel === 'function') {
+    proto.openGearPanel = function elementalInventoryWrapper(...args) {
+      migrateLegacyElementalInventory();
+      ensureOwnedElementalItemTextures(this);
+      return originalOpenGearPanel.apply(this, args);
+    };
+  }
 
-  // Bổ sung vật phẩm theo hệ vào drop table hiện có, giữ nguyên toàn bộ loot cũ.
   const originalBuildDropTable = proto.buildEnemyDropTable;
   if (typeof originalBuildDropTable === 'function') {
     proto.buildEnemyDropTable = function elementalBuildDropTable(enemy) {
+      migrateLegacyElementalInventory();
       const bundle = originalBuildDropTable.call(this, enemy) || {};
       bundle.elementalItem = rollElementalItemDrop(enemy);
       return bundle;
     };
   }
 
-  // Ground loot cũ vẫn hoạt động; item theo hệ xuất hiện cạnh túi chiến lợi phẩm với icon thật.
   const originalSpawnGroundLootDrop = proto.spawnGroundLootDrop;
   if (typeof originalSpawnGroundLootDrop === 'function') {
     proto.spawnGroundLootDrop = function elementalGroundLootWrapper(x, y, dropBundle, winnerInfo, isParty) {
@@ -279,12 +324,12 @@ export function installElementalItemSystem(MainGameScene) {
     };
   }
 
-  // Dọn item rơi khi đổi/khởi tạo lại battlefield, tránh icon tồn tại trên map cũ.
   const originalInitBattlefield = proto.initBattlefield;
   if (typeof originalInitBattlefield === 'function') {
     proto.initBattlefield = function elementalBattlefieldWrapper(...args) {
       (this.elementalGroundDrops || []).forEach(drop => drop?.destroy?.());
       this.elementalGroundDrops = [];
+      migrateLegacyElementalInventory();
       return originalInitBattlefield.apply(this, args);
     };
   }
