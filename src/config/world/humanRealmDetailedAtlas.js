@@ -2,9 +2,8 @@
  * humanRealmDetailedAtlas.js
  * DATA ONLY: detailed exploration/gameplay blueprint for every canonical node in Nhân Giới.
  *
- * This atlas never creates runtime maps. It gives every continent, primary region,
- * second-level territory and materialized local node a deterministic identity that
- * future map builders, spawn systems, loot systems and UI can consume on demand.
+ * Profiles are deterministic and generated lazily on first access so the complete
+ * atlas does not inflate mobile boot. This module never creates runtime maps/assets.
  */
 import {
   HUMAN_REALM_ROOT_ID,
@@ -80,15 +79,9 @@ const CONTINENT_STYLE = Object.freeze({
   })
 });
 
-const QUEST_VERBS = Object.freeze([
-  'điều tra', 'hộ tống', 'trấn áp', 'thu thập', 'giải cứu', 'khảo sát', 'phá trận', 'săn đuổi'
-]);
-const ZONE_ROLES = Object.freeze([
-  'cửa ngõ an toàn', 'vùng tài nguyên', 'địa bàn thế lực', 'hoang dã nguy hiểm', 'bí cảnh ngoại vi', 'boss territory'
-]);
-const SERVICE_POOL = Object.freeze([
-  'phường thị', 'đan dược', 'luyện khí', 'phù trận', 'truyền tống', 'ngự thú', 'nhiệm vụ tông môn', 'đấu giá'
-]);
+const QUEST_VERBS = Object.freeze(['điều tra', 'hộ tống', 'trấn áp', 'thu thập', 'giải cứu', 'khảo sát', 'phá trận', 'săn đuổi']);
+const ZONE_ROLES = Object.freeze(['cửa ngõ an toàn', 'vùng tài nguyên', 'địa bàn thế lực', 'hoang dã nguy hiểm', 'bí cảnh ngoại vi', 'boss territory']);
+const SERVICE_POOL = Object.freeze(['phường thị', 'đan dược', 'luyện khí', 'phù trận', 'truyền tống', 'ngự thú', 'nhiệm vụ tông môn', 'đấu giá']);
 
 const nodeById = new Map(HUMAN_REALM_WORLD_NODES.map(node => [node.id, node]));
 const childrenByParent = new Map();
@@ -97,6 +90,7 @@ for (const node of HUMAN_REALM_WORLD_NODES) {
   if (!childrenByParent.has(key)) childrenByParent.set(key, []);
   childrenByParent.get(key).push(node);
 }
+const detailCache = new Map();
 
 function freeze(value) {
   if (Array.isArray(value)) return Object.freeze(value.map(freeze));
@@ -155,14 +149,7 @@ function baseRegionData(node) {
   const regionId = namLangRegionId(node);
   if (regionId) {
     const atlas = getRegionAtlasProfile(regionId);
-    if (atlas) return {
-      climate: atlas.climate,
-      products: atlas.products,
-      minerals: atlas.minerals,
-      enemies: atlas.enemies,
-      elements: atlas.elements,
-      realm: atlas.realm
-    };
+    if (atlas) return { climate: atlas.climate, products: atlas.products, minerals: atlas.minerals, enemies: atlas.enemies, elements: atlas.elements, realm: atlas.realm };
   }
   return {
     climate: node.climate || node.desc || 'linh khí biến động theo địa hình',
@@ -181,47 +168,31 @@ function baseTerritoryData(node) {
     const index = Math.max(0, siblings.findIndex(item => item.id === node.id));
     const atlas = getProvinceAtlasProfile(regionId, node.name, index);
     if (atlas) return {
-      climate: atlas.climate,
-      capital: node.capital || atlas.capital,
-      cities: atlas.notableCities,
-      towns: atlas.notableTowns,
-      villages: atlas.notableVillages,
-      secrets: atlas.secretRealms,
-      forbidden: atlas.forbiddenZones,
-      products: atlas.products,
-      minerals: atlas.minerals,
-      enemyProfile: atlas.enemyProfile
+      climate: atlas.climate, capital: node.capital || atlas.capital,
+      cities: atlas.notableCities, towns: atlas.notableTowns, villages: atlas.notableVillages,
+      secrets: atlas.secretRealms, forbidden: atlas.forbiddenZones,
+      products: atlas.products, minerals: atlas.minerals, enemyProfile: atlas.enemyProfile
     };
   }
   return {
     climate: node.climate || 'linh khí biến động theo địa thế',
     capital: node.capital || `${node.name} Chủ Thành`,
-    cities: node.notableCities || [],
-    towns: node.notableTowns || [],
-    villages: node.notableVillages || [],
-    secrets: node.secretRealms || [],
-    forbidden: node.forbiddenZones || [],
-    products: node.products || node.signatureProducts || [],
-    minerals: node.minerals || node.signatureMinerals || [],
+    cities: node.notableCities || [], towns: node.notableTowns || [], villages: node.notableVillages || [],
+    secrets: node.secretRealms || [], forbidden: node.forbiddenZones || [],
+    products: node.products || node.signatureProducts || [], minerals: node.minerals || node.signatureMinerals || [],
     enemyProfile: node.enemyProfile || null
   };
 }
 
 function realmRangeFromChildren(node) {
-  const values = (childrenByParent.get(node.id) || [])
-    .map(child => baseTerritoryData(child).enemyProfile)
-    .filter(Boolean);
+  const values = (childrenByParent.get(node.id) || []).map(child => baseTerritoryData(child).enemyProfile).filter(Boolean);
   if (!values.length) return [0, 28];
-  return [
-    Math.min(...values.map(item => Number(item.minRealmIdx || 0))),
-    Math.max(...values.map(item => Number(item.maxRealmIdx || 0)))
-  ];
+  return [Math.min(...values.map(item => Number(item.minRealmIdx || 0))), Math.max(...values.map(item => Number(item.maxRealmIdx || 0)))];
 }
 
-function makeRealmDetail(node) {
+function makeRealmDetail() {
   return freeze({
-    version: HUMAN_REALM_DETAIL_VERSION,
-    scope: 'realm',
+    version: HUMAN_REALM_DETAIL_VERSION, scope: 'realm',
     identity: {
       summary: 'Một đại thế giới phàm tục-tu chân gồm 5 Đại Lục có cấu trúc lãnh thổ, văn minh, sinh thái và quy tắc tu luyện khác nhau.',
       coreLoop: 'khám phá → tu luyện → gia nhập thế lực → tranh tài nguyên → mở bí cảnh → vượt đại lục',
@@ -235,16 +206,13 @@ function makeRealmDetail(node) {
 }
 
 function makeContinentDetail(node) {
-  const key = continentKeyForNode(node);
-  const style = CONTINENT_STYLE[key];
+  const style = CONTINENT_STYLE[continentKeyForNode(node)];
   const seed = hashString(node.id);
   return freeze({
-    version: HUMAN_REALM_DETAIL_VERSION,
-    scope: 'continent',
+    version: HUMAN_REALM_DETAIL_VERSION, scope: 'continent',
     identity: {
       summary: `${node.name} có bản sắc địa hình và văn minh riêng; ${style.conflict}.`,
-      terrainSignature: pick(style.terrain, seed),
-      architecture: pick(style.architecture, seed, 1),
+      terrainSignature: pick(style.terrain, seed), architecture: pick(style.architecture, seed, 1),
       ambience: unique([pick(style.ambience, seed), pick(style.ambience, seed, 2), pick(style.ambience, seed, 4)])
     },
     macroBiomes: unique(style.biomes),
@@ -255,17 +223,11 @@ function makeContinentDetail(node) {
       borderPressure: pick(style.hazards, seed, 2)
     },
     economy: {
-      signatureProducts: node.signatureProducts || [],
-      signatureMinerals: node.signatureMinerals || [],
+      signatureProducts: node.signatureProducts || [], signatureMinerals: node.signatureMinerals || [],
       tradePattern: `${pick(style.travel, seed)} kết nối các vùng trọng yếu và đầu mối thương mại.`
     },
-    travel: {
-      modes: unique(style.travel),
-      strategicHubRule: 'mỗi vùng cấp cao có ít nhất một đầu mối truyền tống hoặc thương lộ chính',
-      dangerousTravel: pick(style.hazards, seed, 1)
-    },
-    worldEvents: unique(style.events),
-    hazards: unique(style.hazards),
+    travel: { modes: unique(style.travel), strategicHubRule: 'mỗi vùng cấp cao có ít nhất một đầu mối truyền tống hoặc thương lộ chính', dangerousTravel: pick(style.hazards, seed, 1) },
+    worldEvents: unique(style.events), hazards: unique(style.hazards),
     materializationBlueprint: {
       primaryRegionRule: 'mỗi vùng cấp cao có visual identity riêng, biome riêng và boss ecology riêng',
       secondLevelRule: 'mỗi đơn vị cấp hai được chia zone theo thành thị, tài nguyên, hoang dã, bí cảnh và boss territory'
@@ -274,19 +236,14 @@ function makeContinentDetail(node) {
 }
 
 function makeRegionDetail(node) {
-  const key = continentKeyForNode(node);
-  const style = CONTINENT_STYLE[key];
+  const style = CONTINENT_STYLE[continentKeyForNode(node)];
   const seed = hashString(node.id);
   const base = baseRegionData(node);
   const realm = base.realm || realmRangeFromChildren(node);
-  const elements = unique(base.elements);
-  const products = unique(base.products);
-  const minerals = unique(base.minerals);
-  const enemies = unique(base.enemies);
+  const elements = unique(base.elements), products = unique(base.products), minerals = unique(base.minerals), enemies = unique(base.enemies);
   const themeBiome = String(node.theme || '').replace(/_/g, ' ');
   return freeze({
-    version: HUMAN_REALM_DETAIL_VERSION,
-    scope: 'primary_region',
+    version: HUMAN_REALM_DETAIL_VERSION, scope: 'primary_region',
     identity: {
       summary: `${node.name}: ${node.desc || node.climate || pick(style.terrain, seed)}.`,
       terrainSignature: `${pick(style.terrain, seed)}; ${node.climate || base.climate}`,
@@ -294,30 +251,19 @@ function makeRegionDetail(node) {
       settlementCulture: `${pick(style.architecture, seed, 1)}; cư dân và tu sĩ thích nghi với ${pick(style.weather, seed)}`
     },
     biomes: unique([themeBiome, pick(style.biomes, seed), pick(style.biomes, seed, 2), pick(style.biomes, seed, 4)]),
-    climateCycle: {
-      baseline: base.climate,
-      weather: unique([pick(style.weather, seed), pick(style.weather, seed, 1), pick(style.weather, seed, 3)]),
-      anomaly: pick(style.weather, seed, 4)
-    },
+    climateCycle: { baseline: base.climate, weather: unique([pick(style.weather, seed), pick(style.weather, seed, 1), pick(style.weather, seed, 3)]), anomaly: pick(style.weather, seed, 4) },
     spiritQi: {
       density: realm[1] >= 24 ? 'cực thịnh' : realm[1] >= 18 ? 'thịnh' : realm[1] >= 10 ? 'trung-cao' : 'trung bình',
-      elements,
-      phenomenon: `${pick(elements.length ? elements : ['Ngũ Hành'], seed)} linh khí dễ tụ thành địa mạch và thiên tượng đặc hữu.`
+      elements, phenomenon: `${pick(elements.length ? elements : ['Ngũ Hành'], seed)} linh khí dễ tụ thành địa mạch và thiên tượng đặc hữu.`
     },
     civilization: {
       settlementPattern: `${pick(style.architecture, seed)} phân bố quanh linh mạch, tài nguyên và tuyến giao thông.`,
       transport: unique([pick(style.travel, seed), pick(style.travel, seed, 1)]),
-      economy: unique([...products.slice(0, 3), ...minerals.slice(0, 2)]),
-      conflict: style.conflict
+      economy: unique([...products.slice(0, 3), ...minerals.slice(0, 2)]), conflict: style.conflict
     },
-    resources: {
-      products,
-      minerals,
-      rareDropTheme: `${pick(products, seed) || 'linh vật'} / ${pick(minerals, seed, 1) || 'linh khoáng'} tinh luyện`
-    },
+    resources: { products, minerals, rareDropTheme: `${pick(products, seed) || 'linh vật'} / ${pick(minerals, seed, 1) || 'linh khoáng'} tinh luyện` },
     combat: {
-      recommendedRealmRange: realm,
-      enemyArchetypes: enemies,
+      recommendedRealmRange: realm, enemyArchetypes: enemies,
       packRule: `enemy thường chiếm hoang dã; tinh anh giữ tài nguyên; boss kiểm soát ${pick(style.biomes, seed, 3)} hoặc cấm địa`,
       eliteModifier: pick(['cuồng bạo', 'hộ giáp linh lực', 'nguyên tố tăng cường', 'triệu hồi đồng loại', 'dị biến huyết mạch'], seed),
       bossRule: `boss vùng cao hơn enemy thường 1–2 bậc cảnh giới và có cơ chế gắn với ${pick(elements.length ? elements : ['địa hình'], seed, 1)}`
@@ -327,46 +273,29 @@ function makeRegionDetail(node) {
       dungeonArchetypes: unique(['bí cảnh truyền thừa', 'động phủ cổ tu', pick(['cổ chiến trường', 'yêu sào', 'huyền mộ', 'địa cung'], seed)]),
       hazards: unique([pick(style.hazards, seed), pick(style.hazards, seed, 2), pick(style.hazards, seed, 4)]),
       worldEvents: unique([pick(style.events, seed), pick(style.events, seed, 1), pick(style.events, seed, 3)]),
-      questThemes: unique([
-        `${pick(QUEST_VERBS, seed)} ${pick(style.hazards, seed)}`,
-        `${pick(QUEST_VERBS, seed, 2)} ${pick(products, seed) || 'linh dược quý'}`,
-        `${pick(QUEST_VERBS, seed, 4)} bí cảnh của ${node.name}`
-      ])
+      questThemes: unique([`${pick(QUEST_VERBS, seed)} ${pick(style.hazards, seed)}`, `${pick(QUEST_VERBS, seed, 2)} ${pick(products, seed) || 'linh dược quý'}`, `${pick(QUEST_VERBS, seed, 4)} bí cảnh của ${node.name}`])
     },
     audioVisual: {
       ambience: unique([pick(style.ambience, seed), pick(style.ambience, seed, 1), pick(style.ambience, seed, 3)]),
       panoramaDirection: `${pick(style.terrain, seed)} làm silhouette chính; ${pick(style.weather, seed, 2)} tạo lớp nền động`,
       vfxDirection: `${elements.join('/') || 'Ngũ Hành'} dùng làm màu/nhịp VFX chủ đạo, không preload ngoài vùng`
     },
-    materializationBlueprint: {
-      suggestedZoneCount: 5 + (seed % 2),
-      zoneRoles: unique(ZONE_ROLES.slice(0, 5 + (seed % 2))),
-      streamingRule: 'chỉ stream asset zone hiện tại và zone kế cận'
-    }
+    materializationBlueprint: { suggestedZoneCount: 5 + (seed % 2), zoneRoles: unique(ZONE_ROLES.slice(0, 5 + (seed % 2))), streamingRule: 'chỉ stream asset zone hiện tại và zone kế cận' }
   });
 }
 
 function makeTerritoryDetail(node) {
-  const key = continentKeyForNode(node);
-  const style = CONTINENT_STYLE[key];
+  const style = CONTINENT_STYLE[continentKeyForNode(node)];
   const seed = hashString(node.id);
-  const base = baseTerritoryData(node);
-  const enemy = base.enemyProfile || {};
+  const base = baseTerritoryData(node), enemy = base.enemyProfile || {};
   const parentRegion = nodeById.get(node.parentId);
   const regionDetail = parentRegion ? makeRegionDetail(parentRegion) : null;
-  const products = unique(base.products);
-  const minerals = unique(base.minerals);
-  const commonEnemies = unique(enemy.commonEnemies || []);
+  const products = unique(base.products), minerals = unique(base.minerals), commonEnemies = unique(enemy.commonEnemies || []);
   const realmRange = [Number(enemy.minRealmIdx || 0), Number(enemy.maxRealmIdx || Math.max(2, Number(enemy.bossRealmIdx || 2) - 1))];
   const bossRealm = Number(enemy.bossRealmIdx || Math.min(28, realmRange[1] + 1));
-  const mainBiome = pick(regionDetail?.biomes || style.biomes, seed);
-  const secondaryBiome = pick(regionDetail?.biomes || style.biomes, seed, 2);
+  const mainBiome = pick(regionDetail?.biomes || style.biomes, seed), secondaryBiome = pick(regionDetail?.biomes || style.biomes, seed, 2);
   const capital = base.capital || `${node.name} Chủ Thành`;
-  const cities = unique(base.cities);
-  const towns = unique(base.towns);
-  const villages = unique(base.villages);
-  const secrets = unique(base.secrets);
-  const forbidden = unique(base.forbidden);
+  const cities = unique(base.cities), towns = unique(base.towns), villages = unique(base.villages), secrets = unique(base.secrets), forbidden = unique(base.forbidden);
   const zoneCount = 5 + (seed % 2);
   const naturalLandmarks = [
     `${node.name} ${pick(['Linh Mạch', 'Cổ Lâm', 'Thiên Hồ', 'Huyền Cốc', 'Thạch Nhai'], seed)}`,
@@ -374,8 +303,7 @@ function makeTerritoryDetail(node) {
   ];
 
   return freeze({
-    version: HUMAN_REALM_DETAIL_VERSION,
-    scope: 'second_level_territory',
+    version: HUMAN_REALM_DETAIL_VERSION, scope: 'second_level_territory',
     mapIdentity: {
       summary: `${node.name} lấy ${mainBiome} làm biome chính, ${secondaryBiome} làm biome phụ; trung tâm là ${capital}.`,
       terrain: `${pick(style.terrain, seed)}; ${base.climate}`,
@@ -386,10 +314,7 @@ function makeTerritoryDetail(node) {
     },
     landmarks: unique([capital, ...cities.slice(0, 2), ...secrets.slice(0, 1), ...forbidden.slice(0, 1), ...naturalLandmarks]),
     settlements: {
-      capital,
-      cities,
-      towns,
-      villages,
+      capital, cities, towns, villages,
       infrastructure: unique([pick(style.travel, seed), pick(style.travel, seed, 1), `${pick(SERVICE_POOL, seed)} đầu mối`]),
       services: unique([pick(SERVICE_POOL, seed), pick(SERVICE_POOL, seed, 2), pick(SERVICE_POOL, seed, 4), pick(SERVICE_POOL, seed, 6)])
     },
@@ -400,18 +325,14 @@ function makeTerritoryDetail(node) {
       waypointStyle: `${capital} là waypoint chính; trấn lớn và bí cảnh chỉ mở waypoint sau khi khám phá`
     },
     resourceProfile: {
-      products,
-      minerals,
+      products, minerals,
       gatherZones: unique([`${mainBiome} dược khu`, `${secondaryBiome} khoáng khu`, `${naturalLandmarks[1]} tài nguyên hiếm`]),
       rareResource: pick([...products, ...minerals], seed, 1) || 'linh vật địa phương',
       economy: `${capital} thu mua ${pick(products, seed) || 'linh dược'} và ${pick(minerals, seed, 1) || 'linh khoáng'}; giá biến động theo sự kiện vùng.`
     },
     enemyEcology: {
-      recommendedRealmRange: realmRange,
-      bossRealmIdx: bossRealm,
-      commonEnemies,
-      eliteEnemy: enemy.eliteEnemy || `${node.name} Tinh Anh`,
-      fieldBoss: enemy.fieldBoss || `${node.name} Vực Chủ Yêu`,
+      recommendedRealmRange: realmRange, bossRealmIdx: bossRealm, commonEnemies,
+      eliteEnemy: enemy.eliteEnemy || `${node.name} Tinh Anh`, fieldBoss: enemy.fieldBoss || `${node.name} Vực Chủ Yêu`,
       spawnHabitats: unique([mainBiome, secondaryBiome, pick(style.biomes, seed, 3)]),
       behavior: unique([
         pick(['đi tuần theo bầy', 'mai phục gần tài nguyên', 'chiếm cứ đường hẹp', 'săn mồi theo giờ', 'bảo vệ lãnh địa'], seed),
@@ -422,27 +343,19 @@ function makeTerritoryDetail(node) {
     },
     dungeonProfile: {
       secretRealms: secrets.map((name, index) => freeze({
-        name,
-        type: pick(['truyền thừa', 'tài nguyên', 'thí luyện', 'cổ tu động phủ'], seed, index),
+        name, type: pick(['truyền thừa', 'tài nguyên', 'thí luyện', 'cổ tu động phủ'], seed, index),
         recommendedRealm: Math.min(28, realmRange[0] + Math.floor((realmRange[1] - realmRange[0]) * 0.65) + index),
         rewardTheme: pick([...products, ...minerals], seed, index) || 'công pháp/tài nguyên địa phương'
       })),
       forbiddenZones: forbidden.map((name, index) => freeze({
-        name,
-        danger: pick(style.hazards, seed, index),
+        name, danger: pick(style.hazards, seed, index),
         recommendedRealm: Math.min(28, Math.max(realmRange[1], bossRealm - 1 + index)),
         bossTheme: enemy.fieldBoss || `${node.name} Cấm Địa Boss`
       }))
     },
-    hazards: unique([
-      pick(style.hazards, seed),
-      pick(style.hazards, seed, 2),
-      `${pick(style.weather, seed, 1)} làm thay đổi tầm nhìn/di chuyển`,
-      `linh lực địa phương gây áp chế nếu thấp hơn cảnh giới ${realmRange[0]}`
-    ]),
+    hazards: unique([pick(style.hazards, seed), pick(style.hazards, seed, 2), `${pick(style.weather, seed, 1)} làm thay đổi tầm nhìn/di chuyển`, `linh lực địa phương gây áp chế nếu thấp hơn cảnh giới ${realmRange[0]}`]),
     events: unique([
-      pick(style.events, seed),
-      pick(style.events, seed, 1),
+      pick(style.events, seed), pick(style.events, seed, 1),
       `${pick(commonEnemies.length ? commonEnemies : ['yêu thú'], seed)} bạo động tại ${naturalLandmarks[0]}`,
       `${pick(['thương hội', 'tông môn', 'gia tộc', 'hoàng triều'], seed)} tranh chấp ${pick(products, seed) || 'tài nguyên hiếm'}`
     ]),
@@ -456,8 +369,7 @@ function makeTerritoryDetail(node) {
     ]),
     factionConflict: {
       dominantFaction: node.factionProfile?.factions?.[1]?.name || node.cultivationFactions?.[0] || 'thế lực bá chủ địa phương',
-      contestedAssets: unique([pick(products, seed), pick(minerals, seed, 1), secrets[0], forbidden[0]]),
-      conflict: style.conflict
+      contestedAssets: unique([pick(products, seed), pick(minerals, seed, 1), secrets[0], forbidden[0]]), conflict: style.conflict
     },
     dayNight: {
       day: `${capital} và thương lộ hoạt động mạnh; gatherer/NPC đông hơn`,
@@ -465,21 +377,17 @@ function makeTerritoryDetail(node) {
       dawnDusk: `${pick(style.weather, seed, 2)} dễ xuất hiện và tạo buff/debuff môi trường`
     },
     weatherPattern: {
-      common: unique([pick(style.weather, seed), pick(style.weather, seed, 1)]),
-      rare: pick(style.weather, seed, 4),
+      common: unique([pick(style.weather, seed), pick(style.weather, seed, 1)]), rare: pick(style.weather, seed, 4),
       gameplayEffect: 'weather chỉ kích hoạt asset/VFX khi người chơi ở đúng map hoặc zone'
     },
     recommendedProgression: {
-      enterRealmIdx: realmRange[0],
-      farmRealmRange: realmRange,
-      challengeBossRealmIdx: bossRealm,
+      enterRealmIdx: realmRange[0], farmRealmRange: realmRange, challengeBossRealmIdx: bossRealm,
       exitCondition: `hoàn thành boss/waypoint chính và đạt tối thiểu cảnh giới ${Math.min(28, realmRange[1])}`
     },
     materializationBlueprint: {
       suggestedZoneCount: zoneCount,
       zones: Array.from({ length: zoneCount }, (_, index) => freeze({
-        order: index + 1,
-        role: ZONE_ROLES[Math.min(index, ZONE_ROLES.length - 1)],
+        order: index + 1, role: ZONE_ROLES[Math.min(index, ZONE_ROLES.length - 1)],
         biome: pick([mainBiome, secondaryBiome, ...style.biomes], seed, index),
         landmark: index === 0 ? capital : pick([...naturalLandmarks, ...secrets, ...forbidden], seed, index),
         streamPriority: index <= 1 ? 'near-player-high' : 'lazy'
@@ -491,17 +399,14 @@ function makeTerritoryDetail(node) {
 }
 
 function makeLocalDetail(node) {
-  const key = continentKeyForNode(node);
-  const style = CONTINENT_STYLE[key];
+  const style = CONTINENT_STYLE[continentKeyForNode(node)];
   const seed = hashString(node.id);
   const parent = node.parentId ? nodeById.get(node.parentId) : null;
   return freeze({
-    version: HUMAN_REALM_DETAIL_VERSION,
-    scope: node.type,
+    version: HUMAN_REALM_DETAIL_VERSION, scope: node.type,
     identity: {
       summary: node.desc || `${node.name} là địa điểm thuộc ${parent?.name || style.name}.`,
-      role: node.locationKind || node.type,
-      terrain: pick(style.terrain, seed),
+      role: node.locationKind || node.type, terrain: pick(style.terrain, seed),
       ambience: unique([pick(style.ambience, seed), pick(style.ambience, seed, 2)])
     },
     localGameplay: {
@@ -520,29 +425,35 @@ function makeLocalDetail(node) {
   });
 }
 
-const detailByNodeId = new Map();
-for (const node of HUMAN_REALM_WORLD_NODES) {
-  let detail;
-  if (node.id === HUMAN_REALM_ROOT_ID) detail = makeRealmDetail(node);
-  else if (node.type === 'continent') detail = makeContinentDetail(node);
-  else if (node.type === 'great_region') detail = makeRegionDetail(node);
-  else if (node.type === 'province') detail = makeTerritoryDetail(node);
-  else detail = makeLocalDetail(node);
-  detailByNodeId.set(node.id, detail);
+function buildDetail(node) {
+  if (node.id === HUMAN_REALM_ROOT_ID) return makeRealmDetail();
+  if (node.type === 'continent') return makeContinentDetail(node);
+  if (node.type === 'great_region') return makeRegionDetail(node);
+  if (node.type === 'province') return makeTerritoryDetail(node);
+  return makeLocalDetail(node);
 }
 
-export const HUMAN_REALM_DETAIL_ATLAS = Object.freeze(
-  Object.fromEntries([...detailByNodeId.entries()])
-);
-
 export const HUMAN_REALM_DETAIL_COUNTS = Object.freeze({
-  totalNodes: detailByNodeId.size,
+  totalNodes: HUMAN_REALM_WORLD_NODES.length,
   continents: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'continent').length,
   primaryRegions: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'great_region').length,
   secondLevelTerritories: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province').length,
   playableLocations: HUMAN_REALM_WORLD_NODES.filter(node => node.playableMapId != null).length
 });
 
+export function hasHumanRealmDetailBlueprint(nodeId) {
+  return nodeById.has(nodeId);
+}
+
 export function getHumanRealmDetailProfile(nodeId) {
-  return detailByNodeId.get(nodeId) || null;
+  if (detailCache.has(nodeId)) return detailCache.get(nodeId);
+  const node = nodeById.get(nodeId);
+  if (!node) return null;
+  const detail = buildDetail(node);
+  detailCache.set(nodeId, detail);
+  return detail;
+}
+
+export function getAllHumanRealmDetailProfiles() {
+  return HUMAN_REALM_WORLD_NODES.map(node => getHumanRealmDetailProfile(node.id));
 }
