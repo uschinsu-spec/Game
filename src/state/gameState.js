@@ -1,4 +1,6 @@
 // QUẢN LÝ TOÀN BỘ TRẠNG THÁI NGƯỜI CHƠI & DỮ LIỆU TU TIÊN
+import { createInitialWorldProgress } from './worldProgress.js';
+
 export const gameState = {
   // Cảnh giới & Tu vi
   realmIdx: 0,
@@ -56,6 +58,8 @@ export const gameState = {
   },
 
   currentMapId: 0,
+  // Chỉ lưu tiến độ khám phá quan trọng; không lưu state của hàng triệu địa danh.
+  worldProgress: createInitialWorldProgress(0),
 
   gearPlus: 0,
   equippedSkillIds: ['basic_attack', 'kiem_1'],
