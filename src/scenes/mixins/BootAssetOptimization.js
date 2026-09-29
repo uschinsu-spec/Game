@@ -1,10 +1,11 @@
 /**
  * BootAssetOptimization.js
  * P0 startup optimization:
- * - preload only current-map panorama + player + visible HUD/menu assets
- * - release window.__GAME_BOOT__.ready() through the normal scene create path
- * - defer enemy/NPC/item/VFX catalogs until after the first playable frame
- * - lazy-load panoramas for maps only when the player actually enters them
+ * - boot only the current panorama + player + visible HUD/menu assets
+ * - call window.__GAME_BOOT__.ready() through the normal first scene create
+ * - keep enemy/NPC/VFX catalogs out of Map 0 boot and out of global preload
+ * - restore gameplay methods immediately after first paint; zone streaming gates
+ *   combat until the active map/zone assets are ready
  */
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-skill-mastery-vfx-v4';
 import { loadAllItemIcons } from '../../config/iconManifest.js?v=20260928-game-icons-v1';
@@ -36,83 +37,43 @@ function queueSpriteSheet(scene, key, url, config) {
 
 function queueBootAssets(scene) {
   const A = ASSET_ROOT;
-
-  // Current map only. Other panoramas are loaded on first entry.
   const currentMap = getMapById(gameState.currentMapId);
   const panoramaMap = resolvePanoramaMap(currentMap);
+
+  // Exactly one panorama: the map used for the first playable frame.
   if (panoramaMap?.panoramaKey && panoramaMap?.panoramaAsset) {
     queueImage(scene, panoramaMap.panoramaKey, A + panoramaMap.panoramaAsset);
   }
 
-  // Player assets required to render and control the first frame.
+  // Player assets required to render/control the first frame.
   queueImage(scene, 'flying_sword', A + 'characters/player/flying_sword.png');
   queueSpriteSheet(scene, 'player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
   queueSpriteSheet(scene, 'player_run', A + 'characters/player/player_run.png', { frameWidth: 128, frameHeight: 128 });
   queueSpriteSheet(scene, 'player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
   queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
 
-  // HUD shell and only the icons visible on the first screen.
+  // Visible HUD/menu shell only.
   queueImage(scene, 'hud_skin', A + 'ui/hud_skin.png');
   queueImage(scene, 'hud_portrait', A + 'ui/hud_portrait.png');
   ['bag', 'realm', 'craft', 'skills', 'auto'].forEach(icon => {
     queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`);
   });
 
-  // Only equipped skill icons are boot-critical. The full skill catalog is deferred.
+  // Only equipped skill icons are needed to draw the initial skill bar.
   const equipped = new Set((gameState.equippedSkillIds || []).filter(Boolean));
   ELEMENTAL_SKILLS.forEach(skill => {
     if (equipped.has(skill.id)) queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.png`);
   });
 }
 
-function queueDeferredRuntimeAssets(scene) {
+function queueDeferredUiAssets(scene) {
   const A = ASSET_ROOT;
 
-  // Enemies are not part of the boot gate.
-  for (let i = 1; i <= 16; i++) {
-    queueImage(scene, `enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.png`);
-    queueImage(scene, `enemy_${i}_idle_1`, `${A}characters/enemies/ground/enemy_${i}/idle_1.png`);
-    for (let r = 0; r < 4; r++) queueImage(scene, `enemy_${i}_run_${r}`, `${A}characters/enemies/ground/enemy_${i}/run_${r}.png`);
-    for (let a = 0; a < 4; a++) queueImage(scene, `enemy_${i}_attack_${a}`, `${A}characters/enemies/ground/enemy_${i}/attack_${a}.png`);
-  }
-
-  for (let i = 1; i <= 10; i++) {
-    queueImage(scene, `enemy_fly_${i}_idle_0`, `${A}characters/enemies/flying/enemy_${i}/idle_0.png`);
-    queueImage(scene, `enemy_fly_${i}_idle_1`, `${A}characters/enemies/flying/enemy_${i}/idle_1.png`);
-    for (let r = 0; r < 4; r++) queueImage(scene, `enemy_fly_${i}_run_${r}`, `${A}characters/enemies/flying/enemy_${i}/run_${r}.png`);
-    for (let a = 0; a < 4; a++) queueImage(scene, `enemy_fly_${i}_attack_${a}`, `${A}characters/enemies/flying/enemy_${i}/attack_${a}.png`);
-  }
-
-  // NPC catalogs are deferred until after first paint.
-  for (let f = 1; f <= 8; f++) {
-    const pad = String(f).padStart(2, '0');
-    queueImage(scene, `dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.png`);
-    queueImage(scene, `dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.png`);
-    queueImage(scene, `dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.png`);
-    queueImage(scene, `dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.png`);
-    queueImage(scene, `tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.png`);
-    queueImage(scene, `tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.png`);
-    queueImage(scene, `tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.png`);
-    queueImage(scene, `tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.png`);
-  }
-
-  for (let i = 1; i <= 20; i++) {
-    for (let f = 1; f <= 8; f++) {
-      const pad = String(f).padStart(2, '0');
-      queueImage(scene, `npc_fly_${i}_attack_${f}`, `${A}characters/npc/flying/npc_${i}/attack_${pad}.png`);
-      queueImage(scene, `npc_fly_${i}_fly_${f}`, `${A}characters/npc/flying/npc_${i}/fly_${pad}.png`);
-    }
-  }
-  for (let n = 1; n <= 16; n++) queueImage(scene, `npc_${n}`, `${A}characters/npc/portraits/npc_${n}.png`);
-
-  // Full icon catalogs are UI-on-demand/background assets, not boot assets.
+  // Post-boot UI/catalog assets. Enemy/NPC/VFX are intentionally NOT here.
   for (let i = 0; i < 10; i++) queueImage(scene, `skill_${i}`, A + `icons/skills/skill_${i}.png`);
   ELEMENTAL_SKILLS.forEach(skill => queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.png`));
   for (let i = 0; i < 18; i++) queueImage(scene, `item_${i}`, A + `icons/items/item_${i}.png`);
 
-  ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore']
-    .forEach(m => queueImage(scene, `mat_${m}`, A + `icons/materials/${m}.png`));
-  for (let h = 1; h <= 7; h++) queueImage(scene, `herb_${h}`, A + `icons/materials/herb_${h}.png`);
   ['silver', 'spirit_stone_low', 'spirit_stone_mid', 'spirit_stone_high', 'spirit_stone_top']
     .forEach(c => queueImage(scene, `curr_${c}`, A + `icons/currencies/${c}.png`));
   ['pill_heal', 'pill_cultivation', 'pill_breakthrough', 'pill_golden']
@@ -124,37 +85,8 @@ function queueDeferredRuntimeAssets(scene) {
     .forEach(icon => queueImage(scene, `ui_${icon}`, A + `icons/ui/${icon}.png`));
   ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold']
     .forEach(icon => queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
+
   loadAllItemIcons(scene, A);
-
-  // VFX catalog is entirely post-boot.
-  const elemDirs = { hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water', phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical' };
-  Object.entries(elemDirs).forEach(([elemKey, dirName]) => {
-    queueImage(scene, `vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.png`);
-    for (let f = 0; f < 8; f++) queueImage(scene, `vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.png`);
-    queueImage(scene, `vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.png`);
-    queueImage(scene, `vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.png`);
-    queueImage(scene, `vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.png`);
-    queueImage(scene, `vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.png`);
-    queueImage(scene, `vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.png`);
-    queueImage(scene, `vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.png`);
-  });
-
-  for (let i = 0; i < 8; i++) {
-    queueImage(scene, `vfx_kim_1_${i}`, `${A}vfx/sword/kim_1_frame_${i}.png`);
-    queueImage(scene, `vfx_kim_2_${i}`, `${A}vfx/sword/kim_2_frame_${i}.png`);
-  }
-  queueImage(scene, 'vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.png`);
-  queueImage(scene, 'vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.png`);
-  queueImage(scene, 'vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.png`);
-  queueImage(scene, 'vfx_impact_frame7', `${A}vfx/atlas/frame_7.png`);
-  queueImage(scene, 'vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.png`);
-  queueImage(scene, 'vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.png`);
-  queueImage(scene, 'vfx_loi', `${A}vfx/sword/vfx_loi.png`);
-  queueImage(scene, 'vfx_heal', A + 'vfx/skills/vfx_heal.png');
-  queueImage(scene, 'vfx_shield', A + 'vfx/skills/vfx_shield.png');
-  queueImage(scene, 'vfx_speed', A + 'vfx/skills/vfx_speed.png');
-  queueImage(scene, 'vfx_divine', A + 'vfx/ultimates/vfx_divine.png');
-  queueSpriteSheet(scene, 'vfx', A + 'vfx/atlas/vfx_atlas.png', { frameWidth: 128, frameHeight: 128 });
 }
 
 function createBootPlayerAnimations(scene) {
@@ -181,108 +113,28 @@ function restoreRuntimeMethods(scene, saved) {
   });
 }
 
-function activateDeferredRuntime(scene, saved) {
-  if (!scene?.sys || scene.sys.isDestroyed) return;
-  restoreRuntimeMethods(scene, saved);
+function startDeferredUiLoad(scene) {
+  if (!scene?.sys || scene.sys.isDestroyed || scene.__deferredUiAssetState === 'loading' || scene.__deferredUiAssetState === 'ready') return;
+  scene.__deferredUiAssetState = 'loading';
+  queueDeferredUiAssets(scene);
 
-  // Register enemy/NPC/VFX animations only after their textures exist.
-  saved.createAnimations?.call(scene);
-
-  if (scene.vfxPool?.destroy) scene.vfxPool.destroy(true);
-  saved.createVfxPool?.call(scene);
-  saved.createNpcs?.call(scene);
-  saved.initBattlefield?.call(scene);
-  saved.initFellowNpcs?.call(scene);
-  saved.initHerbs?.call(scene);
-  scene.syncVillageHubMode?.();
-  scene.updateHUD?.();
-  scene.__runtimeAssetsReady = true;
-  scene.__runtimeAssetState = 'ready';
-}
-
-function startDeferredRuntimeLoad(scene, saved) {
-  if (!scene?.sys || scene.sys.isDestroyed || scene.__runtimeAssetState !== 'scheduled') return;
-  scene.__runtimeAssetState = 'loading';
-
-  queueDeferredRuntimeAssets(scene);
-
-  const onDeferredError = file => {
-    console.warn('[P0 boot] Deferred asset failed:', file?.key || file?.src || 'unknown');
-  };
+  const onError = file => console.warn('[P0 boot] Deferred UI asset failed:', file?.key || file?.src || 'unknown');
   const finish = () => {
-    scene.load.off('loaderror', onDeferredError);
-    activateDeferredRuntime(scene, saved);
+    scene.load.off('loaderror', onError);
+    scene.__deferredUiAssetState = 'ready';
   };
   scene.load.once('complete', finish);
-  scene.load.on('loaderror', onDeferredError);
-
-  const busy = typeof scene.load.isLoading === 'function' ? scene.load.isLoading() : false;
-  if (!busy) scene.load.start();
-}
-
-function scheduleDeferredRuntimeLoad(scene, saved) {
-  scene.__runtimeAssetsReady = false;
-  scene.__runtimeAssetState = 'scheduled';
-  const run = () => startDeferredRuntimeLoad(scene, saved);
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(run, { timeout: 700 });
-  } else {
-    window.setTimeout(run, 120);
-  }
-}
-
-function ensurePanoramaThenSwitch(scene, originalSwitchMap, args) {
-  const [mapId] = args;
-  const map = getMapById(mapId);
-  const panoramaMap = resolvePanoramaMap(map);
-  const key = panoramaMap?.panoramaKey;
-  const asset = panoramaMap?.panoramaAsset;
-
-  if (!key || !asset || scene.textures?.exists?.(key)) {
-    return originalSwitchMap.apply(scene, args);
-  }
-
-  scene.__pendingMapTransition = { args };
-  if (scene.__panoramaLoads?.has(key)) return scene.currentMap || getMapById(gameState.currentMapId);
-  if (!scene.__panoramaLoads) scene.__panoramaLoads = new Set();
-  scene.__panoramaLoads.add(key);
-
-  const fileEvent = `filecomplete-image-${key}`;
-  const cleanup = () => {
-    scene.__panoramaLoads?.delete(key);
-    scene.load.off(fileEvent, onComplete);
-    scene.load.off('loaderror', onError);
-  };
-  const finishTransition = () => {
-    cleanup();
-    const pending = scene.__pendingMapTransition;
-    if (!pending || Number(pending.args?.[0]) !== Number(mapId)) return;
-    scene.__pendingMapTransition = null;
-    originalSwitchMap.apply(scene, pending.args);
-  };
-  const onComplete = () => finishTransition();
-  const onError = file => {
-    if (file?.key !== key) return;
-    cleanup();
-    const pending = scene.__pendingMapTransition;
-    if (pending && Number(pending.args?.[0]) === Number(mapId)) scene.__pendingMapTransition = null;
-    console.warn('[P0 boot] Panorama failed; map transition cancelled:', key);
-    scene.showFloatingText?.(
-      scene.player?.x || 270,
-      (scene.player?.y || 620) - 70,
-      'Không tải được bản đồ. Hãy thử lại.',
-      '#ff7777',
-      '13px'
-    );
-  };
-
-  scene.load.once(fileEvent, onComplete);
   scene.load.on('loaderror', onError);
-  queueImage(scene, key, ASSET_ROOT + asset);
 
   const busy = typeof scene.load.isLoading === 'function' ? scene.load.isLoading() : false;
   if (!busy) scene.load.start();
-  return scene.currentMap || getMapById(gameState.currentMapId);
+}
+
+function scheduleDeferredUiLoad(scene) {
+  scene.__deferredUiAssetState = 'scheduled';
+  const run = () => startDeferredUiLoad(scene);
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 900 });
+  else window.setTimeout(run, 160);
 }
 
 export function installBootAssetOptimization(MainGameScene) {
@@ -292,8 +144,8 @@ export function installBootAssetOptimization(MainGameScene) {
   proto.__bootAssetOptimizationInstalled = true;
   proto.__bootAssetOwner = BOOT_OWNER;
 
-  // WorldMapRuntime is installed before this mixin. Replacing preload here is
-  // intentional: it removes both the old all-assets preload and the old all-map panorama preload.
+  // Replace every legacy preload wrapper. WorldMapRuntime no longer owns preload;
+  // this queue is the single boot gate for the game.
   proto.preload = function p0BootPreload() {
     const bootUi = window.__GAME_BOOT__;
     bootUi?.stage('Đang tải tài nguyên khởi động...');
@@ -308,8 +160,6 @@ export function installBootAssetOptimization(MainGameScene) {
   };
 
   const originalCreate = proto.create;
-  const originalSwitchMap = proto.switchMap;
-
   proto.create = function p0BootCreate(...args) {
     const saved = {
       createAnimations: this.createAnimations,
@@ -325,9 +175,7 @@ export function installBootAssetOptimization(MainGameScene) {
       updateHerbs: this.updateHerbs
     };
 
-    // Allow the normal scene create path to build the map, player and HUD now,
-    // while heavy gameplay systems stay dormant until their assets are loaded.
-    // Keep update loops and village helpers safe before deferred systems exist.
+    // Let the normal create() construct only the first playable shell.
     this.npcsGroup = [];
     this.fellowNpcs = [];
     this.herbsGroup = [];
@@ -355,15 +203,25 @@ export function installBootAssetOptimization(MainGameScene) {
       this.__p0BootLoaderHandlers = null;
     }
 
-    // MainScene calls window.__GAME_BOOT__.ready() inside originalCreate.
-    // Only after that first playable frame do we consume the heavy catalogs.
-    scheduleDeferredRuntimeLoad(this, saved);
+    // ready() has already been called by MainScene.create(). Restore real methods
+    // immediately; MapZoneAssetStreaming itself gates combat until assets exist.
+    restoreRuntimeMethods(this, saved);
+    this.__runtimeAssetsReady = true;
+    this.__runtimeAssetState = 'ready';
+
+    this.createNpcs?.();
+    this.syncVillageHubMode?.();
+    this.updateHUD?.();
+
+    const map = getMapById(gameState.currentMapId);
+    if (map && !map.isPeaceZone && Number(map.id) !== 0) {
+      this.ensureActiveMapZoneAssets?.();
+    } else {
+      this.__combatAssetsReady = false;
+    }
+
+    // Everything below happens after the boot overlay is released.
+    scheduleDeferredUiLoad(this);
     return result;
   };
-
-  if (typeof originalSwitchMap === 'function') {
-    proto.switchMap = function p0LazyPanoramaSwitch(...args) {
-      return ensurePanoramaThenSwitch(this, originalSwitchMap, args);
-    };
-  }
 }
