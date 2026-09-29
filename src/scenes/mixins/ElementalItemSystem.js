@@ -20,6 +20,7 @@ import {
 
 let registered = false;
 let migrationPasses = 0;
+const CULTIVATION_SPEED_BY_RANK = [1, 8, 60, 450, 3000, 18000];
 
 function pushUnique(target, additions, label='registry') {
   if (!Array.isArray(target)) return { added:0, skipped:0 };
@@ -48,6 +49,27 @@ function pushUnique(target, additions, label='registry') {
   return { added, skipped };
 }
 
+function normalizeGeneratedPillDefinitions() {
+  ELEMENTAL_PILLS.forEach(pill => {
+    if (pill.family === 'hoi_nguyen') {
+      pill.type = 'heal';
+      pill.desc = `${pill.desc || ''} Khi dùng hồi phục trực tiếp sinh lực.`.trim();
+      return;
+    }
+    const rank = Math.max(0, Math.min(5, Number(pill.pillRank ?? pill.rank) || 0));
+    pill.type = 'cultivation';
+    pill.speedBuff = CULTIVATION_SPEED_BY_RANK[rank];
+    pill.durationSec = Math.max(60, Number(pill.durationSec) || 180);
+    const flavor = {
+      cong_phat:'Dược lực thiên về rèn luyện kinh mạch công phạt.',
+      sinh_tuc:'Dược lực ôn hòa, nuôi dưỡng sinh cơ khi tu luyện.',
+      ho_the:'Dược lực cô đọng, củng cố căn cơ và thể phách.',
+      tat_phong:'Dược lực lưu chuyển nhanh, hỗ trợ vận hành chu thiên.'
+    }[pill.family] || 'Dược lực hỗ trợ tu luyện.';
+    pill.desc = `${flavor} Hiệu quả hiện tại: +${pill.speedBuff.toLocaleString('vi-VN')} Tu Vi/s trong ${pill.durationSec}s; chịu quy tắc suy giảm khi dùng đan thấp hơn cảnh giới.`;
+  });
+}
+
 /**
  * Chỉ có một inventory runtime. Catalog V2 được gắn vào registry hiện hữu bằng ID/tên/icon duy nhất,
  * không tạo thêm kho đồ song song.
@@ -55,6 +77,7 @@ function pushUnique(target, additions, label='registry') {
 export function registerElementalItemDefinitions() {
   if (registered) return ELEMENTAL_CATALOG_STATS;
   registered = true;
+  normalizeGeneratedPillDefinitions();
 
   pushUnique(ALL_ITEMS, ELEMENTAL_GEAR_ITEMS, 'gear');
   pushUnique(ALL_HERBS, ELEMENTAL_HERBS, 'herbs');
