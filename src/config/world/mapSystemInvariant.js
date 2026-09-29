@@ -16,13 +16,16 @@ import {
   MAP_TEMPLATES,
   HUMAN_REALM_ROOT_ID,
   HUMAN_REALM_WORLD_NODES,
+  HUMAN_REALM_DETAIL_VERSION,
+  HUMAN_REALM_DETAIL_COUNTS,
   NAM_LANG_ROOT_ID,
   PLAYABLE_REGIONS,
   RUNTIME_MAP_IDS,
   SHARED_WILDERNESS_PANORAMA,
   getMapZones,
-  getWorldChildren,
-  getWorldNode
+  getWorldNode,
+  getWorldDetailProfile,
+  hasHumanRealmDetailBlueprint
 } from './worldRegistry.js?v=20260929-single-map-system-v1';
 import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v2';
 
@@ -78,6 +81,34 @@ function assertActiveFunctions(errors, proto) {
       continue;
     }
     if (fn.name !== expectedName) errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là ${expectedName}.`);
+  }
+}
+
+function validateDetailSample(errors, node) {
+  const detail = getWorldDetailProfile(node.id);
+  if (!detail) {
+    errors.push(`${node.name} thiếu detailed atlas profile.`);
+    return;
+  }
+  if (detail.version !== HUMAN_REALM_DETAIL_VERSION) errors.push(`${node.name} dùng detailed atlas version không khớp.`);
+
+  if (node.type === 'continent') {
+    if (!detail.identity || !detail.macroBiomes?.length || !detail.travel || !detail.politics) {
+      errors.push(`${node.name} thiếu identity/macroBiomes/travel/politics.`);
+    }
+  } else if (node.type === 'great_region') {
+    if (!detail.identity || !detail.biomes?.length || !detail.combat || !detail.exploration || !detail.resources) {
+      errors.push(`${node.name} thiếu identity/biomes/combat/exploration/resources.`);
+    }
+  } else if (node.type === 'province') {
+    if (!detail.mapIdentity || !detail.landmarks?.length || !detail.settlements || !detail.routes ||
+        !detail.resourceProfile || !detail.enemyEcology || !detail.dungeonProfile ||
+        !detail.hazards?.length || !detail.events?.length || !detail.questHooks?.length ||
+        !detail.materializationBlueprint) {
+      errors.push(`${node.name} thiếu cấu trúc detailed map blueprint.`);
+    }
+  } else if (node.playableMapId != null) {
+    if (detail.runtimeIntent?.status !== 'materialized_runtime_map') errors.push(`${node.name} thiếu runtimeIntent cho playable map.`);
   }
 }
 
@@ -142,10 +173,18 @@ export function assertSingleMapSystem(MainGameScene) {
     errors.push(`World hierarchy phải có đúng 1 root ${HUMAN_REALM_ROOT_ID}; hiện có ${worldRoots.map(node => node.id).join(', ') || '0 root'}.`);
   }
 
+  const rawChildrenByParent = new Map();
+  for (const node of HUMAN_REALM_WORLD_NODES) {
+    const key = node.parentId ?? '__root__';
+    if (!rawChildrenByParent.has(key)) rawChildrenByParent.set(key, []);
+    rawChildrenByParent.get(key).push(node);
+  }
+  const rawChildren = parentId => rawChildrenByParent.get(parentId) || [];
+
   const continents = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'continent');
   const primaryRegions = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'great_region');
   const territories = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province');
-  const rootContinents = getWorldChildren(HUMAN_REALM_ROOT_ID).filter(node => node.type === 'continent');
+  const rootContinents = rawChildren(HUMAN_REALM_ROOT_ID).filter(node => node.type === 'continent');
 
   if (continents.length !== EXPECTED_WORLD.continents || rootContinents.length !== EXPECTED_WORLD.continents) errors.push(`Nhân Giới phải có đúng 5 Đại Lục; hiện có ${continents.length} (${rootContinents.length} node trực tiếp).`);
   if (primaryRegions.length !== EXPECTED_WORLD.primaryRegions) errors.push(`Nhân Giới phải có đúng 42 vùng cấp cao; hiện có ${primaryRegions.length}.`);
@@ -163,13 +202,13 @@ export function assertSingleMapSystem(MainGameScene) {
       continue;
     }
 
-    const regions = getWorldChildren(continent.id).filter(node => node.type === 'great_region');
-    const territoryCount = regions.reduce((sum, region) => sum + getWorldChildren(region.id).filter(node => node.type === 'province').length, 0);
+    const regions = rawChildren(continent.id).filter(node => node.type === 'great_region');
+    const territoryCount = regions.reduce((sum, region) => sum + rawChildren(region.id).filter(node => node.type === 'province').length, 0);
     if (regions.length !== expected.primary) errors.push(`${continent.name} phải có đúng ${expected.primary} ${expected.primaryLabel}, hiện có ${regions.length}.`);
     if (territoryCount !== expected.secondary) errors.push(`${continent.name} phải có đúng ${expected.secondary} ${expected.secondaryLabel}, hiện có ${territoryCount}.`);
 
     for (const region of regions) {
-      const children = getWorldChildren(region.id).filter(node => node.type === 'province');
+      const children = rawChildren(region.id).filter(node => node.type === 'province');
       if (children.length !== expected.perPrimary) errors.push(`${region.name} phải có đúng ${expected.perPrimary} ${expected.secondaryLabel}, hiện có ${children.length}.`);
       if (key !== 'south' && region.displayTypeLabel !== expected.primaryLabel) errors.push(`${region.name} phải hiển thị cấp ${expected.primaryLabel}.`);
       if (key !== 'south') {
@@ -182,6 +221,21 @@ export function assertSingleMapSystem(MainGameScene) {
 
   for (const node of HUMAN_REALM_WORLD_NODES) {
     if (node.parentId && !nodeIdSet.has(node.parentId)) errors.push(`World node ${node.id} có parent không tồn tại: ${node.parentId}`);
+    if (!hasHumanRealmDetailBlueprint(node.id)) errors.push(`World node ${node.id} không có detailed-atlas blueprint.`);
+  }
+
+  if (HUMAN_REALM_DETAIL_COUNTS.totalNodes !== HUMAN_REALM_WORLD_NODES.length) errors.push('Detailed atlas totalNodes không khớp world nodes.');
+  if (HUMAN_REALM_DETAIL_COUNTS.continents !== EXPECTED_WORLD.continents) errors.push('Detailed atlas thiếu Đại Lục.');
+  if (HUMAN_REALM_DETAIL_COUNTS.primaryRegions !== EXPECTED_WORLD.primaryRegions) errors.push('Detailed atlas thiếu vùng cấp cao.');
+  if (HUMAN_REALM_DETAIL_COUNTS.secondLevelTerritories !== EXPECTED_WORLD.territories) errors.push('Detailed atlas thiếu đơn vị cấp hai.');
+
+  // Validate all 5 continents + all 42 primary regions, plus one territory per primary region.
+  // This proves every generator branch while keeping mobile boot from materializing all 437 detail objects.
+  continents.forEach(node => validateDetailSample(errors, node));
+  primaryRegions.forEach(node => validateDetailSample(errors, node));
+  for (const region of primaryRegions) {
+    const sampleTerritory = rawChildren(region.id).find(node => node.type === 'province');
+    if (sampleTerritory) validateDetailSample(errors, sampleTerritory);
   }
 
   const playableNodes = HUMAN_REALM_WORLD_NODES.filter(node => node.playableMapId != null);
@@ -192,6 +246,7 @@ export function assertSingleMapSystem(MainGameScene) {
     const map = mapById.get(Number(node.playableMapId));
     if (!map) errors.push(`World node ${node.id} trỏ playableMapId không tồn tại: ${node.playableMapId}`);
     else if (map.locationNodeId !== node.id) errors.push(`Liên kết map/node không đối xứng: map ${map.id} -> ${map.locationNodeId}, node ${node.id} -> ${node.playableMapId}`);
+    validateDetailSample(errors, node);
   }
 
   const linkedLocationIds = ALL_PLAYABLE_MAPS.map(map => map.locationNodeId);
@@ -224,6 +279,7 @@ export function assertSingleMapSystem(MainGameScene) {
   return Object.freeze({
     ok: true,
     version: MAP_SYSTEM_VERSION,
+    detailedAtlasVersion: HUMAN_REALM_DETAIL_VERSION,
     runtimeOwner: EXPECTED_RUNTIME_OWNER,
     uiOwner: EXPECTED_UI_OWNER,
     contentZoneOwner: EXPECTED_CONTENT_ZONE_OWNER,
@@ -236,6 +292,7 @@ export function assertSingleMapSystem(MainGameScene) {
     continentCount: continents.length,
     primaryRegionCount: primaryRegions.length,
     territoryCount: territories.length,
+    detailedBlueprintCount: HUMAN_REALM_DETAIL_COUNTS.totalNodes,
     playableWorldNodeCount: playableNodes.length,
     travelRouteCount: TRAVEL_ROUTES.length
   });
