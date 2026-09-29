@@ -6,13 +6,14 @@
 import {
   PLAYABLE_REGIONS,
   ALL_PLAYABLE_MAPS,
+  RUNTIME_MAP_IDS,
   SHARED_WILDERNESS_PANORAMA
-} from './playableMaps.js?v=20260929-single-map-system-v1';
-import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v1';
-import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v1';
+} from './playableMaps.js?v=20260929-single-map-system-v2';
+import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v2';
+import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v4';
+export const MAP_SYSTEM_VERSION = '20260929-single-map-system-v5';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
 
@@ -35,6 +36,7 @@ if (!existingRegistryInstance) {
 export {
   PLAYABLE_REGIONS,
   ALL_PLAYABLE_MAPS,
+  RUNTIME_MAP_IDS,
   SHARED_WILDERNESS_PANORAMA,
   NAM_LANG_WORLD_NODES,
   NAM_LANG_ROOT_ID,
@@ -65,7 +67,7 @@ export function findMapById(mapId) {
   return mapById.get(Number(mapId)) || null;
 }
 
-/** Safe gameplay lookup. Invalid/stale save IDs fall back to the start map. */
+/** Safe gameplay lookup. Removed/stale save IDs fall back to Map 0. */
 export function getMapById(mapId) {
   return findMapById(mapId) || findMapById(START_MAP_ID);
 }
@@ -139,8 +141,6 @@ export function getMapZoneAtX(mapId, x) {
     if (px >= zone.x0 && px < zone.x1) return zone;
     const next = zones[index + 1];
     if (next && px >= zone.x1 && px < next.x0) {
-      // Authored gaps are transition buffers. Assign them to the nearest zone,
-      // never accidentally to the last zone on the map.
       const distanceToCurrent = px - zone.x1;
       const distanceToNext = next.x0 - px;
       return distanceToCurrent <= distanceToNext ? zone : next;
