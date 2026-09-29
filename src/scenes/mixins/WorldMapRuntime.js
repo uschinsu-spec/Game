@@ -53,6 +53,20 @@ function isPanoramaQueued(scene, key) {
   return Array.isArray(entries) && entries.some(file => file?.key === key);
 }
 
+function fitSharedPanorama(scene, map) {
+  if (!map?.useSharedWildernessPanorama || !scene?.bg) return;
+  const key = map.panoramaKey;
+  const frame = scene.textures?.getFrame?.(key);
+  const sourceHeight = Number(frame?.realHeight || frame?.height || map.panoramaSourceHeight || 960);
+  if (!Number.isFinite(sourceHeight) || sourceHeight <= 0) return;
+  const scale = Number(scene.worldH || map.worldHeight || 960) / sourceHeight;
+  if (typeof scene.bg.setTileScale === 'function') scene.bg.setTileScale(scale, scale);
+  else {
+    scene.bg.tileScaleX = scale;
+    scene.bg.tileScaleY = scale;
+  }
+}
+
 export function installWorldMapRuntime(MainGameScene) {
   if (!MainGameScene?.prototype || MainGameScene.prototype.__worldMapRuntimeInstalled) return;
   const proto = MainGameScene.prototype;
@@ -93,6 +107,7 @@ export function installWorldMapRuntime(MainGameScene) {
     proto.create = function createWithWorldProgress(...args) {
       ensureWorldProgress(gameState);
       const result = originalCreate.apply(this, args);
+      fitSharedPanorama(this, this.currentMap);
       markMapVisited(gameState, gameState.currentMapId, { unlockWaypoint: true });
       return result;
     };
@@ -102,6 +117,7 @@ export function installWorldMapRuntime(MainGameScene) {
   if (typeof originalSwitchMap === 'function') {
     proto.switchMap = function switchMapWithWorldProgress(mapId, spawnX, spawnY) {
       const entered = originalSwitchMap.call(this, mapId, spawnX, spawnY);
+      fitSharedPanorama(this, entered);
       markMapVisited(gameState, entered?.id ?? mapId, { unlockWaypoint: true });
       return entered;
     };
