@@ -2,19 +2,21 @@
  * mapSystemInvariant.js
  * Runtime + data integrity guard for the ONE authoritative map system.
  *
- * This intentionally fails fast during boot if a future change reintroduces
- * a second map runtime/UI owner or creates conflicting world data.
+ * Fails fast during boot if a future change reintroduces a second map runtime,
+ * world-map UI, map-zone geometry owner, or conflicting world data.
  */
 import {
   ALL_PLAYABLE_MAPS,
   MAP_TEMPLATES,
   NAM_LANG_WORLD_NODES,
+  getMapZones,
   getWorldNode
-} from './worldRegistry.js?v=20260929-single-map-system-v1';
+} from './worldRegistry.js?v=20260929-single-map-system-v3';
 import { TRAVEL_ROUTES } from './travelRoutes.js?v=20260929-single-map-system-v1';
 
 const EXPECTED_RUNTIME_OWNER = 'WorldMapRuntime';
 const EXPECTED_UI_OWNER = 'WorldMapHierarchyUI';
+const EXPECTED_CONTENT_ZONE_OWNER = 'MapContentZoneRuntime';
 
 function duplicateValues(values) {
   const seen = new Set();
@@ -35,7 +37,7 @@ export function assertSingleMapSystem(MainGameScene) {
   const errors = [];
   const proto = MainGameScene?.prototype;
 
-  // 1) Exactly one active runtime owner + one active world-map UI owner.
+  // 1) Exactly one active runtime owner + one world-map UI owner + one zone owner.
   if (!proto) {
     errors.push('Không tìm thấy MainGameScene.prototype.');
   } else {
@@ -45,13 +47,20 @@ export function assertSingleMapSystem(MainGameScene) {
     if (proto.__worldMapUiOwner !== EXPECTED_UI_OWNER) {
       errors.push(`World-map UI owner phải là ${EXPECTED_UI_OWNER}, hiện tại: ${String(proto.__worldMapUiOwner)}`);
     }
+    if (proto.__mapContentZoneOwner !== EXPECTED_CONTENT_ZONE_OWNER) {
+      errors.push(`Map content-zone owner phải là ${EXPECTED_CONTENT_ZONE_OWNER}, hiện tại: ${String(proto.__mapContentZoneOwner)}`);
+    }
     if (typeof proto.switchMap !== 'function') errors.push('Thiếu switchMap() từ WorldMapRuntime.');
     if (typeof proto.createWorld !== 'function') errors.push('Thiếu createWorld() từ WorldMapRuntime.');
     if (typeof proto.createMapPortals !== 'function') errors.push('Thiếu createMapPortals() từ WorldMapRuntime.');
     if (typeof proto.openMapPanel !== 'function') errors.push('Thiếu openMapPanel() từ WorldMapHierarchyUI.');
+    if (typeof proto.initBattlefield !== 'function') errors.push('Thiếu initBattlefield() dùng unified zones.');
+    if (typeof proto.initHerbs !== 'function') errors.push('Thiếu initHerbs() dùng unified zones.');
+    if (typeof proto.initMineralNodes !== 'function') errors.push('Thiếu initMineralNodes() dùng unified zones.');
+    if (typeof proto.getNpcSpawnConfig !== 'function') errors.push('Thiếu getNpcSpawnConfig() dùng unified zones.');
   }
 
-  // 2) Runtime map catalog integrity.
+  // 2) Runtime map catalog + zone geometry integrity.
   const mapIds = ALL_PLAYABLE_MAPS.map(map => Number(map.id));
   pushDuplicates(errors, 'Map ID', mapIds);
 
@@ -65,6 +74,19 @@ export function assertSingleMapSystem(MainGameScene) {
     }
     if (map.locationNodeId && !getWorldNode(map.locationNodeId)) {
       errors.push(`Map ${map.id} trỏ locationNodeId không tồn tại: ${map.locationNodeId}`);
+    }
+
+    const zones = getMapZones(map.id);
+    if (!map.isPeaceZone && zones.length === 0) errors.push(`Map ${map.id} không có zone geometry.`);
+    let previousX1 = null;
+    for (const zone of zones) {
+      if (!(Number(zone.x1) > Number(zone.x0))) {
+        errors.push(`Map ${map.id} zone ${zone.id || zone.zoneNumber} có x0/x1 không hợp lệ.`);
+      }
+      if (previousX1 != null && Number(zone.x0) < previousX1) {
+        errors.push(`Map ${map.id} có zone geometry chồng lấn tại ${zone.id || zone.zoneNumber}.`);
+      }
+      previousX1 = Number(zone.x1);
     }
   }
 
@@ -127,6 +149,7 @@ export function assertSingleMapSystem(MainGameScene) {
     ok: true,
     runtimeOwner: EXPECTED_RUNTIME_OWNER,
     uiOwner: EXPECTED_UI_OWNER,
+    contentZoneOwner: EXPECTED_CONTENT_ZONE_OWNER,
     playableMapCount: ALL_PLAYABLE_MAPS.length,
     worldNodeCount: NAM_LANG_WORLD_NODES.length,
     travelRouteCount: TRAVEL_ROUTES.length
