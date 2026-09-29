@@ -44,7 +44,7 @@ function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
   const worldWidth = opts.worldWidth ?? (useSharedWildernessPanorama
     ? SHARED_WILDERNESS_PANORAMA.worldWidth
     : (template.worldWidth ?? 2880));
-  const worldHeight = opts.worldHeight ?? (useSharedWildernessPanORAMA
+  const worldHeight = opts.worldHeight ?? (useSharedWildernessPanorama
     ? SHARED_WILDERNESS_PANORAMA.worldHeight
     : (template.worldHeight ?? 960));
 
