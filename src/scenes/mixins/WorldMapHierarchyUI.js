@@ -29,6 +29,13 @@ const TYPE_LABEL = Object.freeze({
   city_territory: 'THÀNH VỰC',
   location: 'ĐỊA ĐIỂM'
 });
+const LOCATION_KIND_LABEL = Object.freeze({
+  safe_hub: 'THÔN AN TOÀN', major_hub: 'ĐẠI THÀNH', town: 'TRẤN', field: 'HOANG DÃ',
+  forbidden_zone: 'CẤM ĐỊA', resource: 'TÀI NGUYÊN', dungeon: 'PHÓ BẢN', mountain: 'SƠN MẠCH',
+  lake: 'LINH HỒ', secret: 'ẨN ĐỊA', secret_realm: 'BÍ CẢNH', travel: 'GIAO THÔNG', valley: 'SƠN CỐC',
+  market: 'PHƯỜNG THỊ', mine: 'KHOÁNG MẠCH', tomb: 'CỔ MỘ', camp: 'DOANH ĐỊA',
+  outpost: 'TIỀN ĐỒN', enemy_camp: 'SƠN TRẠI'
+});
 const LEGACY_TO_ROOT = new Set(['nam_lang', 'van_tinh_hai', 'than_chau', 'man_hoang', 'thai_hu']);
 
 function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
@@ -57,6 +64,24 @@ function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
   return bg;
 }
 
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('vi-VN');
+}
+
+function compactList(items, limit = 4) {
+  if (!Array.isArray(items) || !items.length) return '';
+  const shown = items.slice(0, limit);
+  const more = items.length - shown.length;
+  return `${shown.join(', ')}${more > 0 ? ` +${more}` : ''}`;
+}
+
+function nodeTypeText(node) {
+  if (node.type === 'location' && node.locationKind) {
+    return LOCATION_KIND_LABEL[node.locationKind] || TYPE_LABEL[node.type];
+  }
+  return TYPE_LABEL[node.type] || node.type;
+}
+
 function nodeStatus(node) {
   if (node.playableMapId != null) {
     if (Number(node.playableMapId) === Number(gameState.currentMapId)) return 'ĐANG Ở ĐÂY';
@@ -72,15 +97,62 @@ function breadcrumbText(nodeId) {
 
 function scaleSummary(node) {
   const p = node.generationProfile || {};
+  const c = node.counts || {};
   const parts = [];
-  const fmt = value => Array.isArray(value) ? `${value[0]}–${value[1]}` : value;
-  if (p.nations) parts.push(`Quốc gia dự kiến: ${fmt(p.nations)}`);
-  if (p.commanderies) parts.push(`Quận dự kiến: ${fmt(p.commanderies)}`);
-  if (p.cities) parts.push(`Thành vực dự kiến: ${fmt(p.cities)}`);
-  if (p.settlements) parts.push(`Thôn/trấn dự kiến: ${fmt(p.settlements)}`);
-  if (node.counts?.provinces) parts.push(`${node.counts.provinces} Châu`);
-  if (node.counts?.greatRegions) parts.push(`${node.counts.greatRegions} Đại Vực`);
+  const fmt = value => Array.isArray(value) ? `${formatNumber(value[0])}–${formatNumber(value[1])}` : formatNumber(value);
+
+  if (c.greatRegions) parts.push(`${formatNumber(c.greatRegions)} Đại Vực`);
+  if (c.provinces) parts.push(`${formatNumber(c.provinces)} Châu`);
+  if (c.politicalEntities) parts.push(`${formatNumber(c.politicalEntities)} chính thể`);
+  if (c.majorStates || c.mediumStates || c.smallStates) {
+    parts.push(`Đại/Trung/Tiểu: ${formatNumber(c.majorStates)}/${formatNumber(c.mediumStates)}/${formatNumber(c.smallStates)}`);
+  }
+  if (c.commanderies) parts.push(`${formatNumber(c.commanderies)} Quận`);
+  if (c.cities) parts.push(`${formatNumber(c.cities)} Thành/Phủ`);
+  if (c.townsAtLeast) parts.push(`${formatNumber(c.townsAtLeast)}+ Trấn`);
+  if (c.villagesAtLeast) parts.push(`${formatNumber(c.villagesAtLeast)}+ Thôn`);
+  if (c.towns) parts.push(`${formatNumber(c.towns)} Trấn`);
+  if (c.villages) parts.push(`${formatNumber(c.villages)} Thôn`);
+
+  if (!parts.length) {
+    if (p.nations) parts.push(`Quốc gia/thế lực: ${fmt(p.nations)}`);
+    if (p.commanderies) parts.push(`Quận: ${fmt(p.commanderies)}`);
+    if (p.cities) parts.push(`Thành vực: ${fmt(p.cities)}`);
+    if (p.settlements) parts.push(`Thôn/trấn: ${fmt(p.settlements)}`);
+  }
   return parts.join(' • ');
+}
+
+function extraDetailLines(node) {
+  const lines = [];
+  const c = node.counts || {};
+  if (node.capital) lines.push(`Trung tâm: ${node.capital}`);
+  if (c.mountainRanges || c.largeForests || c.miningZones || c.spiritLakes) {
+    lines.push(`Địa hình: ${c.mountainRanges || 0} sơn mạch • ${c.largeForests || 0} đại lâm • ${c.miningZones || 0} khoáng khu • ${c.spiritLakes || 0} linh hồ`);
+  }
+  if (c.cultivationFamilies || c.minorSects || c.smallSecretRealms || c.localForbiddenZones) {
+    lines.push(`Tu tiên: ${c.cultivationFamilies || 0} gia tộc • ${c.minorSects || 0} tiểu tông • ${c.smallSecretRealms || 0} bí cảnh • ${c.localForbiddenZones || 0} cấm địa`);
+  }
+  if (node.materializedLocationTarget) {
+    lines.push(`Playable mục tiêu: ${node.materializedLocationTarget[0]}–${node.materializedLocationTarget[1]} địa điểm quan trọng`);
+  }
+  if (node.notablePowers?.length) lines.push(`Thế lực: ${compactList(node.notablePowers, 4)}`);
+  if (node.cultivationFactions?.length) lines.push(`Tông môn: ${compactList(node.cultivationFactions, 3)}`);
+  if (node.strategicRegions?.length) lines.push(`Khu chiến lược: ${compactList(node.strategicRegions, 5)}`);
+  if (node.powerScale?.length) lines.push(`Cấp sức mạnh: ${compactList(node.powerScale, 2)}`);
+  if (node.capitalServices?.length) lines.push(`Dịch vụ thủ phủ: ${compactList(node.capitalServices, 5)}`);
+  if (node.services?.length) lines.push(`Chức năng: ${compactList(node.services, 5)}`);
+  if (node.unlockHint) lines.push(`Mở khóa: ${node.unlockHint}`);
+  return lines;
+}
+
+function buildDetailText(node) {
+  const sections = [node.desc || 'Chưa có mô tả.'];
+  const scale = scaleSummary(node);
+  if (scale) sections.push(scale);
+  const extra = extraDetailLines(node);
+  if (extra.length) sections.push(extra.join('\n'));
+  return sections.join('\n\n');
 }
 
 function renderBrowser(scene, panel, node, page = 0) {
@@ -90,29 +162,19 @@ function renderBrowser(scene, panel, node, page = 0) {
   const shown = children.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
   panel.add(scene.add.text(-238, -356, breadcrumbText(node.id), {
-    fontFamily: FONT,
-    fontSize: '11px',
-    fontStyle: 'bold',
-    color: '#8fe8ff',
+    fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#8fe8ff',
     wordWrap: { width: 476, useAdvancedWrap: true }
   }).setOrigin(0, 0.5));
 
   panel.add(scene.add.text(-238, -326, node.desc || '', {
-    fontFamily: FONT,
-    fontSize: '12px',
-    color: '#d6f5ff',
-    lineSpacing: 4,
+    fontFamily: FONT, fontSize: '12px', color: '#d6f5ff', lineSpacing: 4,
     wordWrap: { width: 476, useAdvancedWrap: true }
   }).setOrigin(0, 0));
 
   const scale = scaleSummary(node);
   if (scale) {
     panel.add(scene.add.text(0, -265, scale, {
-      fontFamily: FONT,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffe69a',
-      align: 'center',
+      fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#ffe69a', align: 'center',
       wordWrap: { width: 470, useAdvancedWrap: true }
     }).setOrigin(0.5));
   }
@@ -125,22 +187,17 @@ function renderBrowser(scene, panel, node, page = 0) {
     const box = scene.add.rectangle(0, y, 476, 70, current ? 0x155a48 : 0x0d3347, 1)
       .setStrokeStyle(1.5, discovered ? 0x4fbcd8 : 0x526474, 1)
       .setInteractive({ useHandCursor: true });
-    const type = scene.add.text(-216, y - 17, TYPE_LABEL[child.type] || child.type, {
+    const type = scene.add.text(-216, y - 17, nodeTypeText(child), {
       fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#7adfff'
     }).setOrigin(0, 0.5);
     const name = scene.add.text(-216, y + 2, child.name, {
-      fontFamily: FONT,
-      fontSize: '15px',
-      fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
       color: discovered ? '#fff1a8' : '#bbc7cd',
       wordWrap: { width: 310, useAdvancedWrap: true }
     }).setOrigin(0, 0.5);
     const state = scene.add.text(210, y, status, {
-      fontFamily: FONT,
-      fontSize: '10.5px',
-      fontStyle: 'bold',
-      color: current ? '#7dffca' : '#a9eaff',
-      align: 'right'
+      fontFamily: FONT, fontSize: '10.5px', fontStyle: 'bold',
+      color: current ? '#7dffca' : '#a9eaff', align: 'right'
     }).setOrigin(1, 0.5);
     box.on('pointerdown', pointer => {
       stopPointer(scene, pointer);
@@ -152,11 +209,7 @@ function renderBrowser(scene, panel, node, page = 0) {
   if (!shown.length) {
     panel.add(scene.add.text(0, -35,
       'Khu vực này chưa materialize thành các địa điểm con.\nDữ liệu sẽ được tạo khi tuyến truyện hoặc người chơi cần đến.', {
-        fontFamily: FONT,
-        fontSize: '15px',
-        color: '#c7edf8',
-        align: 'center',
-        lineSpacing: 8,
+        fontFamily: FONT, fontSize: '15px', color: '#c7edf8', align: 'center', lineSpacing: 8,
         wordWrap: { width: 440, useAdvancedWrap: true }
       }).setOrigin(0.5));
   }
@@ -179,32 +232,22 @@ function renderBrowser(scene, panel, node, page = 0) {
 
 function renderNodeDetail(scene, panel, node) {
   panel.add(scene.add.text(-238, -356, breadcrumbText(node.id), {
-    fontFamily: FONT,
-    fontSize: '11px',
-    fontStyle: 'bold',
-    color: '#8fe8ff',
+    fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#8fe8ff',
     wordWrap: { width: 476, useAdvancedWrap: true }
   }).setOrigin(0, 0.5));
 
-  panel.add(scene.add.text(-220, -310, TYPE_LABEL[node.type] || node.type, {
+  panel.add(scene.add.text(-220, -310, nodeTypeText(node), {
     fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#7adfff'
   }).setOrigin(0, 0.5));
 
   panel.add(scene.add.text(-220, -278, node.name, {
-    fontFamily: FONT,
-    fontSize: '24px',
-    fontStyle: 'bold',
-    color: '#fff19a',
+    fontFamily: FONT, fontSize: '24px', fontStyle: 'bold', color: '#fff19a',
     wordWrap: { width: 440, useAdvancedWrap: true }
   }).setOrigin(0, 0.5));
 
   const box = scene.add.rectangle(0, -80, 470, 310, 0x0d3347, 1).setStrokeStyle(1.5, 0x3c91aa);
-  const scale = scaleSummary(node);
-  const info = scene.add.text(-215, -210, `${node.desc || 'Chưa có mô tả.'}${scale ? `\n\n${scale}` : ''}`, {
-    fontFamily: FONT,
-    fontSize: '14px',
-    color: '#e7fbff',
-    lineSpacing: 8,
+  const info = scene.add.text(-215, -214, buildDetailText(node), {
+    fontFamily: FONT, fontSize: '12.2px', color: '#e7fbff', lineSpacing: 5,
     wordWrap: { width: 430, useAdvancedWrap: true }
   }).setOrigin(0, 0);
   panel.add([box, info]);
@@ -229,22 +272,15 @@ function renderNodeDetail(scene, panel, node) {
       const entered = scene.switchMap(map.id);
       scene.showFloatingText?.(scene.player.x, scene.player.y - 60, `Đã dịch chuyển: ${entered.name}`, '#66ffcc');
     }, {
-      enabled: canFastTravel,
-      fill: 0x166044,
-      stroke: 0x61ffc0,
-      fontSize: '15px'
+      enabled: canFastTravel, fill: 0x166044, stroke: 0x61ffc0, fontSize: '15px'
     });
 
     panel.add(scene.add.text(0, 205,
       `Yêu cầu: ${REALMS[map.minRealm]?.name || 'Không yêu cầu'} • Template: ${map.templateId}\n${visited ? 'Đã khám phá' : 'Chưa khám phá'} • ${waypoint ? 'Waypoint đã mở' : 'Waypoint chưa mở'}`, {
-        fontFamily: FONT,
-        fontSize: '11px',
-        color: '#a9eaff',
-        align: 'center',
-        lineSpacing: 4
+        fontFamily: FONT, fontSize: '11px', color: '#a9eaff', align: 'center', lineSpacing: 4
       }).setOrigin(0.5));
   } else {
-    panel.add(scene.add.text(0, 175, 'ĐỊA ĐIỂM DỮ LIỆU • CHƯA DỰNG COMBAT MAP', {
+    panel.add(scene.add.text(0, 175, 'ĐỊA ĐIỂM DỮ LIỆU • CHƯA DỰNG COMBAT/HUB MAP', {
       fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#ffcf7a'
     }).setOrigin(0.5));
   }
@@ -280,10 +316,8 @@ export function installWorldMapHierarchyUI(MainGameScene) {
     let node = getWorldNode(activeNodeId);
     if (!node) node = getWorldNodeForMap(gameState.currentMapId) || getWorldNode(NAM_LANG_ROOT_ID);
 
-    const panel = this.createModalShell('ĐẠI BẢN ĐỒ NAM LĂNG', `${TYPE_LABEL[node.type] || 'BẢN ĐỒ'} • ${node.name}`, {
-      subtitleColor: '#9aeaff',
-      headerFill: 0x0a3b52,
-      bgFill: 0x062a3b
+    const panel = this.createModalShell('ĐẠI BẢN ĐỒ NAM LĂNG', `${nodeTypeText(node)} • ${node.name}`, {
+      subtitleColor: '#9aeaff', headerFill: 0x0a3b52, bgFill: 0x062a3b
     });
 
     const children = getWorldChildren(node.id);
