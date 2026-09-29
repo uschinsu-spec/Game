@@ -7,8 +7,9 @@ import {
   canEnterMap,
   getMapById,
   getTravelRoutesForMap,
-  resolvePanoramaMap
-} from '../../config/regionsData.js';
+  resolvePanoramaMap,
+  getPanoramaPreloadEntries
+} from '../../config/regionsData.js?v=20260929-shared-panorama-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
 
@@ -47,22 +48,43 @@ function buildPortalVisual(scene, def) {
   return container;
 }
 
+function isPanoramaQueued(scene, key) {
+  const entries = scene?.load?.list?.entries;
+  return Array.isArray(entries) && entries.some(file => file?.key === key);
+}
+
 export function installWorldMapRuntime(MainGameScene) {
   if (!MainGameScene?.prototype || MainGameScene.prototype.__worldMapRuntimeInstalled) return;
   const proto = MainGameScene.prototype;
   proto.__worldMapRuntimeInstalled = true;
 
-  // Runtime luôn lấy map từ World Registry mới. Điều này cũng tránh phụ thuộc cache module cũ trong MainScene.
+  // Bảo đảm panorama từ registry mới luôn được preload, kể cả khi MainScene cũ còn cache ALL_MAPS.
+  const originalPreload = proto.preload;
+  if (typeof originalPreload === 'function') {
+    proto.preload = function preloadWorldPanoramas(...args) {
+      const result = originalPreload.apply(this, args);
+      const A = './assets/';
+      getPanoramaPreloadEntries().forEach(({ key, asset }) => {
+        if (!key || !asset || this.textures?.exists?.(key) || isPanoramaQueued(this, key)) return;
+        this.load.image(key, A + asset);
+      });
+      return result;
+    };
+  }
+
+  // Runtime luôn dùng đúng kích thước World Registry.
+  // Map chiến đấu panorama chung = 32.000x960, không còn ép map 4–13 về 2.880px.
   proto.applyMapRuntimeConfig = function applyMapRuntimeConfigFromRegistry(mapId) {
     const map = getMapById(mapId);
     this.currentMap = map;
-    // Map 4–13 là ID legacy chưa được materialize vào cây Nam Lăng; giữ kích thước 2880 cũ để save cũ không đổi hành vi.
-    const legacyCompat = Number(map?.id) >= 4 && !map?.locationNodeId;
-    this.worldW = legacyCompat ? 2880 : Number(map?.worldWidth || 2880);
+    this.worldW = Number(map?.worldWidth || 2880);
     this.worldH = Number(map?.worldHeight || 960);
-    this.field = legacyCompat
-      ? { left: 60, right: 2820, top: 350, bottom: 900 }
-      : { ...(map?.field || { left: 60, right: this.worldW - 60, top: 350, bottom: Math.min(900, this.worldH - 60) }) };
+    this.field = { ...(map?.field || {
+      left: 60,
+      right: this.worldW - 60,
+      top: 350,
+      bottom: Math.min(900, this.worldH - 60)
+    }) };
     return map;
   };
 
