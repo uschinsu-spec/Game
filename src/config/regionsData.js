@@ -33,4 +33,4 @@ export {
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
   getMapTemplate
-} from './world/worldRegistry.js?v=20260929-single-map-system-v3';
+} from './world/worldRegistry.js?v=20260929-single-map-system-v1';
