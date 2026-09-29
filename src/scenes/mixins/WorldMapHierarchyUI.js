@@ -12,7 +12,7 @@ import {
   getWorldChildren,
   getWorldNode,
   getWorldNodeForMap
-} from '../../config/world/worldRegistry.js';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, hasVisitedMap, hasWaypoint, isNodeDiscovered } from '../../state/worldProgress.js';
 import { stopPointer } from './UiModalManager.js';
