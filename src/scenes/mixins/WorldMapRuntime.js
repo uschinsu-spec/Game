@@ -4,7 +4,7 @@
  *
  * All active map runtime behavior lives here:
  * registry config, panorama loading/rendering, switching maps and portals.
- * MainScene legacy methods are replaced at bootstrap and are never chained.
+ * MainScene contains no competing map runtime.
  */
 import { REALMS } from '../../config/realmsData.js';
 import {
@@ -13,7 +13,7 @@ import {
   getTravelRoutesForMap,
   resolvePanoramaMap,
   getPanoramaPreloadEntries
-} from '../../config/world/worldRegistry.js';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v2';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
 
@@ -110,7 +110,7 @@ export function installWorldMapRuntime(MainGameScene) {
   proto.__mapRuntimeOwner = MAP_RUNTIME_OWNER;
   proto.__worldMapRuntimeInstalled = true;
 
-  // Keep MainScene's non-map asset preload, then add the authoritative registry panoramas once.
+  // Keep MainScene's non-map asset preload, then add authoritative registry panoramas once.
   const originalPreload = proto.preload;
   if (typeof originalPreload === 'function') {
     proto.preload = function preloadWithWorldRegistry(...args) {
@@ -151,20 +151,36 @@ export function installWorldMapRuntime(MainGameScene) {
     return createPanoramaBackground(this, map);
   };
 
-  // Direct implementation: never calls/chains MainScene's legacy switchMap.
+  /** Return the single registered direct route between two runtime maps, if any. */
+  proto.getDirectMapRoute = function getDirectMapRoute(fromMapId, toMapId) {
+    const target = Number(toMapId);
+    return getTravelRoutesForMap(fromMapId).find(route => Number(route.targetMapId) === target) || null;
+  };
+
+  // Direct implementation: every actual transition is validated here.
   proto.switchMap = function switchMapFromRegistry(mapId, spawnX, spawnY) {
     this.resetJoy?.();
     this.moveTarget = null;
 
-    const map = this.applyMapRuntimeConfig(mapId);
+    const access = canEnterMap(mapId, gameState);
+    if (!access.ok) return this.currentMap || getMapById(gameState.currentMapId);
+
+    const fromMapId = Number(gameState.currentMapId);
+    const map = access.map;
+    const linkedRoute = this.getDirectMapRoute(fromMapId, map.id);
+
+    // If this is a registered route, its destination spawn is authoritative.
+    // Legacy callers may still pass coordinates, but they cannot override route data.
+    const sx = linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? 350;
+    const sy = linkedRoute?.targetSpawnY ?? spawnY ?? map.spawn?.y ?? 620;
+
+    this.applyMapRuntimeConfig(map.id);
     gameState.currentMapId = map.id;
 
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     createPanoramaBackground(this, map);
 
-    const sx = spawnX ?? map.spawn?.x ?? 350;
-    const sy = spawnY ?? map.spawn?.y ?? 620;
     if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0);
     this.moveTarget = null;
 
@@ -184,10 +200,12 @@ export function installWorldMapRuntime(MainGameScene) {
   proto.createMapPortals = function createMapPortalsFromRegistry() {
     if (this.activePortals) this.activePortals.forEach(portal => portal.container?.destroy());
     this.activePortals = [];
-    getTravelRoutesForMap(gameState.currentMapId).forEach(def => {
-      const container = buildPortalVisual(this, def);
-      this.activePortals.push({ ...def, container });
-    });
+    getTravelRoutesForMap(gameState.currentMapId)
+      .filter(def => def.portalVisible !== false)
+      .forEach(def => {
+        const container = buildPortalVisual(this, def);
+        this.activePortals.push({ ...def, container });
+      });
   };
 
   proto.getPortalCooldownKey = function getPortalCooldownKey(fromMapId, toMapId) {
@@ -219,8 +237,7 @@ export function installWorldMapRuntime(MainGameScene) {
     if ((this[key] || 0) > now) return;
     this[key] = now + 3500;
 
-    const targetMap = getMapById(targetMapId);
-    this.switchMap(targetMap.id, portal.targetSpawnX, portal.targetSpawnY);
+    this.switchMap(targetMapId, portal.targetSpawnX, portal.targetSpawnY);
   };
 
   // Preserve the scene lifecycle only; all map calls made inside create() resolve to methods above.
