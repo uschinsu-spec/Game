@@ -53,11 +53,11 @@ window.__GAME_BOOT__ = (() => {
       lastPercent = percent;
       const bar = progressBar();
       if (bar) bar.style.width = percent + '%';
-      setStatus(`Đang tải tài nguyên khởi động... ${percent}%`);
+      setStatus(`Đang tải tài nguyên bản đồ... ${percent}%`);
     },
     assetError() {
       failedAssets += 1;
-      setStatus(`Đang hoàn tất tài nguyên khởi động... (${failedAssets} tệp sẽ dùng phương án dự phòng)`);
+      setStatus(`Đang hoàn tất tải tài nguyên... (${failedAssets} tệp sẽ dùng phương án dự phòng)`);
     },
     ready() {
       const el = root();
@@ -97,6 +97,6 @@ if (window.location.protocol === 'file:') {
   if (ld) ld.style.display = 'none';
 }
 </script>
-<script type="module" src="./src/main.js?v=20260929-p0-boot-assets-v1"></script>
+<script type="module" src="./src/main.js?v=20260929-map-zone-stream-v2"></script>
 </body>
 </html>
