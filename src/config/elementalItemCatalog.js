@@ -1,12 +1,13 @@
 /**
  * elementalItemCatalog.js
- * Hệ vật phẩm theo 9 hệ thần thông và 6 bậc tiến triển từ Phàm Nhân -> Hóa Thần.
+ * Catalog mở rộng cho hệ item duy nhất của game.
  *
- * Mục tiêu:
- * - Một nguồn dữ liệu duy nhất cho Trang Bị, Đan Dược, Phù Chú, Linh Thảo, Khoáng Thạch.
- * - Mỗi hệ x mỗi bậc đều có đủ vật phẩm.
- * - Mỗi item có icon key riêng để dùng đồng nhất trong túi đồ và vật phẩm rơi ngoài bản đồ.
- * - Sinh dữ liệu bằng blueprint để mở rộng dễ, tránh hard-code hàng trăm object lặp lại.
+ * Thiết kế V2:
+ * - Trang bị + Phù Chú: đầy đủ 9 hệ x 6 bậc.
+ * - Đan Dược: dùng 5 dòng công dụng dùng chung/định hướng hệ, tránh nhân bản 9 lần.
+ * - Linh Thảo + Khoáng Thạch: 8 thuộc tính tự nhiên (Linh, Kim, Hỏa, Thủy, Thổ, Mộc, Phong, Lôi),
+ *   không tạo vật liệu giả kiểu "Kiếm Linh Thảo" hay "Vật Lý Linh Khoáng".
+ * - ID/icon ổn định, có migration từ catalog V1 cho save cũ.
  */
 
 export const ELEMENTAL_SYSTEMS = [
@@ -41,20 +42,39 @@ export const ELEMENTAL_EQUIPMENT_SLOTS = [
   { slot:'cloak', label:'Phong Bào', iconCode:'BA', dmg:0.08, hp:2.20, def:0.22, spd:0.48 }
 ];
 
+export const RESOURCE_AFFINITIES = [
+  { key:'linh', name:'Linh', code:'L', color:'#d8d6ff', dark:'#4c4a75', herb:'Tụ Linh Thảo', ore:'Linh Tinh Khoáng', systems:['kiem','kim','hoa','thuy','tho','moc','phong','loi','ly'] },
+  { key:'kim', name:'Kim', code:'K', color:'#e8edf5', dark:'#596575', herb:'Kim Ti Thảo', ore:'Canh Kim Khoáng', systems:['kiem','kim','ly'] },
+  { key:'hoa', name:'Hỏa', code:'H', color:'#ff754c', dark:'#7a2415', herb:'Hỏa Diễm Hoa', ore:'Xích Hỏa Tinh', systems:['hoa','loi'] },
+  { key:'thuy', name:'Thủy', code:'T', color:'#59b9ff', dark:'#164a73', herb:'Hàn Thủy Liên', ore:'Huyền Thủy Tinh', systems:['thuy','moc'] },
+  { key:'tho', name:'Thổ', code:'TH', color:'#c49a62', dark:'#60401f', herb:'Địa Linh Căn', ore:'Huyền Hoàng Thạch', systems:['tho','ly'] },
+  { key:'moc', name:'Mộc', code:'M', color:'#65d889', dark:'#1f6134', herb:'Thanh Mộc Chi', ore:'Mộc Linh Ngọc', systems:['moc','thuy'] },
+  { key:'phong', name:'Phong', code:'P', color:'#89e5df', dark:'#276a6b', herb:'Phong Linh Thảo', ore:'Thanh Phong Tinh', systems:['phong','kiem'] },
+  { key:'loi', name:'Lôi', code:'LĐ', color:'#b38cff', dark:'#4b2875', herb:'Lôi Văn Hoa', ore:'Tử Lôi Tinh', systems:['loi','kim','phong'] }
+];
+
+export const PILL_FAMILIES = [
+  { key:'hoi_nguyen', name:'Hồi Nguyên Đan', code:'HG', color:'#8ee7c0', affinities:['linh','thuy'], systems:['kiem','kim','hoa','thuy','tho','moc','phong','loi','ly'], role:'heal' },
+  { key:'cong_phat', name:'Công Phạt Đan', code:'CP', color:'#ff8b68', affinities:['kim','hoa'], systems:['kiem','kim','hoa','loi','ly'], role:'attack' },
+  { key:'sinh_tuc', name:'Sinh Tức Đan', code:'ST', color:'#7ce69d', affinities:['moc','thuy'], systems:['thuy','moc'], role:'vitality' },
+  { key:'ho_the', name:'Hộ Thể Đan', code:'HT', color:'#d7b27c', affinities:['tho','kim'], systems:['tho','kim','ly'], role:'defense' },
+  { key:'tat_phong', name:'Tật Phong Đan', code:'TP', color:'#8ce8df', affinities:['phong','loi'], systems:['phong','kiem','loi'], role:'speed' }
+];
+
 const BASE_POWER = [8, 58, 320, 2100, 15000, 115000];
 const BASE_PRICE = [18, 280, 2600, 23000, 240000, 2600000];
 const KIND_ICON_CODES = { pill:'DD', talisman:'PC', herb:'LT', ore:'KT' };
+const SYSTEM_TO_RESOURCE = { kiem:'kim', kim:'kim', hoa:'hoa', thuy:'thuy', tho:'tho', moc:'moc', phong:'phong', loi:'loi', ly:'tho' };
+const SYSTEM_TO_PILL = { kiem:'cong_phat', kim:'cong_phat', hoa:'cong_phat', thuy:'sinh_tuc', tho:'ho_the', moc:'sinh_tuc', phong:'tat_phong', loi:'tat_phong', ly:'ho_the' };
 
 function safeId(value) {
   return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
-
 function iconKey(id) { return `elem_item_${safeId(id)}`; }
-
-function realmPrefix(realm) {
-  return realm.rank === 0 ? 'Phàm Phẩm' : `${realm.realm} ${realm.rankName}`;
+function realmPrefix(realm) { return realm.rank === 0 ? 'Phàm Phẩm' : `${realm.realm} ${realm.rankName}`; }
+function itemBase(id, kind, realm, color, iconCode) {
+  return { id, catalogItemId:id, kind, rank:realm.rank, rankName:realm.rankName, displayRank:realm.displayRank, realm:realm.realm, grade:realm.grade, icon:iconKey(id), iconCode, color };
 }
-
 function elementBias(system) {
   switch (system.key) {
     case 'kiem': return { dmg:1.18, hp:0.95, def:0.92, spd:1.08 };
@@ -73,85 +93,74 @@ function buildGear(system, realm, blueprint) {
   const power = BASE_POWER[realm.rank];
   const bias = elementBias(system);
   const id = `elem_${system.key}_r${realm.rank}_gear_${blueprint.slot}`;
-  const bonusDmg = Math.max(0, Math.round(power * blueprint.dmg * bias.dmg));
-  const bonusHp = Math.max(0, Math.round(power * blueprint.hp * bias.hp * 10));
-  const bonusDef = Math.max(0, Math.round(power * blueprint.def * bias.def));
-  const bonusSpd = Math.max(0, Math.round((6 + realm.rank * 14) * blueprint.spd * bias.spd));
   return {
-    id, catalogItemId:id, kind:'gear', category:'equipment', type:blueprint.slot,
-    element:system.key, elementName:system.name, realm:realm.realm, rank:realm.rank,
-    rankName:realm.rankName, displayRank:realm.displayRank, grade:realm.grade,
+    ...itemBase(id, 'gear', realm, system.color, blueprint.iconCode),
+    category:'equipment', type:blueprint.slot, element:system.key, elementName:system.name,
     name:`${realmPrefix(realm)} ${system.theme} ${blueprint.label}`,
-    icon:iconKey(id), iconCode:blueprint.iconCode, color:system.color,
-    bonusDmg, bonusHp, bonusDef, bonusSpd,
+    bonusDmg:Math.max(0, Math.round(power * blueprint.dmg * bias.dmg)),
+    bonusHp:Math.max(0, Math.round(power * blueprint.hp * bias.hp * 10)),
+    bonusDef:Math.max(0, Math.round(power * blueprint.def * bias.def)),
+    bonusSpd:Math.max(0, Math.round((6 + realm.rank * 14) * blueprint.spd * bias.spd)),
     price:Math.round(BASE_PRICE[realm.rank] * (1 + ELEMENTAL_EQUIPMENT_SLOTS.indexOf(blueprint) * 0.08)),
     stackable:false,
-    desc:`[Hệ ${system.name} • ${realm.realm}] ${blueprint.label} hội tụ ${system.essence}. Phẩm chất ${realm.grade}; phù hợp tu sĩ ${realm.realm}.`
+    desc:`[Hệ ${system.name} • ${realm.realm}] ${blueprint.label} hội tụ ${system.essence}. Phẩm chất ${realm.grade}.`
   };
 }
 
-function buildHerb(system, realm) {
-  const id = `elem_${system.key}_r${realm.rank}_herb`;
+function buildHerb(affinity, realm) {
+  const id = `elem_res_${affinity.key}_r${realm.rank}_herb`;
   return {
-    id, catalogItemId:id, kind:'herb', category:'material', type:'herb',
-    element:system.key, elementName:system.name, realm:realm.realm, rank:realm.rank,
-    rankName:realm.rankName, displayRank:realm.displayRank, grade:realm.grade,
-    name:`${realmPrefix(realm)} ${system.theme} Linh Thảo`,
-    icon:iconKey(id), iconCode:KIND_ICON_CODES.herb, emoji:'🌿', color:system.color,
+    ...itemBase(id, 'herb', realm, affinity.color, KIND_ICON_CODES.herb),
+    category:'material', type:'herb', affinity:affinity.key, affinityName:affinity.name,
+    compatibleSystems:[...affinity.systems], emoji:'🌿', name:`${realmPrefix(realm)} ${affinity.herb}`,
     price:Math.round(BASE_PRICE[realm.rank] * 0.35), stackable:true, maxStack:9999,
     alchemyPower:Math.round(10 * realm.scale),
-    desc:`[Hệ ${system.name} • ${realm.realm}] Linh thảo hấp thu ${system.essence}; dùng làm chủ dược cho đan dược và phù chú cùng hệ.`
+    desc:`[Thuộc tính ${affinity.name} • ${realm.realm}] Linh thảo tự nhiên dùng chung cho các công thức ${affinity.systems.map(k => ELEMENTAL_SYSTEMS.find(s => s.key === k)?.name).filter(Boolean).join(', ')}.`
   };
 }
 
-function buildOre(system, realm) {
-  const id = `elem_${system.key}_r${realm.rank}_ore`;
+function buildOre(affinity, realm) {
+  const id = `elem_res_${affinity.key}_r${realm.rank}_ore`;
   return {
-    id, catalogItemId:id, kind:'ore', category:'material', type:'ore',
-    element:system.key, elementName:system.name, realm:realm.realm, rank:realm.rank,
-    rankName:realm.rankName, displayRank:realm.displayRank, grade:realm.grade,
-    name:`${realmPrefix(realm)} ${system.theme} Linh Khoáng`,
-    icon:iconKey(id), iconCode:KIND_ICON_CODES.ore, emoji:'⛏️', color:system.color,
+    ...itemBase(id, 'ore', realm, affinity.color, KIND_ICON_CODES.ore),
+    category:'material', type:'ore', affinity:affinity.key, affinityName:affinity.name,
+    compatibleSystems:[...affinity.systems], emoji:'⛏️', name:`${realmPrefix(realm)} ${affinity.ore}`,
     price:Math.round(BASE_PRICE[realm.rank] * 0.48), stackable:true, maxStack:9999,
     forgingPower:Math.round(14 * realm.scale),
-    desc:`[Hệ ${system.name} • ${realm.realm}] Khoáng thạch kết tinh ${system.essence}; nguyên liệu rèn trang bị ${system.name} đồng cấp.`
+    desc:`[Thuộc tính ${affinity.name} • ${realm.realm}] Khoáng tự nhiên dùng rèn/chế tạo cho nhiều hệ tương thích.`
   };
 }
 
-function buildPill(system, realm, herb, ore) {
-  const id = `elem_${system.key}_r${realm.rank}_pill`;
+function buildPill(family, realm) {
+  const id = `elem_pill_${family.key}_r${realm.rank}`;
   const hp = Math.round((120 + realm.rank * 180) * realm.scale);
-  return {
-    id, catalogItemId:id, kind:'pill', category:'consumable', type:'elemental_buff',
-    element:system.key, elementName:system.name, realm:realm.realm, rank:realm.rank,
-    rankName:realm.rankName, displayRank:realm.displayRank, pillRank:realm.rank, grade:realm.grade,
-    name:`${realmPrefix(realm)} ${system.theme} Linh Đan`,
-    icon:iconKey(id), iconCode:KIND_ICON_CODES.pill, color:system.color,
-    healHp:hp, speedBuff:Math.round((1 + realm.rank * 4) * realm.scale), durationSec:180,
-    elementalBonusPct:10 + realm.rank * 6,
-    recipeHerbs:[{ name:herb.name, count:2 + realm.rank }],
-    recipeMinerals:[{ id:ore.id, count:1 + Math.floor(realm.rank / 2) }],
-    costOres:1 + realm.rank * 2, costGold:Math.round(BASE_PRICE[realm.rank] * 0.60),
-    price:Math.round(BASE_PRICE[realm.rank] * 0.95), stackable:true, maxStack:999,
-    desc:`[Hệ ${system.name} • ${realm.realm}] Hồi ${hp.toLocaleString('vi-VN')} HP và cường hóa sức mạnh hệ ${system.name} +${10 + realm.rank * 6}% trong 180 giây.`
+  const common = {
+    ...itemBase(id, 'pill', realm, family.color, family.code),
+    category:'consumable', type:`pill_${family.role}`, pillRank:realm.rank,
+    family:family.key, compatibleSystems:[...family.systems], name:`${realmPrefix(realm)} ${family.name}`,
+    durationSec:180, price:Math.round(BASE_PRICE[realm.rank] * 0.92), stackable:true, maxStack:999,
+    recipeAffinityKeys:[...family.affinities], costOres:1 + realm.rank * 2, costGold:Math.round(BASE_PRICE[realm.rank] * 0.58)
   };
+  if (family.role === 'heal') Object.assign(common, { healHp:Math.round(hp * 1.25), desc:`Hồi ${Math.round(hp * 1.25).toLocaleString('vi-VN')} HP; mọi hệ đều sử dụng được.` });
+  if (family.role === 'attack') Object.assign(common, { elementalBonusPct:10 + realm.rank * 6, desc:`Tăng công kích các hệ ${family.systems.map(k => ELEMENTAL_SYSTEMS.find(s => s.key === k)?.name).join(', ')} trong 180 giây.` });
+  if (family.role === 'vitality') Object.assign(common, { healHp:hp, hpBonusPct:8 + realm.rank * 4, desc:`Tăng sinh lực và hồi phục, chuyên cho Thủy/Mộc.` });
+  if (family.role === 'defense') Object.assign(common, { defBonusPct:9 + realm.rank * 5, desc:`Tăng phòng ngự và thể phách, phù hợp Thổ/Kim/Vật Lý.` });
+  if (family.role === 'speed') Object.assign(common, { speedBuff:Math.round((2 + realm.rank * 4) * realm.scale), desc:`Tăng tốc độ vận chuyển linh lực, phù hợp Phong/Kiếm/Lôi.` });
+  return common;
 }
 
-function buildTalisman(system, realm, herb, ore) {
+function buildTalisman(system, realm) {
   const id = `elem_${system.key}_r${realm.rank}_talisman`;
   const damage = Math.round((160 + realm.rank * 260) * realm.scale);
+  const affinity = SYSTEM_TO_RESOURCE[system.key] || 'linh';
   return {
-    id, catalogItemId:id, kind:'talisman', category:'consumable', type:'talisman',
-    element:system.key, elementName:system.name, realm:realm.realm, rank:realm.rank,
-    rankName:realm.rankName, displayRank:realm.displayRank, pillRank:realm.rank, grade:realm.grade,
-    name:`${realmPrefix(realm)} ${system.theme} Chiến Phù`,
-    icon:iconKey(id), iconCode:KIND_ICON_CODES.talisman, color:system.color,
-    dmg:damage, aoe:realm.rank >= 2, elementalBonusPct:8 + realm.rank * 5,
-    recipeHerbs:[{ name:herb.name, count:1 + realm.rank }],
-    recipeMinerals:[{ id:ore.id, count:1 + realm.rank }],
+    ...itemBase(id, 'talisman', realm, system.color, KIND_ICON_CODES.talisman),
+    category:'consumable', type:'talisman', pillRank:realm.rank, element:system.key, elementName:system.name,
+    name:`${realmPrefix(realm)} ${system.theme} Chiến Phù`, dmg:damage, aoe:realm.rank >= 2,
+    elementalBonusPct:8 + realm.rank * 5, recipeAffinityKeys:['linh', affinity],
     costOres:1 + realm.rank * 2, costGold:Math.round(BASE_PRICE[realm.rank] * 0.55),
     price:Math.round(BASE_PRICE[realm.rank] * 0.85), stackable:true, maxStack:999,
-    desc:`[Hệ ${system.name} • ${realm.realm}] Kích phát ${system.theme}, gây ${damage.toLocaleString('vi-VN')} sát thương${realm.rank >= 2 ? ' diện rộng' : ''}; sức mạnh tăng theo cảnh giới.`
+    desc:`[Hệ ${system.name} • ${realm.realm}] Kích phát ${system.theme}, gây ${damage.toLocaleString('vi-VN')} sát thương${realm.rank >= 2 ? ' diện rộng' : ''}.`
   };
 }
 
@@ -160,29 +169,45 @@ const herbs = [];
 const ores = [];
 const pills = [];
 const talismans = [];
-
-for (const system of ELEMENTAL_SYSTEMS) {
-  for (const realm of ITEM_REALMS) {
-    const herb = buildHerb(system, realm);
-    const ore = buildOre(system, realm);
-    herbs.push(herb);
-    ores.push(ore);
-    pills.push(buildPill(system, realm, herb, ore));
-    talismans.push(buildTalisman(system, realm, herb, ore));
+for (const realm of ITEM_REALMS) {
+  for (const affinity of RESOURCE_AFFINITIES) {
+    herbs.push(buildHerb(affinity, realm));
+    ores.push(buildOre(affinity, realm));
+  }
+  for (const family of PILL_FAMILIES) pills.push(buildPill(family, realm));
+  for (const system of ELEMENTAL_SYSTEMS) {
+    talismans.push(buildTalisman(system, realm));
     ELEMENTAL_EQUIPMENT_SLOTS.forEach(slot => gear.push(buildGear(system, realm, slot)));
   }
 }
 
-export const ELEMENTAL_GEAR_ITEMS = gear;
-export const ELEMENTAL_HERBS = herbs;
-export const ELEMENTAL_ORES = ores;
-export const ELEMENTAL_PILLS = pills;
-export const ELEMENTAL_TALISMANS = talismans;
-export const ALL_ELEMENTAL_ITEMS = [...gear, ...pills, ...talismans, ...herbs, ...ores];
+// Liên kết công thức sau khi toàn bộ tài nguyên đã được sinh, để UI chế tạo cũ vẫn dùng được.
+const herbByAffinityRank = new Map(herbs.map(i => [`${i.affinity}:${i.rank}`, i]));
+const oreByAffinityRank = new Map(ores.map(i => [`${i.affinity}:${i.rank}`, i]));
+for (const item of [...pills, ...talismans]) {
+  const keys = [...new Set(item.recipeAffinityKeys || ['linh'])];
+  item.recipeHerbs = keys.map((key, idx) => ({
+    name:herbByAffinityRank.get(`${key}:${item.rank}`)?.name,
+    count:Math.max(1, 1 + item.rank + idx)
+  })).filter(x => x.name);
+  item.recipeMinerals = keys.slice(0, 1).map(key => ({
+    id:oreByAffinityRank.get(`${key}:${item.rank}`)?.id,
+    count:Math.max(1, 1 + Math.floor(item.rank / 2))
+  })).filter(x => x.id);
+}
+
+export const ELEMENTAL_GEAR_ITEMS = Object.freeze(gear);
+export const ELEMENTAL_HERBS = Object.freeze(herbs);
+export const ELEMENTAL_ORES = Object.freeze(ores);
+export const ELEMENTAL_PILLS = Object.freeze(pills);
+export const ELEMENTAL_TALISMANS = Object.freeze(talismans);
+export const ALL_ELEMENTAL_ITEMS = Object.freeze([...gear, ...pills, ...talismans, ...herbs, ...ores]);
 
 export const ELEMENTAL_CATALOG_STATS = Object.freeze({
   systems:ELEMENTAL_SYSTEMS.length,
   realms:ITEM_REALMS.length,
+  resourceAffinities:RESOURCE_AFFINITIES.length,
+  pillFamilies:PILL_FAMILIES.length,
   equipment:ELEMENTAL_GEAR_ITEMS.length,
   pills:ELEMENTAL_PILLS.length,
   talismans:ELEMENTAL_TALISMANS.length,
@@ -191,33 +216,51 @@ export const ELEMENTAL_CATALOG_STATS = Object.freeze({
   total:ALL_ELEMENTAL_ITEMS.length
 });
 
-const BY_ID = new Map(ALL_ELEMENTAL_ITEMS.map(item => [item.id, item]));
-export function getElementalItemById(id) { return BY_ID.get(id) || null; }
+const BY_ID = new Map();
+const BY_NAME = new Map();
+const IDENTITY_ERRORS = [];
+for (const item of ALL_ELEMENTAL_ITEMS) {
+  if (BY_ID.has(item.id)) IDENTITY_ERRORS.push(`ID trùng: ${item.id}`); else BY_ID.set(item.id, item);
+  if (BY_NAME.has(item.name)) IDENTITY_ERRORS.push(`Tên trùng: ${item.name}`); else BY_NAME.set(item.name, item);
+}
+if (IDENTITY_ERRORS.length) throw new Error(`[ElementalItemCatalog] ${IDENTITY_ERRORS.join('; ')}`);
 
-export function getElementalItems({ element=null, rank=null, kind=null, type=null } = {}) {
+export function getElementalItemById(id) { return BY_ID.get(id) || null; }
+export function getElementalItemByName(name) { return BY_NAME.get(name) || null; }
+export function getElementalItems({ element=null, affinity=null, rank=null, kind=null, type=null } = {}) {
   return ALL_ELEMENTAL_ITEMS.filter(item =>
     (element == null || item.element === element) &&
+    (affinity == null || item.affinity === affinity) &&
     (rank == null || item.rank === Number(rank)) &&
     (kind == null || item.kind === kind) &&
     (type == null || item.type === type)
   );
 }
-
 export function getRealmRankFromMonsterTier(tier=0) {
   const t = Math.max(0, Number(tier) || 0);
   if (t <= 0) return 0;
   return Math.min(5, Math.ceil(t / 4));
 }
-
 function pick(list, rng=Math.random) {
   if (!Array.isArray(list) || !list.length) return null;
   return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 }
+function poolKey(a, b) { return `${a}:${b}`; }
+const GEAR_POOLS = new Map();
+const TALISMAN_POOLS = new Map();
+const HERB_POOLS = new Map();
+const ORE_POOLS = new Map();
+const PILL_POOLS = new Map();
+for (const system of ELEMENTAL_SYSTEMS) for (const realm of ITEM_REALMS) {
+  GEAR_POOLS.set(poolKey(system.key, realm.rank), gear.filter(i => i.element === system.key && i.rank === realm.rank));
+  TALISMAN_POOLS.set(poolKey(system.key, realm.rank), talismans.filter(i => i.element === system.key && i.rank === realm.rank));
+  PILL_POOLS.set(poolKey(system.key, realm.rank), pills.filter(i => i.rank === realm.rank && i.compatibleSystems.includes(system.key)));
+}
+for (const affinity of RESOURCE_AFFINITIES) for (const realm of ITEM_REALMS) {
+  HERB_POOLS.set(poolKey(affinity.key, realm.rank), herbs.filter(i => i.affinity === affinity.key && i.rank === realm.rank));
+  ORE_POOLS.set(poolKey(affinity.key, realm.rank), ores.filter(i => i.affinity === affinity.key && i.rank === realm.rank));
+}
 
-/**
- * Roll vật phẩm cùng cấp với yêu thú.
- * Boss/Đỉnh Phong (tier chia hết cho 4) có thêm tỷ lệ rơi.
- */
 export function rollElementalItemDrop(enemy, rng=Math.random) {
   const tier = Number(enemy?.monsterData?.tier ?? 0);
   const rank = getRealmRankFromMonsterTier(tier);
@@ -226,26 +269,47 @@ export function rollElementalItemDrop(enemy, rng=Math.random) {
   if (rng() > chance) return null;
 
   const system = pick(ELEMENTAL_SYSTEMS, rng);
+  const affinityKey = SYSTEM_TO_RESOURCE[system.key] || 'linh';
   const roll = rng();
-  let pool;
-  if (roll < 0.40) pool = ELEMENTAL_GEAR_ITEMS.filter(i => i.element === system.key && i.rank === rank);
-  else if (roll < 0.58) pool = ELEMENTAL_HERBS.filter(i => i.element === system.key && i.rank === rank);
-  else if (roll < 0.74) pool = ELEMENTAL_ORES.filter(i => i.element === system.key && i.rank === rank);
-  else if (roll < 0.87) pool = ELEMENTAL_PILLS.filter(i => i.element === system.key && i.rank === rank);
-  else pool = ELEMENTAL_TALISMANS.filter(i => i.element === system.key && i.rank === rank);
-  return pick(pool, rng);
+  if (roll < 0.43) return pick(GEAR_POOLS.get(poolKey(system.key, rank)), rng);
+  if (roll < 0.60) return pick(HERB_POOLS.get(poolKey(affinityKey, rank)), rng);
+  if (roll < 0.75) return pick(ORE_POOLS.get(poolKey(affinityKey, rank)), rng);
+  if (roll < 0.87) return pick(PILL_POOLS.get(poolKey(system.key, rank)), rng);
+  return pick(TALISMAN_POOLS.get(poolKey(system.key, rank)), rng);
 }
 
 export function getElementalIconMeta(item) {
-  const system = ELEMENTAL_SYSTEMS.find(s => s.key === item?.element) || ELEMENTAL_SYSTEMS[0];
+  const system = item?.element ? ELEMENTAL_SYSTEMS.find(s => s.key === item.element) : null;
+  const affinity = item?.affinity ? RESOURCE_AFFINITIES.find(a => a.key === item.affinity) : null;
+  const family = item?.family ? PILL_FAMILIES.find(f => f.key === item.family) : null;
   const realm = ITEM_REALMS[Math.max(0, Math.min(ITEM_REALMS.length - 1, Number(item?.rank) || 0))];
   return {
     icon:item?.icon || iconKey(item?.id || 'unknown'),
-    systemCode:system.code,
-    systemColor:system.color,
-    systemDark:system.dark,
+    systemCode:system?.code || affinity?.code || family?.code || 'IT',
+    systemColor:system?.color || affinity?.color || family?.color || '#d8d6ff',
+    systemDark:system?.dark || affinity?.dark || '#34304e',
     rankColor:realm.color,
     rankLabel:realm.rank === 0 ? 'P' : String(realm.rank),
     kindCode:item?.iconCode || KIND_ICON_CODES[item?.kind] || 'IT'
   };
 }
+
+/** Migration V1 -> V2. Gear/phù giữ nguyên ID; chỉ đổi đan, thảo và khoáng. */
+const legacyHerbNameMap = new Map();
+const legacyPillNameMap = new Map();
+const legacyOreIdMap = new Map();
+for (const system of ELEMENTAL_SYSTEMS) for (const realm of ITEM_REALMS) {
+  const affinityKey = SYSTEM_TO_RESOURCE[system.key] || 'linh';
+  const pillKey = SYSTEM_TO_PILL[system.key] || 'hoi_nguyen';
+  const herbTarget = HERB_POOLS.get(poolKey(affinityKey, realm.rank))?.[0];
+  const pillTarget = pills.find(i => i.family === pillKey && i.rank === realm.rank);
+  const oreTarget = ORE_POOLS.get(poolKey(affinityKey, realm.rank))?.[0];
+  legacyHerbNameMap.set(`${realmPrefix(realm)} ${system.theme} Linh Thảo`, herbTarget?.name || null);
+  legacyPillNameMap.set(`${realmPrefix(realm)} ${system.theme} Linh Đan`, pillTarget?.name || null);
+  legacyOreIdMap.set(`elem_${system.key}_r${realm.rank}_ore`, oreTarget?.id || null);
+}
+export const LEGACY_ELEMENTAL_MIGRATION = Object.freeze({
+  herbNames:legacyHerbNameMap,
+  pillNames:legacyPillNameMap,
+  oreIds:legacyOreIdMap
+});
