@@ -4,7 +4,7 @@
  *
  * Canonical Human Realm contract:
  * - Nam Lăng: 9 Đại Vực / 108 Châu
- * - Đông Huyền: 8 Tiên Vực / 64 Đạo
+ * - Đông Huyền: 8 Huyền Vực / 64 Đạo
  * - Tây Mạc: 7 Hoang Vực / 49 Lĩnh
  * - Bắc Minh: 6 Hàn Thiên / 72 Phủ
  * - Trung Vực: 12 Thánh Vực / 144 Châu
@@ -34,7 +34,7 @@ const EXPECTED_MAP_IDS = Object.freeze([0, 1, 2]);
 const EXPECTED_WORLD = Object.freeze({ continents: 5, primaryRegions: 42, territories: 437 });
 const EXPECTED_CONTINENTS = Object.freeze({
   south: Object.freeze({ primary: 9, secondary: 108, perPrimary: 12, primaryLabel: 'ĐẠI VỰC', secondaryLabel: 'CHÂU' }),
-  east: Object.freeze({ primary: 8, secondary: 64, perPrimary: 8, primaryLabel: 'TIÊN VỰC', secondaryLabel: 'ĐẠO' }),
+  east: Object.freeze({ primary: 8, secondary: 64, perPrimary: 8, primaryLabel: 'HUYỀN VỰC', secondaryLabel: 'ĐẠO' }),
   west: Object.freeze({ primary: 7, secondary: 49, perPrimary: 7, primaryLabel: 'HOANG VỰC', secondaryLabel: 'LĨNH' }),
   north: Object.freeze({ primary: 6, secondary: 72, perPrimary: 12, primaryLabel: 'HÀN THIÊN', secondaryLabel: 'PHỦ' }),
   central: Object.freeze({ primary: 12, secondary: 144, perPrimary: 12, primaryLabel: 'THÁNH VỰC', secondaryLabel: 'CHÂU' })
