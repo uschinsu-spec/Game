@@ -2,10 +2,10 @@
  * worldRegistry.js
  * API đọc duy nhất cho hệ thống map: runtime map + cây Nam Lăng + travel.
  */
-import { PLAYABLE_REGIONS, ALL_PLAYABLE_MAPS } from './playableMaps.js';
-import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js';
-import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js';
-import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js';
+import { PLAYABLE_REGIONS, ALL_PLAYABLE_MAPS } from './playableMaps.js?v=20260929-shared-panorama-v1';
+import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-shared-panorama-v1';
+import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-shared-panorama-v1';
+import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-shared-panorama-v1';
 
 export const START_MAP_ID = 0;
 export { PLAYABLE_REGIONS, ALL_PLAYABLE_MAPS, NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS, MAP_TEMPLATES, PANORAMA_STANDARD, getMapTemplate };
@@ -70,7 +70,6 @@ export function canEnterMap(mapId, state) {
   if (realmIdx < Number(access.minRealmIdx || 0)) {
     return { ok: false, reason: 'REALM', requiredRealmIdx: Number(access.minRealmIdx || 0), map };
   }
-  // Quest/faction hooks đã chuẩn hóa ở data model; runtime sẽ kiểm tra khi các hệ đó được nối vào map.
   return { ok: true, reason: null, map };
 }
 
