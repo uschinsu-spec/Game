@@ -16,11 +16,12 @@ import { installRealmProgression } from './scenes/mixins/RealmProgression.js?v=2
 import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTalismanFormationShop.js?v=20260928-modal-manager-unified-v1';
 import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-unified-item-system';
 import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=20260929-unified-item-system';
-import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-single-map-system-v4';
+import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-lazy-panorama-v5';
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260929-single-map-system-v4';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
+import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260929-zone-stream-v1';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
-import { installBootAssetOptimization } from './scenes/mixins/BootAssetOptimization.js?v=20260929-p0-boot-assets-v1';
+import { installBootAssetOptimization } from './scenes/mixins/BootAssetOptimization.js?v=20260929-p0-boot-assets-v2';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
@@ -42,16 +43,19 @@ installElementalItemSystem(MainGameScene);
 // Exactly one active item runtime. Category registries are data stores, not separate item systems.
 assertSingleItemSystem(MainGameScene);
 
-// Exactly one active map runtime, one map UI, and one map-zone geometry provider.
+// Exactly one active map runtime, one map UI, one map-zone geometry provider.
 installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
 
+// Stream enemy/NPC/VFX by the canonical active map/zone. This wraps the map-zone
+// content methods before the boot gate snapshots/restores them.
+installMapZoneAssetStreaming(MainGameScene);
+
 // Fail fast if a future change reintroduces duplicate/conflicting map systems.
 assertSingleMapSystem(MainGameScene);
 
-// P0 boot gate is installed last so it can replace legacy preload wrappers without
-// disturbing the authoritative map/item runtime ownership above.
+// Boot gate remains last: current panorama + player + first-screen HUD only.
 installBootAssetOptimization(MainGameScene);
 
 export const config = {
@@ -67,9 +71,7 @@ export const config = {
   scene: [MainGameScene],
   input: { touch: { capture: true }, activePointers: 3 },
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  // GitHub Pages may return transient 503s when the large texture catalog is
-  // requested in one burst. The boot queue is now tiny; this limit mainly applies
-  // to post-boot/background runtime assets.
+  // Small concurrent batches are friendlier to mobile and GitHub Pages.
   loader: { maxParallelDownloads: 12 }
 };
 
