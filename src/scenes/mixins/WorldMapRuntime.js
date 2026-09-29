@@ -13,7 +13,7 @@ import {
   getTravelRoutesForMap,
   resolvePanoramaMap,
   getPanoramaPreloadEntries
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v3';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
 
