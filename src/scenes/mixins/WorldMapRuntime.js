@@ -1,6 +1,10 @@
 /**
  * WorldMapRuntime.js
- * Nối World Registry vào MainScene mà không làm phình MainScene.js.
+ * SINGLE MAP RUNTIME OWNER.
+ *
+ * All active map runtime behavior lives here:
+ * registry config, panorama loading/rendering, switching maps and portals.
+ * MainScene legacy methods are replaced at bootstrap and are never chained.
  */
 import { REALMS } from '../../config/realmsData.js';
 import {
@@ -9,9 +13,11 @@ import {
   getTravelRoutesForMap,
   resolvePanoramaMap,
   getPanoramaPreloadEntries
-} from '../../config/regionsData.js?v=20260929-shared-panorama-v1';
+} from '../../config/world/worldRegistry.js';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
+
+const MAP_RUNTIME_OWNER = 'WorldMapRuntime';
 
 function buildPortalVisual(scene, def) {
   const container = scene.add.container(def.x, def.y).setDepth(Math.floor(def.y) - 5);
@@ -55,8 +61,7 @@ function isPanoramaQueued(scene, key) {
 
 function fitSharedPanorama(scene, map) {
   if (!map?.useSharedWildernessPanorama || !scene?.bg) return;
-  const key = map.panoramaKey;
-  const frame = scene.textures?.getFrame?.(key);
+  const frame = scene.textures?.getFrame?.(map.panoramaKey);
   const sourceHeight = Number(frame?.realHeight || frame?.height || map.panoramaSourceHeight || 960);
   if (!Number.isFinite(sourceHeight) || sourceHeight <= 0) return;
   const scale = Number(scene.worldH || map.worldHeight || 960) / sourceHeight;
@@ -67,15 +72,48 @@ function fitSharedPanorama(scene, map) {
   }
 }
 
+function createPanoramaBackground(scene, map) {
+  if (scene.bg) {
+    scene.bg.destroy();
+    scene.bg = null;
+  }
+
+  const panoramaKey = scene.getMapPanoramaKey(map);
+  const shouldRepeat = !!map?.runtime?.repeatPanorama &&
+    !map?.noRepeat && !map?.isPeaceZone && Number(scene.worldW || 0) > 2880;
+
+  if (shouldRepeat) {
+    scene.bg = scene.add.tileSprite(
+      scene.worldW / 2,
+      scene.worldH / 2,
+      scene.worldW,
+      scene.worldH,
+      panoramaKey
+    ).setDepth(-10);
+    fitSharedPanorama(scene, map);
+  } else {
+    scene.bg = scene.add.image(scene.worldW / 2, scene.worldH / 2, panoramaKey)
+      .setDisplaySize(scene.worldW, scene.worldH)
+      .setDepth(-10);
+  }
+  return scene.bg;
+}
+
 export function installWorldMapRuntime(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__worldMapRuntimeInstalled) return;
+  if (!MainGameScene?.prototype) return;
   const proto = MainGameScene.prototype;
+  if (proto.__worldMapRuntimeInstalled) return;
+
+  if (proto.__mapRuntimeOwner && proto.__mapRuntimeOwner !== MAP_RUNTIME_OWNER) {
+    throw new Error(`Map runtime conflict: ${proto.__mapRuntimeOwner} vs ${MAP_RUNTIME_OWNER}`);
+  }
+  proto.__mapRuntimeOwner = MAP_RUNTIME_OWNER;
   proto.__worldMapRuntimeInstalled = true;
 
-  // Bảo đảm panorama từ registry mới luôn được preload, kể cả khi MainScene cũ còn cache ALL_MAPS.
+  // Keep MainScene's non-map asset preload, then add the authoritative registry panoramas once.
   const originalPreload = proto.preload;
   if (typeof originalPreload === 'function') {
-    proto.preload = function preloadWorldPanoramas(...args) {
+    proto.preload = function preloadWithWorldRegistry(...args) {
       const result = originalPreload.apply(this, args);
       const A = './assets/';
       getPanoramaPreloadEntries().forEach(({ key, asset }) => {
@@ -86,9 +124,8 @@ export function installWorldMapRuntime(MainGameScene) {
     };
   }
 
-  // Runtime luôn dùng đúng kích thước World Registry.
-  // Map chiến đấu panorama chung = 32.000x960, không còn ép map 4–13 về 2.880px.
-  proto.applyMapRuntimeConfig = function applyMapRuntimeConfigFromRegistry(mapId) {
+  proto.applyMapRuntimeConfig = function applyMapRuntimeConfig(mapId) {
+    ensureWorldProgress(gameState);
     const map = getMapById(mapId);
     this.currentMap = map;
     this.worldW = Number(map?.worldWidth || 2880);
@@ -102,27 +139,6 @@ export function installWorldMapRuntime(MainGameScene) {
     return map;
   };
 
-  const originalCreate = proto.create;
-  if (typeof originalCreate === 'function') {
-    proto.create = function createWithWorldProgress(...args) {
-      ensureWorldProgress(gameState);
-      const result = originalCreate.apply(this, args);
-      fitSharedPanorama(this, this.currentMap);
-      markMapVisited(gameState, gameState.currentMapId, { unlockWaypoint: true });
-      return result;
-    };
-  }
-
-  const originalSwitchMap = proto.switchMap;
-  if (typeof originalSwitchMap === 'function') {
-    proto.switchMap = function switchMapWithWorldProgress(mapId, spawnX, spawnY) {
-      const entered = originalSwitchMap.call(this, mapId, spawnX, spawnY);
-      fitSharedPanorama(this, entered);
-      markMapVisited(gameState, entered?.id ?? mapId, { unlockWaypoint: true });
-      return entered;
-    };
-  }
-
   proto.getMapPanoramaKey = function getMapPanoramaKey(map = this.currentMap) {
     const sourceMap = resolvePanoramaMap(map);
     if (sourceMap?.panoramaKey && this.textures.exists(sourceMap.panoramaKey)) return sourceMap.panoramaKey;
@@ -130,14 +146,52 @@ export function installWorldMapRuntime(MainGameScene) {
     return sourceMap?.panoramaKey || map?.panoramaKey || 'map_panorama_0';
   };
 
+  proto.createWorld = function createWorldFromRegistry() {
+    const map = this.currentMap || this.applyMapRuntimeConfig(gameState.currentMapId);
+    return createPanoramaBackground(this, map);
+  };
+
+  // Direct implementation: never calls/chains MainScene's legacy switchMap.
+  proto.switchMap = function switchMapFromRegistry(mapId, spawnX, spawnY) {
+    this.resetJoy?.();
+    this.moveTarget = null;
+
+    const map = this.applyMapRuntimeConfig(mapId);
+    gameState.currentMapId = map.id;
+
+    this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
+    this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
+    createPanoramaBackground(this, map);
+
+    const sx = spawnX ?? map.spawn?.x ?? 350;
+    const sy = spawnY ?? map.spawn?.y ?? 620;
+    if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0);
+    this.moveTarget = null;
+
+    this.createNpcs?.();
+    this.createMapPortals?.();
+    this.syncVillageHubMode?.();
+    this.initBattlefield?.();
+    this.initFellowNpcs?.();
+    this.initHerbs?.();
+    this.updateHUD?.();
+
+    markMapVisited(gameState, map.id, { unlockWaypoint: true });
+    this.resetJoy?.();
+    return map;
+  };
+
   proto.createMapPortals = function createMapPortalsFromRegistry() {
     if (this.activePortals) this.activePortals.forEach(portal => portal.container?.destroy());
     this.activePortals = [];
-    const defs = getTravelRoutesForMap(gameState.currentMapId);
-    defs.forEach(def => {
+    getTravelRoutesForMap(gameState.currentMapId).forEach(def => {
       const container = buildPortalVisual(this, def);
       this.activePortals.push({ ...def, container });
     });
+  };
+
+  proto.getPortalCooldownKey = function getPortalCooldownKey(fromMapId, toMapId) {
+    return `portal_${Number(fromMapId)}_${Number(toMapId)}`;
   };
 
   proto.triggerPortalTeleport = function triggerPortalTeleportFromRegistry(portal) {
@@ -146,7 +200,13 @@ export function installWorldMapRuntime(MainGameScene) {
     if (!access.ok) {
       if (access.reason === 'REALM') {
         const realmName = REALMS[access.requiredRealmIdx]?.name || 'cảnh giới cao hơn';
-        this.showFloatingText?.(this.player?.x || 270, (this.player?.y || 620) - 70, `Tu vi chưa đủ! Cần [${realmName}] để tiến vào.`, '#ff5555', '14px');
+        this.showFloatingText?.(
+          this.player?.x || 270,
+          (this.player?.y || 620) - 70,
+          `Tu vi chưa đủ! Cần [${realmName}] để tiến vào.`,
+          '#ff5555',
+          '14px'
+        );
       }
       return;
     }
@@ -155,11 +215,23 @@ export function installWorldMapRuntime(MainGameScene) {
     if (targetMapId === 0 && now < Number(this.villageReentryBlockedUntil || 0)) return;
 
     const fromMapId = Number(gameState.currentMapId);
-    const key = this.getPortalCooldownKey ? this.getPortalCooldownKey(fromMapId, targetMapId) : `portal_${fromMapId}_${targetMapId}`;
+    const key = this.getPortalCooldownKey(fromMapId, targetMapId);
     if ((this[key] || 0) > now) return;
     this[key] = now + 3500;
 
     const targetMap = getMapById(targetMapId);
     this.switchMap(targetMap.id, portal.targetSpawnX, portal.targetSpawnY);
   };
+
+  // Preserve the scene lifecycle only; all map calls made inside create() resolve to methods above.
+  const originalCreate = proto.create;
+  if (typeof originalCreate === 'function') {
+    proto.create = function createWithSingleMapRuntime(...args) {
+      ensureWorldProgress(gameState);
+      const result = originalCreate.apply(this, args);
+      fitSharedPanorama(this, this.currentMap);
+      markMapVisited(gameState, gameState.currentMapId, { unlockWaypoint: true });
+      return result;
+    };
+  }
 }
