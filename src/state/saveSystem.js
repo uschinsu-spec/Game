@@ -4,9 +4,14 @@
  */
 import { gameState } from './gameState.js';
 import { migrateLegacyRealmIndex } from '../config/realmMigration.js';
+import { createInitialWorldProgress, ensureWorldProgress } from './worldProgress.js';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const SAVE_PREFIX = 'LSPK_';
+
+const EMPTY_EQUIPPED = Object.freeze({
+  weapon: null, armor: null, helm: null, boots: null, amulet: null, shield: null, ring: null, cloak: null
+});
 
 export const DEFAULT_INITIAL_STATE = {
   realmIdx: 0,
@@ -33,9 +38,10 @@ export const DEFAULT_INITIAL_STATE = {
   sectRankIdx: 0,
   sectContrib: 0,
   lastSalaryClaim: 0,
-  equipped: { weapon: null, armor: null, helm: null, boots: null, amulet: null, shield: null },
+  equipped: { ...EMPTY_EQUIPPED },
   inventory: { items: [], pills: {}, talismans: {}, formations: [] },
   currentMapId: 0,
+  worldProgress: createInitialWorldProgress(0),
   gearPlus: 0,
   equippedSkillIds: [],
   skillMastery: {},
@@ -64,6 +70,7 @@ function base64ToUtf8(str) {
 }
 
 export function exportSaveCode() {
+  ensureWorldProgress(gameState);
   const data = {
     version: SAVE_VERSION,
     timestamp: Date.now(),
@@ -90,9 +97,10 @@ export function exportSaveCode() {
     sectRankIdx: gameState.sectRankIdx ?? 0,
     sectContrib: gameState.sectContrib ?? 0,
     lastSalaryClaim: gameState.lastSalaryClaim ?? 0,
-    equipped: JSON.parse(JSON.stringify(gameState.equipped || { weapon: null, armor: null, helm: null, boots: null, amulet: null, shield: null })),
+    equipped: JSON.parse(JSON.stringify(gameState.equipped || EMPTY_EQUIPPED)),
     inventory: JSON.parse(JSON.stringify(gameState.inventory || { items: [], pills: {}, talismans: {}, formations: [] })),
     currentMapId: gameState.currentMapId ?? 0,
+    worldProgress: JSON.parse(JSON.stringify(gameState.worldProgress || createInitialWorldProgress(gameState.currentMapId ?? 0))),
     gearPlus: gameState.gearPlus ?? 0,
     equippedSkillIds: [...(gameState.equippedSkillIds || [])],
     skillMastery: JSON.parse(JSON.stringify(gameState.skillMastery || {})),
@@ -154,9 +162,11 @@ export function importSaveCode(codeString) {
     gameState.sectRankIdx = data.sectRankIdx ?? 0;
     gameState.sectContrib = data.sectContrib ?? 0;
     gameState.lastSalaryClaim = data.lastSalaryClaim ?? 0;
-    gameState.equipped = data.equipped || { weapon: null, armor: null, helm: null, boots: null, amulet: null, shield: null };
+    gameState.equipped = { ...EMPTY_EQUIPPED, ...(data.equipped || {}) };
     gameState.inventory = data.inventory || { items: [], pills: {}, talismans: {}, formations: [] };
     gameState.currentMapId = data.currentMapId ?? 0;
+    gameState.worldProgress = data.worldProgress || createInitialWorldProgress(gameState.currentMapId);
+    ensureWorldProgress(gameState);
     gameState.gearPlus = data.gearPlus ?? 0;
     gameState.equippedSkillIds = (data.equippedSkillIds && data.equippedSkillIds.length > 0) ? data.equippedSkillIds : ['basic_attack', 'kiem_1'];
     gameState.skillMastery = data.skillMastery || {};
@@ -170,7 +180,7 @@ export function importSaveCode(codeString) {
       localStorage.setItem('LINH_SON_SAVE_CODE', migratedCode);
       localStorage.setItem('LINH_SON_LAST_SAVE_TIME', String(Date.now()));
     } catch (e) {}
-    return { success: true, data: { ...data, version: SAVE_VERSION, realmIdx: gameState.realmIdx } };
+    return { success: true, data: { ...data, version: SAVE_VERSION, realmIdx: gameState.realmIdx, worldProgress: gameState.worldProgress } };
   } catch (err) {
     console.error('Lỗi khi giải mã Save Code:', err);
     return { success: false, error: 'Mã lưu bị lỗi hoặc không thể giải mã: ' + err.message };
@@ -179,6 +189,7 @@ export function importSaveCode(codeString) {
 
 export function resetToNewGame() {
   const def = JSON.parse(JSON.stringify(DEFAULT_INITIAL_STATE));
+  def.worldProgress = createInitialWorldProgress(0);
   Object.assign(gameState, def);
   try {
     localStorage.removeItem('LINH_SON_SAVE_CODE');
