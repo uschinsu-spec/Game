@@ -161,8 +161,18 @@ function renderCharacterSummary(scene, panel) {
     fontSize: '15px'
   });
 
-  const hint = scene.add.text(0, 351, reason, {
-    fontFamily: FONT, fontSize: '12.5px', color: canBreak ? '#8effc5' : '#bcefff',
+  addButton(scene, panel, 0, 349, 430, 50, 'THẾ LỰC & QUAN HỆ  ›', () => {
+    scene.openPlayerFactionPanel?.();
+  }, {
+    enabled: typeof scene.openPlayerFactionPanel === 'function',
+    fill: 0x49306d,
+    stroke: 0xc4a7ff,
+    color: '#f6efff',
+    fontSize: '15px'
+  });
+
+  const hint = scene.add.text(0, 402, reason, {
+    fontFamily: FONT, fontSize: '11.5px', color: canBreak ? '#8effc5' : '#bcefff',
     align: 'center', wordWrap: { width: 430, useAdvancedWrap: true }
   }).setOrigin(0.5);
   panel.add(hint);
