@@ -15,12 +15,23 @@ import {
 
 export const WORLD_PROGRESS_SCHEMA = 1;
 
-function uniqueNumbers(values) {
-  return [...new Set((values || []).map(Number).filter(Number.isFinite))];
+function sameId(a, b) {
+  return String(a) === String(b);
 }
 
 function uniqueValidMapIds(values) {
-  return uniqueNumbers(values).filter(id => !!findMapById(id));
+  const out = [];
+  const seen = new Set();
+  for (const value of values || []) {
+    const map = findMapById(value);
+    if (!map) continue;
+    const id = map.id;
+    const key = String(id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(id);
+  }
+  return out;
 }
 
 function uniqueStrings(values) {
@@ -29,6 +40,10 @@ function uniqueStrings(values) {
 
 function uniqueValidNodeIds(values) {
   return uniqueStrings(values).filter(id => !!getWorldNode(id));
+}
+
+function containsMapId(values, mapId) {
+  return (values || []).some(value => sameId(value, mapId));
 }
 
 export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
@@ -46,7 +61,7 @@ export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
   };
   const holder = { worldProgress: state };
   markMapVisited(holder, START_MAP_ID, { unlockWaypoint: true });
-  if (validCurrentMapId !== START_MAP_ID) markMapVisited(holder, validCurrentMapId, { unlockWaypoint: true });
+  if (!sameId(validCurrentMapId, START_MAP_ID)) markMapVisited(holder, validCurrentMapId, { unlockWaypoint: true });
   return state;
 }
 
@@ -74,7 +89,7 @@ export function ensureWorldProgress(gameStateLike) {
 
   gameStateLike.worldProgress = normalized;
   markMapVisited(gameStateLike, START_MAP_ID, { unlockWaypoint: true });
-  if (currentMapId !== START_MAP_ID) markMapVisited(gameStateLike, currentMapId, { unlockWaypoint: true });
+  if (!sameId(currentMapId, START_MAP_ID)) markMapVisited(gameStateLike, currentMapId, { unlockWaypoint: true });
   return normalized;
 }
 
@@ -109,7 +124,7 @@ export function markMapVisited(gameStateLike, mapId, opts = {}) {
   }
 
   const progress = gameStateLike.worldProgress;
-  const id = Number(map.id);
+  const id = map.id;
   progress.visitedMapIds = uniqueValidMapIds([...(progress.visitedMapIds || []), id]);
 
   const unlockWaypoint = opts.unlockWaypoint ?? (map.waypointMode === 'auto_on_visit');
@@ -117,7 +132,9 @@ export function markMapVisited(gameStateLike, mapId, opts = {}) {
     progress.unlockedWaypointMapIds = uniqueValidMapIds([...(progress.unlockedWaypointMapIds || []), id]);
   }
 
-  const node = getWorldNodeForMap(id);
+  const node = getWorldNodeForMap(id)
+    || (map.locationNodeId ? getWorldNode(map.locationNodeId) : null)
+    || (map.geography?.nodeId ? getWorldNode(map.geography.nodeId) : null);
   if (node) {
     progress.currentLocationNodeId = node.id;
     discoverNode(gameStateLike, node.id);
@@ -129,7 +146,7 @@ export function unlockWaypoint(gameStateLike, mapId) {
   const progress = gameStateLike.worldProgress || ensureWorldProgress(gameStateLike);
   const map = findMapById(mapId);
   if (!map) return progress;
-  const id = Number(map.id);
+  const id = map.id;
   progress.unlockedWaypointMapIds = uniqueValidMapIds([...(progress.unlockedWaypointMapIds || []), id]);
   markMapVisited(gameStateLike, id, { unlockWaypoint: true });
   return progress;
@@ -138,13 +155,13 @@ export function unlockWaypoint(gameStateLike, mapId) {
 export function hasVisitedMap(gameStateLike, mapId) {
   const progress = gameStateLike.worldProgress || ensureWorldProgress(gameStateLike);
   const map = findMapById(mapId);
-  return !!map && (progress.visitedMapIds || []).includes(Number(map.id));
+  return !!map && containsMapId(progress.visitedMapIds, map.id);
 }
 
 export function hasWaypoint(gameStateLike, mapId) {
   const progress = gameStateLike.worldProgress || ensureWorldProgress(gameStateLike);
   const map = findMapById(mapId);
-  return !!map && (progress.unlockedWaypointMapIds || []).includes(Number(map.id));
+  return !!map && containsMapId(progress.unlockedWaypointMapIds, map.id);
 }
 
 export function isNodeDiscovered(gameStateLike, nodeId) {
