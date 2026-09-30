@@ -47,6 +47,8 @@ export function installFactionSystemIntegration(MainGameScene, { network, worldA
     p.clearFactionContract = (...args) => coordinator.clearFactionContract(...args);
     p.addWantedLevel = (...args) => coordinator.addWantedLevel(...args);
     p.createPlayerFaction = (...args) => coordinator.createPlayerFaction(...args);
+    p.negotiatePlayerFaction = (...args) => coordinator.negotiatePlayerFaction(...args);
+    p.commitPlayerFactionDiplomacy = (...args) => coordinator.commitPlayerFactionDiplomacy(...args);
     p.getFactionQuestHooks = (...args) => coordinator.getQuestHooks(...args);
 
     const oldApply = p.applyMapRuntimeConfig;
