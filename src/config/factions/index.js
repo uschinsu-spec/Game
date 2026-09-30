@@ -7,6 +7,7 @@ export * from './core/factionDefinitions.js';
 export * from './core/supremeFactions.js';
 export * from './core/supremeRelations.js';
 export * from './core/playerSects.js';
+export * from './core/canonicalLocalFactionAtlas.js';
 export * from './generation/factionNaming.js';
 export * from './generation/factionBudget.js';
 export * from './generation/factionGenerator.js';
@@ -76,7 +77,6 @@ export * from './ui/worldMapFactionOverlayModel.js';
 export * from './ui/playerAffiliationViewModel.js';
 export * from './humanRealmFactionNetwork.js';
 
-
 export * from './core/continentPowers.js';
 export * from './network/factionBranchPlanner.js';
 export * from './network/factionVassalPlanner.js';
@@ -90,7 +90,6 @@ export * from './game/saveBridge.js';
 export * from './game/mapRuntimeBridge.js';
 export * from './runtime/factionBootGuard.js';
 export * from './game/gameMapManifestAdapter.js';
-
 
 export * from './hierarchy/jurisdictionBudgets.js';
 export * from './hierarchy/jurisdictionFactionGenerator.js';
