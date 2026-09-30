@@ -1,7 +1,7 @@
 import { HUMAN_REALM_WORLD_NODES } from '../world/humanRealmWorld.js?v=20260929-human-realm-v4';
 import { createGameWorldAdapter } from './game/gameWorldAdapter.js';
 import { createGameMapManifestAdapter } from './game/gameMapManifestAdapter.js';
-import { HumanRealmFactionNetwork } from './humanRealmFactionNetwork.js';
+import { HumanRealmFactionNetwork } from './humanRealmFactionNetwork.js?v=20260930-canonical-local-v1';
 
 export const GAME_FACTION_WORLD_SEED='linh-son-phi-kiem-human-realm-v5-expanded';
 export const GAME_FACTION_WORLD_ADAPTER=createGameWorldAdapter({worldNodes:HUMAN_REALM_WORLD_NODES,worldSeed:GAME_FACTION_WORLD_SEED});
@@ -23,6 +23,8 @@ export const listJurisdictionChildren=(id,opts)=>GAME_FACTION_WORLD_ADAPTER.getC
 export const getJurisdictionFactionContext=(id,opts)=>HUMAN_REALM_FACTION_NETWORK.getJurisdictionFactionContext(id,opts);
 export const getJurisdictionPowerProfile=id=>HUMAN_REALM_FACTION_NETWORK.getJurisdictionPowerProfile(id);
 export const getFactionContextForWorldNode=id=>HUMAN_REALM_FACTION_NETWORK.getFactionContextForWorldNode(id);
+export const getFactionMapMarkersForWorldNode=(id,opts)=>HUMAN_REALM_FACTION_NETWORK.getFactionMapMarkersForWorldNode(id,opts);
+export const getCanonicalFactionAtlasStats=()=>HUMAN_REALM_FACTION_NETWORK.getCanonicalFactionAtlasStats();
 export const resolveFactionTerritoryForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveTerritory(value);
 export const resolveFactionTerritoryIdForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveTerritoryId(value);
 export const resolveFactionJurisdictionForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveJurisdiction(value);
