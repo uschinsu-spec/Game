@@ -19,6 +19,10 @@ import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.j
 const MAP_RUNTIME_OWNER = 'WorldMapRuntime';
 const A = './assets/';
 
+function sameMapId(a, b) {
+  return String(a) === String(b);
+}
+
 function buildPortalVisual(scene, def) {
   const container = scene.add.container(def.x, def.y).setDepth(Math.floor(def.y) - 5);
   const groundGfx = scene.add.graphics().setScale(1.25, 0.46);
@@ -73,29 +77,37 @@ function fitSharedPanorama(scene, map) {
 }
 
 function createPanoramaBackground(scene, map) {
-  if (scene.bg) {
-    scene.bg.destroy();
-    scene.bg = null;
+  const panoramaKey = scene.getMapPanoramaKey(map);
+
+  // Không phá nền cũ cho tới khi texture đích thực sự tồn tại. Đây là guard
+  // chống màn hình đen khi mobile chưa kịp nạp panorama của Châu/Đạo/Lĩnh/Phủ.
+  if (!panoramaKey || !scene.textures?.exists?.(panoramaKey)) {
+    console.warn('[Map runtime] Panorama texture chưa sẵn sàng:', panoramaKey, map?.id);
+    return scene.bg || null;
   }
 
-  const panoramaKey = scene.getMapPanoramaKey(map);
+  const oldBg = scene.bg;
   const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
   const shouldRepeat = !!map?.runtime?.repeatPanorama && !map?.noRepeat && !isHub && Number(scene.worldW || 0) > 2880;
 
+  let nextBg;
   if (shouldRepeat) {
-    scene.bg = scene.add.tileSprite(
+    nextBg = scene.add.tileSprite(
       scene.worldW / 2,
       scene.worldH / 2,
       scene.worldW,
       scene.worldH,
       panoramaKey
     ).setDepth(-10);
-    fitSharedPanorama(scene, map);
   } else {
-    scene.bg = scene.add.image(scene.worldW / 2, scene.worldH / 2, panoramaKey)
+    nextBg = scene.add.image(scene.worldW / 2, scene.worldH / 2, panoramaKey)
       .setDisplaySize(scene.worldW, scene.worldH)
       .setDepth(-10);
   }
+
+  scene.bg = nextBg;
+  oldBg?.destroy?.();
+  if (shouldRepeat) fitSharedPanorama(scene, map);
   return scene.bg;
 }
 
@@ -128,14 +140,12 @@ export function installWorldMapRuntime(MainGameScene) {
   proto.getMapPanoramaKey = function getMapPanoramaKey(map = this.currentMap) {
     const sourceMap = resolvePanoramaMap(map);
     if (sourceMap?.panoramaKey && this.textures.exists(sourceMap.panoramaKey)) return sourceMap.panoramaKey;
+    if (map?.panoramaKey && this.textures.exists(map.panoramaKey)) return map.panoramaKey;
+    if (this.textures.exists('map_panorama_wilderness_shared') && !map?.isPeaceZone) return 'map_panorama_wilderness_shared';
     if (this.textures.exists('map_panorama_0')) return 'map_panorama_0';
     return sourceMap?.panoramaKey || map?.panoramaKey || 'map_panorama_0';
   };
 
-  /**
-   * Lazy panorama gate. Only the requested map panorama is queued. Multiple
-   * callers for the same texture share one Promise.
-   */
   proto.ensurePanoramaLoaded = function ensurePanoramaLoaded(mapId) {
     const map = getMapById(mapId);
     const sourceMap = resolvePanoramaMap(map);
@@ -180,14 +190,12 @@ export function installWorldMapRuntime(MainGameScene) {
     return createPanoramaBackground(this, map);
   };
 
-  /** Return the single registered direct route between two runtime maps, if any. */
   proto.getDirectMapRoute = function getDirectMapRoute(fromMapId, toMapId) {
-    const target = Number(toMapId);
-    return getTravelRoutesForMap(fromMapId).find(route => Number(route.targetMapId) === target) || null;
+    return getTravelRoutesForMap(fromMapId).find(route => sameMapId(route.targetMapId, toMapId)) || null;
   };
 
   const commitMapSwitch = function commitMapSwitch(map, spawnX, spawnY) {
-    const fromMapId = Number(gameState.currentMapId);
+    const fromMapId = gameState.currentMapId;
     const linkedRoute = this.getDirectMapRoute(fromMapId, map.id);
     const sx = linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? 270;
     const sy = linkedRoute?.targetSpawnY ?? spawnY ?? map.spawn?.y ?? 620;
@@ -195,6 +203,10 @@ export function installWorldMapRuntime(MainGameScene) {
     this.applyMapRuntimeConfig(map.id);
     gameState.currentMapId = map.id;
     this.__combatAssetsReady = false;
+    this.__activeStreamMapId = null;
+    this.__activeStreamZone = null;
+    this.__zoneActivationPendingKey = null;
+    this.__zoneActivationPromise = null;
 
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
@@ -203,13 +215,14 @@ export function installWorldMapRuntime(MainGameScene) {
     if (isHub) {
       this.cameras.main.stopFollow();
       this.cameras.main.setScroll(0, 0);
-    } else {
-      if (this.player) {
-        this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
-      }
+    } else if (this.player) {
+      this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
     }
 
-    createPanoramaBackground(this, map);
+    const bg = createPanoramaBackground(this, map);
+    if (!bg) {
+      console.warn('[Map runtime] Không tạo được background cho map:', map.id);
+    }
 
     if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0);
     this.moveTarget = null;
@@ -227,7 +240,6 @@ export function installWorldMapRuntime(MainGameScene) {
     return map;
   };
 
-  // Every transition is validated here, but the panorama is guaranteed first.
   proto.switchMap = function switchMapFromRegistry(mapId, spawnX, spawnY) {
     this.resetJoy?.();
     this.moveTarget = null;
@@ -239,19 +251,19 @@ export function installWorldMapRuntime(MainGameScene) {
     const map = access.map;
     const now = Number(this.time?.now || 0);
 
-    if (Number(map.id) === 0 && Number(fromMapId) !== 0 && now < Number(this.villageReentryBlockedUntil || 0)) {
+    if (sameMapId(map.id, 0) && !sameMapId(fromMapId, 0) && now < Number(this.villageReentryBlockedUntil || 0)) {
       return this.currentMap || getMapById(fromMapId);
     }
 
     const sourceMap = resolvePanoramaMap(map);
     const panoramaKey = sourceMap?.panoramaKey;
     if (panoramaKey && !this.textures?.exists?.(panoramaKey)) {
-      const token = `${fromMapId}->${map.id}:${Date.now()}`;
+      const token = `${String(fromMapId)}->${String(map.id)}:${Date.now()}`;
       this.__pendingMapSwitchToken = token;
       this.ensurePanoramaLoaded(map.id)
         .then(() => {
           if (this.__pendingMapSwitchToken !== token) return;
-          if (String(gameState.currentMapId) !== String(fromMapId)) return;
+          if (!sameMapId(gameState.currentMapId, fromMapId)) return;
           this.__pendingMapSwitchToken = null;
           commitMapSwitch.call(this, map, spawnX, spawnY);
         })
@@ -284,11 +296,11 @@ export function installWorldMapRuntime(MainGameScene) {
   };
 
   proto.getPortalCooldownKey = function getPortalCooldownKey(fromMapId, toMapId) {
-    return `portal_${Number(fromMapId)}_${Number(toMapId)}`;
+    return `portal_${String(fromMapId)}_${String(toMapId)}`;
   };
 
   proto.triggerPortalTeleport = function triggerPortalTeleportFromRegistry(portal) {
-    const targetMapId = Number(portal?.targetMapId);
+    const targetMapId = portal?.targetMapId;
     const access = canEnterMap(targetMapId, gameState);
     if (!access.ok) {
       if (access.reason === 'REALM') {
@@ -305,7 +317,7 @@ export function installWorldMapRuntime(MainGameScene) {
     }
 
     const now = Number(this.time?.now || 0);
-    const fromMapId = Number(gameState.currentMapId);
+    const fromMapId = gameState.currentMapId;
     const key = this.getPortalCooldownKey(fromMapId, targetMapId);
     if ((this[key] || 0) > now) return;
     this[key] = now + 3500;
