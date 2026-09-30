@@ -4,6 +4,7 @@ import { chooseFactionGoals } from '../simulation/factionGoals.js';
 import { nextLifecycleState } from '../simulation/factionLifecycle.js';
 import { evaluateFactionEvents, applyFactionEvent } from '../simulation/factionEvents.js';
 import { simulateOffline } from '../simulation/factionOfflineSimulation.js';
+import { executeFactionAction } from '../simulation/factionActionExecutor.js';
 import { createWar, calculateWarScore, resolveWarOutcome, applyWarResolution } from '../simulation/factionWar.js';
 import { createSiegeTarget, siegeDefenseScore, applySiegeAction } from '../simulation/factionSiege.js';
 import { resolvePowerVacuum } from '../simulation/factionPowerVacuum.js';
@@ -125,6 +126,10 @@ export class FactionRuntimeCoordinator {
     this.economyByFaction = new Map(asEntries(this.state.economyByFaction));
     this.resourcesByFaction = new Map(asEntries(this.state.resourcesByFaction));
     this.lifecycleByFaction = new Map(asEntries(this.state.lifecycleByFaction));
+    this.actionCooldowns = new Map(asEntries(this.state.actionCooldowns));
+    this.factionStatuses = new Map(asEntries(this.state.factionStatuses));
+    this.remnantsByFaction = new Map(asEntries(this.state.remnantsByFaction));
+    this.powerVacuumByTerritory = new Map(asEntries(this.state.powerVacuumByTerritory));
     this.activeWars = [...(this.state.activeWars || [])];
     this.activeEvents = [...(this.state.activeEvents || [])];
     this.cycle = Number(this.state.lastWorldTick || 0);
@@ -231,13 +236,15 @@ export class FactionRuntimeCoordinator {
   }
 
   runShortTick() {
-    const factions = this.getActiveFactions().slice(0, this.maxActiveFactions);
+    const factions = this.getActiveFactions().filter(f => this.factionStatuses.get(f.id) !== 'COLLAPSED').slice(0, this.maxActiveFactions);
     const actions = [];
     for (const faction of factions) {
       const economy = this._economyFor(faction);
       const goals = chooseFactionGoals({ dna: faction.dna || {}, economy, power: powerFromFaction(faction) });
       this.goalsByFaction.set(faction.id, goals);
-      actions.push(Object.freeze({ factionId: faction.id, ...decideFactionAction({ dna: faction.dna || {}, economy, power: powerFromFaction(faction) }) }));
+      const action = Object.freeze({ factionId: faction.id, ...decideFactionAction({ dna: faction.dna || {}, economy, power: powerFromFaction(faction) }) });
+      const execution = executeFactionAction({ action, faction, cycle: this.cycle, territoryId: this.currentTerritoryId, activeFactions: factions, network: this.network, worldState: this.state.world, economyByFaction: this.economyByFaction, resourcesByFaction: this.resourcesByFaction, diplomacy: this.diplomacy, history: this.history, lifecycleByFaction: this.factionStatuses, actionCooldowns: this.actionCooldowns });
+      actions.push(Object.freeze({ ...action, execution }));
     }
     const events = evaluateFactionEvents({ cycle: this.cycle, factions, economyByFaction: this.economyByFaction, lifecycleByFaction: this.lifecycleByFaction, territoryId: this.currentTerritoryId, maxEvents: 3 });
     for (const event of events) this.applyEvent(event);
@@ -343,6 +350,17 @@ export class FactionRuntimeCoordinator {
     const remnant = createFactionRemnants(faction, { cycle: this.cycle, lastTerritoryId: territoryId });
     const contenders = this.network.getRelevantFactionsForTerritory(territoryId, { limit: 6 }).map(f => f.id).filter(id => id !== factionId);
     const vacuum = resolvePowerVacuum({ territoryId, candidates: contenders });
+    this.factionStatuses.set(factionId, 'COLLAPSED');
+    this.lifecycleByFaction.set(factionId, 'COLLAPSED');
+    this.remnantsByFaction.set(factionId, remnant);
+    this.powerVacuumByTerritory.set(territoryId, vacuum);
+    this.state.world.setOverride('faction', factionId, 'status', 'COLLAPSED', { cycle: this.cycle });
+    this.state.world.setOverride('territory', territoryId, 'powerVacuum', true, { cycle: this.cycle });
+    this.state.world.addInfluenceDelta(territoryId, factionId, { political: -100, cultivation: -100, economic: -100, military: -100, intelligence: -100, territorial: -100 });
+    for (const contenderId of contenders.slice(0, 3)) this.state.world.addInfluenceDelta(territoryId, contenderId, { political: 6, territorial: 4 });
+    for (const branch of this.network.getFactionBranches?.(factionId) || []) this.state.world.setOverride('branch', branch.id, 'status', 'abandoned', { cycle: this.cycle });
+    for (const vassal of this.network.getFactionVassals?.(factionId) || []) this.state.world.setOverride('vassal', vassal.vassalId, 'status', 'independent', { cycle: this.cycle });
+    this.network.invalidateDynamicTerritory?.(territoryId);
     const result = Object.freeze({ remnant, vacuum, questHooks: remnantQuestHooks(remnant) });
     this.history.add({ type: 'collapse', factionId, territoryId, cycle: this.cycle });
     return result;
@@ -351,7 +369,7 @@ export class FactionRuntimeCoordinator {
   resolveSuccession(input) { return resolveSuccession(input); }
   splitFaction(parent, options) { const change = splitFaction(parent, { ...options, cycle: this.cycle }); this.history.add(change); return change; }
   mergeFactions(ids, newId, options) { const change = mergeFactions(ids, newId, { ...options, cycle: this.cycle }); this.history.add(change); return change; }
-  reviveFaction(id, options) { const change = reviveFaction(id, { ...options, cycle: this.cycle }); this.history.add(change); return change; }
+  reviveFaction(id, options) { const change = reviveFaction(id, { ...options, cycle: this.cycle }); this.factionStatuses.set(id, 'REVIVED'); this.lifecycleByFaction.set(id, 'STABLE'); this.state.world.setOverride('faction', id, 'status', 'REVIVED', { cycle: this.cycle }); this.history.add(change); return change; }
 
   setPlayerAffiliation(slot, factionId, membership = {}) {
     const faction = this.network.getFaction(factionId);
@@ -391,7 +409,7 @@ export class FactionRuntimeCoordinator {
     if (result.ok) this.state.intel = { ...this.state.intel, [faction.id]: result.newIntelLevel };
     return result;
   }
-  getFactionIntel(factionId) { const faction = this.network.getFaction(factionId); return factionIntelView(faction, this.state.intel[factionId] || 0, { history: this.history.forFaction(factionId) }); }
+  getFactionIntel(factionId) { const faction = this.network.getFaction(factionId); return factionIntelView(faction, this.state.intel[factionId] || 0, { history: this.history.forFaction(factionId), relations: this.diplomacy.toJSON().filter(r => r.a === factionId || r.b === factionId), assets: this.network.getFactionAssets?.(factionId) || [], branches: this.network.getFactionBranches?.(factionId) || [], status: this.factionStatuses.get(factionId) || 'STABLE' }); }
 
   createPlayerFaction(input) {
     this._ensureBoundState();
@@ -404,7 +422,17 @@ export class FactionRuntimeCoordinator {
   }
   getPlayerFactionStage(factionId, metrics = {}) { return playerFactionStage({ ...(this.network.getFaction(factionId)?.meta?.metrics || {}), ...metrics }); }
   evaluateRecruitment(input, offer) { const candidate = createRecruitCandidate(input); return Object.freeze({ candidate, score: recruitmentScore(candidate, offer) }); }
-  negotiatePlayerFaction(playerFactionId, targetFactionId, action = 'alliance', relationType = 'ALLIED') { const a = this.network.getFaction(playerFactionId), b = this.network.getFaction(targetFactionId); const check = canPlayerFactionNegotiate(a, b, action); return check.ok ? Object.freeze({ ...check, relation: proposePlayerFactionRelation(a, b, relationType) }) : check; }
+  negotiatePlayerFaction(playerFactionId, targetFactionId, action = 'alliance', relationType = 'ALLIED') { const a = this.network.getFaction(playerFactionId), b = this.network.getFaction(targetFactionId); const check = canPlayerFactionNegotiate(a, b, action); return check.ok ? Object.freeze({ ...check, proposalId: `proposal.${this.cycle}.${playerFactionId}.${targetFactionId}.${action}`, relation: proposePlayerFactionRelation(a, b, relationType), action }) : check; }
+  commitPlayerFactionDiplomacy(proposal, { accepted = true, reason = null } = {}) {
+    const relation = proposal?.relation;
+    if (!relation || !this.network.getFaction(relation.a) || !this.network.getFaction(relation.b)) return Object.freeze({ ok: false, reason: 'UNKNOWN_FACTION' });
+    if (!accepted) { const rejected = Object.freeze({ ok: false, rejected: true, reason: reason || 'REJECTED', cooldownUntil: this.cycle + 24 }); this.state.diplomacyProposals = [...(this.state.diplomacyProposals || []), { ...proposal, ...rejected }].slice(-50); return rejected; }
+    const committed = this.diplomacy.apply(relation, relation.a, relation.b, {}, this.cycle);
+    this.state.diplomacyProposals = [...(this.state.diplomacyProposals || []), { ...proposal, accepted: true, committedCycle: this.cycle }].slice(-50);
+    this.history.add({ type: 'player-diplomacy', proposalId: proposal.proposalId, participants: [relation.a, relation.b], relationType: relation.type, cycle: this.cycle });
+    this.syncToGameState();
+    return Object.freeze({ ok: true, relation: committed });
+  }
   declarePlayerWar(playerFactionId, targetFactionId, options) { const war = declarePlayerFactionWar(this.network.getFaction(playerFactionId), this.network.getFaction(targetFactionId), { cycle: this.cycle, ...options }); this.activeWars.push(war); return war; }
 
   getQuestHooks(factionId, event = null) { const faction = this.network.getFaction(factionId); return questHooksFromFaction({ faction, territoryId: this.currentTerritoryId, event, assets: this.network.getFactionAssets(factionId) }); }
@@ -439,6 +467,10 @@ export class FactionRuntimeCoordinator {
     this.state.economyByFaction = [...this.economyByFaction.entries()];
     this.state.resourcesByFaction = [...this.resourcesByFaction.entries()];
     this.state.lifecycleByFaction = [...this.lifecycleByFaction.entries()];
+    this.state.actionCooldowns = [...this.actionCooldowns.entries()];
+    this.state.factionStatuses = [...this.factionStatuses.entries()];
+    this.state.remnantsByFaction = [...this.remnantsByFaction.entries()];
+    this.state.powerVacuumByTerritory = [...this.powerVacuumByTerritory.entries()];
     this.state.activeWars = [...this.activeWars];
     this.state.activeEvents = [...this.activeEvents];
     this.state.scheduler = this.scheduler.toJSON();
