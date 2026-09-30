@@ -78,12 +78,10 @@ function waitForRequiredTextures(scene, batchKey, required, batchStore) {
 function queueCombatSharedAssets(scene) {
   const required = new Set();
 
-  // World/resource textures used by active combat maps.
   ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore']
     .forEach(m => queueImage(scene, `mat_${m}`, `${A}icons/materials/${m}.png`, required));
   for (let h = 1; h <= 7; h++) queueImage(scene, `herb_${h}`, `${A}icons/materials/herb_${h}.png`, required);
 
-  // Combat VFX is delayed until the first combat map. Map 0 never downloads it.
   const elemDirs = {
     hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water',
     phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical'
@@ -121,7 +119,6 @@ function queueCombatSharedAssets(scene) {
 
 function getZoneEnemyModels(scene, mapId, zoneNumber) {
   const unique = new Map();
-  // 0..11 covers modulo-10 flying variants and modulo-2/3 rank choices.
   for (let slot = 0; slot < 12; slot++) {
     const cfg = scene.getEnemySpawnConfig?.(mapId, zoneNumber, slot);
     if (!cfg) continue;
@@ -187,8 +184,6 @@ function queueZoneNpcModels(scene, mapId, zoneNumber, required) {
 
   if (isFlying) queueFlyingNpcModels(scene, flyingIds, required);
   else queueGroundNpcModels(scene, required);
-
-  // Party followers always use the two ground model families.
   if (gameState.party?.isFormed) queueGroundNpcModels(scene, required);
   return { isFlying, flyingIds };
 }
@@ -323,7 +318,6 @@ export function installMapZoneAssetStreaming(MainGameScene) {
   const originalCastSkill = proto.castSkill;
   const originalBasicAttack = proto.basicAttack;
   const originalSpawnVfx = proto.spawnVfx;
-  const originalUpdate = proto.update;
 
   proto.ensureCombatSharedAssets = function ensureCombatSharedAssets() {
     const map = getMapById(gameState.currentMapId);
@@ -397,9 +391,6 @@ export function installMapZoneAssetStreaming(MainGameScene) {
     const zone = Math.max(1, Math.min(zones.length, Number(zoneNumber) || 1));
     const activationKey = `${map.id}:${zone}`;
 
-    // Quan trọng với mobile: không tạo lại activation mỗi 220ms trong lúc asset
-    // của đúng map/zone đang được tải. Nếu không, token cũ bị thay liên tục và
-    // map có canonical string ID có thể không bao giờ hoàn tất kích hoạt.
     if (this.__zoneActivationPendingKey === activationKey && this.__zoneActivationPromise) {
       return this.__zoneActivationPromise;
     }
@@ -512,12 +503,4 @@ export function installMapZoneAssetStreaming(MainGameScene) {
     if (currentZone < zones.length && Number(def.x1) - x <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone + 1);
     if (currentZone > 1 && x - Number(def.x0) <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone - 1);
   };
-
-  if (typeof originalUpdate === 'function') {
-    proto.update = function updateWithZoneStreaming(...args) {
-      const result = originalUpdate.apply(this, args);
-      this.updateZoneStreaming(args[0], args[1]);
-      return result;
-    };
-  }
 }
