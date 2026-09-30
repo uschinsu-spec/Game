@@ -17,7 +17,7 @@ import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTa
 import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-unified-item-system';
 import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=20260929-unified-item-system';
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260929-lazy-panorama-v5';
-import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260930-minimap-unified-travel-v2';
+import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260930-world-city-sect-integrated-v4';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
 import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260929-zone-stream-v1';
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20260929-item-icon-stream-v1';
@@ -45,7 +45,6 @@ installElementalCombatProgression(MainGameScene);
 installMerchantTalismanFormationShop(MainGameScene);
 installElementalItemSystem(MainGameScene);
 
-// Exactly one active item runtime. Category registries are data stores, not separate item systems.
 assertSingleItemSystem(MainGameScene);
 
 // Exactly one active map runtime, one map UI, and one map-zone geometry provider.
@@ -53,9 +52,7 @@ installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
 
-// WorldMapHierarchyUI was upgraded in-place, not replaced by another map system.
-// Keep the canonical active-method identity expected by the single-map invariant
-// while preserving the same function object and unified implementation.
+// The unified implementation remains the same canonical map UI owner expected by the invariant.
 if (MainGameScene.prototype.openMapPanel?.name === 'openUnifiedWorldMap') {
   Object.defineProperty(MainGameScene.prototype.openMapPanel, 'name', {
     value: 'openHierarchicalWorldMap',
@@ -63,7 +60,6 @@ if (MainGameScene.prototype.openMapPanel?.name === 'openUnifiedWorldMap') {
   });
 }
 
-// V5 faction system: one social-power runtime layered on top of the single canonical map runtime.
 installFactionSystemIntegration(MainGameScene, {
   network: HUMAN_REALM_FACTION_NETWORK,
   worldAdapter: GAME_FACTION_WORLD_ADAPTER,
@@ -72,18 +68,9 @@ installFactionSystemIntegration(MainGameScene, {
 });
 assertFactionBootReady({ network: HUMAN_REALM_FACTION_NETWORK, worldAdapter: GAME_FACTION_WORLD_ADAPTER });
 
-// Stream enemy/NPC/VFX by the canonical active map/zone.
 installMapZoneAssetStreaming(MainGameScene);
-
-// Item icons are layered after the item + zone runtimes so this wrapper can
-// stream owned inventory icons and remove beast-loot icons from combat-shared.
 installItemIconStreaming(MainGameScene);
-
-// Fail fast if a future change reintroduces duplicate/conflicting map systems.
 assertSingleMapSystem(MainGameScene);
-
-// Boot gate remains last: current panorama + player + first-screen HUD only.
-// V3 does not enumerate/load GAME_ITEM_ICONS at boot or idle time.
 installBootAssetOptimizationV3(MainGameScene);
 
 export const config = {
@@ -99,7 +86,6 @@ export const config = {
   scene: [MainGameScene],
   input: { touch: { capture: true }, activePointers: 3 },
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  // Small concurrent batches are friendlier to mobile and GitHub Pages.
   loader: { maxParallelDownloads: 12 }
 };
 
