@@ -23,9 +23,9 @@ import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStream
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20260929-item-icon-stream-v1';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
 import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20260929-p0-boot-assets-v3';
-import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20260930-canonical-local-v1';
-import { HUMAN_REALM_FACTION_NETWORK, GAME_FACTION_WORLD_ADAPTER, GAME_FACTION_MAP_ADAPTER } from './config/factions/gameFactionRegistry.js?v=20260930-canonical-local-v1';
-import { assertFactionBootReady } from './config/factions/validation/factionInvariant.js?v=20260930-canonical-local-v1';
+import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20260930-canonical-local-v2';
+import { HUMAN_REALM_FACTION_NETWORK, GAME_FACTION_WORLD_ADAPTER, GAME_FACTION_MAP_ADAPTER } from './config/factions/gameFactionRegistry.js?v=20260930-canonical-local-v2';
+import { assertFactionBootReady } from './config/factions/validation/factionInvariant.js?v=20260930-canonical-local-v2';
 import { gameState } from './state/gameState.js';
 
 installUiModalManager(MainGameScene);
