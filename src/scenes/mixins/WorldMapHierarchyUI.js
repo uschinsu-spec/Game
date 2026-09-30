@@ -28,7 +28,7 @@ import {
   getWorldChildren,
   getWorldNode,
   getWorldNodeForMap
-} from '../../config/world/worldRegistry.js?v=20260930-minimap-unified-travel-v1';
+} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, hasVisitedMap, isNodeDiscovered } from '../../state/worldProgress.js';
 import { stopPointer } from './UiModalManager.js';
@@ -156,10 +156,8 @@ function buildTravelCatalog(mode) {
     });
   };
 
-  // Runtime catalog chính từ Master Map Manifest.
   for (const map of ALL_PLAYABLE_MAPS) put(map, null);
 
-  // Node atlas mới có thể được materialize lazy bằng chính worldRegistry.
   for (const node of getAllWorldNodes()) {
     const candidate = wantCity ? isCityNode(node) : isSectNode(node);
     if (!candidate) continue;
