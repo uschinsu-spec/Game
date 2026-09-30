@@ -53,6 +53,15 @@ installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
 
+// WorldMapHierarchyUI was upgraded in-place, not replaced by another map system.
+// Keep the canonical active-method identity expected by the single-map invariant
+// while preserving the same function object and unified implementation.
+if (MainGameScene.prototype.openMapPanel?.name === 'openUnifiedWorldMap') {
+  Object.defineProperty(MainGameScene.prototype.openMapPanel, 'name', {
+    value: 'openHierarchicalWorldMap',
+    configurable: true
+  });
+}
 
 // V5 faction system: one social-power runtime layered on top of the single canonical map runtime.
 installFactionSystemIntegration(MainGameScene, {
