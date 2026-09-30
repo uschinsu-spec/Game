@@ -2,7 +2,7 @@ import { SUPREME_FACTIONS } from './core/supremeFactions.js';
 import { PLAYER_SECT_FACTIONS } from './core/playerSects.js';
 import { ALL_CONTINENT_POWERS } from './core/continentPowers.js';
 import { SUPREME_RELATIONS } from './core/supremeRelations.js';
-import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js?v=20260930-canonical-local-v1';
+import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js?v=20260930-canonical-local-v2';
 import { getJurisdictionBudget } from './hierarchy/jurisdictionBudgets.js';
 import { buildInheritedPresences } from './hierarchy/factionPresence.js';
 import { buildSiteFactionContext } from './hierarchy/siteControl.js';
