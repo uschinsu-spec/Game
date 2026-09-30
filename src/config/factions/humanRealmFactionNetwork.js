@@ -2,7 +2,7 @@ import { SUPREME_FACTIONS } from './core/supremeFactions.js';
 import { PLAYER_SECT_FACTIONS } from './core/playerSects.js';
 import { ALL_CONTINENT_POWERS } from './core/continentPowers.js';
 import { SUPREME_RELATIONS } from './core/supremeRelations.js';
-import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js';
+import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js?v=20260930-canonical-local-v1';
 import { getJurisdictionBudget } from './hierarchy/jurisdictionBudgets.js';
 import { buildInheritedPresences } from './hierarchy/factionPresence.js';
 import { buildSiteFactionContext } from './hierarchy/siteControl.js';
@@ -10,7 +10,7 @@ import { buildTerritoryInfluenceBaseline, factionRelevanceScore } from './networ
 import { combineInfluence } from './network/factionInfluence.js';
 import { resolveTerritoryControllers } from './network/territoryControllers.js';
 import { relationFor, createRelation } from './network/factionDiplomacy.js';
-import { indexBranches } from './network/factionBranches.js';
+import { indexBranches } from './network/factionBranches.js?v=20260930-canonical-local-v1';
 import { planVassalsForTerritory } from './network/factionVassalPlanner.js';
 import { BoundedFactionCache } from './runtime/factionCache.js';
 import { RELATION_TYPES } from './core/factionConstants.js';
