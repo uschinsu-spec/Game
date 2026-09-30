@@ -2,10 +2,10 @@ import { FactionRuntime } from '../../config/factions/runtime/factionRuntime.js'
 import { createFactionRuntimeCoordinator } from '../../config/factions/runtime/FactionRuntimeCoordinator.js';
 import { assertFactionBootAssetPolicy } from '../../config/factions/runtime/factionBootGuard.js';
 import { attachFactionContextToScene } from '../../config/factions/game/mapRuntimeBridge.js';
-import { installFactionUI } from './FactionUI.js';
+import { installFactionUI } from './FactionUI.js?v=20260930-canonical-local-v1';
 import { installFactionSearchUI } from './FactionSearchUI.js';
 import { installPlayerFactionUI } from './PlayerFactionUI.js';
-import { installWorldMapFactionOverlay } from './WorldMapFactionOverlay.js';
+import { installWorldMapFactionOverlay } from './WorldMapFactionOverlay.js?v=20260930-canonical-local-v1';
 
 export function installFactionSystemIntegration(MainGameScene, { network, worldAdapter, mapAdapter, gameState } = {}) {
   if (!MainGameScene?.prototype || !network || !worldAdapter || !gameState) return null;

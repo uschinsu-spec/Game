@@ -4,9 +4,9 @@
  * ONE CANONICAL VISUAL WORLD MAP / MINIMAP TRAVEL UI
  * =========================================================================
  * - Chỉ có MỘT bản đồ tổng hợp; không còn tab THẾ GIỚI / THÀNH TRÌ / TÔNG MÔN.
- * - Thành thị, tông môn, khu vực và điểm chưa mở cùng nằm trên một mặt bản đồ.
- * - Tông môn từ Faction V5 hiển thị như marker tím trên đúng lãnh thổ.
- * - Node tông môn có runtime map thì di chuyển bằng canonical switchMap().
+ * - Thành thị, tông môn, gia tộc, phân tông/chi tộc, khu vực và điểm chưa mở cùng nằm trên một mặt bản đồ.
+ * - Faction V5 hiển thị marker cố định trên đúng lãnh thổ/node canonical.
+ * - Node có runtime map thì di chuyển bằng canonical switchMap().
  * - Faction marker chưa có runtime map chỉ mở thông tin thế lực, tuyệt đối không tạo map giả.
  * - Mọi di chuyển vẫn dùng worldRegistry + canEnterMap() + switchMap().
  */
@@ -29,7 +29,7 @@ const FONT = 'Be Vietnam Pro, sans-serif';
 const MAP_UI_OWNER = 'WorldMapHierarchyUI';
 const LEGACY_TO_ROOT = new Set(['nam_lang', 'van_tinh_hai', 'than_chau', 'man_hoang', 'thai_hu']);
 const MAX_WORLD_MARKERS = 13;
-const MAX_FACTION_MARKERS = 4;
+const MAX_FACTION_MARKERS = 8;
 const FILTERS = Object.freeze(['all', 'world', 'city', 'sect']);
 const DIRECT_MAP_NODE_TYPES = new Set([
   'province', 'location', 'city_territory', 'settlement', 'sect', 'peak', 'hall'
@@ -48,6 +48,7 @@ const COLOR = Object.freeze({
   green: 0x38ffaa,
   gold: 0xffcc55,
   purple: 0xb56dff,
+  orange: 0xffa94d,
   red: 0xff6677,
   muted: 0x466879,
   locked: 0x64727a
@@ -73,6 +74,10 @@ function isCityMap(map) {
 
 function isSectMap(map) {
   return map?.uiMode === 'sect_hub' || map?.type === 'safe_sect';
+}
+
+function isFamilyArchetype(archetype) {
+  return archetype === 'CULTIVATION_FAMILY' || archetype === 'ANCIENT_CLAN';
 }
 
 function typeText(node) {
@@ -241,17 +246,39 @@ function collectDescendantDestinations(root, maxDepth = 3, max = 16) {
 
 function buildFactionMarkers(scene, activeNode) {
   const overlay = scene.getFactionOverlayForWorldNode?.(activeNode.id);
+  const canonical = overlay?.mapMarkers || [];
+  if (canonical.length) {
+    return canonical
+      .filter(marker => marker?.faction && (marker.faction.archetype === 'SECT' || isFamilyArchetype(marker.faction.archetype)))
+      .slice(0, MAX_FACTION_MARKERS)
+      .map(marker => {
+        const family = isFamilyArchetype(marker.faction.archetype);
+        const branch = Boolean(marker.branch || marker.markerType === 'FACTION_BRANCH');
+        return {
+          id: `faction:${marker.id}`,
+          kind: 'faction',
+          faction: marker.faction,
+          branch: marker.branch || null,
+          markerType: marker.markerType,
+          worldNodeId: marker.worldNodeId,
+          label: marker.label || marker.faction.name,
+          sub: marker.subLabel || (branch ? 'CHI NHÁNH' : family ? 'GIA TỘC' : 'TÔNG MÔN'),
+          accent: family ? COLOR.orange : branch ? 0xd79cff : COLOR.purple
+        };
+      });
+  }
   if (!overlay?.topFactions?.length) return [];
   return overlay.topFactions
-    .filter(faction => faction?.archetype === 'SECT')
+    .filter(faction => faction?.archetype === 'SECT' || isFamilyArchetype(faction?.archetype))
     .slice(0, MAX_FACTION_MARKERS)
     .map(faction => ({
       id: `faction:${faction.id}`,
       kind: 'faction',
       faction,
+      branch: null,
       label: faction.name,
-      sub: 'TÔNG MÔN',
-      accent: COLOR.purple
+      sub: isFamilyArchetype(faction.archetype) ? 'GIA TỘC' : 'TÔNG MÔN',
+      accent: isFamilyArchetype(faction.archetype) ? COLOR.orange : COLOR.purple
     }));
 }
 
@@ -305,7 +332,7 @@ function markerSlot(marker, index, total, faction = false) {
     [8, 132]
   ];
   if (faction) {
-    const fslots = [[-130, -88], [126, -105], [132, 58], [-112, 110]];
+    const fslots = [[-146, -102], [-48, -118], [62, -108], [145, -72], [150, 52], [65, 104], [-46, 108], [-142, 66]];
     return fslots[index % fslots.length];
   }
   const base = slots[index % slots.length];
@@ -376,6 +403,8 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
   const locked = marker.map ? !canEnterMap(marker.map.id, gameState).ok : false;
   const accent = locked ? COLOR.locked : current ? COLOR.gold : marker.accent;
   const radius = selected ? 15 : (current ? 13 : 11);
+  const familyFaction = marker.kind === 'faction' && isFamilyArchetype(marker.faction?.archetype);
+  const branchFaction = marker.kind === 'faction' && Boolean(marker.branch);
 
   const glow = scene.add.circle(x, y, radius + 8, accent, selected || current ? 0.16 : 0.06);
   const dot = scene.add.circle(x, y, radius, COLOR.panel2, 0.98).setStrokeStyle(selected ? 3.2 : 2.1, accent, 1);
@@ -383,9 +412,10 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
   const hit = scene.add.circle(x, y, 24, 0x000000, 0.001).setInteractive({ useHandCursor: true });
 
   const symbol = marker.kind === 'city' ? '▣'
-    : (marker.kind === 'sect' || marker.kind === 'faction') ? '✦'
-      : marker.kind === 'region' ? '◇'
-        : current ? '●' : '○';
+    : marker.kind === 'faction' ? (branchFaction ? '✧' : familyFaction ? '◆' : '✦')
+      : marker.kind === 'sect' ? '✦'
+        : marker.kind === 'region' ? '◇'
+          : current ? '●' : '○';
   const sym = scene.add.text(x, y - 1, locked ? '×' : symbol, {
     fontFamily: FONT, fontSize: selected ? '14px' : '12px', fontStyle: 'bold', color: '#ffffff'
   }).setOrigin(0.5);
@@ -396,14 +426,14 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
     fontFamily: FONT,
     fontSize: selected ? '9.5px' : '8.5px',
     fontStyle: 'bold',
-    color: locked ? '#81919a' : current ? '#ffd968' : (marker.kind === 'faction' || marker.kind === 'sect') ? '#deb8ff' : '#e9f9ff',
+    color: locked ? '#81919a' : current ? '#ffd968' : marker.kind === 'faction' ? (familyFaction ? '#ffd1a3' : '#deb8ff') : marker.kind === 'sect' ? '#deb8ff' : '#e9f9ff',
     align: labelRight ? 'left' : 'right',
     wordWrap: { width: 118, useAdvancedWrap: true }
   }).setOrigin(labelRight ? 0 : 1, 0.5);
   const sub = scene.add.text(labelX, y + 9, locked ? 'CHƯA MỞ' : marker.sub, {
     fontFamily: FONT,
     fontSize: '6.8px',
-    color: locked ? '#6e7f88' : (marker.kind === 'faction' || marker.kind === 'sect') ? '#a97be1' : '#739cac',
+    color: locked ? '#6e7f88' : marker.kind === 'faction' ? (familyFaction ? '#d99858' : '#a97be1') : marker.kind === 'sect' ? '#a97be1' : '#739cac',
     align: labelRight ? 'left' : 'right'
   }).setOrigin(labelRight ? 0 : 1, 0.5);
 
@@ -418,7 +448,7 @@ function renderMapHeader(scene, panel, node) {
   panel.add(scene.add.text(-238, -330, 'BẢN ĐỒ TỔNG HỢP', {
     fontFamily: FONT, fontSize: '11px', fontStyle: 'bold', color: '#66e8ff'
   }).setOrigin(0, 0.5));
-  panel.add(scene.add.text(-108, -330, 'Thành thị • Tông môn • khu vực dùng chung một bản đồ', {
+  panel.add(scene.add.text(-108, -330, 'Thành thị • Tông môn • Gia tộc • khu vực trên cùng bản đồ', {
     fontFamily: FONT, fontSize: '8.5px', color: '#86a8b7'
   }).setOrigin(0, 0.5));
 
@@ -446,15 +476,15 @@ function renderMapHeader(scene, panel, node) {
 
 function renderMapLegend(scene, panel) {
   const entries = [
-    ['●', '#ffcf55', 'Vị trí'], ['▣', '#ffd46c', 'Thành thị'], ['✦', '#c08bff', 'Tông môn'],
-    ['○', '#54d9f0', 'Khu vực'], ['×', '#7c8b93', 'Chưa mở']
+    ['●', '#ffcf55', 'Vị trí'], ['▣', '#ffd46c', 'Thành'], ['✦', '#c08bff', 'Tông'],
+    ['◆', '#ffb36b', 'Gia tộc'], ['✧', '#d79cff', 'Chi nhánh'], ['○', '#54d9f0', 'Khu vực']
   ];
-  let x = -213;
-  entries.forEach(([icon, color, label], index) => {
+  let x = -224;
+  entries.forEach(([icon, color, label]) => {
     panel.add(scene.add.text(x, 144, `${icon} ${label}`, {
-      fontFamily: FONT, fontSize: '7px', color
+      fontFamily: FONT, fontSize: '6.6px', color
     }).setOrigin(0, 0.5));
-    x += index === 1 ? 84 : 78;
+    x += 73;
   });
 }
 
@@ -467,7 +497,7 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
     panel.add(scene.add.text(0, 240, 'Chạm vào một điểm trên bản đồ', {
       fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#e8f8ff'
     }).setOrigin(0.5));
-    panel.add(scene.add.text(0, 270, 'Chọn thành thị, tông môn hoặc khu vực để xem chi tiết và di chuyển.', {
+    panel.add(scene.add.text(0, 270, 'Chọn thành thị, tông môn, gia tộc hoặc khu vực để xem chi tiết và di chuyển.', {
       fontFamily: FONT, fontSize: '9.5px', color: '#87a9b7', align: 'center',
       wordWrap: { width: 390, useAdvancedWrap: true }
     }).setOrigin(0.5));
@@ -476,22 +506,32 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
 
   if (selectedMarker.kind === 'faction') {
     const faction = selectedMarker.faction;
-    panel.add(scene.add.text(-214, top + 22, 'TÔNG MÔN TRÊN LÃNH THỔ', {
-      fontFamily: FONT, fontSize: '8px', fontStyle: 'bold', color: '#c996ff'
+    const family = isFamilyArchetype(faction?.archetype);
+    const branch = selectedMarker.branch;
+    const header = branch ? (selectedMarker.sub || 'CHI NHÁNH THẾ LỰC') : family ? 'GIA TỘC TRÊN LÃNH THỔ' : 'TÔNG MÔN TRÊN LÃNH THỔ';
+    panel.add(scene.add.text(-214, top + 22, header, {
+      fontFamily: FONT, fontSize: '8px', fontStyle: 'bold', color: family ? '#ffb36b' : '#c996ff'
     }).setOrigin(0, 0.5));
-    panel.add(scene.add.text(-214, top + 52, faction.name, {
-      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
+    panel.add(scene.add.text(-214, top + 52, selectedMarker.label || faction.name, {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#ffffff',
       wordWrap: { width: 420, useAdvancedWrap: true }
     }).setOrigin(0, 0.5));
-    panel.add(scene.add.text(-214, top + 84, `${faction.powerTier || 'THẾ LỰC'} • ${faction.archetype || 'SECT'} • ${activeNode.name}`, {
-      fontFamily: FONT, fontSize: '8.5px', color: '#9eb9c5'
-    }).setOrigin(0, 0.5));
-    panel.add(scene.add.text(-214, top + 108, 'Marker này lấy trực tiếp từ Faction V5. Chưa có runtime map riêng nên không tạo điểm dịch chuyển giả.', {
-      fontFamily: FONT, fontSize: '8.5px', color: '#83a8b9',
+    const line = branch
+      ? `${faction.name} • ${branch.markerLabel || branch.branchType} • ${activeNode.name}`
+      : `${faction.meta?.rankLabel || faction.powerTier || 'THẾ LỰC'} • ${family ? 'GIA TỘC' : 'TÔNG MÔN'} • ${activeNode.name}`;
+    panel.add(scene.add.text(-214, top + 84, line, {
+      fontFamily: FONT, fontSize: '8.5px', color: '#9eb9c5',
       wordWrap: { width: 420, useAdvancedWrap: true }
     }).setOrigin(0, 0.5));
-    addButton(scene, panel, 0, top + 168, 420, 42, 'XEM THÔNG TIN TÔNG MÔN', () => selectFaction(faction.id), true, {
-      fill: 0x28133b, stroke: COLOR.purple, color: '#e8d1ff', fontSize: '11px'
+    const desc = branch
+      ? `Chi nhánh cố định của ${faction.name}, neo tại node ${branch.mapNodeId || branch.territoryId}. Không sinh ngẫu nhiên khi vào vùng.`
+      : faction.meta?.description || 'Thế lực canonical cố định trong Faction V5 và hiển thị trực tiếp trên bản đồ.';
+    panel.add(scene.add.text(-214, top + 112, desc, {
+      fontFamily: FONT, fontSize: '8.2px', color: '#83a8b9',
+      wordWrap: { width: 420, useAdvancedWrap: true }
+    }).setOrigin(0, 0.5));
+    addButton(scene, panel, 0, top + 168, 420, 42, 'XEM THÔNG TIN THẾ LỰC', () => selectFaction(faction.id), true, {
+      fill: family ? 0x34200d : 0x28133b, stroke: family ? COLOR.orange : COLOR.purple, color: family ? '#ffe0bd' : '#e8d1ff', fontSize: '11px'
     });
     return;
   }
@@ -553,7 +593,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
 
   let selectedMarker = null;
   if (state.selectedFactionId) {
-    selectedMarker = allMarkers.find(marker => marker.kind === 'faction' && marker.faction?.id === state.selectedFactionId) || null;
+    selectedMarker = allMarkers.find(marker => marker.kind === 'faction' && (marker.id === state.selectedFactionId || marker.faction?.id === state.selectedFactionId)) || null;
   }
   if (!selectedMarker && selectedMapId != null) {
     selectedMarker = allMarkers.find(marker => marker.map && sameMapId(marker.map.id, selectedMapId)) || null;
@@ -586,7 +626,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
       selectedMarker?.id === marker.id,
       picked => {
         if (picked.kind === 'faction') {
-          state.selectedFactionId = picked.faction.id;
+          state.selectedFactionId = picked.id;
           scene.openMapPanel(activeNode.id, null, page);
           return;
         }
@@ -609,7 +649,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
     }, true, { fontSize: '9px', fill: 0x071b25, stroke: COLOR.blue });
   }
 
-  const filterLabel = filter === 'all' ? 'TẤT CẢ' : filter === 'world' ? 'KHU VỰC' : filter === 'city' ? 'THÀNH THỊ' : 'TÔNG MÔN';
+  const filterLabel = filter === 'all' ? 'TẤT CẢ' : filter === 'world' ? 'KHU VỰC' : filter === 'city' ? 'THÀNH THỊ' : 'THẾ LỰC';
   addButton(scene, panel, 159, 118, 126, 34, `BỘ LỌC: ${filterLabel}`, () => {
     const idx = FILTERS.indexOf(filter);
     state.filter = FILTERS[(idx + 1) % FILTERS.length];
