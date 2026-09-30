@@ -156,10 +156,15 @@ function buildTravelCatalog(mode) {
     });
   };
 
+  // Runtime maps 0..2 vẫn đi qua đúng catalog hiện tại.
   for (const map of ALL_PLAYABLE_MAPS) put(map, null);
 
+  // 437 lãnh thổ mới được materialize từ các world node cấp province qua
+  // findMapById(). Không lọc province theo tên/type trước khi resolve, vì
+  // SAFE_CITY / SAFE_SECT được quyết định ở Master Map Manifest theo map.
+  // Sau khi resolve, put() mới dùng uiMode/type canonical để phân loại.
   for (const node of getAllWorldNodes()) {
-    const candidate = wantCity ? isCityNode(node) : isSectNode(node);
+    const candidate = node?.type === 'province' || isCityNode(node) || isSectNode(node);
     if (!candidate) continue;
     put(resolveNodeMap(node), node);
   }
