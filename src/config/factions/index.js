@@ -50,6 +50,7 @@ export * from './simulation/factionLifecycle.js';
 export * from './simulation/factionEvents.js';
 export * from './simulation/factionWar.js';
 export * from './simulation/factionAI.js';
+export * from './simulation/factionActionExecutor.js';
 export * from './simulation/factionWorldTick.js';
 export * from './simulation/factionOfflineSimulation.js';
 export * from './simulation/factionEvolution.js';
