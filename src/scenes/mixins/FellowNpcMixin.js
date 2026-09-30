@@ -982,11 +982,6 @@ export const FellowNpcMixin = {
           });
         }
         this.spawnVfx(curTarget.x, curTarget.y - 15, 0, (0.5 + hit * 0.12) * vfxMul, { tint: 0xf43f5e, duration: 180 });
-
-        if (isLastHit && comboCount >= 4 && this.cameras?.main) {
-          const distToP = Phaser.Math.Distance.Between(curTarget.x, curTarget.y, this.player?.x || 0, this.player?.y || 0);
-          if (distToP <= 450) this.cameras.main.shake(180, 0.008);
-        }
       });
     }
   },
@@ -1242,24 +1237,23 @@ export const FellowNpcMixin = {
       ease: 'Quad.easeIn',
       onComplete: () => {
         giant.destroy();
-        const distToPlayer = Phaser.Math.Distance.Between(tx, ty, this.player?.x || 0, this.player?.y || 0);
-        if (distToPlayer <= 550 && this.cameras?.main) {
-          this.cameras.main.shake(260, 0.012);
-        }
 
         const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
         if (this.textures.exists(shockKey)) {
           const shock = this.add.image(tx, ty, shockKey)
             .setDepth(Math.floor(ty) + 40)
             .setBlendMode(Phaser.BlendModes.ADD)
-            .setScale(0.5);
+            .setTint(npc.tint || 0x38bdf8)
+            .setScale(0.5)
+            .setAlpha(0.55);
           this.tweens.add({
             targets: shock,
-            scaleX: 2.4 * vfxMul,
-            scaleY: 2.4 * vfxMul,
+            scaleX: 2.0 * vfxMul,
+            scaleY: 2.0 * vfxMul,
             alpha: 0,
             duration: 400,
-            onComplete: () => shock.destroy()
+            ease: 'Cubic.easeOut',
+            onComplete: () => { if (shock.active) shock.destroy(); }
           });
         }
 

@@ -1,16 +1,43 @@
 /**
  * humanRealmWorld.js
- * Canonical high-level hierarchy for NHÂN GIỚI.
- *
- * IMPORTANT:
- * - Nam Lăng keeps its existing `nl.*` IDs and remains 9 Đại Vực / 108 Châu.
- * - The other four continents intentionally use different territorial systems.
- * - These nodes are WORLD DATA only. Runtime maps remain controlled only by playableMaps.js.
+ * =========================================================================
+ * TOÀN CÕI NHÂN GIỚI (5 ĐẠI LỤC - 42 VÙNG CẤP CAO - 437 CHÂU/ĐẠO/LĨNH/PHỦ)
+ * =========================================================================
+ * 
+ * Single authoritative geographic hierarchy for the entire Human Realm.
+ * Unified architecture: all 5 continents are declared directly here.
+ * No external single-continent dependencies.
  */
-import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID } from './namLangWorld.js?v=20260929-single-map-system-v2';
+
+import { EXPANDED_HUMAN_REALM_REGIONS, EXPANDED_HUMAN_REALM_ATLAS } from './humanRealmExpandedAtlas.js';
 
 export const HUMAN_REALM_ROOT_ID = 'hr';
-export const HUMAN_REALM_VERSION = '20260929-human-realm-mortal-east-v3';
+export const NAM_LANG_ROOT_ID = 'nl';
+export const HUMAN_REALM_VERSION = '20260929-human-realm-unified-v5-expanded-5qg';
+
+export const STARTER_WORLD_IDS = Object.freeze({
+  greatRegion: 'nl.gr.thanh_linh',
+  province: 'nl.prov.thanh_linh.thanh_chau',
+  nation: 'nl.nation.thanh_chau.dai_ly',
+  commandery: 'nl.commandery.dai_ly.nam_son',
+  city: 'nl.city.nam_son.thanh_ha',
+  thanhHaHub: 'nl.loc.thanh_ha.thanh_ha_thanh',
+  map0: 'nl.loc.thanh_ha.thanh_van_thon',
+  map1: 'nl.loc.thanh_ha.thanh_van_ngoai_vi',
+  map2: 'nl.loc.thanh_ha.van_moc_sam_lam'
+});
+
+export const WORLD_NODE_TYPES = Object.freeze({
+  REALM: 'realm',
+  CONTINENT: 'continent',
+  GREAT_REGION: 'great_region',
+  PROVINCE: 'province',
+  NATION: 'nation',
+  COMMANDERY: 'commandery',
+  CITY_TERRITORY: 'city_territory',
+  SETTLEMENT: 'settlement',   // Thôn trung gian (có 2 con: hub an toàn + hoang dã ngoại vi)
+  LOCATION: 'location'
+});
 
 const CONTINENT_STRUCTURES = Object.freeze({
   south: Object.freeze({ primaryLabel: 'Đại Vực', primaryCount: 9, secondaryLabel: 'Châu', secondaryPerPrimary: 12, secondaryCount: 108 }),
@@ -31,7 +58,7 @@ export const HUMAN_REALM_SCALE = Object.freeze({
   commanderyRangePerNation: Object.freeze([60, 220]),
   cityRangePerCommandery: Object.freeze([50, 200]),
   settlementRangePerCity: Object.freeze([60, 260]),
-  materializationRule: 'ONLY_IMPORTANT_OR_VISITED'
+  materializationRule: 'ALL_TERRITORIES_PLAYABLE'
 });
 
 const UNIT_PREFIXES = Object.freeze([
@@ -85,97 +112,33 @@ function namedList(base, suffixes, count, seed) {
   return Object.freeze(Array.from({ length: count }, (_, index) => `${base} ${pick(suffixes, seed + index)}`));
 }
 
-function makeFactionProfile(continent, region, territoryName, regionIndex, territoryIndex) {
-  const base = stripUnitSuffix(territoryName, continent.secondaryLabel);
-  const power = realmBand(continent, regionIndex, territoryIndex);
-  const tiers = ['bá chủ', 'đại tông', 'đại tông', 'trung tông', 'địa phương'];
-
-  const branch = Object.freeze({
-    id: `hr_branch_${continent.id}_${region.id}_${slugifyVi(territoryName)}`,
-    name: `${region.apexSect} · ${territoryName} Phân Tông`,
-    parentSectName: region.apexSect,
-    kind: 'Đại Tông Phân Chi',
-    tier: 'xuyên vùng',
-    alignment: continent.alignment,
-    headquarters: `${base} Phân Tông Sơn Môn`,
-    specialties: Object.freeze([...region.elements]),
-    controlledResources: Object.freeze([
-      pick(continent.products, territoryIndex),
-      pick(continent.minerals, territoryIndex + 1)
-    ]),
-    power: Object.freeze({
-      discipleRealmRange: Object.freeze([Math.max(0, power.minRealmIdx - 3), Math.max(1, power.minRealmIdx + 2)]),
-      elderRealmRange: Object.freeze([Math.max(2, power.maxRealmIdx - 3), power.maxRealmIdx]),
-      leaderRealmIdx: power.maxRealmIdx,
-      ancestorRealmIdx: power.bossRealmIdx
-    }),
-    status: 'world_data'
-  });
-
-  const locals = tiers.map((tier, slot) => {
-    const kind = pick(continent.factionKinds, territoryIndex + slot);
-    const suffix = pick(continent.factionSuffixes, regionIndex + territoryIndex + slot);
-    return Object.freeze({
-      id: `hr_faction_${continent.id}_${region.id}_${slugifyVi(territoryName)}_${slot + 1}`,
-      name: `${base} ${suffix}`,
-      kind,
-      tier,
-      alignment: continent.alignment,
-      headquarters: `${base} ${kind.includes('Tộc') || kind.includes('Gia') ? 'Tổ Địa' : 'Sơn Môn'}`,
-      doctrine: `${region.focus}; chủ tu ${pick(region.elements, slot)}${region.elements.length > 1 ? ` và ${pick(region.elements, slot + 1)}` : ''}.`,
-      specialties: Object.freeze([...new Set([pick(region.elements, slot), pick(region.elements, slot + 1)])]),
-      controlledResources: Object.freeze([...new Set([
-        pick(continent.products, slot + territoryIndex),
-        pick(continent.minerals, slot + territoryIndex + 1)
-      ])]),
-      power: Object.freeze({
-        discipleRealmRange: Object.freeze([Math.max(0, power.minRealmIdx - 4), Math.max(1, power.minRealmIdx + 1)]),
-        elderRealmRange: Object.freeze([Math.max(2, power.maxRealmIdx - 4), Math.max(3, power.maxRealmIdx - 1)]),
-        leaderRealmIdx: Math.min(28, tier === 'bá chủ' ? power.maxRealmIdx + 1 : power.maxRealmIdx),
-        ancestorRealmIdx: Math.min(28, tier === 'bá chủ' ? power.bossRealmIdx + 1 : power.bossRealmIdx)
-      }),
-      status: 'world_data'
-    });
-  });
-
-  const factions = Object.freeze([branch, ...locals]);
-  return Object.freeze({
-    atlasVersion: HUMAN_REALM_VERSION,
-    territoryName,
-    dominantFactionId: locals[0].id,
-    factions,
-    summary: `${territoryName} có 1 phân tông của ${region.apexSect}, 1 thế lực bá chủ, 2 đại tông, 1 trung tông và 1 thế lực địa phương chủ lực.`,
-    generationCounts: Object.freeze({
-      namedCoreFactions: factions.length,
-      majorAndMediumFactions: 18 + ((regionIndex * 7 + territoryIndex * 5) % 37),
-      minorSects: 50 + ((regionIndex * 13 + territoryIndex * 11) % 121),
-      cultivationFamilies: 45 + ((regionIndex * 17 + territoryIndex * 9) % 151)
-    })
-  });
-}
 
 function makeTerritoryNode(continent, region, regionNodeId, regionIndex, territoryIndex) {
-  const territoryName = `${UNIT_PREFIXES[territoryIndex]} ${region.territoryRoot} ${continent.secondaryLabel}`;
+  const seed = regionIndex * 37 + territoryIndex * 19;
+  const prefix = pick(UNIT_PREFIXES, seed);
+  const territoryName = region.namedTerritories?.[territoryIndex] || `${prefix} ${region.shortTheme} ${continent.secondaryLabel}`;
   const base = stripUnitSuffix(territoryName, continent.secondaryLabel);
-  const seed = regionIndex * continent.secondaryPerPrimary + territoryIndex;
+  const isSouth = continent.id === 'south';
+  const rawSlug = slugifyVi(territoryName);
+  const territoryNodeId = isSouth
+    ? `nl.prov.${region.id}.${rawSlug}`
+    : `${regionNodeId}.unit.${rawSlug}`;
   const enemyProfile = realmBand(continent, regionIndex, territoryIndex);
-  const factionProfile = makeFactionProfile(continent, region, territoryName, regionIndex, territoryIndex);
 
   return Object.freeze({
-    id: `${regionNodeId}.unit.${slugifyVi(territoryName)}`,
+    id: territoryNodeId,
     type: 'province',
-    displayTypeLabel: continent.secondaryLabel.toUpperCase(),
     name: territoryName,
     parentId: regionNodeId,
     continentId: continent.id,
     regionId: region.id,
-    provinceIndex: territoryIndex + 1,
-    territoryIndex: territoryIndex + 1,
-    theme: region.theme,
-    desc: `${territoryName} thuộc ${region.name}, ${continent.name}; ${region.desc}`,
-    climate: `${continent.climate}; ${region.focus}`,
-    capital: `${base} ${pick(CITY_SUFFIXES, seed)}`,
-    notableCities: namedList(base, CITY_SUFFIXES, 3, seed + 1),
+    regionName: region.name,
+    displayTypeLabel: continent.secondaryLabel.toUpperCase(),
+    theme: `${region.theme}_${territoryIndex + 1}`,
+    desc: `${territoryName} thuộc ${region.name}, ${continent.name}; ${region.focus}; là một ${continent.secondaryLabel} trọng yếu của đại lục.`,
+    climate: continent.climate,
+    capital: `${base} Đại Thành`,
+    notableCities: namedList(base, CITY_SUFFIXES, 4, seed + 1),
     notableTowns: namedList(base, TOWN_SUFFIXES, 5, seed + 2),
     notableVillages: namedList(base, VILLAGE_SUFFIXES, 5, seed + 3),
     secretRealms: namedList(base, SECRET_SUFFIXES, 3, seed + 4),
@@ -189,11 +152,9 @@ function makeTerritoryNode(continent, region, regionNodeId, regionIndex, territo
       fieldBoss: `${base} ${pick(continent.enemies, seed + 4)} Vương`,
       dominantElements: Object.freeze([...region.elements])
     }),
-    cultivationFactions: Object.freeze(factionProfile.factions.map(faction => faction.name)),
-    factionProfile,
     generationProfile: Object.freeze({
       nations: HUMAN_REALM_SCALE.nationRangePerProvince,
-      materializedByDefault: false
+      materializedByDefault: true
     }),
     provinceGenerationCounts: Object.freeze({
       cities: 90 + ((seed * 13) % 141),
@@ -201,14 +162,43 @@ function makeTerritoryNode(continent, region, regionNodeId, regionIndex, territo
       villages: 2500 + ((seed * 211) % 6501),
       secretRealms: 15 + ((seed * 7) % 56),
       forbiddenZones: 6 + ((seed * 3) % 21),
-      sectsAndFamilies: 110 + ((seed * 17) % 211)
     }),
-    materialized: false,
-    status: 'world_data'
+    materialized: true,
+    status: 'playable'
   });
 }
 
-const NEW_CONTINENT_SPECS = Object.freeze([
+const ALL_CONTINENT_SPECS = Object.freeze([
+  freezeNested({
+    id: 'south', name: 'Nam Lăng Đại Lục', position: 'Nam',
+    primaryLabel: 'Đại Vực', secondaryLabel: 'Châu', secondaryPerPrimary: 12,
+    alignment: 'chính đạo / tu chân thế gia', realmRange: [0, 20],
+    desc: 'Nam Đại Lục của Nhân Giới, non xanh nước biếc, đất đai trù phú, nhân tộc hưng thịnh và là vùng đất khởi đầu.',
+    climate: 'ôn hòa, sơn thủy hữu tình, linh vũ điều hòa',
+    products: ['Thanh Linh Thảo', 'Linh Cốc', 'Tử Vân Chi', 'Bích Ngọc Đào', 'Thanh Linh Mộc'],
+    minerals: ['Linh Thạch', 'Thanh Đồng', 'Bạch Ngọc', 'Huyền Thiết'],
+    enemies: ['Dã Thú', 'Yêu Lang', 'Thổ Trăn', 'Thanh Mãng', 'Hắc Hùng'],
+    regions: [
+      ['thanh_linh','Thanh Linh Vực','starter','Linh','sơn thủy ôn hòa, linh điền và thành trấn dày đặc; vùng khởi nguyên',['Mộc','Thủy'],
+        ['Thanh Châu','Lạc Châu','Vân Châu','Bình Châu','Hòa Châu','An Châu','Định Châu','Ninh Châu','Thái Châu','Khang Châu','Thuận Châu','Vĩnh Châu']],
+      ['nam_hoang','Nam Hoang Vực','beast','Hoang','cổ lâm, độc chướng, yêu thú và bộ tộc cổ',['Mộc','Thổ'],
+        ['Man Châu','Vạn Độc Châu','Yêu Lâm Châu','Xích Mãng Châu','Hắc Trạch Châu','Cổ Thụ Châu','Thiên Thú Châu','Linh Xà Châu','Hoang Mộc Châu','Vạn Trùng Châu','Nam Man Châu','Thần Mộc Châu']],
+      ['thuong_hai','Thương Hải Vực','ocean','Hải','bờ biển, quần đảo và tuyến thương hải',['Thủy','Phong'],
+        ['Hải Châu','Thiên Tinh Châu','Bích Hải Châu','Vân Hải Châu','Long Đảo Châu','Thương Lan Châu','Hải Nguyệt Châu','Triều Âm Châu','Hắc Thủy Châu','Tinh La Châu','Vạn Đảo Châu','Thiên Nhai Châu']],
+      ['van_son','Vạn Sơn Vực','mountain','Sơn','sơn mạch liên miên, linh khoáng và địa hỏa',['Thổ','Kim','Hỏa'],
+        ['Thạch Châu','Thiên Sơn Châu','Cửu Nhạc Châu','Huyền Thiết Châu','Xích Đồng Châu','Kim Nham Châu','Vạn Khoáng Châu','Địa Hỏa Châu','Long Mạch Châu','Thiết Sơn Châu','Cổ Nhạc Châu','Huyền Phong Châu']],
+      ['dong_huyen','Đông Huyền Vực','sword','Kiếm','kiếm tông san sát, kiếm cốc và kiếm mộ',['Kiếm','Kim','Phong'],
+        ['Kiếm Châu','Thái Hư Châu','Vạn Kiếm Châu','Thanh Phong Châu','Tử Tiêu Châu','Huyền Kiếm Châu','Linh Kiếm Châu','Cổ Kiếm Châu','Bạch Đế Châu','Thiên Kiếm Châu','Vô Cực Châu','Xích Tiêu Châu']],
+      ['trung_thien','Trung Thiên Vực','central','Thiên','trung tâm linh mạch Nam Lăng, đại thành hội tụ',['Kim','Thủy','Hỏa','Thổ','Mộc'],
+        ['Trung Châu','Thiên Đô Châu','Thánh Linh Châu','Thần Đô Châu','Cửu Thiên Châu','Thái Nhất Châu','Hạo Thiên Châu','Tử Vi Châu','Vạn Pháp Châu','Tiên Hà Châu','Càn Khôn Châu','Thiên Nguyên Châu']],
+      ['tay_hoang','Tây Hoang Vực','desert','Mạc','hoang mạc vô tận, di tích cổ và thành bang ốc đảo',['Thổ','Hỏa'],
+        ['Sa Châu','Hoang Châu','Xích Sa Châu','Cổ Mạc Châu','Hắc Sa Châu','Nhật Viêm Châu','Thạch Lâm Châu','Thiên Mạc Châu','Di Tích Châu','Kim Sa Châu','Huyền Sa Châu','Vô Tận Châu']],
+      ['bac_han','Bắc Hàn Vực','ice','Hàn','băng nguyên, tuyết sơn và hàn hồ',['Băng','Thủy'],
+        ['Hàn Châu','Tuyết Châu','Băng Châu','Bắc Minh Châu','Huyền Băng Châu','Thiên Tuyết Châu','Cực Hàn Châu','Bạch Sương Châu','Hàn Nguyệt Châu','Băng Nguyên Châu','Tuyết Sơn Châu','Cửu Hàn Châu']],
+      ['huyet_u','Huyết U Vực','demonic','Huyết','cổ chiến trường, ma địa và âm mạch',['Hỏa','Lôi','Vật Lý'],
+        ['Huyết Châu','U Châu','Cửu U Châu','Ma Châu','Minh Châu','Huyết Ngục Châu','Táng Hồn Châu','Quỷ Châu','Vạn Cốt Châu','Âm Sơn Châu','Cổ Chiến Châu','Ma Uyên Châu']]
+    ]
+  }),
   freezeNested({
     id: 'east', name: 'Đông Huyền Đại Lục', position: 'Đông',
     primaryLabel: 'Huyền Vực', secondaryLabel: 'Đạo', secondaryPerPrimary: 8,
@@ -218,125 +208,101 @@ const NEW_CONTINENT_SPECS = Object.freeze([
     products: ['Long Linh Thảo', 'Hải Tâm Châu', 'Tử Tiêu Lôi Trúc', 'Thanh Long Mộc', 'Đông Hải Linh Dịch'],
     minerals: ['Hải Lam Tinh', 'Lôi Văn Thạch', 'Long Mạch Ngọc', 'Canh Kim Kiếm Tinh'],
     enemies: ['Hải Giao', 'Lôi Ưng Yêu', 'Kiếm Linh', 'Thanh Long Mộc Yêu', 'Đông Hải Tà Tu'],
-    factionKinds: ['Kiếm Tông', 'Thủy Cung', 'Lôi Điện', 'Long Tộc', 'Phù Môn', 'Tu Tiên Gia Tộc'],
-    factionSuffixes: ['Thiên Kiếm Tông', 'Thương Hải Cung', 'Cửu Lôi Điện', 'Thanh Long Đạo Viện', 'Đông Huyền Phù Môn', 'Vân Hải Thế Gia'],
     regions: [
-      ['thanh_long','Thanh Long Huyền Vực','long','Long','thanh long mạch và mộc linh cổ địa',['Mộc','Thủy','Phong'],'Thanh Long Thánh Tông'],
-      ['thuong_hai','Thương Hải Huyền Vực','ocean','Hải','đại dương, quần đảo và thương cảng tu tiên',['Thủy','Phong','Lôi'],'Thương Hải Tiên Cung'],
-      ['thien_kiem','Thiên Kiếm Huyền Vực','sword','Kiếm','kiếm sơn, kiếm mộ và phi kiếm truyền thừa',['Kiếm','Kim','Phong'],'Thiên Kiếm Thánh Tông'],
-      ['loi_trach','Lôi Trạch Huyền Vực','thunder','Lôi','lôi trạch, thiên lôi và yêu thú lôi hệ',['Lôi','Thủy','Kim'],'Cửu Tiêu Lôi Tông'],
-      ['van_moc','Vạn Mộc Huyền Vực','forest','Mộc','thần mộc, dược cốc và mộc linh sinh cơ',['Mộc','Thổ','Thủy'],'Vạn Mộc Trường Sinh Tông'],
-      ['linh_phu','Linh Phù Huyền Vực','talisman','Phù','phù đạo, trận pháp và linh văn cổ',['Kim','Mộc','Lôi'],'Thiên Phù Đạo Cung'],
-      ['long_uyen','Long Uyên Huyền Vực','dragon','Uyên','long uyên, giao long và thủy phủ cổ',['Thủy','Lôi','Vật Lý'],'Long Uyên Thần Cung'],
-      ['nhat_thang','Nhật Thăng Huyền Vực','sunrise','Nhật','linh quang nhật xuất, hỏa khí và quang pháp',['Hỏa','Kim','Phong'],'Nhật Thăng Tiên Tông']
+      ['thanh_long','Thanh Long Huyền Vực','long','Long','thanh long mạch và mộc linh cổ địa',['Mộc','Thủy','Phong']],
+      ['thuong_hai','Thương Hải Huyền Vực','ocean','Hải','đại dương, quần đảo và thương cảng tu tiên',['Thủy','Phong','Lôi']],
+      ['thien_kiem','Thiên Kiếm Huyền Vực','sword','Kiếm','kiếm sơn, kiếm mộ và phi kiếm truyền thừa',['Kiếm','Kim','Phong']],
+      ['loi_trach','Lôi Trạch Huyền Vực','thunder','Lôi','lôi trạch, thiên lôi và yêu thú lôi hệ',['Lôi','Thủy','Kim']],
+      ['van_moc','Vạn Mộc Huyền Vực','forest','Mộc','thần mộc, dược cốc và mộc linh sinh cơ',['Mộc','Thổ','Thủy']],
+      ['linh_phu','Linh Phù Huyền Vực','talisman','Phù','phù đạo, trận pháp và linh văn cổ',['Kim','Mộc','Lôi']],
+      ['long_uyen','Long Uyên Huyền Vực','dragon','Uyên','long uyên, giao long và thủy phủ cổ',['Thủy','Lôi','Vật Lý']],
+      ['tinh_la','Tinh La Huyền Vực','star','Tinh','hòn đảo linh trận, chiêm tinh và phong thủy',['Phong','Thủy','Lôi']]
     ]
   }),
   freezeNested({
     id: 'west', name: 'Tây Mạc Đại Lục', position: 'Tây',
     primaryLabel: 'Hoang Vực', secondaryLabel: 'Lĩnh', secondaryPerPrimary: 7,
-    alignment: 'hỗn hợp chính tà / cổ tộc', realmRange: [8, 24],
-    desc: 'Tây Mạc không chia Châu; bảy Hoang Vực được ngăn bởi sa hải và tuyệt địa, mỗi Hoang Vực lại chia thành bảy Lĩnh do cổ quốc, thần điện hoặc bộ tộc tranh quyền.',
-    climate: 'khô nóng, sa bạo, chênh lệch nhiệt lớn và địa hỏa mạnh',
-    products: ['Xích Diễm Quả', 'Sa Tinh', 'Hoang Cổ Linh Dịch', 'Kim Sa Thảo', 'Cổ Ngọc'],
-    minerals: ['Xích Viêm Thạch', 'Kim Sa Tinh', 'Hoang Kim Khoáng', 'Cổ Ngọc Tủy'],
-    enemies: ['Sa Hải Long Trùng', 'Xích Viêm Tích', 'Cổ Mộ Âm Binh', 'Hoang Mạc Tà Tu', 'Thạch Giáp Cự Nhân'],
-    factionKinds: ['Sa Tông', 'Hỏa Cung', 'Cổ Mộ Phái', 'Thể Tu Môn', 'Thương Minh', 'Cổ Tộc'],
-    factionSuffixes: ['Vô Tận Sa Tông', 'Xích Nhật Hỏa Cung', 'Cổ Vương Điện', 'Hoang Thần Thể Môn', 'Kim Sa Thương Minh', 'Thái Cổ Thần Tộc'],
+    alignment: 'cổ quốc / ma đạo / thể tu / sa tộc', realmRange: [8, 26],
+    desc: 'Phương Tây là sa mạc, thạch lâm và hỏa diệm liên miên; bảy Hoang Vực chia thành bốn mươi chín Lĩnh, do cổ quốc, thần điện và các liên minh bộ tộc phân chia quyền lực.',
+    climate: 'nhiệt phong, sa bạo, địa hỏa và biến thiên ngày đêm cực đoan',
+    products: ['Xích Viêm Tham', 'Sa Mạc Linh Chi', 'Địa Hỏa Thạch Nhũ', 'Cổ Mạc Thần Sa', 'Thiên Canh Huyễn Thảo'],
+    minerals: ['Xích Sa Kim', 'Hỏa Tinh Ngọc', 'Hắc Diệu Thạch', 'Cổ Thần Toái Thiết'],
+    enemies: ['Sa Trùng Vương', 'Địa Hỏa Ma Thú', 'Cổ Mộ Thi Tướng', 'Hoang Mạc Thể Tu', 'Tây Hoang Sa Tặc'],
     regions: [
-      ['dai_mac','Đại Mạc Hoang Vực','desert','Mạc','đại mạc vô tận và linh tuyền ốc đảo',['Thổ','Phong','Hỏa'],'Đại Mạc Thiên Tông'],
-      ['xich_viem','Xích Viêm Hoang Vực','fire','Viêm','hỏa sơn, địa hỏa và luyện thể hỏa pháp',['Hỏa','Thổ','Vật Lý'],'Xích Viêm Thần Cung'],
-      ['co_mo','Cổ Mộ Hoang Vực','tomb','Mộ','cổ mộ, hoàng lăng và âm linh truyền thừa',['Thổ','Kim','Vật Lý'],'Cổ Vương Thần Điện'],
-      ['kim_sa','Kim Sa Hoang Vực','gold_sand','Sa','kim sa, thương lộ và linh khoáng hiếm',['Kim','Thổ','Phong'],'Kim Sa Vạn Bảo Tông'],
-      ['thach_lam','Thạch Lâm Hoang Vực','stone','Thạch','thạch lâm, cự nham và cổ trận địa',['Thổ','Kim','Vật Lý'],'Thiên Thạch Huyền Tông'],
-      ['huyen_sa','Huyễn Sa Hoang Vực','illusion','Huyễn','ảo sa, mê cảnh và thần hồn pháp môn',['Phong','Hỏa','Thủy'],'Huyễn Sa Đạo Cung'],
-      ['lac_nhat','Lạc Nhật Hoang Vực','sunset','Nhật','lạc nhật thần hỏa và cổ thành sa mạc',['Hỏa','Kim','Phong'],'Lạc Nhật Tiên Cung']
+      ['xich_viem','Xích Viêm Hoang Vực','fire','Viêm','hỏa sơn, dung nham và địa hỏa quặng mỏ',['Hỏa','Thổ']],
+      ['sa_hai','Sa Hải Hoang Vực','desert','Sa','sa mạc mênh mông, ốc đảo và di tích cổ',['Thổ','Phong']],
+      ['thach_lam','Thạch Lâm Hoang Vực','stone','Thạch','thạch phong kỳ dị, khoáng mạch và sơn động',['Thổ','Kim']],
+      ['co_than','Cổ Thần Hoang Vực','ancient','Thần','thần điện sụp đổ, cổ chiến trường và truyền thừa thần ma',['Vật Lý','Hỏa','Kim']],
+      ['huyen_sa','Huyễn Sa Hoang Vực','mirage','Huyễn','huyễn cảnh, sa bão và âm dương đảo lộn',['Phong','Thổ','Thủy']],
+      ['hoang_kim','Hoàng Kim Hoang Vực','gold','Kim','hoàng kim cổ mỏ, sa kim và thương minh',['Kim','Thổ']],
+      ['diet_tuyet','Diệt Tuyệt Hoang Vực','ruin','Tuyệt','khu cấm địa tuyệt phong, phong bạo và tuyệt cảnh',['Phong','Hỏa','Lôi']]
     ]
   }),
   freezeNested({
     id: 'north', name: 'Bắc Minh Đại Lục', position: 'Bắc',
     primaryLabel: 'Hàn Thiên', secondaryLabel: 'Phủ', secondaryPerPrimary: 12,
-    alignment: 'hàn hệ chính đạo / cổ yêu', realmRange: [10, 26],
-    desc: 'Bắc Minh lấy sáu tầng Hàn Thiên làm đại khu vực. Mỗi Hàn Thiên gồm mười hai Phủ bám theo băng mạch, hàn hồ và Bắc Minh hải.',
+    alignment: 'băng tu / phù tu / âm dương / cổ tông', realmRange: [10, 27],
+    desc: 'Phương Bắc là hàn thiên băng vực khắc nghiệt; sáu Hàn Thiên chia thành bảy mươi hai Phủ, do hàn cung, cổ phủ và các tộc trưởng băng nguyên nắm giữ.',
     climate: 'cực hàn, băng tuyết quanh năm, cực quang và hàn triều',
-    products: ['Băng Tâm Liên', 'Hàn Băng Thảo', 'Bắc Minh Huyền Thủy', 'Tuyết Phách', 'Hàn Long Cốt'],
-    minerals: ['Hàn Ngọc', 'Băng Tinh Thạch', 'Bắc Minh Tinh Thiết', 'Cực Quang Linh Tinh'],
-    enemies: ['Cực Hàn Băng Giao', 'Tuyết Lang Yêu', 'Băng Giáp Hùng', 'Hàn Phách Linh', 'Bắc Minh Yêu Tu'],
-    factionKinds: ['Băng Cung', 'Tuyết Tông', 'Hàn Kiếm Phái', 'Bắc Minh Môn', 'Ngự Thú Cốc', 'Hàn Tộc'],
-    factionSuffixes: ['Băng Phách Tiên Cung', 'Thiên Tuyết Tông', 'Hàn Nguyệt Kiếm Phái', 'Bắc Minh Huyền Môn', 'Tuyết Linh Cốc', 'Cực Hàn Cổ Tộc'],
+    products: ['Băng Tâm Liên', 'Hàn Băng Thảo', 'Bắc Minh Huyền Thủy', 'Tuyết Phách', 'Băng Tằm Ti'],
+    minerals: ['Huyền Băng Thạch', 'Bắc Minh Hàn Thiết', 'Cực Quang Tinh', 'Thiên Tuyết Thạch'],
+    enemies: ['Băng Tinh Yêu', 'Hàn Băng Cự Hùng', 'Tuyết Điêu Yêu', 'Bắc Minh Giao Long', 'Hàn Dạ Tà Tu'],
     regions: [
-      ['huyen_bang','Huyền Băng Hàn Thiên','ice','Băng','huyền băng vạn năm và băng linh mạch',['Thủy','Kiếm','Kim'],'Huyền Băng Tiên Cung'],
-      ['tuyet_nguyen','Tuyết Nguyên Hàn Thiên','snowfield','Tuyết','tuyết nguyên, thú triều và băng thảo',['Thủy','Phong','Vật Lý'],'Thiên Tuyết Thánh Tông'],
-      ['bac_minh','Bắc Minh Hàn Thiên','dark_sea','Minh','Bắc Minh hải, huyền thủy và cự yêu biển',['Thủy','Lôi','Vật Lý'],'Bắc Minh Thần Tông'],
-      ['han_nguyet','Hàn Nguyệt Hàn Thiên','moon_ice','Nguyệt','hàn nguyệt linh quang và kiếm tu băng hệ',['Kiếm','Thủy','Phong'],'Hàn Nguyệt Kiếm Tông'],
-      ['cuc_quang','Cực Quang Hàn Thiên','aurora','Quang','cực quang linh khí và lôi băng dị biến',['Lôi','Thủy','Phong'],'Cực Quang Thiên Điện'],
-      ['bang_hai','Băng Hải Hàn Thiên','frozen_ocean','Hải','băng hải, phù băng và cổ long hàn vực',['Thủy','Vật Lý','Lôi'],'Băng Hải Long Cung']
+      ['cuc_han','Cực Hàn Hàn Thiên','polar','Cực','băng nguyên vĩnh cửu, cực quang và hàn mạch sâu',['Băng','Thủy']],
+      ['tuyet_son','Tuyết Sơn Hàn Thiên','mountain','Tuyết','núi tuyết trùng điệp, băng động và cổ động thiên',['Băng','Phong','Kim']],
+      ['han_nguyet','Hàn Nguyệt Hàn Thiên','moon','Nguyệt','hàn nguyệt linh quang và kiếm tu băng hệ',['Băng','Kiếm','Thủy']],
+      ['bac_minh_hai','Bắc Minh Hải Hàn Thiên','sea','Hải','hải vực băng giá, giao long và hàn thủy quái',['Thủy','Băng','Lôi']],
+      ['huyen_bang','Huyền Băng Hàn Thiên','ice','Băng','huyền băng ngàn năm, luyện thể và băng hồn trận',['Băng','Thổ','Vật Lý']],
+      ['phong_tuyet','Phong Tuyết Hàn Thiên','blizzard','Phong','bão tuyết liên miên, phi chu hành trình hiểm trở',['Phong','Băng']]
     ]
   }),
   freezeNested({
     id: 'central', name: 'Trung Vực Đại Lục', position: 'Trung',
     primaryLabel: 'Thánh Vực', secondaryLabel: 'Châu', secondaryPerPrimary: 12,
-    alignment: 'thánh địa / siêu cấp thế lực', realmRange: [17, 28],
-    desc: 'Trung Vực có mật độ linh mạch cao nhất Nhân Giới nên được chia thành mười hai Thánh Vực. Mỗi Thánh Vực có mười hai Châu lớn, quyền lực tập trung trong thánh địa và cổ tộc.',
-    climate: 'linh khí cực thịnh, địa mạch ổn định, nhiều thiên tượng và pháp tắc dị cảnh',
-    products: ['Thiên Nguyên Tinh', 'Hóa Thần Dược Tủy', 'Nguyên Anh Linh Quả', 'Tử Khí Linh Dịch', 'Hư Không Tinh Sa'],
-    minerals: ['Tử Vi Tinh Kim', 'Thiên Tinh Thạch', 'Hư Không Tinh', 'Càn Khôn Ngọc'],
-    enemies: ['Hư Không Dị Thú', 'Cổ Điện Khôi Lỗi', 'Tà Đạo Nguyên Anh', 'Thiên Ngoại Ma Ảnh', 'Hộ Sơn Thánh Thú'],
-    factionKinds: ['Thánh Địa', 'Đạo Cung', 'Tiên Tông', 'Đan Tháp', 'Vạn Pháp Điện', 'Cổ Tộc'],
-    factionSuffixes: ['Cửu Thiên Thánh Địa', 'Thái Nhất Đạo Cung', 'Hạo Thiên Tiên Tông', 'Vạn Đan Thánh Tháp', 'Vạn Pháp Thần Điện', 'Tử Vi Cổ Tộc'],
+    alignment: 'thánh địa / hoàng triều / vạn pháp / trung tâm thế giới', realmRange: [12, 28],
+    desc: 'Trung tâm của toàn cõi Nhân Giới; mười hai Thánh Vực chia thành một trăm bốn mươi bốn Châu, nơi hội tụ linh mạch mạnh nhất, thánh tông tối cao và hoàng triều thống nhất.',
+    climate: 'linh khí nồng đậm thành sương, thiên địa hài hòa, tử khí đông lai',
+    products: ['Thần Long Thảo', 'Cửu Khiếu Đan Tâm Hoa', 'Thái Cổ Thần Mộc', 'Thiên Đô Linh Quả', 'Thánh Linh Chi'],
+    minerals: ['Thần Khí Thạch', 'Hỗn Độn Tinh', 'Thiên Đô Thần Thiết', 'Thánh Linh Tinh'],
+    enemies: ['Thánh Địa Chấp Pháp', 'Linh Thú Thượng Cổ', 'Thiên Đình Cổ Tướng', 'Hoàng Triều Long Vệ', 'Vạn Pháp Yêu Vương'],
     regions: [
-      ['thien_do','Thiên Đô Thánh Vực','capital','Đô','siêu cấp đại thành và trung tâm quyền lực Nhân Giới',['Kim','Lôi','Kiếm'],'Thiên Đô Thánh Địa'],
-      ['thai_nhat','Thái Nhất Thánh Vực','dao','Nhất','âm dương, thái nhất và đại đạo chính thống',['Thủy','Hỏa','Kim'],'Thái Nhất Đạo Cung'],
-      ['can_khon','Càn Khôn Thánh Vực','space','Khôn','không gian, trận pháp và càn khôn bí cảnh',['Thổ','Phong','Lôi'],'Càn Khôn Thần Tông'],
-      ['tu_vi','Tử Vi Thánh Vực','stars','Vi','tinh tượng, tử khí và cổ tộc thiên mệnh',['Kim','Lôi','Thủy'],'Tử Vi Thánh Tộc'],
-      ['hao_thien','Hạo Thiên Thánh Vực','heaven','Hạo','hạo thiên pháp tắc và chiến điện cổ',['Lôi','Kiếm','Vật Lý'],'Hạo Thiên Tiên Tông'],
-      ['van_phap','Vạn Pháp Thánh Vực','all_arts','Pháp','vạn pháp, công pháp và đạo thống hội tụ',['Kiếm','Kim','Hỏa','Thủy'],'Vạn Pháp Thần Điện'],
-      ['thanh_linh','Thánh Linh Thánh Vực','spirit','Linh','thánh linh, linh thú và sinh mệnh linh tuyền',['Mộc','Thủy','Phong'],'Thánh Linh Tiên Cung'],
-      ['tien_ha','Tiên Hà Thánh Vực','celestial_river','Hà','tiên hà, thiên thủy và phi chu liên vực',['Thủy','Phong','Lôi'],'Tiên Hà Đạo Tông'],
-      ['thien_nguyen','Thiên Nguyên Thánh Vực','origin','Nguyên','thiên nguyên linh mạch và đạo nguyên cổ địa',['Kim','Thổ','Lôi'],'Thiên Nguyên Thánh Địa'],
-      ['hu_khong','Hư Không Thánh Vực','void','Không','hư không khe nứt, không gian pháp và truyền tống cổ',['Phong','Lôi','Kim'],'Hư Không Đạo Cung'],
-      ['dan_thien','Đan Thiên Thánh Vực','alchemy','Đan','đan đạo tối thượng, thần dược và thiên hỏa luyện đan',['Hỏa','Mộc','Thủy'],'Đan Thiên Thánh Tháp'],
-      ['than_co','Thần Cơ Thánh Vực','mechanism','Cơ','khôi lỗi, trận khí, thiên cơ và luyện khí tinh vi',['Kim','Thổ','Lôi'],'Thần Cơ Tiên Tông']
+      ['thanh_linh','Thánh Linh Thánh Vực','saint','Thánh','thánh linh mạch khởi nguyên, thánh điện tối cao',['Kim','Mộc','Thủy','Hỏa','Thổ']],
+      ['thien_do','Thiên Đô Thánh Vực','capital','Đô','đế đô vĩ đại, hoàng triều tu chân và hoàng quyền',['Kim','Lôi','Vật Lý']],
+      ['van_phap','Vạn Pháp Thánh Vực','dharma','Pháp','vạn đạo quy tông, thư viện tu chân và truyền thừa cổ',['Kim','Mộc','Thủy','Hỏa','Thổ']],
+      ['thai_huyen','Thái Huyền Thánh Vực','huyen','Huyền','thái huyền linh cảnh, bế quan và độ kiếp thánh địa',['Phong','Lôi','Thủy']],
+      ['dan_dao','Đan Đạo Thánh Vực','alchemy','Đan','dược điền vạn dặm, đan hương ngút trời và luyện đan sư hội tụ',['Mộc','Hỏa']],
+      ['khi_gioi','Khí Giới Thánh Vực','forge','Khí','lò luyện khí khổng lồ, thần binh xuất thế và quặng tinh',['Kim','Hỏa','Thổ']],
+      ['tran_phap','Trận Pháp Thánh Vực','array','Trận','đại trận hộ giới, truyền tống trận liên lục địa và trận sư',['Kim','Thủy','Thổ']],
+      ['am_duong','Âm Dương Thánh Vực','yin_yang','Dương','âm dương giao hòa, thái cực đồ và thần thông lưỡng cực',['Hỏa','Thủy','Phong']],
+      ['tu_la','Tu La Thánh Vực','asura','Sát','đấu trường tu sĩ, sát lục đạo và quân đoàn viễn chinh',['Vật Lý','Hỏa','Lôi']],
+      ['ngu_hanh','Ngũ Hành Thánh Vực','elements','Hành','ngũ hành linh châu, cân bằng ngũ khí và linh tuyền',['Kim','Mộc','Thủy','Hỏa','Thổ']],
+      ['thien_co','Thiên Cơ Thánh Vực','mystery','Cơ','chiêm bái thiên đạo, bói toán, thiên cơ lâu',['Phong','Lôi']],
+      ['hon_don','Hỗn Độn Thánh Vực','chaos','Độn','vùng biên giới hỗn nguyên, linh khí thái cổ chưa khai',['Kim','Mộc','Thủy','Hỏa','Thổ','Lôi','Phong']]
     ]
   })
 ]);
 
-function normalizeRegionSpec(raw) {
-  const [id, name, theme, territoryRoot, focus, elements, apexSect] = raw;
-  return Object.freeze({
-    id, name, theme, territoryRoot, focus,
-    elements: Object.freeze([...elements]), apexSect,
-    desc: `${focus}; là một ${name.split(' ').slice(-2).join(' ')} trọng yếu của đại lục.`
-  });
-}
-
-const normalizedContinents = Object.freeze(NEW_CONTINENT_SPECS.map(continent => {
-  const regions = Object.freeze(continent.regions.map(normalizeRegionSpec));
-  const structure = CONTINENT_STRUCTURES[continent.id];
-  if (!structure || regions.length !== structure.primaryCount || continent.secondaryPerPrimary !== structure.secondaryPerPrimary) {
-    throw new Error(`[HUMAN REALM] Sai cấu trúc ${continent.name}.`);
-  }
-  return Object.freeze({ ...continent, regions });
+const normalizedContinents = ALL_CONTINENT_SPECS.map(continent => Object.freeze({
+  ...continent,
+  regions: Object.freeze(continent.regions.map(([id, name, theme, shortTheme, focus, elements, namedTerritories]) => Object.freeze({
+    id, name, theme, shortTheme, focus, elements: Object.freeze([...elements]),
+    namedTerritories: namedTerritories ? Object.freeze([...namedTerritories]) : null
+  })))
 }));
 
-export const HUMAN_REALM_CONTINENTS = Object.freeze([
-  Object.freeze({
-    id: 'south', nodeId: NAM_LANG_ROOT_ID, name: 'Nam Lăng Đại Lục', position: 'Nam', existing: true,
-    primaryLabel: 'Đại Vực', secondaryLabel: 'Châu', primaryCount: 9, secondaryCount: 108,
-    desc: 'Nam Đại Lục của Nhân Giới; giữ nguyên toàn bộ 9 Đại Vực / 108 Châu và tuyến khởi đầu hiện hữu.'
-  }),
-  ...normalizedContinents.map(continent => Object.freeze({
+export const HUMAN_REALM_CONTINENTS = Object.freeze(
+  normalizedContinents.map(continent => Object.freeze({
     id: continent.id,
-    nodeId: `${HUMAN_REALM_ROOT_ID}.continent.${continent.id}`,
+    nodeId: continent.id === 'south' ? NAM_LANG_ROOT_ID : `${HUMAN_REALM_ROOT_ID}.continent.${continent.id}`,
     name: continent.name,
     position: continent.position,
-    existing: false,
     primaryLabel: continent.primaryLabel,
     secondaryLabel: continent.secondaryLabel,
     primaryCount: continent.regions.length,
     secondaryCount: continent.regions.length * continent.secondaryPerPrimary,
     desc: continent.desc
   }))
-]);
+);
 
 const humanRealmNodes = [
   Object.freeze({
@@ -345,7 +311,7 @@ const humanRealmNodes = [
     displayTypeLabel: 'NHÂN GIỚI',
     name: 'Nhân Giới',
     parentId: null,
-    desc: 'Nhân Giới gồm 5 Đại Lục nhưng mỗi Đại Lục có chế độ phân chia riêng: Nam Lăng 9 Đại Vực/108 Châu; Đông Huyền 8 Huyền Vực/64 Đạo; Tây Mạc 7 Hoang Vực/49 Lĩnh; Bắc Minh 6 Hàn Thiên/72 Phủ; Trung Vực 12 Thánh Vực/144 Châu.',
+    desc: 'Nhân Giới gồm 5 Đại Lục: Nam Lăng (9 Đại Vực / 108 Châu), Đông Huyền (8 Huyền Vực / 64 Đạo), Tây Mạc (7 Hoang Vực / 49 Lĩnh), Bắc Minh (6 Hàn Thiên / 72 Phủ), Trung Vực (12 Thánh Vực / 144 Châu).',
     structureSummary: 'Nam: 9 Đại Vực → 108 Châu • Đông: 8 Huyền Vực → 64 Đạo • Tây: 7 Hoang Vực → 49 Lĩnh • Bắc: 6 Hàn Thiên → 72 Phủ • Trung: 12 Thánh Vực → 144 Châu',
     counts: Object.freeze({ continents: 5, primaryRegions: 42, territories: 437 }),
     materializationRule: HUMAN_REALM_SCALE.materializationRule,
@@ -353,26 +319,11 @@ const humanRealmNodes = [
   })
 ];
 
-for (const node of NAM_LANG_WORLD_NODES) {
-  if (node.id === NAM_LANG_ROOT_ID) {
-    humanRealmNodes.push(Object.freeze({
-      ...node,
-      parentId: HUMAN_REALM_ROOT_ID,
-      position: 'Nam',
-      humanRealmContinentId: 'south',
-      primaryRegionLabel: 'ĐẠI VỰC',
-      secondaryRegionLabel: 'CHÂU',
-      structureSummary: '9 Đại Vực → 108 Châu',
-      desc: `${node.desc} Đây là Nam Đại Lục của Nhân Giới và giữ nguyên mô hình 9 Đại Vực / 108 Châu.`
-    }));
-  } else {
-    humanRealmNodes.push(node);
-  }
-}
-
 for (const continent of normalizedContinents) {
-  const continentNodeId = `${HUMAN_REALM_ROOT_ID}.continent.${continent.id}`;
+  const isSouth = continent.id === 'south';
+  const continentNodeId = isSouth ? NAM_LANG_ROOT_ID : `${HUMAN_REALM_ROOT_ID}.continent.${continent.id}`;
   const territoryCount = continent.regions.length * continent.secondaryPerPrimary;
+
   humanRealmNodes.push(Object.freeze({
     id: continentNodeId,
     type: 'continent',
@@ -389,12 +340,12 @@ for (const continent of normalizedContinents) {
     signatureMinerals: Object.freeze([...continent.minerals]),
     signatureEnemies: Object.freeze([...continent.enemies]),
     counts: Object.freeze({ primaryRegions: continent.regions.length, territories: territoryCount }),
-    generationProfile: Object.freeze({ materializedByDefault: false }),
-    status: 'world_data'
+    generationProfile: Object.freeze({ materializedByDefault: true }),
+    status: 'playable'
   }));
 
   continent.regions.forEach((region, regionIndex) => {
-    const regionNodeId = `${continentNodeId}.gr.${region.id}`;
+    const regionNodeId = isSouth ? `nl.gr.${region.id}` : `${continentNodeId}.gr.${region.id}`;
     humanRealmNodes.push(Object.freeze({
       id: regionNodeId,
       type: 'great_region',
@@ -405,23 +356,264 @@ for (const continent of normalizedContinents) {
       regionId: region.id,
       regionIndex: regionIndex + 1,
       theme: region.theme,
-      desc: region.desc,
+      desc: region.focus,
       climate: `${continent.climate}; ${region.focus}`,
       signatureProducts: Object.freeze([...continent.products]),
       signatureMinerals: Object.freeze([...continent.minerals]),
       signatureEnemies: Object.freeze([...continent.enemies]),
       dominantElements: Object.freeze([...region.elements]),
-      apexSect: region.apexSect,
       subdivisionLabel: continent.secondaryLabel,
       counts: Object.freeze({ subdivisions: continent.secondaryPerPrimary }),
-      status: 'world_data'
+      status: 'playable'
     }));
+
+    // Hoang Dã & Bí Cảnh cấp Đại Vực (4 Hoang Dã + 2 Bí Cảnh)
+    const regionEntry = Array.isArray(EXPANDED_HUMAN_REALM_REGIONS)
+      ? EXPANDED_HUMAN_REALM_REGIONS.find(r => r.name === region.name)
+      : null;
+
+    if (regionEntry) {
+      (regionEntry.wilds || []).forEach((wName, wIdx) => {
+        humanRealmNodes.push(Object.freeze({
+          id: `${regionNodeId}.reg_wild.${slugifyVi(wName)}_${wIdx}`,
+          type: 'location',
+          name: wName,
+          parentId: regionNodeId,
+          desc: `${wName} là vùng hoang dã cấp đại vực bao la tại ${region.name}, yêu khí ngập trời và linh bảo ẩn tàng.`,
+          locationKind: 'field',
+          status: 'playable'
+        }));
+      });
+
+      (regionEntry.secretRealms || []).forEach((sName, sIdx) => {
+        humanRealmNodes.push(Object.freeze({
+          id: `${regionNodeId}.reg_secret.${slugifyVi(sName)}_${sIdx}`,
+          type: 'location',
+          name: sName,
+          parentId: regionNodeId,
+          desc: `${sName} là bí cảnh cấp đại vực thượng cổ tại ${region.name}, chứa đựng cơ duyên phi thăng to lớn.`,
+          locationKind: 'secret_realm',
+          status: 'playable'
+        }));
+      });
+    }
 
     for (let territoryIndex = 0; territoryIndex < continent.secondaryPerPrimary; territoryIndex++) {
       humanRealmNodes.push(makeTerritoryNode(continent, region, regionNodeId, regionIndex, territoryIndex));
     }
   });
 }
+
+// -----------------------------------------------------------------------------
+// 5. HỆ THỐNG PHÂN CẤP ĐA TẦNG CHI TIẾT (QUỐC GIA · QUẬN · THÀNH VỰC · ĐỊA ĐIỂM)
+// -----------------------------------------------------------------------------
+
+const NATION_TYPES = ['Hoàng Triều', 'Cổ Quốc', 'Vương Triều', 'Đế Quốc', 'Thương Minh', 'Thành Bang'];
+const CMD_PREFIXES = ['Nam Sơn', 'Bắc Lăng', 'Đông Giao', 'Tây Phủ', 'Trung Linh', 'Vân Sơn', 'Hà Tây', 'Thanh Phong', 'Bích Hải', 'Long Mạch'];
+const CITY_KINDS = ['Thành Vực', 'Phủ Thành', 'Thương Trấn', 'Cổ Thành', 'Linh Cốc', 'Sơn Mạch'];
+
+function generateProvinceSubnodes(territoryNode, atlasMap) {
+  const subnodes = [];
+  const territoryId = territoryNode.id;
+  const territoryName = territoryNode.name;
+
+  // Lookup chính xác theo tên châu từ Map đã được pre-build
+  const atlasEntry = atlasMap.get(territoryName);
+  const isThanhChau = territoryId === 'nl.prov.thanh_linh.thanh_chau';
+
+  if (atlasEntry) {
+    // ═══════════════════════════════════════════════════════
+    // CẤP CHÂU: Hoang Dã & Bí Cảnh trực thuộc Châu
+    // ═══════════════════════════════════════════════════════
+    (atlasEntry.wilds || []).forEach((wName, wIdx) => {
+      subnodes.push(Object.freeze({
+        id: `${territoryId}.prov_wild.${slugifyVi(wName)}_${wIdx}`,
+        type: 'location',
+        name: wName,
+        parentId: territoryId,
+        desc: `${wName} là vùng hoang dã cấp châu rộng lớn thuộc ${territoryName}, nguy hiểm và linh bảo dồi dào.`,
+        locationKind: 'field',
+        status: 'playable'
+      }));
+    });
+
+    (atlasEntry.secretRealms || []).forEach((sName, sIdx) => {
+      subnodes.push(Object.freeze({
+        id: `${territoryId}.prov_secret.${slugifyVi(sName)}_${sIdx}`,
+        type: 'location',
+        name: sName,
+        parentId: territoryId,
+        desc: `${sName} là bí cảnh cấp châu thượng cổ thuộc ${territoryName}, chứa đựng cơ duyên phi phàm.`,
+        locationKind: 'secret_realm',
+        status: 'playable'
+      }));
+    });
+  }
+
+  if (atlasEntry && Array.isArray(atlasEntry.nations)) {
+    atlasEntry.nations.forEach((nat, natIdx) => {
+      const nationSlug = slugifyVi(nat.name);
+      const isDaiLy = isThanhChau && natIdx === 0;
+      const nationId = isDaiLy ? STARTER_WORLD_IDS.nation : `${territoryId}.nation.${nationSlug}_${natIdx}`;
+
+      subnodes.push(Object.freeze({
+        id: nationId,
+        type: 'nation',
+        name: nat.name,
+        parentId: territoryId,
+        desc: `${nat.name} thuộc ${territoryName}, quốc gia tu tiên với 5 đại thành trì và hàng vạn dặm linh địa.`,
+        status: 'playable'
+      }));
+
+      // ═══════════════════════════════════════════════════════
+      // CẤP QUỐC GIA: Hoang Dã & Bí Cảnh trực thuộc Quốc Gia
+      // ═══════════════════════════════════════════════════════
+      (nat.wilds || []).forEach((wName, wIdx) => {
+        subnodes.push(Object.freeze({
+          id: `${nationId}.nat_wild.${slugifyVi(wName)}_${wIdx}`,
+          type: 'location',
+          name: wName,
+          parentId: nationId,
+          desc: `${wName} là vùng biên hoang cấp quốc gia thuộc ${nat.name}, yêu thú hoành hành và khoáng mạch ẩn tàng.`,
+          locationKind: 'field',
+          status: 'playable'
+        }));
+      });
+
+      (nat.secretRealms || []).forEach((sName, sIdx) => {
+        subnodes.push(Object.freeze({
+          id: `${nationId}.nat_secret.${slugifyVi(sName)}_${sIdx}`,
+          type: 'location',
+          name: sName,
+          parentId: nationId,
+          desc: `${sName} là bí cảnh cấp quốc gia thuộc ${nat.name}, ẩn chứa bảo khố hoàng gia và cổ truyền thừa.`,
+          locationKind: 'secret_realm',
+          status: 'playable'
+        }));
+      });
+
+      // 5 Thành per Quốc Gia
+      (nat.cities || []).forEach((city, cityIdx) => {
+        const citySlug = slugifyVi(city.name);
+        const cityId = `${nationId}.city.${citySlug}_${cityIdx}`;
+        const isStarterCity = isDaiLy && city.name.includes('Nam Sơn');
+
+        subnodes.push(Object.freeze({
+          id: cityId,
+          type: 'city_territory',
+          name: city.name,
+          parentId: nationId,
+          desc: `${city.name} là đại thành trì trung tâm thuộc ${nat.name}, giao thương sầm uất và tụ tập tu sĩ bốn phương.`,
+          locationKind: 'major_hub',
+          status: 'playable'
+        }));
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Thôn[i] ↔ Hoang Dã[i]: ghép cặp 1-1
+        // Mỗi thôn là node SETTLEMENT trung gian, chứa 2 con:
+        //   - hub an toàn (same name as village)
+        //   - hoang dã ngoại vi (wilds[i])
+        // UI sẽ hiển thị: click Thôn → thấy THÔN + NGOẠI VI
+        // ═══════════════════════════════════════════════════════════════════
+        const villages = city.villages || [];
+        const wilds    = city.wilds    || [];
+
+        villages.forEach((vName, vIdx) => {
+          const isStarterVillage = isStarterCity && vName === 'Thanh Vân Thôn';
+          // Settlement zone (intermediate node – hiển thị tên thôn, có con)
+          const zoneId = isStarterVillage
+            ? `nl.settlement.nam_son.thanh_van_thon`
+            : `${cityId}.settle.${slugifyVi(vName)}_${vIdx}`;
+
+          subnodes.push(Object.freeze({
+            id: zoneId,
+            type: 'settlement',
+            name: vName,
+            parentId: cityId,
+            desc: `${vName} là khu định cư thuộc ${city.name}. Ấn vào để xem khu an toàn và vùng dã ngoại xung quanh.`,
+            status: 'playable'
+          }));
+
+          // Con 1: Safe hub – khu an toàn
+          const hubId = isStarterVillage
+            ? STARTER_WORLD_IDS.map0
+            : `${zoneId}.hub`;
+          subnodes.push(Object.freeze({
+            id: hubId,
+            type: 'location',
+            name: vName,
+            parentId: zoneId,
+            desc: `${vName} – khu an toàn trong thôn, có cửa hàng, lò rèn và điểm truyền tống.`,
+            playableMapId: isStarterVillage ? 0 : undefined,
+            locationKind: 'safe_hub',
+            status: 'playable'
+          }));
+
+          // Con 2: Hoang dã ngoại vi ghép cặp với thôn này
+          const pairedWild = wilds[vIdx];
+          if (pairedWild) {
+            const isStarterOuter  = isStarterCity && pairedWild === 'Thanh Vân Ngoại Vi';
+            const isStarterForest = isStarterCity && pairedWild === 'Vạn Mộc Sâm Lâm';
+            const wildId = isStarterOuter  ? STARTER_WORLD_IDS.map1
+                         : isStarterForest ? STARTER_WORLD_IDS.map2
+                         : `${zoneId}.wild`;
+            subnodes.push(Object.freeze({
+              id: wildId,
+              type: 'location',
+              name: pairedWild,
+              parentId: zoneId,
+              desc: `${pairedWild} – vùng hoang dã ngoại vi ${vName}, nơi yêu thú sinh sống và sản sinh linh thảo.`,
+              playableMapId: isStarterOuter ? 1 : (isStarterForest ? 2 : undefined),
+              locationKind: 'field',
+              status: 'playable'
+            }));
+          }
+        });
+
+        // Hoang dã thừa (nếu wilds.length > villages.length) → trực thuộc thành
+        wilds.slice(villages.length).forEach((wName, wIdx) => {
+          subnodes.push(Object.freeze({
+            id: `${cityId}.extra_wild.${slugifyVi(wName)}_${wIdx}`,
+            type: 'location',
+            name: wName,
+            parentId: cityId,
+            desc: `${wName} – vùng hoang dã thuộc ${city.name}.`,
+            locationKind: 'field',
+            status: 'playable'
+          }));
+        });
+
+        // Bí Cảnh → trực thuộc thành (không ghép cặp)
+        (city.secretRealms || []).forEach((sName, sIdx) => {
+          subnodes.push(Object.freeze({
+            id: `${cityId}.secret.${slugifyVi(sName)}_${sIdx}`,
+            type: 'location',
+            name: sName,
+            parentId: cityId,
+            desc: `${sName} thuộc ${city.name}, bí cảnh chứa nhiều cơ duyên ngàn năm và bảo vật hiếm.`,
+            locationKind: 'secret_realm',
+            status: 'playable'
+          }));
+        });
+      });
+    });
+  }
+
+  return subnodes;
+}
+
+// Pre-build Map từ tên châu -> atlas entry để tìm O(1)
+const _atlasMap = new Map(
+  (Array.isArray(EXPANDED_HUMAN_REALM_ATLAS) ? EXPANDED_HUMAN_REALM_ATLAS : []).map(e => [e.name, e])
+);
+
+// Khởi tạo toàn bộ cây phân cấp con cho tất cả 437 Châu / Đạo / Lĩnh / Phủ
+const allProvinceSubnodes = [];
+const provinceNodes = humanRealmNodes.filter(node => node.type === 'province');
+provinceNodes.forEach((province) => {
+  allProvinceSubnodes.push(...generateProvinceSubnodes(province, _atlasMap));
+});
+humanRealmNodes.push(...allProvinceSubnodes);
 
 const continents = humanRealmNodes.filter(node => node.type === 'continent');
 const primaryRegions = humanRealmNodes.filter(node => node.type === 'great_region');
@@ -430,14 +622,6 @@ if (continents.length !== 5 || primaryRegions.length !== 42 || territories.lengt
   throw new Error(`[HUMAN REALM] Sai cấu trúc: ${continents.length} Đại Lục / ${primaryRegions.length} vùng cấp cao / ${territories.length} đơn vị cấp hai.`);
 }
 
-for (const profile of HUMAN_REALM_CONTINENTS) {
-  const continentNode = humanRealmNodes.find(node => node.id === profile.nodeId);
-  const regions = humanRealmNodes.filter(node => node.parentId === profile.nodeId && node.type === 'great_region');
-  const territoryCount = regions.reduce((sum, region) => sum + humanRealmNodes.filter(node => node.parentId === region.id && node.type === 'province').length, 0);
-  if (!continentNode || regions.length !== profile.primaryCount || territoryCount !== profile.secondaryCount) {
-    throw new Error(`[HUMAN REALM] ${profile.name} sai cấu trúc ${profile.primaryCount}/${profile.secondaryCount}.`);
-  }
-}
-
 export const HUMAN_REALM_WORLD_NODES = Object.freeze(humanRealmNodes);
+export const NAM_LANG_WORLD_NODES = HUMAN_REALM_WORLD_NODES;
 export const NEW_HUMAN_REALM_CONTINENT_SPECS = normalizedContinents;

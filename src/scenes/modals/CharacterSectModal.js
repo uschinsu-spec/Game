@@ -1,91 +1,13 @@
 /**
  * CharacterSectModal.js
- * Quản lý: openSectPanel, openCharacterPanel, openCurrencyExchangeModal
+ * Quản lý: openCurrencyExchangeModal (Tiền Trang Tu Tiên & Quy Đổi Linh Thạch)
+ * (Toàn bộ logic tông môn cũ đã được dọn sạch để chuẩn bị thiết kế hệ thống mới)
  */
-import { REALMS } from '../../config/realmsData.js';
-import { SECTS, SECT_RANKS } from '../../config/sectsData.js';
 import { gameState } from '../../state/gameState.js';
-import { CONG_PHAP_LIST, CONG_PHAP_GRADES } from '../../config/congPhapData.js';
 import { CURRENCY_TIERS, CURRENCY_MAP, CURRENCY_RATIO, ensureCurrencies, addCurrency, deductCurrency, hasCurrency, exchangeUp, exchangeDown, formatCurrencySummary } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
 
 export const CharacterSectModal = {
-  openSectPanel() {
-    this.closeModal();
-    const overlay = this.fixed(this.add.rectangle(W / 2, H / 2, W, H, 0x041019, 0.28), 9999);
-    const panel = this.fixed(this.add.container(W / 2, H / 2), 10000);
-    this.activeModal = panel;
-    this.activeModalOverlay = overlay;
-
-    const bg = this.add.rectangle(0, 0, 480, 660, 0x071b25, 0.94).setStrokeStyle(2, 0x2a5078);
-    panel.add(bg);
-    const title = this.add.text(0, -305, 'HỆ THỐNG 8 ĐẠI TÔNG MÔN', { fontSize: '15px', fontStyle: 'bold', color: '#ffd700' }).setOrigin(0.5);
-    panel.add(title);
-    this.createModalCloseBtn(panel, 215, -305);
-
-    if (gameState.sectId) {
-      const sect = SECTS.find(s => s.id === gameState.sectId);
-      const rank = SECT_RANKS[gameState.sectRankIdx];
-      const nextRank = SECT_RANKS[gameState.sectRankIdx + 1];
-
-      const sectIcon = this.add.image(-160, -220, sect.icon).setDisplaySize(56, 56);
-      const sectName = this.add.text(-115, -235, `${sect.name} (${sect.title})`, { fontSize: '14px', fontStyle: 'bold', color: '#66ffcc' });
-      const sectInfo = this.add.text(-115, -210, `Chức Vị: ${rank.name}\nCống Hiến: ${gameState.sectContrib} Điểm\nTrấn Phái: ${sect.buffDesc}`, { fontSize: '11px', color: '#cceeff', lineSpacing: 4 });
-
-      const salaryBox = this.add.rectangle(0, -110, 440, 100, 0x111e33, 0.9).setStrokeStyle(1.5, 0x336699);
-      const salaryTitle = this.add.text(0, -145, 'Bổng Lộc Môn Phái Hàng Ngày', { fontSize: '12px', fontStyle: 'bold', color: '#ffaa44' }).setOrigin(0.5);
-      const salaryDesc = this.add.text(0, -120, `+${rank.salaryGold} L.Thạch, +${rank.salaryHerb} Thảo, +${rank.salaryOre} Khoáng`, { fontSize: '11px', color: '#99bbdd' }).setOrigin(0.5);
-
-      const claimBtn = this.add.rectangle(0, -85, 180, 32, 0x1b4d3e).setStrokeStyle(1.5, 0x33cc88).setInteractive({ useHandCursor: true });
-      const claimTxt = this.add.text(0, -85, 'Lãnh Bổng Lộc', { fontSize: '11px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5);
-      claimBtn.on('pointerdown', () => {
-        gameState.gold += rank.salaryGold;
-        if (typeof gameState.herbs !== 'object' || gameState.herbs === null) gameState.herbs = {};
-        const sHerb = 'Ngưng Khí Thảo';
-        gameState.herbs[sHerb] = (gameState.herbs[sHerb] || 0) + (rank.salaryHerb || 0);
-        gameState.ores += rank.salaryOre;
-        this.updateHUD();
-        this.showFloatingText(this.player.x, this.player.y - 60, `Nhận bổng lộc: +${rank.salaryGold} L.Thạch!`, '#66ffcc');
-      });
-
-      const canPromote = (nextRank && gameState.sectContrib >= nextRank.reqContrib);
-      const promoteBtn = this.add.rectangle(0, -20, 440, 38, canPromote ? 0x884400 : 0x223344).setStrokeStyle(1.5, canPromote ? 0xffaa00 : 0x445566).setInteractive({ useHandCursor: canPromote });
-      const promoteTxt = this.add.text(0, -20, nextRank ? `Thăng Chức [${nextRank.name}] (Cần ${nextRank.reqContrib} Cống Hiến)` : 'ĐÃ ĐẠT CHỨC VỊ CAO NHẤT', { fontSize: '11px', fontStyle: 'bold', color: canPromote ? '#ffffff' : '#8899aa' }).setOrigin(0.5);
-      promoteBtn.on('pointerdown', () => {
-        if (canPromote) { gameState.sectRankIdx++; this.updateHUD(); this.openSectPanel(); this.showFloatingText(this.player.x, this.player.y - 60, `Thăng tiến: ${nextRank.name}!`, '#ffd700'); }
-      });
-
-      const leaveBtn = this.add.rectangle(0, 270, 160, 28, 0x551111).setStrokeStyle(1, 0xaa3333).setInteractive({ useHandCursor: true });
-      const leaveTxt = this.add.text(0, 270, 'Rời Khỏi Môn Phái', { fontSize: '10px', fontStyle: 'bold', color: '#ffaaaa' }).setOrigin(0.5);
-      leaveBtn.on('pointerdown', () => {
-        gameState.sectId = null; gameState.sectRankIdx = 0; gameState.sectContrib = 0;
-        this.updateHUD(); this.openSectPanel();
-      });
-
-      panel.add([sectIcon, sectName, sectInfo, salaryBox, salaryTitle, salaryDesc, claimBtn, claimTxt, promoteBtn, promoteTxt, leaveBtn, leaveTxt]);
-    } else {
-      SECTS.slice(0, 5).forEach((st, idx) => {
-        const sy = -220 + idx * 95;
-        const cardBg = this.add.rectangle(0, sy, 440, 84, 0x122035).setStrokeStyle(1.5, 0x2a5078);
-        const icon = this.add.image(-185, sy, st.icon).setDisplaySize(40, 40);
-        const sTitle = this.add.text(-150, sy - 28, `${st.name} [Hệ ${st.elem}]`, { fontSize: '12px', fontStyle: 'bold', color: '#ffd700' });
-        const sBuff = this.add.text(-150, sy - 10, st.buffDesc, { fontSize: '10px', color: '#66ffcc' });
-        const sDesc = this.add.text(-150, sy + 8, st.desc, { fontSize: '9px', color: '#99bbdd', wordWrap: { width: 260 } });
-        const joinBtn = this.add.rectangle(175, sy, 68, 30, 0x1b4d3e).setStrokeStyle(1.5, 0x33cc88).setInteractive({ useHandCursor: true });
-        const joinTxt = this.add.text(175, sy, 'Bái Sư', { fontSize: '11px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5);
-        joinBtn.on('pointerdown', () => {
-          gameState.sectId = st.id; gameState.sectRankIdx = 0; gameState.sectContrib = 50;
-          this.updateHUD(); this.openSectPanel();
-          this.showFloatingText(this.player.x, this.player.y - 60, `Bái nhập ${st.name} thành công!`, '#ffd700');
-        });
-        panel.add([cardBg, icon, sTitle, sBuff, sDesc, joinBtn, joinTxt]);
-      });
-    }
-
-    this.activeModal = panel;
-    this.activeModalOverlay = overlay;
-  },
-
   // ----------------------------------------------------------------
   // Tiền Trang Tu Tiên - Quy Đổi Tiền Tệ Tỷ Lệ 1:10000
 
@@ -221,8 +143,5 @@ export const CharacterSectModal = {
 
     this.activeModal = panel;
     this.activeModalOverlay = overlay;
-  },
-
-  // ----------------------------------------------------------------
-  // Công Pháp & Tu Luyện Panel (Manuals, Skills, Exchange)
+  }
 };

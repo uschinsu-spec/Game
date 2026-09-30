@@ -1,0 +1,4 @@
+import { TICK_KINDS } from '../core/factionConstants.js';
+export const DEFAULT_TICK_CADENCE=Object.freeze({[TICK_KINDS.SHORT]:1,[TICK_KINDS.DAILY]:6,[TICK_KINDS.MONTHLY]:180,[TICK_KINDS.SEASONAL]:540,[TICK_KINDS.YEARLY]:2160}); // logical cycles; integration chooses real-time mapping.
+export class FactionWorldTickScheduler{constructor({cadence=DEFAULT_TICK_CADENCE,startCycle=0}={}){this.cadence={...cadence};this.last={};for(const k of Object.values(TICK_KINDS))this.last[k]=startCycle;}due(cycle){const out=[];for(const k of Object.values(TICK_KINDS)){if(cycle-this.last[k]>=this.cadence[k])out.push(k);}return out;}consume(kind,cycle){this.last[kind]=cycle;}consumeDue(cycle){const due=this.due(cycle);for(const k of due)this.consume(k,cycle);return Object.freeze(due);}toJSON(){return {cadence:{...this.cadence},last:{...this.last}};}}
+export function createWorldTickScheduler(opts){return new FactionWorldTickScheduler(opts);}

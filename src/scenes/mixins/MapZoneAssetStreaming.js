@@ -417,9 +417,9 @@ export function installMapZoneAssetStreaming(MainGameScene) {
   };
 
   proto.initBattlefield = function streamedInitBattlefield() {
+    this.cleanupBattlefield?.();
     const map = getMapById(gameState.currentMapId);
     if (!map || map.isPeaceZone || Number(map.id) === 0) {
-      clearEnemyObjects(this);
       this.__combatAssetsReady = false;
       return;
     }
@@ -464,29 +464,25 @@ export function installMapZoneAssetStreaming(MainGameScene) {
     };
   }
 
-  if (typeof originalUpdate === 'function') {
-    proto.update = function streamedZoneUpdate(time, delta) {
-      const result = originalUpdate.call(this, time, delta);
-      const map = getMapById(gameState.currentMapId);
-      if (!map || map.isPeaceZone || Number(map.id) === 0 || !this.player?.active) return result;
+  proto.updateZoneStreaming = function updateZoneStreaming(time, delta) {
+    const map = getMapById(gameState.currentMapId);
+    if (!map || map.isPeaceZone || Number(map.id) === 0 || !this.player?.active) return;
 
-      const now = Number(time || 0);
-      if (now < Number(this.__nextZoneStreamCheckAt || 0)) return result;
-      this.__nextZoneStreamCheckAt = now + ZONE_POLL_MS;
+    const now = Number(time || 0);
+    if (now < Number(this.__nextZoneStreamCheckAt || 0)) return;
+    this.__nextZoneStreamCheckAt = now + ZONE_POLL_MS;
 
-      const zones = getMapZones(map.id);
-      const currentZone = getMapZoneNumberAtX(map.id, this.player.x);
-      if (Number(this.__activeStreamMapId) !== Number(map.id) || Number(this.__activeStreamZone) !== Number(currentZone)) {
-        this.activateCombatZone(currentZone);
-        return result;
-      }
+    const zones = getMapZones(map.id);
+    const currentZone = getMapZoneNumberAtX(map.id, this.player.x);
+    if (Number(this.__activeStreamMapId) !== Number(map.id) || Number(this.__activeStreamZone) !== Number(currentZone)) {
+      this.activateCombatZone(currentZone);
+      return;
+    }
 
-      const def = zones[currentZone - 1];
-      if (!def) return result;
-      const x = Number(this.player.x);
-      if (currentZone < zones.length && Number(def.x1) - x <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone + 1);
-      if (currentZone > 1 && x - Number(def.x0) <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone - 1);
-      return result;
-    };
-  }
+    const def = zones[currentZone - 1];
+    if (!def) return;
+    const x = Number(this.player.x);
+    if (currentZone < zones.length && Number(def.x1) - x <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone + 1);
+    if (currentZone > 1 && x - Number(def.x0) <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone - 1);
+  };
 }

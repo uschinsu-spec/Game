@@ -4,14 +4,14 @@
  *           enemyAttack, enemyShootProjectile
  */
 import { MONSTER_RANKS } from '../../config/monstersData.js';
-import { ALL_MAPS } from '../../config/regionsData.js';
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
 import { ensureCurrencies, addCurrency } from '../../config/currencyData.js';
 
 export const EnemyMixin = {
 
-  initBattlefield() {
+  cleanupBattlefield() {
     if (this.enemyGroup) {
       this.enemyGroup.getChildren().forEach(e => {
         if (e.hpBar) e.hpBar.destroy();
@@ -29,9 +29,23 @@ export const EnemyMixin = {
       this.groundDrops = [];
     }
 
-    const map = ALL_MAPS.find(m => m.id === gameState.currentMapId) || ALL_MAPS[0];
-    if (map.isPeaceZone || map.id === 0) {
-      // Thanh Vân Thôn là khu vực an toàn / hòa bình, tuyệt đối không xuất hiện quái thú
+    if (this.elementalGroundDrops) {
+      this.elementalGroundDrops.forEach(drop => drop?.destroy?.());
+      this.elementalGroundDrops = [];
+    }
+  },
+
+  initBattlefield() {
+    this.cleanupBattlefield();
+
+    const map = this.currentMap || getMapById(gameState.currentMapId);
+    if (map?.isPeaceZone || Number(map?.id) === 0) {
+      // Khu vực an toàn / hòa bình, không sinh quái thú
+      return;
+    }
+
+    if (typeof this.ensureActiveMapZoneAssets === 'function') {
+      this.ensureActiveMapZoneAssets();
       return;
     }
 
@@ -107,7 +121,7 @@ export const EnemyMixin = {
     }
 
     // Generic spawn config for all other maps
-    const map = ALL_MAPS[mapId] || ALL_MAPS[0];
+    const map = getMapById(mapId);
     const mapNum = Number(mapId) || 0;
     let rankOffset = 0;
     if (zone === 1) rankOffset = (slotIndex % 2);

@@ -5,14 +5,24 @@
 import { gameState } from '../state/gameState.js';
 
 export const VILLAGE_HOTSPOTS = Object.freeze([
-  { npcId: 'truong_thon', x: 270, y: 118, width: 205, height: 92 },
-  { npcId: 'nong_phu',    x: 478, y: 205, width: 124, height: 118 },
-  { npcId: 'tho_ren',     x: 100, y: 326, width: 165, height: 145 },
-  { npcId: 'thuong_hoi',  x: 270, y: 405, width: 178, height: 126 },
-  { npcId: 'tuu_lau',     x: 367, y: 526, width: 184, height: 128 },
-  { npcId: 'duoc_diem',   x: 126, y: 590, width: 188, height: 142 },
-  { npcId: 'tho_xay',     x: 473, y: 747, width: 132, height: 128 },
-  { npcId: 've_si_cong',  x: 270, y: 825, width: 190, height: 150 }
+  { npcId: 'truong_thon', x: 225, y: 125, width: 160, height: 110, label: 'Trưởng thôn' },
+  { npcId: 'nong_phu',    x: 385, y: 215, width: 140, height: 100, label: 'Nông phu' },
+  { npcId: 'tho_ren',     x: 105, y: 315, width: 140, height: 110, label: 'Thợ rèn' },
+  { npcId: 'thuong_hoi',  x: 210, y: 405, width: 150, height: 115, label: 'Thương nhân' },
+  { npcId: 'duoc_diem',   x: 130, y: 585, width: 140, height: 115, label: 'Dược nương' },
+  { npcId: 'tuu_lau',     x: 300, y: 550, width: 150, height: 120, label: 'Chủ tửu quán' },
+  { npcId: 'tho_xay',     x: 380, y: 755, width: 130, height: 95,  label: 'Thợ xay' },
+  { npcId: 've_si_cong',  x: 230, y: 825, width: 170, height: 110, label: 'Vệ sĩ cổng' }
+]);
+
+export const VILLAGE_DECORATIONS = Object.freeze([
+  { x: 270, y: 310, buildingKey: 'village_bldg_10', scale: 0.36, depth: 140 },
+  { x: 270, y: 660, buildingKey: 'village_bldg_7',  scale: 0.35, depth: 140 },
+  { x: 70,  y: 760, buildingKey: 'village_bldg_2',  scale: 0.30, depth: 140 },
+  { x: 470, y: 760, buildingKey: 'village_bldg_3',  scale: 0.30, depth: 140 },
+  { x: 70,  y: 170, buildingKey: 'village_bldg_8',  scale: 0.30, depth: 140 },
+  { x: 470, y: 170, buildingKey: 'village_bldg_5',  scale: 0.30, depth: 140 },
+  { x: 270, y: 920, buildingKey: 'village_bldg_16', scale: 0.32, depth: 140 }
 ]);
 
 export const NPCS_DATA = [

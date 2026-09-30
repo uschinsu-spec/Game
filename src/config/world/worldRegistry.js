@@ -8,17 +8,21 @@ import {
   PLAYABLE_REGIONS,
   ALL_PLAYABLE_MAPS,
   RUNTIME_MAP_IDS,
-  SHARED_WILDERNESS_PANORAMA
+  SHARED_WILDERNESS_PANORAMA,
+  buildRuntimeMap
 } from './playableMaps.js?v=20260929-single-map-system-v2';
-import { NAM_LANG_WORLD_NODES, NAM_LANG_ROOT_ID, STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v2';
+import { getMasterMapById, findMasterMapById, ZONE_TYPES, UI_MODES } from './masterMapManifest.js?v=20260929-master-map-manifest-v1';
 import {
   HUMAN_REALM_ROOT_ID,
   HUMAN_REALM_VERSION,
   HUMAN_REALM_SCALE,
   HUMAN_REALM_CONTINENTS,
   HUMAN_REALM_WORLD_NODES,
-  NEW_HUMAN_REALM_CONTINENT_SPECS
-} from './humanRealmWorld.js?v=20260929-human-realm-v3';
+  NEW_HUMAN_REALM_CONTINENT_SPECS,
+  STARTER_WORLD_IDS,
+  NAM_LANG_ROOT_ID,
+  NAM_LANG_WORLD_NODES
+} from './humanRealmWorld.js?v=20260929-human-realm-v4';
 import {
   HUMAN_REALM_DETAIL_VERSION,
   HUMAN_REALM_DETAIL_COUNTS,
@@ -28,21 +32,17 @@ import {
 } from './humanRealmDetailedAtlas.js?v=20260929-human-realm-detail-v1';
 import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint } from './travelRoutes.js?v=20260929-single-map-system-v2';
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
-import {
-  NAM_LANG_REGION_ATLAS,
-  PROVINCE_ATLAS_VERSION,
-  getProvinceAtlasProfile,
-  getRegionAtlasProfile
-} from './namLangProvinceAtlas.js?v=20260929-atlas-v1';
-import {
-  FACTION_ATLAS_VERSION,
-  TRANSCONTINENTAL_SECTS,
-  getProvinceFactionProfile
-} from './namLangFactionAtlas.js?v=20260929-atlas-v1';
 
-export const MAP_SYSTEM_VERSION = '20260929-human-realm-detailed-atlas-v4';
+export const MAP_SYSTEM_VERSION = '20260929-human-realm-detailed-atlas-v5';
 export const START_MAP_ID = 0;
 export const DEFAULT_ZONE_COUNT = 4;
+
+function slugifyVi(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
 
 const REGISTRY_SINGLETON_KEY = Symbol.for('linh-son-phi-kiem.worldRegistry.singleton');
 const existingRegistryInstance = globalThis[REGISTRY_SINGLETON_KEY];
@@ -76,14 +76,7 @@ export {
   STARTER_WORLD_IDS,
   MAP_TEMPLATES,
   PANORAMA_STANDARD,
-  NAM_LANG_REGION_ATLAS,
-  PROVINCE_ATLAS_VERSION,
-  FACTION_ATLAS_VERSION,
-  TRANSCONTINENTAL_SECTS,
   getMapTemplate,
-  getProvinceAtlasProfile,
-  getProvinceFactionProfile,
-  getRegionAtlasProfile,
   hasHumanRealmDetailBlueprint,
   getHumanRealmDetailProfile,
   getAllHumanRealmDetailProfiles
@@ -106,74 +99,11 @@ const nodeByMapId = new Map(
     .map(node => [Number(node.playableMapId), node])
 );
 
-function namLangRegionIdFromNode(node) {
-  if (!node) return null;
-  if (node.type === 'great_region' && String(node.id).startsWith('nl.gr.')) return String(node.id).split('.')[2] || null;
-  if (node.type === 'province' && String(node.parentId || '').startsWith('nl.gr.')) return String(node.parentId).split('.')[2] || null;
-  return null;
-}
-
 function enrichWorldNode(rawNode) {
   if (!rawNode) return null;
   if (enrichedNodeCache.has(rawNode.id)) return enrichedNodeCache.get(rawNode.id);
 
-  // New continents already carry their own atlas/faction metadata.
-  // Only legacy-stable Nam Lăng nodes receive the Nam Lăng atlas overlay.
   let enriched = rawNode;
-  const regionId = namLangRegionIdFromNode(rawNode);
-
-  if (rawNode.type === 'great_region' && regionId) {
-    const regionAtlas = getRegionAtlasProfile(regionId);
-    const regionalSects = TRANSCONTINENTAL_SECTS.filter(sect => sect.influenceRegions.includes(regionId));
-    if (regionAtlas) {
-      enriched = Object.freeze({
-        ...rawNode,
-        atlasVersion: PROVINCE_ATLAS_VERSION,
-        climate: regionAtlas.climate,
-        signatureProducts: Object.freeze([...regionAtlas.products]),
-        signatureMinerals: Object.freeze([...regionAtlas.minerals]),
-        signatureEnemies: Object.freeze([...regionAtlas.enemies]),
-        dominantElements: Object.freeze([...regionAtlas.elements]),
-        transcontinentalSects: Object.freeze(regionalSects.map(sect => Object.freeze({
-          id: sect.id,
-          name: sect.name,
-          elem: sect.elem,
-          headquarters: sect.headquarters
-        })))
-      });
-    }
-  } else if (rawNode.type === 'province' && regionId) {
-    const provinceSiblings = (childrenByParent.get(rawNode.parentId) || []).filter(node => node.type === 'province');
-    const provinceIndex = Math.max(0, provinceSiblings.findIndex(node => node.id === rawNode.id));
-    const atlas = getProvinceAtlasProfile(regionId, rawNode.name, provinceIndex);
-    const factions = getProvinceFactionProfile(regionId, rawNode.name, provinceIndex);
-    const factionNames = factions.factions.map(faction => faction.name);
-    const cultivationFactions = Object.freeze([...new Set([
-      ...(rawNode.cultivationFactions || []),
-      ...factionNames
-    ])]);
-
-    enriched = Object.freeze({
-      ...rawNode,
-      desc: rawNode.id === STARTER_WORLD_IDS.province ? `${rawNode.desc}\n${atlas.desc}` : atlas.desc,
-      atlasVersion: atlas.atlasVersion,
-      factionAtlasVersion: factions.atlasVersion,
-      climate: atlas.climate,
-      capital: rawNode.capital || atlas.capital,
-      notableCities: atlas.notableCities,
-      notableTowns: atlas.notableTowns,
-      notableVillages: atlas.notableVillages,
-      secretRealms: atlas.secretRealms,
-      forbiddenZones: atlas.forbiddenZones,
-      products: atlas.products,
-      minerals: atlas.minerals,
-      enemyProfile: atlas.enemyProfile,
-      provinceGenerationCounts: atlas.generationCounts,
-      cultivationFactions,
-      factionProfile: factions
-    });
-  }
-
   const detailedAtlas = getHumanRealmDetailProfile(rawNode.id);
   if (detailedAtlas) {
     enriched = Object.freeze({
@@ -188,7 +118,74 @@ function enrichWorldNode(rawNode) {
 }
 
 export function findMapById(mapId) {
-  return mapById.get(Number(mapId)) || null;
+  if (mapId === null || mapId === undefined) return null;
+  const num = Number(mapId);
+  if (Number.isInteger(num) && mapById.has(num)) return mapById.get(num);
+  if (mapById.has(mapId)) return mapById.get(mapId);
+
+  // Tra cứu theo Master Map Manifest (Territory / Canonical key / Node ID)
+  const masterDef = findMasterMapById(mapId);
+  if (masterDef) {
+    if (mapById.has(masterDef.id)) return mapById.get(masterDef.id);
+    if (masterDef.canonicalKey && mapById.has(masterDef.canonicalKey)) return mapById.get(masterDef.canonicalKey);
+    const runtimeMap = buildRuntimeMap(masterDef);
+    if (runtimeMap) {
+      if (runtimeMap.id != null) mapById.set(runtimeMap.id, runtimeMap);
+      if (runtimeMap.canonicalKey) mapById.set(runtimeMap.canonicalKey, runtimeMap);
+      if (runtimeMap.locationNodeId) mapById.set(runtimeMap.locationNodeId, runtimeMap);
+      if (runtimeMap.name) mapById.set(runtimeMap.name, runtimeMap);
+      return runtimeMap;
+    }
+  }
+
+  // Tra cứu theo Node ID trong Human Realm (hoặc kế thừa từ Châu / Đơn vị cấp trên)
+  const curr = nodeById.get(mapId);
+  if (curr) {
+    if (curr.type === 'clan' || curr.type === 'guild') return null;
+
+    if (curr.playableMapId != null) {
+      const pMap = mapById.get(Number(curr.playableMapId)) || findMapById(curr.playableMapId);
+      if (pMap) return pMap;
+    }
+
+    const isSect = curr.type === 'sect' || curr.type === 'peak' || curr.type === 'hall';
+    const isCity = curr.type === 'city_territory' || curr.locationKind === 'major_hub';
+    const isVillage = curr.locationKind === 'safe_hub' || curr.locationKind === 'town';
+    const isHub = isSect || isCity || isVillage;
+
+    let ancestor = curr;
+    let parentMaster = null;
+    while (ancestor && !parentMaster) {
+      parentMaster = findMasterMapById(ancestor.id) || findMasterMapById(ancestor.name);
+      ancestor = ancestor.parentId ? nodeById.get(ancestor.parentId) : null;
+    }
+
+    const minRealm = curr.enemyProfile?.minRealmIdx ?? parentMaster?.minRealm ?? 0;
+    const maxRealm = curr.enemyProfile?.maxRealmIdx ?? parentMaster?.maxRealm ?? (minRealm + 3);
+
+    const zoneType = isSect ? ZONE_TYPES.SAFE_SECT : (isCity ? ZONE_TYPES.SAFE_CITY : (isVillage ? ZONE_TYPES.SAFE_VILLAGE : ZONE_TYPES.COMBAT_WILDERNESS));
+    const uiMode = isSect ? UI_MODES.SECT_HUB : (isCity ? UI_MODES.CITY_HUB : (isVillage ? UI_MODES.VILLAGE_HUB : UI_MODES.COMBAT_BATTLEFIELD));
+
+    const runtimeMap = buildRuntimeMap({
+      id: curr.id,
+      canonicalKey: `map_${slugifyVi(curr.name)}`,
+      name: curr.name,
+      subName: curr.desc,
+      type: zoneType,
+      uiMode: uiMode,
+      isPeaceZone: isHub,
+      realmRange: [minRealm, maxRealm],
+      bossRealmIdx: maxRealm + 1,
+      geography: { nodeId: curr.id, continent: curr.continentId, province: curr.name }
+    });
+
+    if (runtimeMap) {
+      mapById.set(curr.id, runtimeMap);
+      return runtimeMap;
+    }
+  }
+
+  return null;
 }
 
 export function getMapById(mapId) {

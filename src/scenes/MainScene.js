@@ -109,6 +109,11 @@ export class MainGameScene extends Phaser.Scene {
     ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold'].forEach(icon => this.load.image(`xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
     this.load.image('hud_skin', A + 'ui/hud_skin.png');
     this.load.image('hud_portrait', A + 'ui/hud_portrait.png');
+    // Zone 3D images cho World Map UI
+    ['zone_nation', 'zone_wild', 'zone_secret', 'zone_city',
+     'zone_village', 'zone_continent', 'zone_region', 'zone_province'
+    ].forEach(k => this.load.image(k, `${A}ui/map/zones/${k}.png`));
+    for (let i = 1; i <= 16; i++) this.load.image(`village_bldg_${i}`, `${A}environment/THON TRAN/${i}.png`);
     loadAllItemIcons(this, A);
 
     const elemDirs = { hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water', phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical' };
@@ -358,6 +363,7 @@ export class MainGameScene extends Phaser.Scene {
     }
 
     if (this.updateHerbs) this.updateHerbs(time, delta);
+    if (this.updateZoneStreaming) this.updateZoneStreaming(time, delta);
     if (Phaser.Input.Keyboard.JustDown(this.keys.F) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) { if (gameState.equippedSkillIds[0]) this.castSkill(gameState.equippedSkillIds[0]); else this.basicAttack(); }
     if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) this.performDash();
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.toggleFlyingSword();

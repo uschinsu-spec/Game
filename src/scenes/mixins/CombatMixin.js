@@ -281,19 +281,20 @@ export const CombatMixin = {
         ease: 'Quad.easeIn',
         onComplete: () => {
           giant.destroy();
-          if (this.cameras && this.cameras.main) this.cameras.main.shake(300, 0.015);
           const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
           if (this.textures.exists(shockKey)) {
             const shock = this.add.image(tx, ty, shockKey)
               .setDepth(Math.floor(ty) + 40)
               .setBlendMode(Phaser.BlendModes.ADD)
-              .setScale(0.5);
+              .setTint(tintHex)
+              .setScale(0.5)
+              .setAlpha(0.55);
             this.tweens.add({
               targets: shock,
-              scaleX: 2.5 * vfxMul,
-              scaleY: 2.5 * vfxMul,
+              scaleX: 2.0 * vfxMul,
+              scaleY: 2.0 * vfxMul,
               alpha: 0,
-              duration: 450,
+              duration: 400,
               onComplete: () => shock.destroy()
             });
           }
@@ -1177,15 +1178,15 @@ export const CombatMixin = {
             .setDepth(Math.floor(strikeY) + 65)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(0.4)
-            .setAlpha(1.0)
+            .setAlpha(0.55)
             .setTint(mainTint);
 
           this.tweens.add({
             targets: shockwave,
-            scaleX: shockwaveScale,
-            scaleY: shockwaveScale * 0.62,
+            scaleX: shockwaveScale * 0.75,
+            scaleY: shockwaveScale * 0.50,
             alpha: 0,
-            duration: 950,
+            duration: 480,
             ease: 'Cubic.easeOut',
             onComplete: () => { if (shockwave.active) shockwave.destroy(); }
           });

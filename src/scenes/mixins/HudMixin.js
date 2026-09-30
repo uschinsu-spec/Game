@@ -4,9 +4,10 @@
  */
 import { REALMS } from '../../config/realmsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
-import { SECTS, SECT_RANKS } from '../../config/sectsData.js';
-import { ALL_MAPS } from '../../config/regionsData.js';
+
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { gameState } from '../../state/gameState.js';
+import { getFaction } from '../../config/factions/gameFactionRegistry.js?v=20260930-faction-v5';
 import { W, H } from '../constants.js';
 
 export const HudMixin = {
@@ -137,19 +138,17 @@ export const HudMixin = {
     if (this.hudMpBar) this.hudMpBar.width = Math.max(0, mpRatio * 230);
     if (this.hudMpText) this.hudMpText.setText(`${fmtCompact(mana)} / ${fmtCompact(manaMax)}`);
 
-    // Sect
+    // Faction V5: cultivation affiliation is the sole canonical source.
     if (this.hudSectText) {
-      if (gameState.sectId) {
-        const sect = SECTS.find(s => s.id === gameState.sectId);
-        this.hudSectText.setText(`${sect.name} · ${SECT_RANKS[gameState.sectRankIdx].name}`.slice(0, 25));
-      } else {
-        this.hudSectText.setText('Tán Tu Tự Do');
-      }
+      const affiliations = gameState.factionState?.affiliations || {};
+      const membership = affiliations.Cultivation || affiliations.cultivation || null;
+      const faction = membership?.factionId ? getFaction(membership.factionId) : null;
+      this.hudSectText.setText(faction?.name || 'Tán Tu Tự Do');
     }
 
     // Map
     if (this.hudMapText) {
-      const map = ALL_MAPS[gameState.currentMapId] || ALL_MAPS[0];
+      const map = this.currentMap || getMapById(gameState.currentMapId);
       this.hudMapText.setText(map.name.slice(0, 23));
     }
 

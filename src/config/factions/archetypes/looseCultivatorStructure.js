@@ -1,0 +1,1 @@
+export function createLooseCultivatorStructure(){return Object.freeze({roles:Object.freeze(['Minh Chủ','Chấp Sự','Khách Khanh','Tán Tu đăng ký']),services:Object.freeze(['nhiệm vụ','trú sở','bảng truy nã','kết đội','commission','bảo tiêu']),membership:'open_nonexclusive'});}

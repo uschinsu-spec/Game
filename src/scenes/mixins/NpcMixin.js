@@ -2,7 +2,7 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA, VILLAGE_HOTSPOTS } from '../../config/npcData.js?v=20260928-village-hotspots-v1';
+import { NPCS_DATA, VILLAGE_HOTSPOTS, VILLAGE_DECORATIONS } from '../../config/npcData.js?v=20260929-village-thon-tran-v2';
 import { gameState } from '../../state/gameState.js';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
 import { W, H } from '../constants.js';
@@ -10,8 +10,6 @@ import { W, H } from '../constants.js';
 export const NpcMixin = {
 
   leaveThanhVanVillageDirect() {
-    if (Number(gameState?.currentMapId) !== 0) return false;
-
     this.closeModal?.();
     this.moveTarget = null;
 
@@ -35,9 +33,8 @@ export const NpcMixin = {
     this.npcsGroup = [];
 
     const curMapId = gameState.currentMapId;
-    // Map 0 already contains every NPC and label in the background artwork.
-    // Do not create legacy sprites, name plates or floating interaction buttons.
-    if (Number(curMapId) === 0) return;
+    const isHub = Number(curMapId) === 0 || this.currentMap?.isPeaceZone === true || this.currentMap?.uiMode === 'village_hub' || this.currentMap?.uiMode === 'city_hub' || this.currentMap?.uiMode === 'sect_hub';
+    if (isHub) return;
 
     const currentNpcs = NPCS_DATA.filter(n => n.mapId === curMapId);
 
@@ -128,9 +125,55 @@ export const NpcMixin = {
 
   createVillageImageHotspots() {
     this.clearVillageImageHotspots?.();
-    if (Number(gameState.currentMapId) !== 0) return;
+    const mapId = Number(gameState.currentMapId ?? 0);
+    const map = this.currentMap;
+    const isHub = mapId === 0 || map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
+    if (!isHub) return;
 
     this.villageHotspotObjects = [];
+
+    // Cấu hình tọa độ Touch Zone trực tiếp khớp với các công trình trên hình nền
+    let HUB_ELEMENTS = [];
+
+    if (mapId === 0 || map?.uiMode === 'village_hub' || map?.type === 'safe_village') {
+      // 1. THÔN TRẤN (Background: THON TRAN.png)
+      HUB_ELEMENTS = [
+        { npcId: 'truong_thon', name: 'Trưởng thôn',    x: 225, y: 125, width: 160, height: 110 },
+        { npcId: 'nong_phu',    name: 'Nông phu',       x: 385, y: 215, width: 140, height: 100 },
+        { npcId: 'tho_ren',     name: 'Thợ rèn',        x: 105, y: 315, width: 140, height: 110 },
+        { npcId: 'thuong_hoi',  name: 'Thương nhân',    x: 210, y: 405, width: 150, height: 115 },
+        { npcId: 'duoc_diem',   name: 'Dược nương',     x: 130, y: 585, width: 140, height: 115 },
+        { npcId: 'tuu_lau',     name: 'Chủ tửu quán',   x: 300, y: 550, width: 150, height: 120 },
+        { npcId: 'tho_xay',     name: 'Thợ xay',        x: 380, y: 755, width: 130, height: 95 },
+        { npcId: 've_si_cong',  name: 'Vệ sĩ cổng',     x: 230, y: 825, width: 170, height: 110 }
+      ];
+    } else if (map?.uiMode === 'city_hub' || map?.type === 'safe_city') {
+      // 2. THÀNH THỊ (Background: THANH THI.PNG)
+      HUB_ELEMENTS = [
+        { npcId: 'truong_thon', name: 'Phủ Thành Chủ',   x: 270, y: 120, width: 180, height: 115 },
+        { npcId: 'thuong_hoi',  name: 'Đấu Giá Các',     x: 120, y: 250, width: 150, height: 115 },
+        { npcId: 'nong_phu',    name: 'Tiền Trang',      x: 420, y: 250, width: 150, height: 115 },
+        { npcId: 'thuong_hoi',  name: 'Vạn Bảo Thương Hội',x: 270, y: 390, width: 180, height: 115 },
+        { npcId: 'tuu_lau',     name: 'Túy Tiên Lầu',    x: 120, y: 530, width: 150, height: 115 },
+        { npcId: 'duoc_diem',   name: 'Thiên Đan Các',   x: 420, y: 530, width: 150, height: 115 },
+        { npcId: 'tho_ren',     name: 'Thần Khí Phường', x: 120, y: 670, width: 150, height: 115 },
+        { npcId: 'vo_quan',     name: 'Thiên Đô Võ Đài', x: 420, y: 670, width: 150, height: 115 },
+        { npcId: 've_si_cong',  name: 'Cổng Thành',      x: 270, y: 835, width: 185, height: 115 }
+      ];
+    } else if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
+      // 3. TÔNG MÔN (Background: TONG MON.PNG)
+      HUB_ELEMENTS = [
+        { npcId: 'truong_thon', name: 'Đại Điện Chưởng Môn', x: 270, y: 120, width: 180, height: 115 },
+        { npcId: 'vo_quan',     name: 'Tàng Kinh Các',       x: 120, y: 250, width: 150, height: 115 },
+        { npcId: 'duoc_diem',   name: 'Luyện Đan Điện',      x: 420, y: 250, width: 150, height: 115 },
+        { npcId: 'tho_ren',     name: 'Luyện Khí Phường',    x: 120, y: 410, width: 150, height: 115 },
+        { npcId: 'truong_thon', name: 'Chấp Pháp Đường',     x: 420, y: 410, width: 150, height: 115 },
+        { npcId: 'tuu_lau',     name: 'Nhiệm Vụ Đường',      x: 270, y: 540, width: 180, height: 115 },
+        { npcId: 'nong_phu',    name: 'Linh Thú Viên',       x: 120, y: 670, width: 150, height: 115 },
+        { npcId: 'vo_quan',     name: 'Diễn Võ Trường',      x: 420, y: 670, width: 150, height: 115 },
+        { npcId: 've_si_cong',  name: 'Sơn Môn Xuất Hành',   x: 270, y: 835, width: 185, height: 115 }
+      ];
+    }
 
     const resetZone = (zone) => {
       if (!zone || zone.scene == null || zone.active === false) return;
@@ -138,59 +181,121 @@ export const NpcMixin = {
       zone.setStrokeStyle();
     };
 
-    VILLAGE_HOTSPOTS.forEach(def => {
-      const zone = this.add.rectangle(def.x, def.y, def.width, def.height, 0xffe7a0, 0.001)
-        .setDepth(180)
-        .setInteractive({ useHandCursor: true });
+    HUB_ELEMENTS.forEach(el => {
+      // Vùng tương tác trong suốt bao phủ toàn bộ công trình và biển hiệu chữ trên hình nền
+      if (el.npcId) {
+        const zone = this.add.rectangle(el.x, el.y, el.width || 180, el.height || 140, 0xffe7a0, 0.001)
+          .setDepth(500)
+          .setScrollFactor(0)
+          .setInteractive({ useHandCursor: true });
 
-      // Tránh dính viền hover trên màn hình cảm ứng iOS/Android
-      zone.on('pointerout', () => resetZone(zone));
-      zone.on('pointerup', () => resetZone(zone));
-      zone.on('pointercancel', () => resetZone(zone));
-
-      zone.on('pointerdown', pointer => {
-        this.input?.stopPropagation?.();
-        pointer?.event?.stopPropagation?.();
-        pointer?.event?.preventDefault?.();
-        this.moveTarget = null;
-
-        // Xóa highlight cũ
-        this.villageHotspotObjects?.forEach(obj => {
-          if (obj?.input) resetZone(obj);
+        zone.on('pointerover', () => {
+          zone.setFillStyle(0xffe57f, 0.08).setStrokeStyle(2, 0xffe57f, 0.6);
         });
 
-        // Chạm vào Vệ Sĩ Cổng: rời thôn ngay không cần mở dialog
-        if (def.npcId === 've_si_cong') {
-          this.leaveThanhVanVillageDirect?.();
-          return;
-        }
+        zone.on('pointerout', () => resetZone(zone));
+        zone.on('pointerup', () => resetZone(zone));
+        zone.on('pointercancel', () => resetZone(zone));
 
-        // Hiệu ứng bấm chớp nhẹ và tự reset
-        zone.setFillStyle(0xffffff, 0.12).setStrokeStyle(2, 0xffefad, 0.85);
-        this.time?.delayedCall?.(90, () => resetZone(zone));
-        this.openNpcDialogModal?.(def.npcId);
-      });
+        zone.on('pointerdown', pointer => {
+          this.input?.stopPropagation?.();
+          pointer?.event?.stopPropagation?.();
+          pointer?.event?.preventDefault?.();
+          this.moveTarget = null;
 
-      this.villageHotspotObjects.push(zone);
+          // Xóa highlight cũ
+          this.villageHotspotObjects?.forEach(obj => {
+            if (obj?.input) resetZone(obj);
+          });
+
+          // Hiệu ứng chớp sáng vàng kim phản hồi tương tác
+          zone.setFillStyle(0xffffff, 0.25).setStrokeStyle(3, 0xffd700, 1);
+          this.time?.delayedCall?.(150, () => resetZone(zone));
+
+          // Chạm vào Cổng: rời Hub ngay lập tức
+          if (el.npcId === 've_si_cong') {
+            this.leaveThanhVanVillageDirect?.();
+            return;
+          }
+
+          // Mở modal tương tác NPC tương ứng
+          if (typeof this.openNpcDialogModal === 'function') {
+            this.openNpcDialogModal(el.npcId);
+          }
+        });
+
+        this.villageHotspotObjects.push(zone);
+      }
     });
 
-    const hintBg = this.add.rectangle(W / 2, 24, 314, 32, 0x071b25, 0.88)
-      .setStrokeStyle(1.5, 0xffdf8c, 0.9)
-      .setDepth(181);
-    const hint = this.add.text(W / 2, 24, '☝ CHẠM VÀO TÊN CHỨC NĂNG TRÊN BẢN ĐỒ', {
-      fontFamily: 'Be Vietnam Pro, sans-serif',
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#fff3bd'
-    }).setOrigin(0.5).setDepth(182);
+    // ---------------------------------------------------------------
+    // THANH TIÊU ĐỀ HIỂN THỊ TÊN MAP AN TOÀN PHÍA TRÊN CÙNG
+    // ---------------------------------------------------------------
+    const mapName = (map?.name || 'KHU AN TOÀN').toUpperCase();
+    let typeBadge = '🏮 THÔN TRẤN';
+    let badgeColor = 0x166534; // green-800
+    let strokeColor = 0x4ade80; // green-400
+    let titleColor = '#fef08a';
 
-    this.villageHotspotObjects.push(hintBg, hint);
+    if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
+      typeBadge = '⛩️ TÔNG MÔN';
+      badgeColor = 0x581c87; // purple-900
+      strokeColor = 0xc084fc; // purple-400
+      titleColor = '#f3e8ff';
+    } else if (map?.uiMode === 'city_hub' || map?.type === 'safe_city') {
+      typeBadge = '🏰 THÀNH THỊ';
+      badgeColor = 0x1e3a8a; // blue-900
+      strokeColor = 0x60a5fa; // blue-400
+      titleColor = '#e0f2fe';
+    }
+
+    const headerContainer = this.add.container(W / 2, 34).setDepth(600).setScrollFactor(0);
+    
+    // Khung nền sang trọng
+    const plateWidth = Math.min(480, Math.max(300, mapName.length * 11 + 130));
+    const plateHeight = 40;
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x071b25, 0.92);
+    headerBg.fillRoundedRect(-plateWidth / 2, -plateHeight / 2, plateWidth, plateHeight, 8);
+    headerBg.lineStyle(1.8, strokeColor, 0.95);
+    headerBg.strokeRoundedRect(-plateWidth / 2, -plateHeight / 2, plateWidth, plateHeight, 8);
+
+    // Tag Loại Map (Tông Môn / Thành Thị / Thôn Trấn)
+    const badgeGfx = this.add.graphics();
+    badgeGfx.fillStyle(badgeColor, 0.95);
+    badgeGfx.fillRoundedRect(-plateWidth / 2 + 8, -14, 98, 28, 6);
+    badgeGfx.lineStyle(1.2, strokeColor, 0.85);
+    badgeGfx.strokeRoundedRect(-plateWidth / 2 + 8, -14, 98, 28, 6);
+
+    const badgeTxt = this.add.text(-plateWidth / 2 + 57, 0, typeBadge, {
+      fontFamily: 'Be Vietnam Pro, sans-serif',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    // Tên Map Nổi Bật
+    const maxTextWidth = plateWidth - 125;
+    const nameTxt = this.add.text(-plateWidth / 2 + 114, 0, mapName, {
+      fontFamily: 'Be Vietnam Pro, sans-serif',
+      fontSize: mapName.length > 25 ? '11.5px' : '13px',
+      fontStyle: 'bold',
+      color: titleColor,
+      stroke: '#000000',
+      strokeThickness: 2.2,
+      wordWrap: { width: maxTextWidth, useAdvancedWrap: true }
+    }).setOrigin(0, 0.5);
+
+    headerContainer.add([headerBg, badgeGfx, badgeTxt, nameTxt]);
+    this.villageHotspotObjects.push(headerContainer);
   },
 
   syncVillageHubMode() {
-    const active = Number(gameState.currentMapId) === 0;
+    const mapId = Number(gameState.currentMapId ?? 0);
+    const map = this.currentMap;
+    const isHub = mapId === 0 || map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
 
-    if (active) this.enforceVillageHubPresentation();
+    if (isHub) this.enforceVillageHubPresentation();
     else {
       if (this.player) {
         this.player.setVisible(true);
@@ -206,12 +311,11 @@ export const NpcMixin = {
       this.sideToggleContainer?.setVisible?.(true);
     }
 
-    if (active) this.createVillageImageHotspots();
+    if (isHub) this.createVillageImageHotspots();
     else this.clearVillageImageHotspots();
   },
 
   enforceVillageHubPresentation() {
-    if (Number(gameState.currentMapId) !== 0) return;
     if (this.player) {
       this.player.setVisible(false).setVelocity?.(0, 0);
       if (this.player.body) this.player.body.enable = false;
@@ -222,6 +326,10 @@ export const NpcMixin = {
       this.joy.id = null;
       this.joy.x = 0;
       this.joy.y = 0;
+    }
+    if (this.cameras?.main) {
+      this.cameras.main.stopFollow();
+      this.cameras.main.setScroll(0, 0);
     }
 
     this.topHudElements?.forEach(el => el?.setVisible?.(false));

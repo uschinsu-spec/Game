@@ -1,0 +1,1 @@
+export function createUnderworldStructure(){return Object.freeze({roles:Object.freeze(['Hội Chủ','Ám Điện','Phân Đường','Sát Thủ','Mật Thám','Buôn lậu','Liên lạc viên']),services:Object.freeze(['hắc thị','ám sát','buôn tin','hàng cấm','identity giả']),visibility:'hidden',membership:'secret'});}

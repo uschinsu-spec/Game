@@ -79,8 +79,8 @@ function createPanoramaBackground(scene, map) {
   }
 
   const panoramaKey = scene.getMapPanoramaKey(map);
-  const shouldRepeat = !!map?.runtime?.repeatPanorama &&
-    !map?.noRepeat && !map?.isPeaceZone && Number(scene.worldW || 0) > 2880;
+  const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
+  const shouldRepeat = !!map?.runtime?.repeatPanorama && !map?.noRepeat && !isHub && Number(scene.worldW || 0) > 2880;
 
   if (shouldRepeat) {
     scene.bg = scene.add.tileSprite(
@@ -189,7 +189,7 @@ export function installWorldMapRuntime(MainGameScene) {
   const commitMapSwitch = function commitMapSwitch(map, spawnX, spawnY) {
     const fromMapId = Number(gameState.currentMapId);
     const linkedRoute = this.getDirectMapRoute(fromMapId, map.id);
-    const sx = linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? 350;
+    const sx = linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? 270;
     const sy = linkedRoute?.targetSpawnY ?? spawnY ?? map.spawn?.y ?? 620;
 
     this.applyMapRuntimeConfig(map.id);
@@ -198,6 +198,17 @@ export function installWorldMapRuntime(MainGameScene) {
 
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
+
+    const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
+    if (isHub) {
+      this.cameras.main.stopFollow();
+      this.cameras.main.setScroll(0, 0);
+    } else {
+      if (this.player) {
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
+      }
+    }
+
     createPanoramaBackground(this, map);
 
     if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0);
@@ -224,11 +235,11 @@ export function installWorldMapRuntime(MainGameScene) {
     const access = canEnterMap(mapId, gameState);
     if (!access.ok) return this.currentMap || getMapById(gameState.currentMapId);
 
-    const fromMapId = Number(gameState.currentMapId);
+    const fromMapId = gameState.currentMapId;
     const map = access.map;
     const now = Number(this.time?.now || 0);
 
-    if (Number(map.id) === 0 && fromMapId !== 0 && now < Number(this.villageReentryBlockedUntil || 0)) {
+    if (Number(map.id) === 0 && Number(fromMapId) !== 0 && now < Number(this.villageReentryBlockedUntil || 0)) {
       return this.currentMap || getMapById(fromMapId);
     }
 
@@ -240,7 +251,7 @@ export function installWorldMapRuntime(MainGameScene) {
       this.ensurePanoramaLoaded(map.id)
         .then(() => {
           if (this.__pendingMapSwitchToken !== token) return;
-          if (Number(gameState.currentMapId) !== fromMapId) return;
+          if (String(gameState.currentMapId) !== String(fromMapId)) return;
           this.__pendingMapSwitchToken = null;
           commitMapSwitch.call(this, map, spawnX, spawnY);
         })

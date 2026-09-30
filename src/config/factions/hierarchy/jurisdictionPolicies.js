@@ -1,0 +1,2 @@
+import { hash32 } from '../generation/factionGenerator.js';
+export function policiesForJurisdiction(j){const h=hash32(j?.id||'');return Object.freeze({taxRate:4+(h%13),duelPolicy:['cấm','đăng ký','tự do có giới hạn'][h%3],sectRecruitment:['mở','kiểm soát','ưu tiên bản địa'][(h>>2)%3],tradePolicy:['tự do','thuế quan','độc quyền một phần'][(h>>4)%3],contrabandStrictness:30+(h%61),nightCurfew:(h%5)===0});}

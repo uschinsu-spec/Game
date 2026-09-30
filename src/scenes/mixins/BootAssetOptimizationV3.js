@@ -51,6 +51,11 @@ function queueBootAssets(scene) {
   queueSpriteSheet(scene, 'player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
   queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
 
+  // Core Hub background assets (Thôn Trấn / Thành Thị / Tông Môn)
+  queueImage(scene, 'bg_village_hub', A + 'environment/THON TRAN.png');
+  queueImage(scene, 'bg_city_hub', A + 'environment/THANH THI.PNG');
+  queueImage(scene, 'bg_sect_hub', A + 'environment/TONG MON.PNG');
+
   // Visible HUD/menu shell only.
   queueImage(scene, 'hud_skin', A + 'ui/hud_skin.png');
   queueImage(scene, 'hud_portrait', A + 'ui/hud_portrait.png');

@@ -1,0 +1,8 @@
+{
+  "name":"human-realm-faction-network-v5-expanded-world-codex-ready",
+  "version":"5.0.0",
+  "type":"module",
+  "private":true,
+  "scripts":{"test":"node tests/v5StandaloneSmokeTest.mjs","test:game":"node tests/v5CurrentGameIntegrationTest.mjs"},
+  "description":"Clean-install Human Realm faction/social-power system for the expanded 99k-node world"
+}

@@ -1,0 +1,15 @@
+{
+  "worldVersion": "20260929-human-realm-unified-v5-expanded-5qg",
+  "worldNodeCount": 99062,
+  "continents": 5,
+  "greatRegions": 42,
+  "territories": 437,
+  "nations": 2185,
+  "cityTerritories": 10925,
+  "settlements": 21850,
+  "locations": 63617,
+  "realmCap": 28,
+  "mode": "clean-install-faction-v5",
+  "mapRegistry": "worldRegistry.js remains authoritative",
+  "factionRegistry": "src/config/factions/gameFactionRegistry.js"
+}

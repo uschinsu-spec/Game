@@ -1,158 +1,221 @@
 /**
  * playableMaps.js
- * THE ONLY runtime map catalog for the whole game.
- *
- * Geographic/lore scale lives in namLangWorld.js. Runtime maps are only the
- * locations that actually have a scene representation. There is no legacy,
- * parallel or compatibility runtime catalog.
- *
- * Current runtime contract is intentionally strict:
- * - Map 0: Thanh Vân Thôn
- * - Map 1: Thanh Vân Ngoại Vi
- * - Map 2: Vạn Mộc Sâm Lâm
- *
- * New locations in the 9 Đại Vực / 108 Châu hierarchy stay as world data until
- * they are deliberately materialized into this single catalog.
+ * Bridges the declarative Master Map Manifest (masterMapManifest.js)
+ * into the engine runtime map catalog.
  */
-import { getMapTemplate } from './mapTemplates.js?v=20260929-single-map-system-v1';
-import { STARTER_WORLD_IDS } from './namLangWorld.js?v=20260929-single-map-system-v1';
+import {
+  MASTER_MAP_DEFINITIONS,
+  ZONE_TYPES,
+  UI_MODES,
+  ELEMENT_TYPES,
+  MAJOR_PROVINCES,
+  CANONICAL_MAP_KEYS,
+  getMasterMapById,
+  getAllMasterMaps,
+  isMapSafeHub,
+  getMapUiMode,
+  getMapCombatZones
+} from './masterMapManifest.js?v=20260929-master-map-manifest-v1';
 
-const DEFAULT_FIELD = Object.freeze({ left: 60, right: 2820, top: 350, bottom: 900 });
-const DEFAULT_SPAWN = Object.freeze({ x: 350, y: 620 });
+export const RUNTIME_MAP_IDS = Object.freeze(MASTER_MAP_DEFINITIONS.map(m => Number(m.id)));
 
-export const RUNTIME_MAP_IDS = Object.freeze([0, 1, 2]);
-
-// Kept as a reusable asset definition for future maps. It is not a second map
-// system and does not create a runtime map by itself.
 export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   key: 'map_panorama_wilderness_shared',
-  asset: 'environment/map_shared_wilderness_panorama.png',
+  asset: 'environment/map_1_thanh_van_ngoai_vi.png',
   sourceWidth: 3200,
   sourceHeight: 960,
   worldWidth: 32000,
   worldHeight: 960
 });
 
-function makeMap(id, name, sub, minRealm, monsterIdxStart, icon, opts = {}) {
-  const templateId = opts.templateId || 'FIELD_GRASSLAND_01';
-  const template = getMapTemplate(templateId);
-  const isSafeHub = template.type === 'hub' || opts.isPeaceZone === true;
-  const hasCustomPanorama = opts.panoramaAsset != null || opts.panoramaTemplateMapId != null;
-  const useSharedWildernessPanorama = opts.useSharedWildernessPanorama ?? (!isSafeHub && !hasCustomPanorama);
-  const noRepeat = opts.noRepeat ?? (useSharedWildernessPanorama ? false : template.type === 'hub');
+export function buildRuntimeMap(def) {
+  if (!def) return null;
+  const isSafeHub = def.isPeaceZone === true || def.type === ZONE_TYPES.SAFE_VILLAGE || def.type === ZONE_TYPES.SAFE_CITY || def.type === ZONE_TYPES.SAFE_SECT;
+  const templateId = isSafeHub
+    ? (def.type === ZONE_TYPES.SAFE_CITY ? 'HUB_CITY_01' : (def.type === ZONE_TYPES.SAFE_SECT ? 'HUB_SECT_01' : 'HUB_VILLAGE_01'))
+    : 'FIELD_GRASSLAND_01';
 
-  const worldWidth = opts.worldWidth ?? (useSharedWildernessPanorama
-    ? SHARED_WILDERNESS_PANORAMA.worldWidth
-    : (template.worldWidth ?? 2880));
-  const worldHeight = opts.worldHeight ?? (useSharedWildernessPanorama
-    ? SHARED_WILDERNESS_PANORAMA.worldHeight
-    : (template.worldHeight ?? 960));
+  const isSectHub = def.type === ZONE_TYPES.SAFE_SECT || def.uiMode === UI_MODES.SECT_HUB;
+  const isCityHub = def.type === ZONE_TYPES.SAFE_CITY || def.uiMode === UI_MODES.CITY_HUB;
 
-  const field = {
-    ...DEFAULT_FIELD,
-    right: worldWidth - 60,
-    bottom: Math.min(900, worldHeight - 60),
-    ...(opts.field || {})
+  const defaultBgKey = isSectHub
+    ? 'bg_sect_hub'
+    : (isCityHub ? 'bg_city_hub' : (isSafeHub ? 'bg_village_hub' : 'map_panorama_wilderness_shared'));
+
+  const defaultBgPath = isSectHub
+    ? 'environment/TONG MON.PNG'
+    : (isCityHub ? 'environment/THANH THI.PNG' : (isSafeHub ? 'environment/THON TRAN.png' : 'environment/map_1_thanh_van_ngoai_vi.png'));
+
+  const defaultSourceWidth = isSectHub ? 848 : (isCityHub ? 941 : (isSafeHub ? 784 : 3200));
+  const defaultSourceHeight = isSectHub ? 1264 : (isCityHub ? 1672 : (isSafeHub ? 1334 : 960));
+
+  const assets = def.assets || {
+    bgKey: defaultBgKey,
+    bgPath: defaultBgPath,
+    panoramaKey: defaultBgKey,
+    panoramaAsset: defaultBgPath,
+    sourceWidth: defaultSourceWidth,
+    sourceHeight: defaultSourceHeight,
+    worldWidth: isSafeHub ? 540 : 32000,
+    worldHeight: 960,
+    field: isSafeHub ? { left: 30, right: 510, top: 200, bottom: 900 } : { left: 60, right: 31940, top: 350, bottom: 900 },
+    spawn: isSafeHub ? { x: 270, y: 650 } : { x: 350, y: 620 },
+    noRepeat: isSafeHub,
+    repeatPanorama: !isSafeHub
   };
-  const access = Object.freeze({
-    minRealmIdx: opts.access?.minRealmIdx ?? minRealm ?? 0,
-    requiresQuestId: opts.access?.requiresQuestId ?? null,
-    requiresFactionId: opts.access?.requiresFactionId ?? null
-  });
+
+  const minRealm = def.access?.minRealmIdx ?? def.realmRange?.[0] ?? 0;
+  const maxRealm = def.realmRange?.[1] ?? (minRealm + 3);
+  const locationNodeId = def.geography?.nodeId ?? def.nodeId ?? null;
+
+  const fieldLeft = assets.field?.left ?? 60;
+  const fieldRight = assets.field?.right ?? (assets.worldWidth ? assets.worldWidth - 60 : 31940);
+  const span = Math.max(100, (fieldRight - fieldLeft) / 4);
+
+  let zones = def.combatContent?.zones || def.zones || [];
+  if (!isSafeHub && (!zones || zones.length === 0)) {
+    const dominantElements = def.dominantElements || ['MOC', 'THUY'];
+    zones = [
+      {
+        id: `${def.canonicalKey || def.id}_z1`,
+        name: `${def.name} Cửa Ngõ`,
+        x0: Math.round(fieldLeft + span * 0),
+        x1: Math.round(fieldLeft + span * 1),
+        realmRange: [minRealm, Math.min(maxRealm, minRealm + 1)],
+        elementAffinities: dominantElements,
+        monsterRanks: [`m_${Math.min(4, Math.floor(minRealm / 3))}_1`],
+        monsterSprites: [1, 2],
+        flyingMonsterSprites: [1],
+        herbTiers: [Math.min(7, Math.max(1, Math.floor(minRealm / 3) + 1))],
+        oreTiers: [Math.min(5, Math.max(1, Math.floor(minRealm / 3) + 1))],
+        densityDistance: 320
+      },
+      {
+        id: `${def.canonicalKey || def.id}_z2`,
+        name: `${def.name} Ngoại Vi`,
+        x0: Math.round(fieldLeft + span * 1),
+        x1: Math.round(fieldLeft + span * 2),
+        realmRange: [Math.min(maxRealm, minRealm + 1), Math.min(maxRealm, minRealm + 2)],
+        elementAffinities: dominantElements,
+        monsterRanks: [`m_${Math.min(4, Math.floor(minRealm / 3))}_2`],
+        monsterSprites: [2, 3],
+        flyingMonsterSprites: [1, 2],
+        herbTiers: [Math.min(7, Math.max(1, Math.floor(minRealm / 3) + 1))],
+        oreTiers: [Math.min(5, Math.max(1, Math.floor(minRealm / 3) + 1))],
+        densityDistance: 280
+      },
+      {
+        id: `${def.canonicalKey || def.id}_z3`,
+        name: `${def.name} Trung Tâm`,
+        x0: Math.round(fieldLeft + span * 2),
+        x1: Math.round(fieldLeft + span * 3),
+        realmRange: [Math.min(maxRealm, minRealm + 2), maxRealm],
+        elementAffinities: dominantElements,
+        monsterRanks: [`m_${Math.min(4, Math.floor(maxRealm / 3))}_3`],
+        monsterSprites: [3, 4],
+        flyingMonsterSprites: [2, 3],
+        herbTiers: [Math.min(7, Math.max(1, Math.floor(maxRealm / 3) + 1))],
+        oreTiers: [Math.min(5, Math.max(1, Math.floor(maxRealm / 3) + 1))],
+        densityDistance: 240
+      },
+      {
+        id: `${def.canonicalKey || def.id}_z4`,
+        name: `${def.name} Thâm Xứ`,
+        x0: Math.round(fieldLeft + span * 3),
+        x1: fieldRight,
+        realmRange: [maxRealm, def.bossRealmIdx || (maxRealm + 1)],
+        elementAffinities: dominantElements,
+        monsterRanks: [`m_${Math.min(4, Math.floor(maxRealm / 3))}_4`],
+        monsterSprites: [4, 5],
+        flyingMonsterSprites: [3, 4],
+        herbTiers: [Math.min(7, Math.max(1, Math.floor(maxRealm / 3) + 1))],
+        oreTiers: [Math.min(5, Math.max(1, Math.floor(maxRealm / 3) + 1))],
+        densityDistance: 180
+      }
+    ];
+  }
 
   return Object.freeze({
-    id, name, sub,
-    minRealm: access.minRealmIdx,
-    monsterIdxStart,
-    icon,
+    id: def.id,
+    canonicalKey: def.canonicalKey || def.key || `map_${def.id}`,
+    name: def.name,
+    sub: def.subName || def.sub || (def.primaryRegionName ? `${def.primaryRegionName} · ${def.continentName}` : 'Toàn Cõi Nhân Giới'),
+    minRealm,
+    monsterIdxStart: Math.min(12, minRealm),
+    icon: `stage_${Math.min(4, Math.floor(minRealm / 3))}`,
+    type: def.type,
+    uiMode: def.uiMode || (isSafeHub ? UI_MODES.VILLAGE_HUB : UI_MODES.COMBAT_BATTLEFIELD),
     templateId,
-    locationNodeId: opts.locationNodeId ?? null,
-    worldPath: opts.worldPath ?? null,
-    access,
-    isPeaceZone: opts.isPeaceZone ?? false,
-    noRepeat,
-    worldWidth,
-    worldHeight,
-    field: Object.freeze(field),
-    spawn: Object.freeze({ ...DEFAULT_SPAWN, ...(opts.spawn || {}) }),
-    panoramaKey: useSharedWildernessPanorama
-      ? SHARED_WILDERNESS_PANORAMA.key
-      : (opts.panoramaKey || `map_panorama_${id}`),
-    panoramaAsset: useSharedWildernessPanorama
-      ? SHARED_WILDERNESS_PANORAMA.asset
-      : (opts.panoramaAsset ?? null),
-    panoramaSourceWidth: useSharedWildernessPanorama
-      ? SHARED_WILDERNESS_PANORAMA.sourceWidth
-      : (opts.panoramaSourceWidth ?? 3200),
-    panoramaSourceHeight: useSharedWildernessPanorama
-      ? SHARED_WILDERNESS_PANORAMA.sourceHeight
-      : (opts.panoramaSourceHeight ?? 960),
-    panoramaTemplateMapId: useSharedWildernessPanorama ? null : (opts.panoramaTemplateMapId ?? null),
-    useSharedWildernessPanorama,
-    waypointMode: opts.waypointMode || 'auto_on_visit',
-    zones: Object.freeze((opts.zones || []).map(zone => Object.freeze({ ...zone }))),
+    locationNodeId,
+    worldPath: Object.freeze({
+      continent: def.geography?.continent ?? def.continentName ?? 'Nhân Giới',
+      greatRegion: def.geography?.greatRegion ?? def.primaryRegionName ?? 'Đại Vực',
+      province: def.geography?.province ?? def.name ?? 'Châu',
+      nation: def.geography?.nation ?? def.name ?? 'Quốc',
+      commandery: def.geography?.commandery ?? def.name ?? 'Quận',
+      city: def.geography?.city ?? def.settlements?.capital ?? `${def.name} Thành`
+    }),
+    access: Object.freeze({
+      minRealmIdx: minRealm,
+      requiresQuestId: def.access?.requiresQuestId ?? null,
+      requiresFactionId: def.access?.requiresFactionId ?? null
+    }),
+    isPeaceZone: def.isPeaceZone ?? isSafeHub,
+    noRepeat: assets.noRepeat ?? isSafeHub,
+    worldWidth: assets.worldWidth,
+    worldHeight: assets.worldHeight,
+    field: Object.freeze({ ...assets.field }),
+    spawn: Object.freeze({ ...assets.spawn }),
+    panoramaKey: assets.panoramaKey,
+    panoramaAsset: assets.panoramaAsset,
+    panoramaSourceWidth: assets.sourceWidth,
+    panoramaSourceHeight: assets.sourceHeight,
+    useSharedWildernessPanorama: false,
+    waypointMode: 'auto_on_visit',
+    zones: Object.freeze(zones.map(z => Object.freeze({ ...z }))),
+    combatContent: isSafeHub ? null : Object.freeze({
+      zones: Object.freeze(zones.map(z => Object.freeze({ ...z }))),
+      resourceSpawns: Object.freeze({
+        herbIds: Object.freeze(def.resourceProfile?.products || ['herb_1', 'herb_2', 'herb_3']),
+        oreTiers: Object.freeze([1, 2, 3, 4, 5])
+      })
+    }),
+    hubContent: def.hubContent ?? (isSafeHub ? Object.freeze({
+      essentialBuildings: Object.freeze([]),
+      bgmTrack: assets.bgmTrack || 'bgm_village_peace'
+    }) : null),
     runtime: Object.freeze({
-      chunkWidth: opts.chunkWidth ?? template.runtime?.chunkWidth ?? 1024,
-      activeChunkRadius: opts.activeChunkRadius ?? template.runtime?.activeChunkRadius ?? 1,
-      objectPooling: opts.objectPooling ?? template.runtime?.objectPooling ?? true,
-      repeatPanorama: !noRepeat && (useSharedWildernessPanorama || template.visual?.repeatPanorama === true)
+      chunkWidth: 1024,
+      activeChunkRadius: 1,
+      objectPooling: true,
+      repeatPanorama: assets.repeatPanorama ?? false
     })
   });
 }
 
-const STARTER_PATH = Object.freeze({
-  continent: 'Nam Lăng Đại Lục',
-  greatRegion: 'Thanh Linh Vực',
-  province: 'Thanh Châu',
-  nation: 'Đại Ly Quốc',
-  commandery: 'Nam Sơn Quận',
-  city: 'Thanh Hà Thành Vực'
-});
-
-export const ALL_PLAYABLE_MAPS = Object.freeze([
-  makeMap(0, 'Thanh Vân Thôn', 'Thôn Khởi Nguyên & Khu An Toàn', 0, 0, 'stage_0', {
-    templateId: 'HUB_VILLAGE_01', locationNodeId: STARTER_WORLD_IDS.map0, worldPath: STARTER_PATH,
-    isPeaceZone: true, noRepeat: true, worldWidth: 540, worldHeight: 960,
-    field: { left: 90, right: 450, top: 180, bottom: 890 },
-    panoramaKey: 'map_panorama_0', panoramaAsset: 'environment/map_0_thanh_van_thon.png',
-    panoramaSourceWidth: 784, panoramaSourceHeight: 1334,
-    spawn: { x: 270, y: 840 }, waypointMode: 'auto_on_visit'
-  }),
-  makeMap(1, 'Thanh Vân Ngoại Vi', 'Bãi săn yêu quanh Thanh Vân Thôn', 0, 0, 'stage_0', {
-    templateId: 'FIELD_GRASSLAND_01', locationNodeId: STARTER_WORLD_IDS.map1, worldPath: STARTER_PATH,
-    worldWidth: 32000, worldHeight: 960,
-    field: { left: 60, right: 31940, top: 350, bottom: 900 },
-    panoramaKey: 'map_panorama_1', panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.png',
-    panoramaSourceWidth: 3200, panoramaSourceHeight: 960,
-    spawn: { x: 350, y: 620 }, waypointMode: 'auto_on_visit',
-    zones: [
-      { id: 'plain', name: 'Thanh Vân Bình Nguyên', x0: 650, x1: 4000, realmRange: [0, 1] },
-      { id: 'wolf_mountain', name: 'Thanh Lang Sơn', x0: 4200, x1: 12000, realmRange: [1, 1] },
-      { id: 'black_stone', name: 'Hắc Thạch Cốc', x0: 12200, x1: 22000, realmRange: [2, 2] },
-      { id: 'ancient_road', name: 'Vạn Mộc Cổ Đạo', x0: 22200, x1: 31940, realmRange: [3, 3] }
-    ]
-  }),
-  makeMap(2, 'Vạn Mộc Sâm Lâm', 'Cổ Mộc Thâm Xứ (Luyện Khí Tầng 3+)', 3, 4, 'stage_1', {
-    templateId: 'FIELD_ANCIENT_FOREST_01', locationNodeId: STARTER_WORLD_IDS.map2, worldPath: STARTER_PATH,
-    worldWidth: 32000, worldHeight: 960,
-    field: { left: 60, right: 31940, top: 350, bottom: 900 },
-    panoramaKey: 'map_panorama_2', panoramaAsset: 'environment/map_2_van_moc_sam_lam.png',
-    panoramaSourceWidth: 2880, panoramaSourceHeight: 960,
-    spawn: { x: 350, y: 620 }, waypointMode: 'auto_on_visit',
-    zones: [
-      { id: 'outer', name: 'Vạn Mộc Ngoại Lâm', x0: 650, x1: 8000, realmRange: [3, 5] },
-      { id: 'jade_leaf', name: 'Bích Diệp Lâm', x0: 8000, x1: 16000, realmRange: [6, 8] },
-      { id: 'ancient', name: 'Thiên Niên Cổ Lâm', x0: 16000, x1: 24000, realmRange: [9, 11] },
-      { id: 'abyss', name: 'Vạn Mộc Thâm Uyên', x0: 24000, x1: 31940, realmRange: [12, 12] }
-    ]
-  })
-]);
+export const ALL_PLAYABLE_MAPS = Object.freeze(
+  MASTER_MAP_DEFINITIONS.map(buildRuntimeMap)
+);
 
 export const PLAYABLE_REGIONS = Object.freeze([
   Object.freeze({
     id: 'nam_lang',
     name: 'Nam Lăng Đại Lục',
-    desc: 'Runtime catalog duy nhất; cây địa lý 9 Đại Vực / 108 Châu được quản lý bởi namLangWorld.js.',
+    desc: 'Runtime catalog duy nhất kết nối toàn cõi Nam Lăng Đại Lục (5 Châu).',
     maps: ALL_PLAYABLE_MAPS
   })
 ]);
+
+export {
+  ZONE_TYPES,
+  UI_MODES,
+  ELEMENT_TYPES,
+  MAJOR_PROVINCES,
+  CANONICAL_MAP_KEYS,
+  MASTER_MAP_DEFINITIONS,
+  getMasterMapById,
+  getAllMasterMaps,
+  isMapSafeHub,
+  getMapUiMode,
+  getMapCombatZones
+};

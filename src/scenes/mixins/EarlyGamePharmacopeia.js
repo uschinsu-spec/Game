@@ -1,6 +1,6 @@
 import { W, H } from '../constants.js';
 import { gameState } from '../../state/gameState.js';
-import { ALL_MAPS } from '../../config/regionsData.js';
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { ALL_HERBS, getHerbsByRank } from '../../config/herbsData.js';
 import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { NPCS_DATA } from '../../config/npcData.js';
@@ -75,7 +75,7 @@ function isThanhVanArea(scene) {
 
 function getMapHerbRank(scene) {
   const id = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
-  const map = ALL_MAPS.find(m => m.id === id) || scene?.currentMap || ALL_MAPS[0];
+  const map = scene?.currentMap || getMapById(id);
   if (id === 0 || id === 1) return 0;
   const minRealm = Math.max(1, Number(map?.minRealm ?? 1));
   return Math.max(1, Math.min(5, Math.floor((minRealm - 1) / 4) + 1));

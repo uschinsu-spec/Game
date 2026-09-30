@@ -1,0 +1,26 @@
+import { HUMAN_REALM_WORLD_NODES } from '../world/humanRealmWorld.js?v=20260929-human-realm-v4';
+import { createGameWorldAdapter } from './game/gameWorldAdapter.js';
+import { createGameMapManifestAdapter } from './game/gameMapManifestAdapter.js';
+import { HumanRealmFactionNetwork } from './humanRealmFactionNetwork.js';
+
+export const GAME_FACTION_WORLD_SEED='linh-son-phi-kiem-human-realm-v5-expanded';
+export const GAME_FACTION_WORLD_ADAPTER=createGameWorldAdapter({worldNodes:HUMAN_REALM_WORLD_NODES,worldSeed:GAME_FACTION_WORLD_SEED});
+export const GAME_FACTION_MAP_ADAPTER=createGameMapManifestAdapter({worldAdapter:GAME_FACTION_WORLD_ADAPTER});
+export const HUMAN_REALM_FACTION_NETWORK=new HumanRealmFactionNetwork({worldSeed:GAME_FACTION_WORLD_SEED,worldAdapter:GAME_FACTION_WORLD_ADAPTER});
+export const getFaction=id=>HUMAN_REALM_FACTION_NETWORK.getFaction(id);
+export const getFactionsForTerritory=id=>HUMAN_REALM_FACTION_NETWORK.getFactionsForTerritory(id);
+export const getRelevantFactionsForTerritory=(id,opts)=>HUMAN_REALM_FACTION_NETWORK.getRelevantFactionsForTerritory(id,opts);
+export const getFactionInfluenceForTerritory=id=>HUMAN_REALM_FACTION_NETWORK.getInfluenceForTerritory(id);
+export const getFactionControllersForTerritory=id=>HUMAN_REALM_FACTION_NETWORK.getTerritoryControllers(id);
+export const getFactionRelation=(a,b)=>HUMAN_REALM_FACTION_NETWORK.getFactionRelation(a,b);
+export const getFactionBranches=id=>HUMAN_REALM_FACTION_NETWORK.getFactionBranches(id);
+export const getFactionVassals=id=>HUMAN_REALM_FACTION_NETWORK.getFactionVassals(id);
+export const getJurisdiction=id=>GAME_FACTION_WORLD_ADAPTER.getJurisdiction(id);
+export const listJurisdictionChildren=(id,opts)=>GAME_FACTION_WORLD_ADAPTER.getChildren(id,opts);
+export const getJurisdictionFactionContext=(id,opts)=>HUMAN_REALM_FACTION_NETWORK.getJurisdictionFactionContext(id,opts);
+export const getJurisdictionPowerProfile=id=>HUMAN_REALM_FACTION_NETWORK.getJurisdictionPowerProfile(id);
+export const getFactionContextForWorldNode=id=>HUMAN_REALM_FACTION_NETWORK.getFactionContextForWorldNode(id);
+export const resolveFactionTerritoryForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveTerritory(value);
+export const resolveFactionTerritoryIdForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveTerritoryId(value);
+export const resolveFactionJurisdictionForMap=value=>GAME_FACTION_MAP_ADAPTER.resolveJurisdiction(value);
+export function getFactionDetail(id,{jurisdictionId=null}={}){const faction=getFaction(id);if(!faction)return null;return Object.freeze({faction,branches:getFactionBranches(id),vassals:getFactionVassals(id),relationContext:jurisdictionId?getFactionRelation(id,getJurisdictionFactionContext(jurisdictionId)?.controllers?.political||id):null});}

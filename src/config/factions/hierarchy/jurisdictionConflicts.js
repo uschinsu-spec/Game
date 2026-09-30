@@ -1,0 +1,3 @@
+import { hash32 } from '../generation/factionGenerator.js';
+const THEMES=['tranh linh mạch','tranh thương lộ','tranh bí cảnh','tranh quyền kế vị','tranh mỏ linh khoáng','xung đột chính-ma','xung đột gia tộc','yêu thú/thú triều'];
+export function conflictsForJurisdiction(j,factions=[]){const h=hash32(j?.id||'');return Object.freeze(Array.from({length:Math.min(3,Math.max(1,Math.floor(factions.length/4)))},(_,i)=>Object.freeze({id:`conflict.${j.id}.${i}`,theme:THEMES[(h+i)%THEMES.length],a:factions[i%Math.max(1,factions.length)]?.id||null,b:factions[(i+1)%Math.max(1,factions.length)]?.id||null,intensity:25+((h+i*17)%71)})));}

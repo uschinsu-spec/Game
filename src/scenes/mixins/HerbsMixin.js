@@ -8,7 +8,7 @@
  * - Tự động hồi sinh (Respawn) sau chu kỳ 25 - 45s.
  */
 import { gameState } from '../../state/gameState.js';
-import { ALL_MAPS } from '../../config/regionsData.js';
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
 import { ALL_HERBS, getHerbsByRank } from '../../config/herbsData.js';
 
 const MAP_THANH_VAN_OUTSKIRTS = 1;
@@ -87,10 +87,10 @@ export const HerbsMixin = {
     this.herbTarget = null;
 
     const curMapId = Number(gameState.currentMapId ?? this.currentMap?.id ?? 0);
-    const map = ALL_MAPS.find(m => m.id === curMapId) || ALL_MAPS[0];
+    const map = this.currentMap || getMapById(curMapId);
 
     // Trong thôn (map 0 an toàn) không sinh linh thảo / khoáng thạch hoang dã
-    if (map.isPeaceZone || curMapId === 0) {
+    if (map?.isPeaceZone || curMapId === 0) {
       this.initMineralNodes();
       return;
     }

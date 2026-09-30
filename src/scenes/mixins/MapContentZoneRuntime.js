@@ -81,31 +81,6 @@ function buildVariableZonePoints(map, stepProfile, edgePadding = 100) {
 }
 
 function installEnemyZoneRuntime(proto) {
-  proto.initBattlefield = function initBattlefieldFromUnifiedZones() {
-    if (this.enemyGroup) {
-      this.enemyGroup.getChildren().forEach(e => {
-        e.hpBar?.destroy?.();
-        e.hpBg?.destroy?.();
-        e.nameText?.destroy?.();
-      });
-      this.enemyGroup.clear(true, true);
-    }
-    this.enemies = [];
-
-    if (this.groundDrops) {
-      this.groundDrops.forEach(gd => gd?.active && gd.destroy());
-      this.groundDrops = [];
-    }
-
-    const map = getMapById(gameState.currentMapId);
-    if (map.isPeaceZone || map.id === 0) return;
-
-    buildEnemySpawnPoints(map).forEach((sp, index) => {
-      const y = Phaser.Math.Between(this.field.top + 35, this.field.bottom - 35);
-      this.spawnOneFixedEnemy(sp.x, y, index, sp.zone);
-    });
-  };
-
   proto.getEnemySpawnConfig = function getEnemySpawnConfigFromUnifiedMap(mapId, zone = 1, slotIndex = 0) {
     const map = getMapById(mapId);
     const mapNum = Number(map.id) || 0;

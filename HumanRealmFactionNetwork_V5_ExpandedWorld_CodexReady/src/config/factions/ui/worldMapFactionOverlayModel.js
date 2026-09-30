@@ -1,0 +1,2 @@
+export const OVERLAY_TYPES=Object.freeze(['political','cultivation','economic','resource','war','underworld']);
+export function worldMapFactionOverlay({territoryIds=[],controllerProvider,influenceProvider,type='political'}){return Object.freeze(territoryIds.map(id=>Object.freeze({territoryId:id,controller:controllerProvider?.(id)?.[`${type}Controller`]||null,influence:influenceProvider?.(id)||[]})));}

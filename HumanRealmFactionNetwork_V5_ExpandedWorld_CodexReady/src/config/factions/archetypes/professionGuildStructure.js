@@ -1,0 +1,2 @@
+export const PROFESSION_TYPES=Object.freeze(['ALCHEMY','FORGING','TALISMAN','FORMATION']);
+export function createProfessionGuildStructure(type='ALCHEMY'){return Object.freeze({type,certificationRanks:Object.freeze(['Nhất phẩm','Nhị phẩm','Tam phẩm','Tứ phẩm','Ngũ phẩm','Đại Sư','Tông Sư']),services:Object.freeze(['khảo hạch','chứng nhận','recipe access','nguyên liệu','nhiệm vụ nghề','đấu kỹ']),nonExclusive:true});}

@@ -4,7 +4,7 @@
  *           nearestEnemy, createVfxPool, spawnVfx, perspective, fixed
  */
 import { REALMS } from '../../config/realmsData.js';
-import { SECTS } from '../../config/sectsData.js';
+
 import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
 import { SKILL_MASTERY_TIERS, ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { gameState } from '../../state/gameState.js';
@@ -38,10 +38,10 @@ export const PlayerMixin = {
       if (gameState.equipped.armor?.bonusHp) hp += gameState.equipped.armor.bonusHp;
       if (gameState.equipped.amulet?.bonusHp) hp += gameState.equipped.amulet.bonusHp;
     }
-    if (gameState.sectId) {
-      const sect = SECTS.find(s => s.id === gameState.sectId);
-      if (sect && sect.hpBonus) hp = Math.floor(hp * (1 + sect.hpBonus / 100));
-    }
+
+
+
+
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp && cp.bonusHpPct) hp = Math.floor(hp * (1 + cp.bonusHpPct / 100));
     (gameState.inventory?.formations || []).forEach(fName => {
@@ -57,7 +57,7 @@ export const PlayerMixin = {
     if (gameState.equipped?.amulet?.bonusMp) mp += gameState.equipped.amulet.bonusMp;
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp && cp.bonusMpPct) mp = Math.floor(mp * (1 + cp.bonusMpPct / 100));
-    if (gameState.sectId === 'thuy_nguyet_cung') mp = Math.floor(mp * 1.25);
+
     return mp;
   },
 
@@ -106,7 +106,7 @@ export const PlayerMixin = {
 
     // Trang bị/tông môn là bonus động, không ghi vào phần bonus vĩnh viễn.
     if (gameState.equipped?.boots?.bonusSpd) sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
-    if (gameState.sectId === 'thien_loi_tong') sense = Math.floor(sense * 1.2);
+
 
     gameState.spiritualSense = sense;
     return sense;
@@ -144,10 +144,10 @@ export const PlayerMixin = {
       if (gameState.equipped.weapon?.bonusDmg) dmg += gameState.equipped.weapon.bonusDmg;
       if (gameState.equipped.amulet?.bonusDmg) dmg += gameState.equipped.amulet.bonusDmg;
     }
-    if (gameState.sectId) {
-      const sect = SECTS.find(s => s.id === gameState.sectId);
-      if (sect && sect.bonusDmgMul) dmg = Math.floor(dmg * sect.bonusDmgMul);
-    }
+
+
+
+
     (gameState.inventory?.formations || []).forEach(fName => {
       const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
       if (fObj && fObj.bonusDmg) dmg += fObj.bonusDmg;
@@ -162,10 +162,10 @@ export const PlayerMixin = {
       if (gameState.equipped.helm?.bonusDef) def += gameState.equipped.helm.bonusDef;
       if (gameState.equipped.shield?.bonusDef) def += gameState.equipped.shield.bonusDef;
     }
-    if (gameState.sectId) {
-      const sect = SECTS.find(s => s.id === gameState.sectId);
-      if (sect && sect.defBonus) def = Math.floor(def * (1 + sect.defBonus / 100));
-    }
+
+
+
+
     (gameState.inventory?.formations || []).forEach(fName => {
       const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
       if (fObj && fObj.bonusDef) def += fObj.bonusDef;

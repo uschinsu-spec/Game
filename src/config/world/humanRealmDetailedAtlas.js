@@ -8,11 +8,7 @@
 import {
   HUMAN_REALM_ROOT_ID,
   HUMAN_REALM_WORLD_NODES
-} from './humanRealmWorld.js?v=20260929-human-realm-v3';
-import {
-  getProvinceAtlasProfile,
-  getRegionAtlasProfile
-} from './namLangProvinceAtlas.js?v=20260929-atlas-v1';
+} from './humanRealmWorld.js?v=20260929-human-realm-v4';
 
 export const HUMAN_REALM_DETAIL_VERSION = '20260929-human-realm-detailed-atlas-v1';
 
@@ -138,19 +134,7 @@ function continentKeyForNode(node) {
   return 'south';
 }
 
-function namLangRegionId(node) {
-  if (!node) return null;
-  if (node.type === 'great_region' && String(node.id).startsWith('nl.gr.')) return String(node.id).split('.')[2] || null;
-  if (node.type === 'province' && String(node.parentId || '').startsWith('nl.gr.')) return String(node.parentId).split('.')[2] || null;
-  return null;
-}
-
 function baseRegionData(node) {
-  const regionId = namLangRegionId(node);
-  if (regionId) {
-    const atlas = getRegionAtlasProfile(regionId);
-    if (atlas) return { climate: atlas.climate, products: atlas.products, minerals: atlas.minerals, enemies: atlas.enemies, elements: atlas.elements, realm: atlas.realm };
-  }
   return {
     climate: node.climate || node.desc || 'linh khí biến động theo địa hình',
     products: node.signatureProducts || node.products || [],
@@ -162,24 +146,16 @@ function baseRegionData(node) {
 }
 
 function baseTerritoryData(node) {
-  const regionId = namLangRegionId(node);
-  if (regionId) {
-    const siblings = siblingsOf(node, 'province');
-    const index = Math.max(0, siblings.findIndex(item => item.id === node.id));
-    const atlas = getProvinceAtlasProfile(regionId, node.name, index);
-    if (atlas) return {
-      climate: atlas.climate, capital: node.capital || atlas.capital,
-      cities: atlas.notableCities, towns: atlas.notableTowns, villages: atlas.notableVillages,
-      secrets: atlas.secretRealms, forbidden: atlas.forbiddenZones,
-      products: atlas.products, minerals: atlas.minerals, enemyProfile: atlas.enemyProfile
-    };
-  }
   return {
     climate: node.climate || 'linh khí biến động theo địa thế',
     capital: node.capital || `${node.name} Chủ Thành`,
-    cities: node.notableCities || [], towns: node.notableTowns || [], villages: node.notableVillages || [],
-    secrets: node.secretRealms || [], forbidden: node.forbiddenZones || [],
-    products: node.products || node.signatureProducts || [], minerals: node.minerals || node.signatureMinerals || [],
+    cities: node.notableCities || [],
+    towns: node.notableTowns || [],
+    villages: node.notableVillages || [],
+    secrets: node.secretRealms || [],
+    forbidden: node.forbiddenZones || [],
+    products: node.products || node.signatureProducts || [],
+    minerals: node.minerals || node.signatureMinerals || [],
     enemyProfile: node.enemyProfile || null
   };
 }
@@ -368,7 +344,7 @@ function makeTerritoryDetail(node) {
       `${pick(QUEST_VERBS, seed, 5)} âm mưu tranh quyền giữa các thế lực tại ${capital}`
     ]),
     factionConflict: {
-      dominantFaction: node.factionProfile?.factions?.[1]?.name || node.cultivationFactions?.[0] || 'thế lực bá chủ địa phương',
+      dominantFaction: null,
       contestedAssets: unique([pick(products, seed), pick(minerals, seed, 1), secrets[0], forbidden[0]]), conflict: style.conflict
     },
     dayNight: {

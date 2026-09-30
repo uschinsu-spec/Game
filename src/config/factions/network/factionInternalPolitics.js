@@ -1,0 +1,2 @@
+export function createInternalBloc({id,name,leaderId=null,support=0.3,agenda='status_quo',rivals=[]}){return Object.freeze({id,name,leaderId,support:Math.max(0,Math.min(1,Number(support))),agenda,rivals:Object.freeze([...rivals])});}
+export function blocTension(blocs=[]){if(blocs.length<2)return 0;const max=Math.max(...blocs.map(b=>b.support));const min=Math.min(...blocs.map(b=>b.support));return Math.max(0,Math.min(1,(1-max)+(max-min)*.5));}

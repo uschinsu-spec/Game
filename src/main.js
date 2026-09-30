@@ -23,6 +23,10 @@ import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStream
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20260929-item-icon-stream-v1';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260929-single-map-system-v4';
 import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20260929-p0-boot-assets-v3';
+import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20260930-faction-v5';
+import { HUMAN_REALM_FACTION_NETWORK, GAME_FACTION_WORLD_ADAPTER, GAME_FACTION_MAP_ADAPTER } from './config/factions/gameFactionRegistry.js?v=20260930-faction-v5';
+import { assertFactionBootReady } from './config/factions/validation/factionInvariant.js?v=20260930-faction-v5';
+import { gameState } from './state/gameState.js';
 
 installUiModalManager(MainGameScene);
 installRealmProgression(MainGameScene);
@@ -48,6 +52,16 @@ assertSingleItemSystem(MainGameScene);
 installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
+
+
+// V5 faction system: one social-power runtime layered on top of the single canonical map runtime.
+installFactionSystemIntegration(MainGameScene, {
+  network: HUMAN_REALM_FACTION_NETWORK,
+  worldAdapter: GAME_FACTION_WORLD_ADAPTER,
+  mapAdapter: GAME_FACTION_MAP_ADAPTER,
+  gameState
+});
+assertFactionBootReady({ network: HUMAN_REALM_FACTION_NETWORK, worldAdapter: GAME_FACTION_WORLD_ADAPTER });
 
 // Stream enemy/NPC/VFX by the canonical active map/zone.
 installMapZoneAssetStreaming(MainGameScene);

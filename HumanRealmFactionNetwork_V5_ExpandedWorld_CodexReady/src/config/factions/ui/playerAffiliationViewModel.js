@@ -1,0 +1,1 @@
+export function playerAffiliationViewModel({affiliations={},relations={},contracts=[],wantedState={}}){return Object.freeze({slots:Object.freeze(Object.entries(affiliations).map(([slot,value])=>Object.freeze({slot,...(value||{})}))),relations,wantedState,activeContracts:Object.freeze(contracts.filter(c=>c.status==='active'))});}

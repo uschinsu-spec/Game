@@ -347,13 +347,5 @@ export function installElementalItemSystem(MainGameScene) {
     };
   }
 
-  const originalInitBattlefield = proto.initBattlefield;
-  if (typeof originalInitBattlefield === 'function') {
-    proto.initBattlefield = function elementalBattlefieldWrapper(...args) {
-      (this.elementalGroundDrops || []).forEach(drop => drop?.destroy?.());
-      this.elementalGroundDrops = [];
-      migrateLegacyElementalInventory();
-      return originalInitBattlefield.apply(this, args);
-    };
-  }
+  migrateLegacyElementalInventory();
 }
