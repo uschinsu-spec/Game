@@ -22,6 +22,15 @@ const ENEMY_ZONE_STEPS = Object.freeze([450, 300, 220, 160]);
 const MAX_ENEMIES_PER_ACTIVE_ZONE = 28;
 const MAX_FELLOWS_PER_ACTIVE_ZONE = 10;
 
+function sameMapId(a, b) {
+  return String(a) === String(b);
+}
+
+function isMapZero(mapOrId) {
+  const id = typeof mapOrId === 'object' && mapOrId ? mapOrId.id : mapOrId;
+  return sameMapId(id, 0);
+}
+
 function isQueued(scene, key) {
   const entries = scene?.load?.list?.entries;
   return Array.isArray(entries) && entries.some(file => file?.key === key);
@@ -318,7 +327,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.ensureCombatSharedAssets = function ensureCombatSharedAssets() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
     if (this.__combatAssetsReady) return Promise.resolve(true);
     if (this.__combatSharedPromise) return this.__combatSharedPromise;
 
@@ -345,7 +354,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.ensureMapZoneAssets = function ensureMapZoneAssets(mapId, zoneNumber) {
     const map = getMapById(mapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
     const zones = getMapZones(map.id);
     const zone = Math.max(1, Math.min(zones.length, Number(zoneNumber) || 1));
     const zoneKey = `${map.id}:${zone}`;
@@ -383,15 +392,25 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.activateCombatZone = function activateCombatZone(zoneNumber) {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
     const zones = getMapZones(map.id);
     const zone = Math.max(1, Math.min(zones.length, Number(zoneNumber) || 1));
-    const token = `${map.id}:${zone}:${Date.now()}`;
-    this.__zoneActivationToken = token;
+    const activationKey = `${map.id}:${zone}`;
 
-    return this.ensureMapZoneAssets(map.id, zone).then(ok => {
+    // Quan trọng với mobile: không tạo lại activation mỗi 220ms trong lúc asset
+    // của đúng map/zone đang được tải. Nếu không, token cũ bị thay liên tục và
+    // map có canonical string ID có thể không bao giờ hoàn tất kích hoạt.
+    if (this.__zoneActivationPendingKey === activationKey && this.__zoneActivationPromise) {
+      return this.__zoneActivationPromise;
+    }
+
+    const token = `${activationKey}:${Date.now()}`;
+    this.__zoneActivationToken = token;
+    this.__zoneActivationPendingKey = activationKey;
+
+    const promise = this.ensureMapZoneAssets(map.id, zone).then(ok => {
       if (!ok || this.__zoneActivationToken !== token) return false;
-      if (Number(gameState.currentMapId) !== Number(map.id)) return false;
+      if (!sameMapId(gameState.currentMapId, map.id)) return false;
 
       const zoneDef = zones[zone - 1];
       const midX = zoneDef ? (Number(zoneDef.x0) + Number(zoneDef.x1)) / 2 : (this.player?.x || 350);
@@ -401,16 +420,24 @@ export function installMapZoneAssetStreaming(MainGameScene) {
       spawnEnemiesForZone(this, map, zone);
       spawnFellowsForZone(this, map, zone, npcModelInfo);
       originalInitHerbs?.call(this);
-      this.__activeStreamMapId = Number(map.id);
+      this.__activeStreamMapId = map.id;
       this.__activeStreamZone = zone;
       this.__combatAssetsReady = true;
       return true;
+    }).finally(() => {
+      if (this.__zoneActivationToken === token) {
+        this.__zoneActivationPendingKey = null;
+        this.__zoneActivationPromise = null;
+      }
     });
+
+    this.__zoneActivationPromise = promise;
+    return promise;
   };
 
   proto.ensureActiveMapZoneAssets = function ensureActiveMapZoneAssets() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
     const x = this.player?.x ?? map.spawn?.x ?? 350;
     const zone = getMapZoneNumberAtX(map.id, x);
     return this.activateCombatZone(zone);
@@ -419,7 +446,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
   proto.initBattlefield = function streamedInitBattlefield() {
     this.cleanupBattlefield?.();
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) {
+    if (!map || map.isPeaceZone || isMapZero(map)) {
       this.__combatAssetsReady = false;
       return;
     }
@@ -428,7 +455,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.initFellowNpcs = function streamedInitFellowNpcs() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) {
+    if (!map || map.isPeaceZone || isMapZero(map)) {
       clearFellowObjects(this);
       return;
     }
@@ -437,7 +464,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.initHerbs = function streamedInitHerbs() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0) return originalInitHerbs?.call(this);
+    if (!map || map.isPeaceZone || isMapZero(map)) return originalInitHerbs?.call(this);
     if (!this.__combatAssetsReady) {
       this.ensureActiveMapZoneAssets();
       return;
@@ -447,26 +474,26 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   if (typeof originalCastSkill === 'function') {
     proto.castSkill = function streamedCastSkill(...args) {
-      if (Number(gameState.currentMapId) !== 0 && !this.__combatAssetsReady) return false;
+      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return false;
       return originalCastSkill.apply(this, args);
     };
   }
   if (typeof originalBasicAttack === 'function') {
     proto.basicAttack = function streamedBasicAttack(...args) {
-      if (Number(gameState.currentMapId) !== 0 && !this.__combatAssetsReady) return false;
+      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return false;
       return originalBasicAttack.apply(this, args);
     };
   }
   if (typeof originalSpawnVfx === 'function') {
     proto.spawnVfx = function streamedSpawnVfx(...args) {
-      if (Number(gameState.currentMapId) !== 0 && !this.__combatAssetsReady) return null;
+      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return null;
       return originalSpawnVfx.apply(this, args);
     };
   }
 
   proto.updateZoneStreaming = function updateZoneStreaming(time, delta) {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || Number(map.id) === 0 || !this.player?.active) return;
+    if (!map || map.isPeaceZone || isMapZero(map) || !this.player?.active) return;
 
     const now = Number(time || 0);
     if (now < Number(this.__nextZoneStreamCheckAt || 0)) return;
@@ -474,7 +501,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
     const zones = getMapZones(map.id);
     const currentZone = getMapZoneNumberAtX(map.id, this.player.x);
-    if (Number(this.__activeStreamMapId) !== Number(map.id) || Number(this.__activeStreamZone) !== Number(currentZone)) {
+    if (!sameMapId(this.__activeStreamMapId, map.id) || Number(this.__activeStreamZone) !== Number(currentZone)) {
       this.activateCombatZone(currentZone);
       return;
     }
@@ -485,4 +512,12 @@ export function installMapZoneAssetStreaming(MainGameScene) {
     if (currentZone < zones.length && Number(def.x1) - x <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone + 1);
     if (currentZone > 1 && x - Number(def.x0) <= PRELOAD_MARGIN) this.ensureMapZoneAssets(map.id, currentZone - 1);
   };
+
+  if (typeof originalUpdate === 'function') {
+    proto.update = function updateWithZoneStreaming(...args) {
+      const result = originalUpdate.apply(this, args);
+      this.updateZoneStreaming(args[0], args[1]);
+      return result;
+    };
+  }
 }
