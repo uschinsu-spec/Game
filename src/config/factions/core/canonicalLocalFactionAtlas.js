@@ -1,4 +1,4 @@
-import { createFactionDefinition } from './factionDefinitions.js';
+import { createFactionDefinition } from './factionDefinitions.js?v=20260930-canonical-local-v2';
 import { stableFactionId } from './factionIds.js';
 import {
   FACTION_ARCHETYPES,
@@ -120,7 +120,7 @@ function organizationFor(kind,focus,seed){
 
 function definition({node,region,archetype,powerTier,name,slug,kind,rankLabel,focus,branchPolicy,seed}){
   const base=stripUnit(node.name);
-  const leaderSurname=kind==='family'?name.split(' ').slice(-2,-1)[0]||pick(SURNAMES,seed):pick(SURNAMES,seed,5);
+  const leaderSurname=kind==='family'?(SURNAMES.find(surname=>name.includes(surname))||pick(SURNAMES,seed)):pick(SURNAMES,seed,5);
   const leaderName=`${leaderSurname} ${pick(GIVEN_NAMES,seed,2)}`;
   const signatureTechnique=`${base} ${pick(TECHNIQUE_SUFFIX,seed,1)}`;
   const motto=kind==='sect'?pick(MOTTO_SECT,seed):pick(MOTTO_FAMILY,seed);
