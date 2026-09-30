@@ -17,7 +17,7 @@ import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTa
 import { installElementalItemSystem } from './scenes/mixins/ElementalItemSystem.js?v=20260929-unified-item-system';
 import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=20260929-unified-item-system';
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260930-canonical-map-id-v7';
-import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260930-canonical-local-v1';
+import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20260930-clear-marker-layout-v1';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260929-single-map-system-v4';
 import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260930-zone-stream-v2';
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20260929-item-icon-stream-v1';
