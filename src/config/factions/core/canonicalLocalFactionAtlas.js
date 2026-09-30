@@ -7,7 +7,7 @@ import {
   FACTION_SCOPES,
   FACTION_VISIBILITY
 } from './factionConstants.js';
-import { createBranch } from '../network/factionBranches.js';
+import { createBranch } from '../network/factionBranches.js?v=20260930-canonical-local-v1';
 
 export const CANONICAL_LOCAL_FACTION_ATLAS_VERSION = '20260930-canonical-local-factions-v1';
 
@@ -51,7 +51,7 @@ export function createCanonicalLocalFactionAtlas({worldAdapter}={}){
   for(const region of regionById.values()){
     const seed=hash32(region.id);const base=stripUnit(region.name);const focus=CONTINENT_FOCUS[region.continentKey]||CONTINENT_FOCUS.south;const surname=pick(SURNAMES,seed,3);
     const sect=definition({node:region,region,archetype:FACTION_ARCHETYPES.SECT,powerTier:FACTION_POWER_TIERS.MAJOR,name:`${base} ${pick(REGION_SECT_SUFFIX,seed)}`,slug:'regional_sect',kind:'sect',rankLabel:'Đại Tông cấp Vùng',focus:[pick(focus,seed),pick(focus,seed,1)],branchPolicy:'mỗi lãnh thổ trực thuộc có Phân Tông',seed});
-    const clan=definition({node:region,region,archetype:FACTION_ARCHETYPES.ANCIENT_CLAN,powerTier:FACTION_POWER_TIERS.MAJOR,name:`${base} ${surname} Thế Gia`,slug:'regional_clan',kind:'family',rankLabel:'Đại Gia Tộc cấp Vùng',focus:[pick(focus,seed,2),'huyết mạch'],branchPolicy:'mỗi lãnh thổ trọng yếu có Phân Gia',seed:seed+17});
+    const clan=definition({node:region,region,archetype:FACTION_ARCHETYPES.CULTIVATION_FAMILY,powerTier:FACTION_POWER_TIERS.MAJOR,name:`${base} ${surname} Thế Gia`,slug:'regional_clan',kind:'family',rankLabel:'Đại Gia Tộc cấp Vùng',focus:[pick(focus,seed,2),'huyết mạch'],branchPolicy:'mỗi lãnh thổ trọng yếu có Phân Gia',seed:seed+17});
     factions.push(sect,clan);addIndex(byJurisdiction,region.id,sect);addIndex(byJurisdiction,region.id,clan);regionPairById.set(region.id,{sect,clan});
   }
   for(const territory of territories){
