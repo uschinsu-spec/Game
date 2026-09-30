@@ -1,7 +1,7 @@
 import { HUMAN_REALM_WORLD_NODES } from '../world/humanRealmWorld.js?v=20260929-human-realm-v4';
 import { createGameWorldAdapter } from './game/gameWorldAdapter.js';
 import { createGameMapManifestAdapter } from './game/gameMapManifestAdapter.js';
-import { HumanRealmFactionNetwork } from './humanRealmFactionNetwork.js?v=20260930-canonical-local-v1';
+import { HumanRealmFactionNetwork } from './humanRealmFactionNetwork.js?v=20260930-canonical-local-v2';
 
 export const GAME_FACTION_WORLD_SEED='linh-son-phi-kiem-human-realm-v5-expanded';
 export const GAME_FACTION_WORLD_ADAPTER=createGameWorldAdapter({worldNodes:HUMAN_REALM_WORLD_NODES,worldSeed:GAME_FACTION_WORLD_SEED});
