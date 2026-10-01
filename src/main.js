@@ -17,6 +17,7 @@ import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=202610
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260930-canonical-map-id-v7';
 import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20261001-map-atlas-visible-v45';
 import { installMapAtlasRuntimeGuard } from './scenes/mixins/MapAtlasRuntimeGuard.js?v=20261001-map-atlas-visible-v45';
+import { installWorldMapCanonicalDirectTravel } from './scenes/mixins/WorldMapCanonicalDirectTravel.js?v=20261001-canonical-direct-travel-v46';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260930-profile-driven-zone-v41';
 import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260930-zone-stream-v2';
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20261001-item-icons-v4';
@@ -67,6 +68,7 @@ installFactionSystemIntegration(MainGameScene, {
   mapAdapter: GAME_FACTION_MAP_ADAPTER,
   gameState
 });
+installWorldMapCanonicalDirectTravel(MainGameScene);
 assertFactionBootReady({ network: HUMAN_REALM_FACTION_NETWORK, worldAdapter: GAME_FACTION_WORLD_ADAPTER });
 
 installMapZoneAssetStreaming(MainGameScene);
