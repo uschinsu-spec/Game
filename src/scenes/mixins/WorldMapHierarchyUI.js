@@ -26,6 +26,7 @@ import {
   getWorldNode,
   getWorldNodeForMap
 } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
+import { HUMAN_REALM_FACTION_NETWORK } from '../../config/factions/gameFactionRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, hasVisitedMap, isNodeDiscovered } from '../../state/worldProgress.js';
 import { travelService, TRAVEL_SOURCES } from '../../services/travelService.js';
@@ -33,7 +34,7 @@ import { stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 const MAP_UI_OWNER = 'WorldMapHierarchyUI';
-const MAP_UI_LAYOUT_VERSION = '20261001-fixed-faction-destinations-v47';
+const MAP_UI_LAYOUT_VERSION = '20261001-fixed-faction-destinations-v48';
 const LEGACY_TO_ROOT = new Set(['nam_lang', 'van_tinh_hai', 'than_chau', 'man_hoang', 'thai_hu']);
 const MAX_WORLD_MARKERS = 14;
 const MAX_FACTION_MARKERS = 8;
@@ -79,6 +80,45 @@ function isSectMap(map) {
 function isFamilyArchetype(archetype) {
   return archetype === 'CULTIVATION_FAMILY' || archetype === 'ANCIENT_CLAN';
 }
+
+function resolveNodeRuler(scene, node) {
+  if (!node) return null;
+  if (node.rulerFaction) return node.rulerFaction;
+  const network = scene?.network
+    || scene?.getFactionRuntime?.()?.network
+    || scene?.getFactionRuntimeCoordinator?.()?.network
+    || HUMAN_REALM_FACTION_NETWORK
+    || null;
+  const rulerFaction = (network?.canonicalAtlas?.getRulerForJurisdiction?.(node.id))
+    || (network?.getRulerForJurisdiction?.(node.id))
+    || (network?.getLocalFactionsForJurisdiction?.(node.id)?.[0])
+    || null;
+  if (rulerFaction) {
+    const family = isFamilyArchetype(rulerFaction.archetype);
+    const dynasty = rulerFaction.archetype === 'IMPERIAL_DYNASTY' || rulerFaction.archetype === 'ROYAL_COURT' || (rulerFaction.tags && rulerFaction.tags.includes('dynasty'));
+    const typeLabel = dynasty ? 'Hoàng Triều' : family ? 'Thế Gia' : 'Tông Môn';
+    return {
+      id: rulerFaction.id,
+      name: rulerFaction.name,
+      type: typeLabel,
+      archetype: rulerFaction.archetype,
+      rankLabel: rulerFaction.meta?.rankLabel || (rulerFaction.duty ? `${typeLabel} ${rulerFaction.duty}` : typeLabel),
+      faction: rulerFaction
+    };
+  }
+  if (node.ruler) {
+    const isFamily = node.ruler.type === 'Thế Gia' || node.ruler.type === 'Gia Tộc';
+    const isDynasty = node.ruler.type === 'Hoàng Triều' || node.ruler.type === 'Hoàng Tộc';
+    const typeLabel = isDynasty ? 'Hoàng Triều' : isFamily ? 'Thế Gia' : 'Tông Môn';
+    return {
+      name: node.ruler.name,
+      type: typeLabel,
+      rankLabel: node.ruler.rankLabel || typeLabel
+    };
+  }
+  return null;
+}
+
 
 function typeText(node) {
   const labels = {
@@ -268,31 +308,8 @@ function markerKind(node, map) {
 }
 
 function buildFactionMarkers(scene, activeNode) {
-  const overlay = scene.getFactionOverlayForWorldNode?.(activeNode.id);
-  const canonical = overlay?.mapMarkers || [];
-  if (canonical.length) {
-    return canonical
-      .filter(marker => marker?.faction
-        && marker.faction.meta?.canonical === true
-        && marker.faction.meta?.declarationMode === 'fixed'
-        && (marker.faction.archetype === 'SECT' || isFamilyArchetype(marker.faction.archetype)))
-      .slice(0, MAX_FACTION_MARKERS)
-      .map(marker => {
-        const family = isFamilyArchetype(marker.faction.archetype);
-        const branch = Boolean(marker.branch || marker.markerType === 'FACTION_BRANCH');
-        return {
-          id: `faction:${marker.id}`,
-          kind: 'faction',
-          faction: marker.faction,
-          branch: marker.branch || null,
-          markerType: marker.markerType,
-          worldNodeId: marker.worldNodeId,
-          label: marker.label || marker.faction.name,
-          sub: marker.subLabel || (branch ? 'CHI NHÁNH' : family ? 'GIA TỘC' : 'TÔNG MÔN'),
-          accent: family ? COLOR.orange : branch ? 0xd79cff : COLOR.purple
-        };
-      });
-  }
+  // Factions are now seamlessly embedded directly in each territory/location marker.
+  // Returning empty array here eliminates duplicate floating faction markers that caused text overlap.
   return [];
 }
 
@@ -316,7 +333,7 @@ function buildWorldMarkers(scene, activeNode) {
   };
 
   immediate.forEach((child, index) => {
-    const isSecret = child.locationKind?.includes('secret') || child.locationKind === 'secret_realm';
+    const isSecret = child.locationKind?.includes('secret') || child.locationKind === 'secret_realm' || child.type === 'secret_realm';
     const isWild = child.locationKind?.includes('wild') || child.locationKind === 'field';
     const isStarter = child.locationKind === 'safe_hub' || child.id === 'nl.loc.thanh_ha.thanh_van_thon' || child.id === 'nl.loc.thanh_ha.thanh_van_ngoai_vi';
     const isPrimary = ['great_region', 'region', 'province', 'nation', 'continent', 'city_territory', 'city'].includes(child.type);
@@ -331,65 +348,78 @@ function markerVisible(marker, filter) {
   if (marker.kind === 'current') return true;
   if (filter === 'all') return true;
   if (filter === 'city') return marker.kind === 'city';
-  if (filter === 'sect') return marker.kind === 'sect' || marker.kind === 'faction';
-  return !['city', 'sect', 'faction'].includes(marker.kind);
+  if (filter === 'sect') return marker.kind === 'sect' || Boolean(marker.node && resolveNodeRuler(null, marker.node));
+  return !['city', 'sect'].includes(marker.kind);
 }
 
-function markerSlot(marker, index, total, faction = false, allMarkers = []) {
-  if (faction) {
-    const innerRing = [
-      [-100, -92], [0, -112], [100, -92], [-126, -10],
-      [126, -10], [-98, 82], [0, 108], [98, 82]
-    ];
-    return innerRing[index % innerRing.length];
-  }
-
+function markerSlot(marker, index, total, allMarkers = []) {
   const node = marker?.node;
   const kind = node?.locationKind || '';
   const type = node?.type || '';
+  const dir = node?.direction || '';
 
+  // 1. Starter Maps
   if (kind === 'safe_hub' || node?.id === 'nl.loc.thanh_ha.thanh_van_thon') {
-    return [-70, 0];
+    return [-75, 0];
   }
   if (node?.id === 'nl.loc.thanh_ha.thanh_van_ngoai_vi') {
-    return [70, 0];
+    return [75, 0];
   }
 
-  const isSecret = kind.includes('secret') || kind === 'secret_realm';
+  // 2. 2 Bí Cảnh (kéo ra sát 02 mép: Mép Trên Cùng & Mép Dưới Cùng)
+  const isSecret = kind.includes('secret') || kind === 'secret_realm' || type === 'secret_realm';
   if (isSecret) {
-    const secretSlots = [[0, -230], [0, 230]];
-    const secretMarkers = allMarkers.filter(m => m.node?.locationKind?.includes('secret') || m.node?.locationKind === 'secret_realm');
+    if (dir === 'Trên') return [0, -245];
+    if (dir === 'Dưới') return [0, 245];
+    const secretMarkers = allMarkers.filter(m => m.node?.locationKind?.includes('secret') || m.node?.locationKind === 'secret_realm' || m.node?.type === 'secret_realm');
     const sIdx = secretMarkers.indexOf(marker);
-    return secretSlots[sIdx >= 0 ? sIdx % secretSlots.length : index % secretSlots.length];
+    return sIdx === 0 ? [0, -245] : [0, 245];
   }
 
-  const primarySlots = [
-    [-75, -150], [-135, -55], [0, -20], [135, -55], [-75, 150]
-  ];
-  const wildSlots = [
-    [75, -150], [-135, 15], [0, 50], [135, 15], [75, 150]
-  ];
+  // 3. 5 Khu Vực Chính (4 hướng Đông - Tây - Nam - Bắc và Ở Giữa)
+  const isPrimary = ['great_region', 'region', 'province', 'nation', 'continent', 'city_territory', 'city'].includes(type);
+  if (isPrimary) {
+    const primarySlots = [
+      [0, -115],   // Bắc (Trên)
+      [-135, -15], // Tây (Trái)
+      [0, -15],    // Trung (Ở giữa)
+      [135, -15],  // Đông (Phải)
+      [0, 85]      // Nam (Dưới)
+    ];
+    if (dir === 'Bắc') return [0, -115];
+    if (dir === 'Tây') return [-135, -15];
+    if (dir === 'Trung' || dir === 'Giữa' || dir === 'Ở Giữa') return [0, -15];
+    if (dir === 'Đông') return [135, -15];
+    if (dir === 'Nam') return [0, 85];
 
+    const primaryMarkers = allMarkers.filter(m => ['great_region', 'region', 'province', 'nation', 'continent', 'city_territory', 'city'].includes(m.node?.type));
+    const pIdx = primaryMarkers.indexOf(marker);
+    return primarySlots[pIdx >= 0 ? pIdx % primarySlots.length : index % primarySlots.length];
+  }
+
+  // 4. 5 Hoang Dã / Dã Ngoại (Bố trí xen kẽ ở các góc để không chồng lên 5 khu vực chính và 2 bí cảnh)
   const isWild = kind.includes('wild') || kind === 'field';
   if (isWild) {
+    const wildSlots = [
+      [-125, -175], // 0: Tây Bắc
+      [125, -175],  // 1: Đông Bắc
+      [-125, 155],  // 2: Tây Nam
+      [125, 155],   // 3: Đông Nam
+      [0, 165]      // 4: Cận Nam
+    ];
     const wildMarkers = allMarkers.filter(m => m.node?.locationKind?.includes('wild') || m.node?.locationKind === 'field');
     const wIdx = wildMarkers.indexOf(marker);
     return wildSlots[wIdx >= 0 ? wIdx % wildSlots.length : index % wildSlots.length];
   }
 
-  const isPrimary = ['great_region', 'province', 'nation', 'continent', 'city_territory', 'city'].includes(type);
-  if (isPrimary) {
-    const primaryMarkers = allMarkers.filter(m => ['great_region', 'province', 'nation', 'continent', 'city_territory', 'city'].includes(m.node?.type));
-    const pIdx = primaryMarkers.indexOf(marker);
-    return primarySlots[pIdx >= 0 ? pIdx % primarySlots.length : index % primarySlots.length];
-  }
-
-  const worldSlots = [
-    [0, -110], [-100, -50], [100, -50],
-    [-100, 50], [100, 50], [0, 110]
+  // 5. Default Fallback Slots
+  const defaultSlots = [
+    [0, -115], [-135, -15], [0, -15], [135, -15], [0, 85],
+    [-125, -175], [125, -175], [-125, 155], [125, 155]
   ];
-  return worldSlots[index % worldSlots.length];
+  return defaultSlots[index % defaultSlots.length];
 }
+
 
 function renderTerrain(scene, mapContainer, activeNode) {
   if (activeNode?.id === HUMAN_REALM_ROOT_ID && scene.textures.exists('human_realm_atlas')) {
@@ -524,41 +554,45 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
   }
 
   const callout = scene.add.container(x, y);
-  const ruler = node?.rulerFaction;
+  const ruler = resolveNodeRuler(scene, node);
   let labelName, rulerName, boxW, boxH;
 
   if (ruler) {
     const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
-    labelName = scene.add.text(0, -7, truncateLabel(marker.label, 30), {
+    const isDynasty = ruler.type === 'Hoàng Triều' || ruler.type === 'Hoàng Tộc';
+    const subColor = isDynasty ? '#fde047' : isClan ? '#fdba74' : '#d8b4fe';
+    const subIcon = isDynasty ? '👑 ' : isClan ? '🏛️ ' : '⛩️ ';
+
+    labelName = scene.add.text(0, -8, truncateLabel(marker.label, 26), {
       fontFamily: FONT,
-      fontSize: selected ? '13px' : '12px',
+      fontSize: selected ? '12.5px' : '11.5px',
       fontStyle: 'bold',
       color: locked ? '#9aa8ae' : current ? '#ffe27a' : textColor,
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    rulerName = scene.add.text(0, 7.5, truncateLabel(ruler.name, 28), {
+    rulerName = scene.add.text(0, 8, truncateLabel(`${subIcon}${ruler.name}`, 24), {
       fontFamily: FONT,
       fontSize: selected ? '10px' : '9px',
       fontStyle: 'bold',
-      color: isClan ? '#fdba74' : '#d8b4fe',
+      color: subColor,
       stroke: '#000000',
       strokeThickness: 2.5
     }).setOrigin(0.5);
 
-    boxW = Math.max(102, Math.max(labelName.width, rulerName.width) + 22);
-    boxH = selected ? 38 : 34;
+    boxW = Math.max(110, Math.max(labelName.width, rulerName.width) + 22);
+    boxH = selected ? 42 : 38;
   } else {
-    labelName = scene.add.text(0, 0, truncateLabel(marker.label, 42), {
+    labelName = scene.add.text(0, 0, truncateLabel(marker.label, 36), {
       fontFamily: FONT,
-      fontSize: selected ? '13.5px' : '12px',
+      fontSize: selected ? '13px' : '11.5px',
       fontStyle: 'bold',
       color: locked ? '#9aa8ae' : current ? '#ffe27a' : textColor,
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
-    boxW = Math.max(86, labelName.width + 22);
+    boxW = Math.max(88, labelName.width + 20);
     boxH = selected ? 28 : 24;
   }
 
@@ -613,6 +647,7 @@ function renderFilterBar(scene, panel, state, activeNode, page) {
     addButton(scene, panel, xs[index], -246, 102, 30, label, () => {
       state.filter = key;
       state.selectedFactionId = null;
+      state.inspectFactionMode = false;
       scene.openMapPanel(activeNode.id, null, page);
     }, true, {
       fill: active ? 0x12384a : 0x061824,
@@ -674,7 +709,7 @@ function getEnemyInfoForNode(node) {
   };
 }
 
-function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode, selectFaction) {
+function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode, selectFaction, page = 0) {
   const boxY = 328;
   const boxH = 156;
   const hasPngSkin = scene.textures.exists('world_map_ui_skin');
@@ -696,215 +731,234 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
     return;
   }
 
-  if (selectedMarker.kind === 'faction') {
-    const faction = selectedMarker.faction;
-    const family = isFamilyArchetype(faction?.archetype);
-    const header = family ? 'THẾ GIA' : 'TÔNG MÔN';
-    const governedNode = factionGovernedNode(selectedMarker, activeNode);
-    const destination = factionRuntimeDestination(faction, governedNode);
-    const access = destination.map ? canEnterMap(destination.map.id, gameState) : { ok: false };
-    const current = destination.map ? sameMapId(destination.map.id, gameState.currentMapId) : false;
-    const required = destination.map
-      ? (REALMS[destination.map.minRealm]?.name || REALMS[access.requiredRealmIdx]?.name || 'Phàm Nhân')
-      : null;
-    const canOpenTerritory = Boolean(governedNode && getWorldChildren(governedNode.id).length);
-    panel.add(scene.add.text(-208, 263, header, {
-      fontFamily: FONT, fontSize: '8.5px', fontStyle: 'bold', color: family ? '#ffb36b' : '#c996ff'
-    }).setOrigin(0, 0.5));
-    panel.add(scene.add.text(-208, 287, truncateLabel(selectedMarker.label || faction.name, 42), {
-      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0, 0.5));
-    const territoryName = governedNode?.name || faction.meta?.seatName || activeNode.name;
-    const metaLine = `${faction.meta?.rankLabel || (family ? 'Thế Gia' : 'Tông Môn')} • Lãnh địa: ${territoryName}`;
-    panel.add(scene.add.text(-208, 312, truncateLabel(metaLine, 64), {
-      fontFamily: FONT, fontSize: '8.5px', color: '#94b3c0'
-    }).setOrigin(0, 0.5));
-    const destinationLine = destination.kind === 'faction_headquarters'
-      ? `Bản đồ thế lực: ${destination.map?.name || faction.meta?.seatName || faction.name}`
-      : `Dữ liệu map cố định của ${faction.name} chưa hợp lệ.`;
-    panel.add(scene.add.text(-208, 332, truncateLabel(destinationLine, 110), {
-      fontFamily: FONT, fontSize: '8px', color: destination.map ? '#9bd8e8' : '#ff8d9a',
-      wordWrap: { width: 416, useAdvancedWrap: true }
-    }).setOrigin(0, 0));
-
-    const travelEnabled = Boolean(destination.map && !current && access.ok);
-    const territoryEnabled = Boolean(!destination.map && canOpenTerritory);
-    const travelLabel = current
-      ? 'ĐANG Ở MAP'
-      : destination.map && access.ok
-        ? factionTravelLabel(faction, destination)
-        : destination.map
-          ? `KHÓA • ${required}`
-          : canOpenTerritory
-            ? 'XEM PHÂN VÙNG'
-            : 'LỖI MAP THẾ LỰC';
-    addButton(scene, panel, -105, 382, 198, 36, travelLabel, () => {
-      if (travelEnabled) {
-        travelTo(scene, destination.map, `${faction.name} • ${territoryName}`);
-        return;
-      }
-      if (territoryEnabled) openNode(governedNode.id, null);
-    }, travelEnabled || territoryEnabled, {
-      fill: travelEnabled ? 0x8d6114 : territoryEnabled ? 0x082d3a : 0x17212a,
-      stroke: travelEnabled ? COLOR.gold : territoryEnabled ? COLOR.cyan : COLOR.muted,
-      color: travelEnabled ? '#fff3b0' : territoryEnabled ? '#6df2ff' : '#728a94',
-      fontSize: '8.5px',
-      texture: travelEnabled ? 'map_ui_action_gold' : null
-    });
-    addButton(scene, panel, 105, 382, 198, 36, 'XEM THẾ LỰC', () => selectFaction(faction.id), true, {
-      fill: family ? 0x34200d : 0x28133b,
-      stroke: family ? COLOR.orange : COLOR.purple,
-      color: family ? '#ffe0bd' : '#e8d1ff',
-      fontSize: '9px'
-    });
-    return;
-  }
-
+  const state = scene.__worldMapUiState || (scene.__worldMapUiState = { filter: 'all', selectedFactionId: null, inspectFactionMode: false });
   const node = selectedMarker.node;
   const map = selectedMarker.map;
-  if (!map) {
-    const dir = node.direction;
-    const dirText = dir ? (['Trên', 'Dưới'].includes(dir) ? ` [CỰC ${dir.toUpperCase()}]` : ` [PHƯƠNG ${dir.toUpperCase()}]`) : '';
-    panel.add(scene.add.text(-208, 263, (typeText(node) + dirText).toUpperCase(), {
-      fontFamily: FONT, fontSize: '10.5px', fontStyle: 'bold', color: '#69dff3'
+  const ruler = selectedMarker.kind === 'faction'
+    ? {
+        id: selectedMarker.faction?.id,
+        name: selectedMarker.faction?.name,
+        type: isFamilyArchetype(selectedMarker.faction?.archetype) ? 'Thế Gia' : 'Tông Môn',
+        archetype: selectedMarker.faction?.archetype,
+        rankLabel: selectedMarker.faction?.meta?.rankLabel || (isFamilyArchetype(selectedMarker.faction?.archetype) ? 'Thế Gia' : 'Tông Môn'),
+        faction: selectedMarker.faction
+      }
+    : resolveNodeRuler(scene, node);
+  const rulerFaction = ruler?.faction
+    || (ruler?.id ? HUMAN_REALM_FACTION_NETWORK.getFaction(ruler.id) || HUMAN_REALM_FACTION_NETWORK.canonicalAtlas.getFactionById(ruler.id) : null);
+
+  // =========================================================================
+  // CHẾ ĐỘ 2: TÌM HIỂU TÔNG MÔN / GIA TỘC / HOÀNG TRIỀU
+  // =========================================================================
+  if (state.inspectFactionMode && ruler) {
+    const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
+    const isDynasty = ruler.type === 'Hoàng Triều' || ruler.type === 'Hoàng Tộc';
+    const headerColor = isDynasty ? '#fde047' : isClan ? '#ffb36b' : '#c996ff';
+    const headerTitle = isDynasty ? '👑 THÔNG TIN HOÀNG TRIỀU' : isClan ? '🏛️ THÔNG TIN THẾ GIA' : '⛩️ THÔNG TIN TÔNG MÔN';
+
+    panel.add(scene.add.text(-208, 263, headerTitle, {
+      fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: headerColor
     }).setOrigin(0, 0.5));
-    panel.add(scene.add.text(-208, 287, truncateLabel(node.name, 36), {
-      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffe49a',
+    panel.add(scene.add.text(-208, 287, truncateLabel(ruler.name, 36), {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#ffffff',
       stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5));
 
-    const ruler = node.rulerFaction;
-    if (ruler) {
-      const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
-      const factionNetwork = scene.network
-        || scene.getFactionRuntime?.()?.network
-        || scene.getFactionRuntimeCoordinator?.()?.network
-        || null;
-      const targetFaction = ruler.id ? (factionNetwork?.getFaction?.(ruler.id) || null) : null;
+    const territoryName = node?.name || activeNode?.name || 'Khu Vực';
+    const metaLine = `🏰 Quy mô: ${ruler.rankLabel || ruler.type} • Trấn giữ: ${territoryName}`;
+    panel.add(scene.add.text(-208, 310, truncateLabel(metaLine, 56), {
+      fontFamily: FONT, fontSize: '9.5px', color: '#94b3c0'
+    }).setOrigin(0, 0.5));
 
-      const rulerLabel = ruler.rankLabel || (ruler.duty ? `${ruler.type} ${ruler.duty}` : ruler.type);
-      panel.add(scene.add.text(-208, 312, truncateLabel(`🏰 Thống Lĩnh: ${ruler.name} • ${rulerLabel}`, 48), {
-        fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: isClan ? '#ffc27d' : '#d8b4fe',
-        stroke: '#000000', strokeThickness: 2.5
-      }).setOrigin(0, 0.5));
-      panel.add(scene.add.text(-208, 332, truncateLabel(node.desc || 'Phong thủy bảo địa, linh khí cửu tiêu dồi dào, hội tụ nhiều tông môn và thế gia.', 120), {
-        fontFamily: FONT, fontSize: '10.5px', color: '#bfe7f9',
-        wordWrap: { width: 416, useAdvancedWrap: true },
-        lineSpacing: 3
-      }).setOrigin(0, 0));
+    const leaderTitle = rulerFaction?.meta?.leaderTitle || (isDynasty ? 'Hoàng Đế' : isClan ? 'Tộc Trưởng' : 'Tông Chủ');
+    const leaderName = rulerFaction?.meta?.leaderName || 'Tiên Đạo Tiền Bối';
+    const technique = rulerFaction?.meta?.signatureTechnique || rulerFaction?.doctrine?.signatureTechnique || '';
+    const infoLine = technique
+      ? `Chưởng quản: ${leaderTitle} ${leaderName} • Truyền thừa: ${technique}`
+      : `Chưởng quản: ${leaderTitle} ${leaderName} • ${rulerFaction?.meta?.seatName || 'Sơn Môn'}`;
+    panel.add(scene.add.text(-208, 328, truncateLabel(infoLine, 60), {
+      fontFamily: FONT, fontSize: '9.5px', color: '#bae6fd'
+    }).setOrigin(0, 0.5));
 
-      const factionMapId = factionHeadquartersMapId(targetFaction);
-      const factionMap = factionMapId ? findMapById(factionMapId) : null;
-      const factionAccess = factionMap ? canEnterMap(factionMap.id, gameState) : { ok: false };
-      const factionCurrent = factionMap ? sameMapId(factionMap.id, gameState.currentMapId) : false;
-      const factionRequired = factionMap
-        ? (REALMS[factionMap.minRealm]?.name || REALMS[factionAccess.requiredRealmIdx]?.name || 'Phàm Nhân')
-        : null;
-      const factionButtonLabel = factionCurrent
-        ? (isClan ? 'ĐANG Ở THẾ GIA' : 'ĐANG Ở TÔNG MÔN')
-        : factionMap && factionAccess.ok
-          ? (isClan ? 'VÀO THẾ GIA' : 'VÀO TÔNG MÔN')
-          : factionMap
-            ? `KHÓA • ${factionRequired}`
-            : 'LỖI MAP THẾ LỰC';
-      addButton(scene, panel, -105, 382, 198, 38, factionButtonLabel, () => {
-        if (!factionMap || factionCurrent || !factionAccess.ok) return;
+    const descText = rulerFaction?.meta?.description
+      || rulerFaction?.doctrine?.motto
+      || 'Hội tụ linh mạch cửu tiêu, đệ tử đông đảo, uy danh hiển hách khắp cõi tu chân.';
+    panel.add(scene.add.text(-208, 346, truncateLabel(descText, 110), {
+      fontFamily: FONT, fontSize: '8.5px', color: '#7dd3fc',
+      wordWrap: { width: 416, useAdvancedWrap: true }
+    }).setOrigin(0, 0));
+
+    // Nút 1: Quay lại
+    addButton(scene, panel, -105, 386, 198, 36, '‹ QUAY LẠI', () => {
+      state.inspectFactionMode = false;
+      scene.openMapPanel(activeNode.id, node?.id || selectedMarker.id, page);
+    }, true, {
+      fill: 0x082d3a, stroke: COLOR.cyan, color: '#6df2ff', fontSize: '10.5px'
+    });
+
+    // Nút 2: Đi đến gia tộc / tông môn / hoàng triều
+    const factionMapId = factionHeadquartersMapId(rulerFaction);
+    const factionMap = factionMapId ? findMapById(factionMapId) : null;
+    const factionAccess = factionMap ? canEnterMap(factionMap.id, gameState) : { ok: false };
+    const factionCurrent = factionMap ? sameMapId(factionMap.id, gameState.currentMapId) : false;
+    const factionRequired = factionMap
+      ? (REALMS[factionMap.minRealm]?.name || REALMS[factionAccess.requiredRealmIdx]?.name || 'Phàm Nhân')
+      : null;
+    const canTravelFaction = Boolean(factionMap && !factionCurrent && factionAccess.ok);
+    const destLabel = isDynasty ? 'ĐI ĐẾN HOÀNG THÀNH' : isClan ? 'ĐI ĐẾN GIA TỘC' : 'ĐI ĐẾN TÔNG MÔN';
+    const travelLabel = factionCurrent
+      ? 'ĐANG Ở MAP'
+      : canTravelFaction
+        ? destLabel
+        : factionMap
+          ? `KHÓA • ${factionRequired}`
+          : 'XEM THẾ LỰC';
+
+    addButton(scene, panel, 105, 386, 198, 36, travelLabel, () => {
+      if (canTravelFaction) {
         travelTo(scene, factionMap, ruler.name);
-      }, Boolean(factionMap && !factionCurrent && factionAccess.ok), {
-        fill: factionMap && !factionCurrent && factionAccess.ok ? (isClan ? 0x34200d : 0x28133b) : 0x17212a,
-        stroke: factionMap && !factionCurrent && factionAccess.ok ? (isClan ? COLOR.orange : COLOR.purple) : COLOR.muted,
-        color: factionMap && !factionCurrent && factionAccess.ok ? (isClan ? '#ffe0bd' : '#e8d1ff') : '#728a94',
-        fontSize: '10px'
-      });
-
-      addButton(scene, panel, 105, 382, 198, 38, 'XEM PHÂN VÙNG', () => openNode(node.id, null), true, {
-        fill: 0x082d3a, stroke: COLOR.cyan, color: '#6df2ff', fontSize: '11px'
-      });
-    } else {
-      const enemyInfo = getEnemyInfoForNode(node);
-      panel.add(scene.add.text(-208, 312, enemyInfo.enemyText, {
-        fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: enemyInfo.accentColor,
-        stroke: '#000000', strokeThickness: 2.5
-      }).setOrigin(0, 0.5));
-      panel.add(scene.add.text(-208, 332, truncateLabel(node.desc || enemyInfo.descDefault, 120), {
-        fontFamily: FONT, fontSize: '10.5px', color: '#bfe7f9',
-        wordWrap: { width: 416, useAdvancedWrap: true },
-        lineSpacing: 3
-      }).setOrigin(0, 0));
-
-      addButton(scene, panel, 0, 382, 410, 38, 'XEM PHÂN VÙNG', () => openNode(node.id, null), true, {
-        fill: enemyInfo.combatType === 'BÍ CẢNH' ? 0x2b0f38 : 0x082d3a,
-        stroke: enemyInfo.combatType === 'BÍ CẢNH' ? 0xd946ef : COLOR.cyan,
-        color: enemyInfo.combatType === 'BÍ CẢNH' ? '#f5d0fe' : '#6df2ff',
-        fontSize: '11px'
-      });
-    }
+      } else if (!factionMap && rulerFaction?.id) {
+        selectFaction(rulerFaction.id);
+      }
+    }, canTravelFaction || (!factionMap && Boolean(rulerFaction?.id)), {
+      fill: canTravelFaction ? 0x8d6114 : (isClan ? 0x34200d : 0x28133b),
+      stroke: canTravelFaction ? COLOR.gold : (isClan ? COLOR.orange : COLOR.purple),
+      color: canTravelFaction ? '#fff3b0' : (isClan ? '#ffe0bd' : '#e8d1ff'),
+      fontSize: '10px',
+      texture: canTravelFaction ? 'map_ui_action_gold' : null
+    });
     return;
   }
 
-  const meta = destinationMeta(node, map);
-  const access = canEnterMap(map.id, gameState);
-  const current = sameMapId(map.id, gameState.currentMapId);
-  const required = REALMS[map.minRealm]?.name || REALMS[access.requiredRealmIdx]?.name || 'Phàm Nhân';
-  const isCombat = !map.isPeaceZone;
-  const hasChildren = getWorldChildren(node.id).length > 0;
+  // =========================================================================
+  // CHẾ ĐỘ 1: MẶC ĐỊNH (THÔNG TIN ĐỊA DANH + 2 TÙY CHỌN TIẾP TỤC / TÌM HIỂU)
+  // =========================================================================
+  const access = map ? canEnterMap(map.id, gameState) : { ok: true };
+  const current = map ? sameMapId(map.id, gameState.currentMapId) : false;
+  const required = map ? (REALMS[map.minRealm]?.name || REALMS[access.requiredRealmIdx]?.name || 'Phàm Nhân') : 'Phàm Nhân';
+  const hasChildren = node ? getWorldChildren(node.id).length > 0 : false;
+  const meta = map ? destinationMeta(node, map) : null;
+  const isCombat = Boolean(map && !map.isPeaceZone);
 
-  panel.add(scene.add.text(-208, 263, (meta.label || 'ĐỊA ĐIỂM').toUpperCase(), {
-    fontFamily: FONT, fontSize: '10.5px', fontStyle: 'bold', color: meta.kind === 'sect' ? '#cf9dff' : '#62e1f7'
+  const displayType = (meta?.label || typeText(node) || 'ĐỊA DANH').toUpperCase();
+  panel.add(scene.add.text(-208, 263, displayType, {
+    fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: meta?.kind === 'sect' ? '#cf9dff' : '#69dff3'
   }).setOrigin(0, 0.5));
-  panel.add(scene.add.text(-208, 287, truncateLabel(meta.name, 36), {
+
+  panel.add(scene.add.text(-208, 287, truncateLabel(node?.name || map?.name || selectedMarker.label, 36), {
     fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffe49a',
     stroke: '#000000', strokeThickness: 3
   }).setOrigin(0, 0.5));
 
-  const statusLine = isCombat
-    ? `⚔ Cấp Quái: ${required} • Yêu Thú Sơ Giai • ${nodeStatus(node)}`
-    : `⌂ Khu An Toàn • Yêu cầu: ${required} • ${nodeStatus(node)}`;
+  if (ruler) {
+    const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
+    const isDynasty = ruler.type === 'Hoàng Triều' || ruler.type === 'Hoàng Tộc';
+    const rulerIcon = isDynasty ? '👑' : isClan ? '🏛️' : '⛩️';
+    const rulerColor = isDynasty ? '#fde047' : isClan ? '#ffc27d' : '#d8b4fe';
 
-  panel.add(scene.add.text(-208, 312, statusLine, {
-    fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: isCombat ? '#4ade80' : '#93c5fd',
-    stroke: '#000000', strokeThickness: 2.5
-  }).setOrigin(0, 0.5));
-  panel.add(scene.add.text(-208, 332, truncateLabel(node?.desc || map?.sub || 'Vùng đất tu tiên tự do di chuyển vào khám phá.', 120), {
-    fontFamily: FONT, fontSize: '10.5px', color: '#bfe7f9',
+    panel.add(scene.add.text(-208, 312, truncateLabel(`${rulerIcon} Trấn Giữ: ${ruler.name} • ${ruler.rankLabel || ruler.type}`, 50), {
+      fontFamily: FONT, fontSize: '11.5px', fontStyle: 'bold', color: rulerColor,
+      stroke: '#000000', strokeThickness: 2.5
+    }).setOrigin(0, 0.5));
+  } else {
+    const enemyInfo = node ? getEnemyInfoForNode(node) : null;
+    const statusLine = isCombat
+      ? `⚔ Cấp Quái: ${required} • Yêu Thú Sơ Giai • ${nodeStatus(node)}`
+      : enemyInfo
+        ? enemyInfo.enemyText
+        : `⌂ Khu An Toàn • ${nodeStatus(node)}`;
+    panel.add(scene.add.text(-208, 312, statusLine, {
+      fontFamily: FONT, fontSize: '11.5px', fontStyle: 'bold', color: isCombat ? '#4ade80' : '#93c5fd',
+      stroke: '#000000', strokeThickness: 2.5
+    }).setOrigin(0, 0.5));
+  }
+
+  panel.add(scene.add.text(-208, 332, truncateLabel(node?.desc || map?.sub || 'Phong thủy bảo địa, linh khí cửu tiêu dồi dào, hội tụ nhiều cơ duyên tu đạo.', 120), {
+    fontFamily: FONT, fontSize: '10px', color: '#bfe7f9',
     wordWrap: { width: 416, useAdvancedWrap: true },
-    lineSpacing: 3
+    lineSpacing: 2
   }).setOrigin(0, 0));
 
-  if (hasChildren) {
-    addButton(scene, panel, -105, 382, 198, 38, 'MỞ CHI TIẾT', () => openNode(node.id, map.id), true, {
-      fill: 0x082d3a, stroke: meta.accent, color: '#6df2ff', fontSize: '11px'
+  // Tùy chọn nút bấm
+  if (ruler) {
+    // 2 TÙY CHỌN: Tiếp tục đi vào khu vực đó | Tìm hiểu tông môn/gia tộc
+    const canEnterDirect = Boolean(map && !current && access.ok);
+    const canEnterHierarchy = Boolean(!map && hasChildren);
+    const enterLabel = current
+      ? 'ĐANG Ở ĐÂY'
+      : map
+        ? (access.ok ? 'TIẾP TỤC ĐI VÀO' : `KHÓA • ${required}`)
+        : 'TIẾP TỤC ĐI VÀO';
+
+    addButton(scene, panel, -105, 386, 198, 38, enterLabel, () => {
+      if (map) {
+        if (canEnterDirect) travelTo(scene, map, node?.name || map.name);
+      } else if (hasChildren) {
+        state.inspectFactionMode = false;
+        openNode(node.id, null);
+      }
+    }, canEnterDirect || canEnterHierarchy, {
+      fill: (canEnterDirect || canEnterHierarchy) ? 0x8d6114 : 0x17212a,
+      stroke: (canEnterDirect || canEnterHierarchy) ? COLOR.gold : COLOR.muted,
+      color: (canEnterDirect || canEnterHierarchy) ? '#fff3b0' : '#728a94',
+      fontSize: '10.5px',
+      texture: (canEnterDirect || canEnterHierarchy) ? 'map_ui_action_gold' : null
     });
-    addButton(scene, panel, 105, 382, 198, 38,
-      current ? 'ĐANG Ở ĐÂY' : access.ok ? 'DI CHUYỂN' : `KHÓA • ${required}`,
-      () => travelTo(scene, map, meta.name),
-      !current && access.ok,
-      {
-        fill: !current && access.ok ? 0x8d6114 : 0x17212a,
-        stroke: !current && access.ok ? COLOR.gold : COLOR.muted,
-        color: !current && access.ok ? '#fff3b0' : '#728a94',
-        fontSize: '11px',
-        texture: !current && access.ok ? 'map_ui_action_gold' : null
-      }
-    );
+
+    const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
+    const isDynasty = ruler.type === 'Hoàng Triều' || ruler.type === 'Hoàng Tộc';
+    const inspectLabel = isDynasty ? 'TÌM HIỂU HOÀNG TRIỀU' : isClan ? 'TÌM HIỂU GIA TỘC' : 'TÌM HIỂU TÔNG MÔN';
+
+    addButton(scene, panel, 105, 386, 198, 38, inspectLabel, () => {
+      state.inspectFactionMode = true;
+      scene.openMapPanel(activeNode.id, node?.id || selectedMarker.id, page);
+    }, true, {
+      fill: isDynasty ? 0x3d3005 : isClan ? 0x34200d : 0x28133b,
+      stroke: isDynasty ? COLOR.gold : isClan ? COLOR.orange : COLOR.purple,
+      color: isDynasty ? '#ffe49a' : isClan ? '#ffe0bd' : '#e8d1ff',
+      fontSize: '10px'
+    });
   } else {
-    addButton(scene, panel, 0, 382, 410, 38,
-      current ? 'ĐANG Ở ĐÂY' : access.ok ? 'DI CHUYỂN' : `KHÓA • ${required}`,
-      () => travelTo(scene, map, meta.name),
-      !current && access.ok,
-      {
-        fill: !current && access.ok ? 0x8d6114 : 0x17212a,
-        stroke: !current && access.ok ? COLOR.gold : COLOR.muted,
-        color: !current && access.ok ? '#fff3b0' : '#728a94',
-        fontSize: '12px',
-        texture: !current && access.ok ? 'map_ui_action_gold' : null
-      }
-    );
+    // Không có thế lực trấn giữ (Bí cảnh, dã ngoại...)
+    if (hasChildren && map) {
+      addButton(scene, panel, -105, 386, 198, 38, 'TIẾP TỤC ĐI VÀO', () => openNode(node.id, map.id), true, {
+        fill: 0x082d3a, stroke: meta?.accent || COLOR.cyan, color: '#6df2ff', fontSize: '11px'
+      });
+      addButton(scene, panel, 105, 386, 198, 38,
+        current ? 'ĐANG Ở ĐÂY' : access.ok ? 'DI CHUYỂN' : `KHÓA • ${required}`,
+        () => travelTo(scene, map, meta?.name || map.name),
+        !current && access.ok,
+        {
+          fill: !current && access.ok ? 0x8d6114 : 0x17212a,
+          stroke: !current && access.ok ? COLOR.gold : COLOR.muted,
+          color: !current && access.ok ? '#fff3b0' : '#728a94',
+          fontSize: '11px',
+          texture: !current && access.ok ? 'map_ui_action_gold' : null
+        }
+      );
+    } else if (hasChildren) {
+      addButton(scene, panel, 0, 386, 410, 38, 'TIẾP TỤC ĐI VÀO', () => openNode(node.id, null), true, {
+        fill: 0x082d3a, stroke: COLOR.cyan, color: '#6df2ff', fontSize: '12px'
+      });
+    } else if (map) {
+      addButton(scene, panel, 0, 386, 410, 38,
+        current ? 'ĐANG Ở ĐÂY' : access.ok ? 'TIẾP TỤC ĐI VÀO' : `KHÓA • ${required}`,
+        () => travelTo(scene, map, meta?.name || map.name),
+        !current && access.ok,
+        {
+          fill: !current && access.ok ? 0x8d6114 : 0x17212a,
+          stroke: !current && access.ok ? COLOR.gold : COLOR.muted,
+          color: !current && access.ok ? '#fff3b0' : '#728a94',
+          fontSize: '12px',
+          texture: !current && access.ok ? 'map_ui_action_gold' : null
+        }
+      );
+    }
   }
 }
 
 function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
-  const state = scene.__worldMapUiState || (scene.__worldMapUiState = { filter: 'all', selectedFactionId: null });
+  const state = scene.__worldMapUiState || (scene.__worldMapUiState = { filter: 'all', selectedFactionId: null, inspectFactionMode: false });
   if (!FILTERS.includes(state.filter)) state.filter = 'all';
 
   const worldMarkers = buildWorldMarkers(scene, activeNode);
@@ -950,6 +1004,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   mapClearHit.on('pointerdown', pointer => {
     stopPointer(scene, pointer);
     state.selectedFactionId = null;
+    state.inspectFactionMode = false;
     scene.openMapPanel(activeNode.id, null, page);
   });
   mapContainer.add(mapClearHit);
@@ -978,6 +1033,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
       hit.on('pointerdown', pointer => {
         stopPointer(scene, pointer);
         state.selectedFactionId = null;
+        state.inspectFactionMode = false;
         scene.openMapPanel(area.id, null, 0);
       });
       mapContainer.add([hoverGlow, hit]);
@@ -985,15 +1041,11 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   } else {
     const positioned = new Map();
     const worldVisible = visibleWorldMarkers;
-    const factionVisible = visibleFactionMarkers;
     worldVisible.forEach((marker, index) => {
-      const [x, y] = markerSlot(marker, index, worldVisible.length, false, worldVisible);
+      const [x, y] = markerSlot(marker, index, worldVisible.length, worldVisible);
       positioned.set(marker.id, [x, y]);
     });
-    factionVisible.forEach((marker, index) => {
-      const [x, y] = markerSlot(marker, index, factionVisible.length, true, factionVisible);
-      positioned.set(marker.id, [x, y]);
-    });
+
 
     const currentMarker = worldVisible.find(marker => marker.map && sameMapId(marker.map.id, gameState.currentMapId));
     const currentPos = currentMarker ? positioned.get(currentMarker.id) : null;
@@ -1004,6 +1056,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
       const pos = positioned.get(marker.id);
       if (!pos) return;
       renderMarker(scene, mapContainer, marker, pos, selectedMarker?.id === marker.id, picked => {
+        state.inspectFactionMode = false;
         if (picked.kind === 'faction') {
           state.selectedFactionId = picked.id;
           scene.openMapPanel(activeNode.id, null, page);
@@ -1017,12 +1070,14 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
 
   if (!rootAtlas && pageCount > 1) {
     addButton(scene, panel, 100, 220, 54, 30, '‹', () => {
+      state.inspectFactionMode = false;
       scene.openMapPanel(activeNode.id, null, Math.max(0, safePage - 1));
     }, safePage > 0, { fontSize: '17px', fill: 0x071b25, stroke: COLOR.cyan });
     panel.add(scene.add.text(0, 220, `TRANG ${safePage + 1}/${pageCount}`, {
       fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#d8f7ff'
     }).setOrigin(0.5));
     addButton(scene, panel, 170, 220, 54, 30, '›', () => {
+      state.inspectFactionMode = false;
       scene.openMapPanel(activeNode.id, null, Math.min(pageCount - 1, safePage + 1));
     }, safePage < pageCount - 1, { fontSize: '17px', fill: 0x071b25, stroke: COLOR.cyan });
   }
@@ -1030,6 +1085,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   if (activeNode.parentId) {
     addButton(scene, panel, -185, 225, 112, 38, '‹ LÊN', () => {
       state.selectedFactionId = null;
+      state.inspectFactionMode = false;
       scene.openMapPanel(activeNode.parentId, null, 0);
     }, true, { fontSize: '8px', fill: 0x071b25, stroke: COLOR.blue, texture: 'map_ui_back_button', color: '#fff3b5' });
   }
@@ -1047,9 +1103,11 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
     selectedMarker,
     (nodeId, mapId = null) => {
       state.selectedFactionId = null;
+      state.inspectFactionMode = false;
       scene.openMapPanel(nodeId, mapId, 0);
     },
-    factionId => scene.openFactionPanel?.(factionId)
+    factionId => scene.openFactionPanel?.(factionId),
+    safePage
   );
 }
 
@@ -1074,7 +1132,7 @@ export function installWorldMapHierarchyUI(MainGameScene) {
     ensureWorldProgress(gameState);
     const scene = this;
 
-    if (!scene.__worldMapUiState) scene.__worldMapUiState = { filter: 'all', selectedFactionId: null };
+    if (!scene.__worldMapUiState) scene.__worldMapUiState = { filter: 'all', selectedFactionId: null, inspectFactionMode: false };
     if (LEGACY_TO_ROOT.has(activeNodeId)) activeNodeId = HUMAN_REALM_ROOT_ID;
 
     let node = activeNodeId ? getWorldNode(activeNodeId) : getWorldNode(HUMAN_REALM_ROOT_ID);
@@ -1110,10 +1168,23 @@ export function installWorldMapHierarchyUI(MainGameScene) {
     if (node.parentId) {
       if (scene.textures.exists('map_ui_back_button')) {
         const back = scene.add.image(-207, -432, 'map_ui_back_button').setDisplaySize(58, 58).setInteractive({ useHandCursor: true });
-        back.on('pointerdown', pointer => { stopPointer(scene, pointer); scene.openMapPanel(node.parentId, null, 0); });
+        back.on('pointerdown', pointer => {
+          stopPointer(scene, pointer);
+          if (scene.__worldMapUiState) {
+            scene.__worldMapUiState.selectedFactionId = null;
+            scene.__worldMapUiState.inspectFactionMode = false;
+          }
+          scene.openMapPanel(node.parentId, null, 0);
+        });
         panel.add(back);
       } else {
-        addButton(scene, panel, -207, -432, 58, 48, '‹', () => scene.openMapPanel(node.parentId, null, 0), true, { fill: 0x082d3a, stroke: COLOR.cyan, fontSize: '26px' });
+        addButton(scene, panel, -207, -432, 58, 48, '‹', () => {
+          if (scene.__worldMapUiState) {
+            scene.__worldMapUiState.selectedFactionId = null;
+            scene.__worldMapUiState.inspectFactionMode = false;
+          }
+          scene.openMapPanel(node.parentId, null, 0);
+        }, true, { fill: 0x082d3a, stroke: COLOR.cyan, fontSize: '26px' });
       }
     }
 

@@ -124,6 +124,15 @@ class GameTravelService {
       }
     }
 
+    // Kiểm tra Cooldown vào lại thôn làng sau khi rời thôn (5 giây)
+    const isTargetVillage = String(targetMap.id) === CANONICAL_MAP_KEYS.THANH_VAN_THON || String(targetMap.id) === '0' || String(targetMap.id) === 'thanh_van_thon';
+    const scene = options.scene || window.__ACTIVE_PHASER_SCENE__;
+    const reentryBlocked = Math.max(Number(scene?.villageReentryBlockedUntil || 0), Number(this.villageReentryBlockedUntil || 0));
+    if (isTargetVillage && Date.now() < reentryBlocked) {
+      const remainingSec = Math.max(1, Math.ceil((reentryBlocked - Date.now()) / 1000));
+      return { ok: false, reason: TRAVEL_ERROR_CODES.COOLDOWN_ACTIVE, message: `⏳ Vừa rời thôn! Hãy chờ ${remainingSec}s trước khi quay lại.` };
+    }
+
     // Kiểm tra Cooldown
     if (!options.skipCooldown && options.source === TRAVEL_SOURCES.PORTAL) {
       const cdKey = `portal_${String(currentMapId)}_${String(targetMap.id)}`;

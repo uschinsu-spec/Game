@@ -44,18 +44,19 @@ function queueBootAssets(scene) {
     queueImage(scene, panoramaMap.panoramaKey, A + panoramaMap.panoramaAsset);
   }
 
-  // Player assets required to render/control the first frame.
-  queueImage(scene, 'flying_sword', A + 'characters/player/flying_sword.png');
-  queueSpriteSheet(scene, 'player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
-  queueSpriteSheet(scene, 'player_run', A + 'characters/player/player_run.png', { frameWidth: 128, frameHeight: 128 });
-  queueSpriteSheet(scene, 'player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
-  queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
+  // Player assets required to render/control the first frame (12-frame 192x192 sheets).
+
+  queueSpriteSheet(scene, 'player_idle', A + 'characters/player/player_idle.webp', { frameWidth: 192, frameHeight: 192 });
+  queueSpriteSheet(scene, 'player_run', A + 'characters/player/player_run.webp', { frameWidth: 192, frameHeight: 192 });
+  queueSpriteSheet(scene, 'player_attack', A + 'characters/player/player_attack.webp', { frameWidth: 192, frameHeight: 192 });
+  queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.webp', { frameWidth: 192, frameHeight: 192 });
+  queueSpriteSheet(scene, 'player_fly_attack', A + 'characters/player/player_fly_attack.webp', { frameWidth: 192, frameHeight: 192 });
 
   // Core Hub background assets (Thôn Trấn / Thành Thị / Tông Môn / Gia Tộc)
-  queueImage(scene, 'bg_village_hub', A + 'environment/THON TRAN.png');
-  queueImage(scene, 'bg_city_hub', A + 'environment/THANH THI.PNG');
-  queueImage(scene, 'bg_sect_hub', A + 'environment/TONG MON.PNG');
-  queueImage(scene, 'bg_clan_hub', A + 'environment/GIA TOC.PNG');
+  queueImage(scene, 'bg_village_hub', A + 'environment/THON TRAN.webp');
+  queueImage(scene, 'bg_city_hub', A + 'environment/THANH THI.webp');
+  queueImage(scene, 'bg_sect_hub', A + 'environment/TONG MON.webp');
+  queueImage(scene, 'bg_clan_hub', A + 'environment/GIA TOC.webp');
 
   // Visible HUD/menu shell only.
   queueImage(scene, 'hud_skin', A + 'ui/hud_skin.webp');
@@ -67,13 +68,13 @@ function queueBootAssets(scene) {
   ['info_card', 'action_gold', 'back_button', 'close_button']
     .forEach(name => queueImage(scene, `map_ui_${name}`, A + `ui/world_map/kit/${name}.webp`));
   ['bag', 'realm', 'craft', 'skills', 'auto'].forEach(icon => {
-    queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`);
+    queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.webp`);
   });
 
   // Only equipped skill icons are needed to draw the initial skill bar.
   const equipped = new Set((gameState.equippedSkillIds || []).filter(Boolean));
   ELEMENTAL_SKILLS.forEach(skill => {
-    if (equipped.has(skill.id)) queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.png`);
+    if (equipped.has(skill.id)) queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.webp`);
   });
 }
 
@@ -82,38 +83,40 @@ function queueDeferredUiAssets(scene) {
 
   // Post-boot UI shell/catalog assets. IMPORTANT: do not call loadAllItemIcons()
   // here. Inventory/drop item images are pulled by ItemIconStreaming on demand.
-  for (let i = 0; i < 10; i++) queueImage(scene, `skill_${i}`, A + `icons/skills/skill_${i}.png`);
-  ELEMENTAL_SKILLS.forEach(skill => queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.png`));
-  for (let i = 0; i < 18; i++) queueImage(scene, `item_${i}`, A + `icons/items/item_${i}.png`);
+  for (let i = 0; i < 10; i++) queueImage(scene, `skill_${i}`, A + `icons/skills/skill_${i}.webp`);
+  ELEMENTAL_SKILLS.forEach(skill => queueImage(scene, skill.icon, A + `icons/skills/unique/${skill.id}.webp`));
+  for (let i = 0; i < 18; i++) queueImage(scene, `item_${i}`, A + `icons/items/item_${i}.webp`);
 
   ['silver', 'spirit_stone_low', 'spirit_stone_mid', 'spirit_stone_high', 'spirit_stone_top']
-    .forEach(c => queueImage(scene, `curr_${c}`, A + `icons/currencies/${c}.png`));
+    .forEach(c => queueImage(scene, `curr_${c}`, A + `icons/currencies/${c}.webp`));
   ['pill_heal', 'pill_cultivation', 'pill_breakthrough', 'pill_golden']
-    .forEach(p => queueImage(scene, `icon_${p}`, A + `icons/pills/${p}.png`));
+    .forEach(p => queueImage(scene, `icon_${p}`, A + `icons/pills/${p}.webp`));
   ['manual_hoang', 'manual_huyen', 'manual_dia', 'manual_thien', 'manual_than']
-    .forEach(m => queueImage(scene, `icon_${m}`, A + `icons/manuals/${m}.png`));
-  for (let i = 0; i < 12; i++) queueImage(scene, `stage_${i}`, A + `icons/stages/stage_${i}.png`);
+    .forEach(m => queueImage(scene, `icon_${m}`, A + `icons/manuals/${m}.webp`));
+  for (let i = 0; i < 12; i++) queueImage(scene, `stage_${i}`, A + `icons/stages/stage_${i}.webp`);
   ['bag', 'realm', 'skills', 'auto', 'settings', 'close', 'map', 'gold', 'pill', 'quest']
-    .forEach(icon => queueImage(scene, `ui_${icon}`, A + `icons/ui/${icon}.png`));
+    .forEach(icon => queueImage(scene, `ui_${icon}`, A + `icons/ui/${icon}.webp`));
   ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold']
-    .forEach(icon => queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
+    .forEach(icon => queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.webp`));
 }
 
 function createBootPlayerAnimations(scene) {
-  const make = (key, tex, start, end, rate, repeat = -1) => {
+  const make = (key, tex, start, end, rate, repeat = -1, yoyo = false) => {
     if (!scene.anims.exists(key)) {
       scene.anims.create({
         key,
         frames: scene.anims.generateFrameNumbers(tex, { start, end }),
         frameRate: rate,
-        repeat
+        repeat,
+        yoyo
       });
     }
   };
-  make('p_idle', 'player_idle', 0, 7, 8);
-  make('p_run', 'player_run', 0, 7, 12);
-  make('p_attack', 'player_attack', 0, 7, 15, 0);
-  make('p_fly', 'player_fly', 0, 7, 10);
+  make('p_idle', 'player_idle', 0, 11, 10, -1);
+  make('p_run', 'player_run', 0, 11, 12, -1);
+  make('p_attack', 'player_attack', 0, 11, 16, 0);
+  make('p_fly', 'player_fly', 0, 11, 12, -1);
+  make('p_fly_attack', 'player_fly_attack', 0, 11, 16, 0);
 }
 
 function restoreRuntimeMethods(scene, saved) {

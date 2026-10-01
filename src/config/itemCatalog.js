@@ -65,49 +65,52 @@ const ITEM_ICON_ROOT = 'assets/icons';
 const GAME_ICON_ROOT = `${ITEM_ICON_ROOT}/game_icons`;
 const GEAR_ICON_BANKS = Object.freeze({
   weapon:'01_vu_khi', armor:'02_ao_giap', helm:'03_mu_non', boots:'05_giay',
-  amulet:'06_trang_suc', ring:'06_trang_suc', shield:'07_phap_bao', cloak:'07_phap_bao'
+  amulet:'06_trang_suc', ring:'06_trang_suc', shield:'07_phap_bao', cloak:'02_ao_giap'
 });
-const KIND_ICON_BANKS = Object.freeze({
-  core:'16_yeu_thu_do_giam', talisman:'09_phu_luc_tran_phap', formation:'09_phu_luc_tran_phap',
-  blueprint:'20_bach_nghe_che_tao', token:'19_tien_te_phan_thuong', key:'18_ban_do_cong_dich_chuyen',
-  manual:'12_cong_phap_tam_phap', quest:'14_nhiem_vu_thanh_tuu'
+const AFFINITY_MATERIAL_ICONS = Object.freeze({
+  linh:{herb:1,ore:16,core:24}, kim:{herb:7,ore:48,core:45},
+  hoa:{herb:3,ore:18,core:26}, thuy:{herb:2,ore:17,core:25},
+  tho:{herb:7,ore:23,core:24}, moc:{herb:4,ore:21,core:25},
+  phong:{herb:11,ore:22,core:44}, loi:{herb:15,ore:20,core:44}
 });
-const SYSTEM_ICON_INDEX = Object.freeze(Object.fromEntries(ITEM_SYSTEMS.map((x,i)=>[x.key,i])));
-const AFFINITY_ICON_INDEX = Object.freeze(Object.fromEntries(RESOURCE_AFFINITIES.map((x,i)=>[x.key,i])));
+const BEAST_PART_ICONS = Object.freeze({hide:34,fur:29,claw:28,blood:45,bone:33});
+const PILL_FAMILY_ICONS = Object.freeze({heal:1,mana:5,cultivation:39,body:20,sense:34,breakthrough:47});
+const TALISMAN_SYSTEM_ICONS = Object.freeze({kiem:6,kim:6,hoa:3,thuy:2,tho:9,moc:5,phong:10,loi:4,ly:1});
+const FORMATION_SYSTEM_ICONS = Object.freeze({kiem:24,kim:24,hoa:26,thuy:25,tho:22,moc:23,phong:28,loi:40,ly:22});
 
-function bankIconFile(row, col) {
-  row = Math.max(1, Math.min(7, Number(row)||1));
-  col = Math.max(1, Math.min(7, Number(col)||1));
-  const index = (row - 1) * 7 + col;
-  return `${String(index).padStart(2,'0')}_r${row}c${col}.png`;
-}
-function bankIconPath(folder, item) {
-  const row = Math.max(1, Math.min(7, (Number(item?.rank)||0) + 1));
-  const systemIndex = SYSTEM_ICON_INDEX[item?.system] ?? AFFINITY_ICON_INDEX[item?.affinity] ?? 0;
-  const gradeIndex = Math.max(0, ITEM_GRADES.findIndex(g=>g.key===item?.gradeKey));
-  const idSeed = Array.from(String(item?.id||'')).reduce((n,ch)=>(n+ch.charCodeAt(0))%97,0);
-  const col = ((systemIndex * 2 + gradeIndex + idSeed) % 7) + 1;
-  return `${GAME_ICON_ROOT}/${folder}/${bankIconFile(row,col)}`;
+function bankIconPath(folder, index) {
+  const safeIndex = Math.max(1, Math.min(49, Number(index)||1));
+  const row = Math.ceil(safeIndex / 7);
+  const col = ((safeIndex - 1) % 7) + 1;
+  return `${GAME_ICON_ROOT}/${folder}/${String(safeIndex).padStart(2,'0')}_r${row}c${col}.webp`;
 }
 function resolveItemIconPath(item) {
-  if (!item) return `${ITEM_ICON_ROOT}/items/item_0.png`;
-  if (item.kind === 'gear') return bankIconPath(GEAR_ICON_BANKS[item.slot] || '07_phap_bao', item);
-  if (item.kind === 'herb') return `${ITEM_ICON_ROOT}/materials/herb_${Math.max(1,Math.min(7,(Number(item.rank)||0)+1))}.png`;
-  if (item.kind === 'ore') return `${ITEM_ICON_ROOT}/materials/ore.png`;
+  if (!item) return `${ITEM_ICON_ROOT}/items/item_0.webp`;
+  if (item.kind === 'gear') {
+    if (item.slot === 'shield') return bankIconPath('07_phap_bao', 4);
+    if (item.slot === 'amulet') return bankIconPath('06_trang_suc', 29 + ((Number(item.rank)||0) % 7));
+    if (item.slot === 'ring') return bankIconPath('06_trang_suc', 1 + ((Number(item.rank)||0) % 7));
+    const rank = Math.max(0, Math.min(5, Number(item.rank)||0));
+    const system = Math.max(0, ITEM_SYSTEMS.findIndex(x=>x.key===item.system));
+    const grade = Math.max(0, ITEM_GRADES.findIndex(x=>x.key===item.gradeKey));
+    return bankIconPath(GEAR_ICON_BANKS[item.slot] || '02_ao_giap', 1 + ((rank*7 + system + grade) % 49));
+  }
+  if (item.kind === 'herb' || item.kind === 'ore' || item.kind === 'core')
+    return bankIconPath('10_nguyen_lieu', (AFFINITY_MATERIAL_ICONS[item.affinity] || AFFINITY_MATERIAL_ICONS.linh)[item.kind]);
   if (item.kind === 'beast_material') {
     const part = (item.tags||[]).find(x=>['hide','fur','claw','blood','bone'].includes(x)) || String(item.id).split('_').pop();
-    const file = {hide:'beast_pelt.png',fur:'beast_fur.png',claw:'beast_claw.png',blood:'beast_blood.png',bone:'beast_horn.png'}[part] || 'beast_pelt.png';
-    return `${ITEM_ICON_ROOT}/materials/${file}`;
+    return bankIconPath('10_nguyen_lieu', BEAST_PART_ICONS[part] || BEAST_PART_ICONS.hide);
   }
-  if (item.kind === 'pill') {
-    if ((item.tags||[]).includes('breakthrough')) return `${ITEM_ICON_ROOT}/pills/pill_breakthrough.png`;
-    if ((item.tags||[]).includes('heal')) return `${ITEM_ICON_ROOT}/pills/pill_heal.png`;
-    if ((item.tags||[]).includes('cultivation')) return `${ITEM_ICON_ROOT}/pills/pill_cultivation.png`;
-    return `${ITEM_ICON_ROOT}/pills/pill_golden.png`;
-  }
-  const bank = KIND_ICON_BANKS[item.kind];
-  if (bank) return bankIconPath(bank,item);
-  return bankIconPath('20_bach_nghe_che_tao',item);
+  if (item.kind === 'pill') return bankIconPath('08_dan_duoc', PILL_FAMILY_ICONS[(item.tags||[]).find(x=>PILL_FAMILY_ICONS[x])] || 39);
+  if (item.kind === 'talisman') return bankIconPath('09_phu_luc_tran_phap',
+    (item.tags||[]).includes('teleport') ? 42 : TALISMAN_SYSTEM_ICONS[item.system] || 1);
+  if (item.kind === 'formation') return bankIconPath('09_phu_luc_tran_phap', FORMATION_SYSTEM_ICONS[item.system] || 22);
+  if (item.kind === 'blueprint') return bankIconPath('20_bach_nghe_che_tao', 12);
+  if (item.kind === 'key') return bankIconPath('19_tien_te_phan_thuong', 29 + ((Number(item.rank)||0) % 7));
+  if (item.kind === 'token') return bankIconPath('19_tien_te_phan_thuong', String(item.id).includes('_sect') ? 14 : 11);
+  if (item.kind === 'manual') return bankIconPath('12_cong_phap_tam_phap', 1);
+  if (item.kind === 'quest') return bankIconPath('14_nhiem_vu_thanh_tuu', 1);
+  return bankIconPath('20_bach_nghe_che_tao', 33);
 }
 
 const defs = [];
@@ -163,7 +166,7 @@ for (const realm of ITEM_RANKS) {
           affixCount:grade.affixes, durabilityMax:100 + realm.rank * 20,
           price:round(35 * realm.power * grade.mult),
           tags:['equipment',slot.key,system.key,grade.key],
-          sources:['crafting','boss_blueprint','sect_shop'],
+          sources:['crafting','dungeon','sect_shop'],
           desc:`${slot.name} ${system.theme} ${grade.name}, thích hợp ${realm.realm}.`
         });
         const affinity = RESOURCE_AFFINITIES.find(a => a.key === system.key) || RESOURCE_AFFINITIES[0];
@@ -244,7 +247,7 @@ for (const realm of ITEM_RANKS) {
       affinity:affinity.key, affinityName:affinity.name, icon:`item_core_${realm.key}_${affinity.key}`,
       color:affinity.color, rankColor:realm.color, price:round(18 * realm.power),
       socketStats:scaleStats({}, realm.power, 1, coreStats[affinity.key]),
-      tags:['core','socket',affinity.key], sources:['elite','boss'],
+      tags:['core','socket',affinity.key], sources:['monster','dungeon'],
       desc:`Nội đan ${affinity.name} dùng khảm vào trang bị, tăng thuộc tính vĩnh viễn khi đang trang bị.`
     });
   }
@@ -300,7 +303,7 @@ for (let rank=1; rank<=4; rank++) {
     id, name:breakthroughNames[rank], kind:'pill', category:'consumable', rank, rankName:realm.name, realm:realm.realm,
     grade:'Cực Phẩm', icon:`item_${id}`, color:realm.color, rankColor:realm.color, price:round(80 * realm.power),
     effect:{ type:'breakthrough' }, cooldownGroup:'breakthrough', cooldownMs:0,
-    tags:['consumable','pill','breakthrough'], sources:['crafting','boss'],
+    tags:['consumable','pill','breakthrough'], sources:['crafting','dungeon'],
     desc:`Đan phá bình cảnh Cực Phẩm dùng khi đạt đỉnh phong ${realm.realm}.`
   });
   addRecipe({
@@ -382,9 +385,9 @@ for (const realm of ITEM_RANKS) {
 // ---------------------------------------------------------------------------
 for (const realm of ITEM_RANKS) {
   addDef({ id:`blueprint_${realm.key}_gear`, name:`${realm.name} Luyện Khí Đồ Phổ`, kind:'blueprint', category:'special', rank:realm.rank, rankName:realm.name, realm:realm.realm,
-    icon:`item_blueprint_${realm.key}`, color:realm.color, rankColor:realm.color, price:round(50*realm.power), tags:['blueprint'], sources:['boss','dungeon'], desc:'Đồ phổ hiếm dùng mở khóa/lore chế tạo trang bị cùng bậc.' });
+    icon:`item_blueprint_${realm.key}`, color:realm.color, rankColor:realm.color, price:round(50*realm.power), tags:['blueprint'], sources:['dungeon','quest'], desc:'Đồ phổ hiếm dùng mở khóa/lore chế tạo trang bị cùng bậc.' });
   addDef({ id:`key_${realm.key}_dungeon`, name:`${realm.name} Bí Cảnh Lệnh`, kind:'key', category:'special', rank:realm.rank, rankName:realm.name, realm:realm.realm,
-    icon:`item_key_${realm.key}`, color:realm.color, rankColor:realm.color, price:round(30*realm.power), tags:['key','dungeon'], sources:['boss','quest','sect_shop'], desc:'Lệnh bài dùng cho cổng bí cảnh/dungeon cùng bậc.' });
+    icon:`item_key_${realm.key}`, color:realm.color, rankColor:realm.color, price:round(30*realm.power), tags:['key','dungeon'], sources:['quest','sect_shop','dungeon'], desc:'Lệnh bài dùng cho cổng bí cảnh/dungeon cùng bậc.' });
   addDef({ id:`token_${realm.key}_sect`, name:`${realm.name} Tông Môn Lệnh`, kind:'token', category:'special', rank:realm.rank, rankName:realm.name, realm:realm.realm,
     icon:`item_token_sect_${realm.key}`, color:realm.color, rankColor:realm.color, price:0, tags:['token','sect'], sources:['sect_quest'], desc:'Điểm vật phẩm trao đổi tại Tông Môn.' });
   addDef({ id:`token_${realm.key}_clan`, name:`${realm.name} Gia Tộc Lệnh`, kind:'token', category:'special', rank:realm.rank, rankName:realm.name, realm:realm.realm,
@@ -449,7 +452,7 @@ export function getItemIconMeta(itemOrId) {
 function pick(arr, rng=Math.random) { return arr?.length ? arr[Math.min(arr.length-1, Math.floor(rng()*arr.length))] : null; }
 
 /**
- * Loot V3: normal enemies drop materials/herbs/ores; elite/boss may also drop cores/blueprints.
+ * Monster Loot: drop materials/herbs/ores/cores according to realm rank.
  * Never directly drops completed gear from normal monsters.
  */
 export function rollEnemyLoot(enemy, rng=Math.random) {
@@ -457,8 +460,8 @@ export function rollEnemyLoot(enemy, rng=Math.random) {
   const tier = Math.max(0, Number(data.tier) || 0);
   const rank = Math.max(0, Math.min(5, tier <= 0 ? 0 : Math.ceil(tier / 4)));
   const realm = getRankMeta(rank);
-  const isBoss = !!data.isBoss || tier > 0 && tier % 4 === 0;
-  const isElite = !!data.isElite || tier > 0 && tier % 4 === 3;
+
+
   const affinity = pick(RESOURCE_AFFINITIES, rng) || RESOURCE_AFFINITIES[0];
   const drops = [];
   const add = (itemId, qty=1) => { if (getItemDef(itemId) && qty > 0) drops.push({itemId,qty:Math.floor(qty)}); };
@@ -466,13 +469,13 @@ export function rollEnemyLoot(enemy, rng=Math.random) {
   add(`beast_${realm.key}_hide`, 1 + Math.floor(rng() * (2 + rank)));
   if (rng() < 0.70) add(`beast_${realm.key}_fur`, 1 + Math.floor(rng() * 2));
   if (rng() < 0.55) add(`beast_${realm.key}_claw`, 1);
-  if (rng() < 0.50) add(`beast_${realm.key}_blood`, 1 + (isBoss ? 1 : 0));
+  if (rng() < 0.50) add(`beast_${realm.key}_blood`, 1);
   if (rng() < 0.35 + rank * 0.03) add(`beast_${realm.key}_bone`, 1);
-  if (rng() < 0.42) add(`herb_${realm.key}_${affinity.key}`, 1 + (isBoss ? 1 : 0));
-  if (rng() < 0.48) add(`ore_${realm.key}_${affinity.key}`, 1 + Math.floor(rng() * (1 + (isBoss ? 2 : 1))));
-  if ((isElite || isBoss) && rng() < (isBoss ? 0.62 : 0.22)) add(`core_${realm.key}_${affinity.key}`, 1);
-  if (isBoss && rng() < 0.20) add(`blueprint_${realm.key}_gear`, 1);
-  if (isBoss && rng() < 0.15) add(`key_${realm.key}_dungeon`, 1);
+  if (rng() < 0.42) add(`herb_${realm.key}_${affinity.key}`, 1);
+  if (rng() < 0.48) add(`ore_${realm.key}_${affinity.key}`, 1 + Math.floor(rng() * 2));
+  if (rng() < 0.25) add(`core_${realm.key}_${affinity.key}`, 1);
+  if (rng() < 0.12) add(`blueprint_${realm.key}_gear`, 1);
+  if (rng() < 0.10) add(`key_${realm.key}_dungeon`, 1);
   return drops;
 }
 

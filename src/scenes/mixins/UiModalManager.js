@@ -326,6 +326,9 @@ export const ModalCore = {
   },
 
   closeModal() {
+    this.lastModalClosedAt = Date.now();
+    resetWorldTouch(this);
+
     if (this._itemPopup) {
       this._itemPopup.destroy(true);
       this._itemPopup = null;

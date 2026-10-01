@@ -83,7 +83,8 @@ window.__GAME_BOOT__ = (() => {
 
 window.addEventListener('error', event => {
   if (event?.target && event.target !== window && event.target.tagName === 'SCRIPT') {
-    window.__GAME_BOOT__?.fail(new Error('Không tải được thư viện hoặc mã Game.'));
+    const src = event.target?.src || '(không rõ URL)';
+    window.__GAME_BOOT__?.fail(new Error(`Không tải được script/module: ${src}`));
     return;
   }
   if (event?.error) window.__GAME_BOOT__?.fail(event.error);
@@ -97,6 +98,6 @@ if (window.location.protocol === 'file:') {
   if (ld) ld.style.display = 'none';
 }
 </script>
-<script type="module" src="./src/main.js?v=20261001-fixed-faction-markers-v10"></script>
+<script type="module" src="./src/main.js?v=20261001-player12-smooth-v1"></script>
 </body>
 </html>

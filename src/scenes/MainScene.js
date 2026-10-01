@@ -11,11 +11,11 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261001-item-icons-v4';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261001-player12-smooth-v1';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-item-icons-v4';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-player12-smooth-v1';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
-import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-item-icons-v4';
+import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
 import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
 import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
@@ -34,10 +34,6 @@ export class MainGameScene extends Phaser.Scene {
     this.activeSkillCds = {};
     this.moveTarget = null;
     this.lastBasic = 0;
-    this.lastDash = 0;
-    this.isDashing = false;
-    this.isFlyingSword = false;
-    this.dashCd = 1500;
     this.dead = false;
     this.respawnTimer = null;
     this.invulnerableUntil = 0;
@@ -53,91 +49,90 @@ export class MainGameScene extends Phaser.Scene {
     this.load.on('progress', value => bootUi?.progress(value));
     this.load.on('loaderror', () => bootUi?.assetError());
 
-    this.load.image('flying_sword', A + 'characters/player/flying_sword.png');
-    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_run', A + 'characters/player/player_run.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_run', A + 'characters/player/player_run.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly_attack', A + 'characters/player/player_fly_attack.webp', { frameWidth: 192, frameHeight: 192 });
 
     for (let i = 1; i <= 16; i++) {
-      this.load.image(`enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.png`);
-      this.load.image(`enemy_${i}_idle_1`, `${A}characters/enemies/ground/enemy_${i}/idle_1.png`);
-      for (let r = 0; r < 4; r++) this.load.image(`enemy_${i}_run_${r}`, `${A}characters/enemies/ground/enemy_${i}/run_${r}.png`);
-      for (let a = 0; a < 4; a++) this.load.image(`enemy_${i}_attack_${a}`, `${A}characters/enemies/ground/enemy_${i}/attack_${a}.png`);
+      this.load.image(`enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.webp`);
+      this.load.image(`enemy_${i}_idle_1`, `${A}characters/enemies/ground/enemy_${i}/idle_1.webp`);
+      for (let r = 0; r < 4; r++) this.load.image(`enemy_${i}_run_${r}`, `${A}characters/enemies/ground/enemy_${i}/run_${r}.webp`);
+      for (let a = 0; a < 4; a++) this.load.image(`enemy_${i}_attack_${a}`, `${A}characters/enemies/ground/enemy_${i}/attack_${a}.webp`);
     }
 
     for (let i = 1; i <= 10; i++) {
-      this.load.image(`enemy_fly_${i}_idle_0`, `${A}characters/enemies/flying/enemy_${i}/idle_0.png`);
-      this.load.image(`enemy_fly_${i}_idle_1`, `${A}characters/enemies/flying/enemy_${i}/idle_1.png`);
-      for (let r = 0; r < 4; r++) this.load.image(`enemy_fly_${i}_run_${r}`, `${A}characters/enemies/flying/enemy_${i}/run_${r}.png`);
-      for (let a = 0; a < 4; a++) this.load.image(`enemy_fly_${i}_attack_${a}`, `${A}characters/enemies/flying/enemy_${i}/attack_${a}.png`);
+      this.load.image(`enemy_fly_${i}_idle_0`, `${A}characters/enemies/flying/enemy_${i}/idle_0.webp`);
+      this.load.image(`enemy_fly_${i}_idle_1`, `${A}characters/enemies/flying/enemy_${i}/idle_1.webp`);
+      for (let r = 0; r < 4; r++) this.load.image(`enemy_fly_${i}_run_${r}`, `${A}characters/enemies/flying/enemy_${i}/run_${r}.webp`);
+      for (let a = 0; a < 4; a++) this.load.image(`enemy_fly_${i}_attack_${a}`, `${A}characters/enemies/flying/enemy_${i}/attack_${a}.webp`);
     }
 
     for (let f = 1; f <= 8; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.png`);
-      this.load.image(`dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.png`);
-      this.load.image(`dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.png`);
-      this.load.image(`dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.png`);
-      this.load.image(`tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.png`);
-      this.load.image(`tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.png`);
-      this.load.image(`tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.png`);
-      this.load.image(`tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.png`);
+      this.load.image(`dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.webp`);
+      this.load.image(`dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.webp`);
+      this.load.image(`dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.webp`);
+      this.load.image(`dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.webp`);
+      this.load.image(`tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.webp`);
+      this.load.image(`tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.webp`);
+      this.load.image(`tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.webp`);
+      this.load.image(`tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.webp`);
     }
 
     for (let i = 1; i <= 20; i++) {
       for (let f = 1; f <= 8; f++) {
         const pad = String(f).padStart(2, '0');
-        this.load.image(`npc_fly_${i}_attack_${f}`, `${A}characters/npc/flying/npc_${i}/attack_${pad}.png`);
-        this.load.image(`npc_fly_${i}_fly_${f}`, `${A}characters/npc/flying/npc_${i}/fly_${pad}.png`);
+        this.load.image(`npc_fly_${i}_attack_${f}`, `${A}characters/npc/flying/npc_${i}/attack_${pad}.webp`);
+        this.load.image(`npc_fly_${i}_fly_${f}`, `${A}characters/npc/flying/npc_${i}/fly_${pad}.webp`);
       }
     }
 
-    for (let n = 1; n <= 16; n++) this.load.image(`npc_${n}`, `${A}characters/npc/portraits/npc_${n}.png`);
-    for (let i = 0; i < 10; i++) this.load.image(`skill_${i}`, A + `icons/skills/skill_${i}.png`);
-    ELEMENTAL_SKILLS.forEach(skill => this.load.image(skill.icon, A + `icons/skills/unique/${skill.id}.png`));
+    for (let n = 1; n <= 16; n++) this.load.image(`npc_${n}`, `${A}characters/npc/portraits/npc_${n}.webp`);
+    for (let i = 0; i < 10; i++) this.load.image(`skill_${i}`, A + `icons/skills/skill_${i}.webp`);
+    ELEMENTAL_SKILLS.forEach(skill => this.load.image(skill.icon, A + `icons/skills/unique/${skill.id}.webp`));
 
-    ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore'].forEach(m => this.load.image(`mat_${m}`, A + `icons/materials/${m}.png`));
-    for (let h = 1; h <= 7; h++) this.load.image(`herb_${h}`, A + `icons/materials/herb_${h}.png`);
-    ['silver', 'spirit_stone_low', 'spirit_stone_mid', 'spirit_stone_high', 'spirit_stone_top'].forEach(c => this.load.image(`curr_${c}`, A + `icons/currencies/${c}.png`));
-    ['pill_heal', 'pill_cultivation', 'pill_breakthrough', 'pill_golden'].forEach(p => this.load.image(`icon_${p}`, A + `icons/pills/${p}.png`));
-    ['manual_hoang', 'manual_huyen', 'manual_dia', 'manual_thien', 'manual_than'].forEach(m => this.load.image(`icon_${m}`, A + `icons/manuals/${m}.png`));
-    for (let i = 0; i < 12; i++) this.load.image(`stage_${i}`, A + `icons/stages/stage_${i}.png`);
-    ['bag', 'realm', 'skills', 'auto', 'settings', 'close', 'map', 'gold', 'pill', 'quest'].forEach(icon => this.load.image(`ui_${icon}`, A + `icons/ui/${icon}.png`));
-    ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold'].forEach(icon => this.load.image(`xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
+    ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore'].forEach(m => this.load.image(`mat_${m}`, A + `icons/materials/${m}.webp`));
+    for (let h = 1; h <= 7; h++) this.load.image(`herb_${h}`, A + `icons/materials/herb_${h}.webp`);
+    ['silver', 'spirit_stone_low', 'spirit_stone_mid', 'spirit_stone_high', 'spirit_stone_top'].forEach(c => this.load.image(`curr_${c}`, A + `icons/currencies/${c}.webp`));
+    ['pill_heal', 'pill_cultivation', 'pill_breakthrough', 'pill_golden'].forEach(p => this.load.image(`icon_${p}`, A + `icons/pills/${p}.webp`));
+    ['manual_hoang', 'manual_huyen', 'manual_dia', 'manual_thien', 'manual_than'].forEach(m => this.load.image(`icon_${m}`, A + `icons/manuals/${m}.webp`));
+    for (let i = 0; i < 12; i++) this.load.image(`stage_${i}`, A + `icons/stages/stage_${i}.webp`);
+    ['bag', 'realm', 'skills', 'auto', 'settings', 'close', 'map', 'gold', 'pill', 'quest'].forEach(icon => this.load.image(`ui_${icon}`, A + `icons/ui/${icon}.webp`));
+    ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold'].forEach(icon => this.load.image(`xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.webp`));
     this.load.image('hud_skin', A + 'ui/hud_skin.webp');
     this.load.image('hud_portrait', A + 'ui/hud_portrait.webp');
     this.load.image('human_realm_atlas', A + 'ui/map/human_realm_atlas.webp');
-    for (let i = 1; i <= 16; i++) this.load.image(`village_bldg_${i}`, `${A}environment/THON TRAN/${i}.png`);
 
     const elemDirs = { hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water', phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical' };
     Object.entries(elemDirs).forEach(([elemKey, dirName]) => {
-      this.load.image(`vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.png`);
-      for (let f = 0; f < 8; f++) this.load.image(`vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.png`);
-      this.load.image(`vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.png`);
-      this.load.image(`vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.png`);
-      this.load.image(`vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.png`);
-      this.load.image(`vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.png`);
-      this.load.image(`vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.png`);
-      this.load.image(`vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.png`);
+      this.load.image(`vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.webp`);
+      for (let f = 0; f < 8; f++) this.load.image(`vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.webp`);
+      this.load.image(`vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.webp`);
+      this.load.image(`vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.webp`);
+      this.load.image(`vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.webp`);
+      this.load.image(`vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.webp`);
+      this.load.image(`vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.webp`);
+      this.load.image(`vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.webp`);
     });
 
     for (let i = 0; i < 8; i++) {
-      this.load.image(`vfx_kim_1_${i}`, `${A}vfx/sword/kim_1_frame_${i}.png`);
-      this.load.image(`vfx_kim_2_${i}`, `${A}vfx/sword/kim_2_frame_${i}.png`);
+      this.load.image(`vfx_kim_1_${i}`, `${A}vfx/sword/kim_1_frame_${i}.webp`);
+      this.load.image(`vfx_kim_2_${i}`, `${A}vfx/sword/kim_2_frame_${i}.webp`);
     }
-    this.load.image('vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.png`);
-    this.load.image('vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.png`);
-    this.load.image('vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.png`);
-    this.load.image('vfx_impact_frame7', `${A}vfx/atlas/frame_7.png`);
-    this.load.image('vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.png`);
-    this.load.image('vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.png`);
-    this.load.image('vfx_loi', `${A}vfx/sword/vfx_loi.png`);
-    this.load.image('vfx_heal', A + 'vfx/skills/vfx_heal.png');
-    this.load.image('vfx_shield', A + 'vfx/skills/vfx_shield.png');
-    this.load.image('vfx_speed', A + 'vfx/skills/vfx_speed.png');
-    this.load.image('vfx_divine', A + 'vfx/ultimates/vfx_divine.png');
-    this.load.spritesheet('vfx', A + 'vfx/atlas/vfx_atlas.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.image('vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.webp`);
+    this.load.image('vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.webp`);
+    this.load.image('vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.webp`);
+    this.load.image('vfx_impact_frame7', `${A}vfx/atlas/frame_7.webp`);
+    this.load.image('vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.webp`);
+    this.load.image('vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.webp`);
+    this.load.image('vfx_loi', `${A}vfx/sword/vfx_loi.webp`);
+    this.load.image('vfx_heal', A + 'vfx/skills/vfx_heal.webp');
+    this.load.image('vfx_shield', A + 'vfx/skills/vfx_shield.webp');
+    this.load.image('vfx_speed', A + 'vfx/skills/vfx_speed.webp');
+    this.load.image('vfx_divine', A + 'vfx/ultimates/vfx_divine.webp');
+    this.load.spritesheet('vfx', A + 'vfx/atlas/vfx_atlas.webp', { frameWidth: 128, frameHeight: 128 });
   }
 
   create() {
@@ -170,8 +165,8 @@ export class MainGameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-T', () => this.toggleMeditation());
     this.input.on('pointerdown', p => {
       if (this.isModalOpen && this.isModalOpen()) return;
-      if (Number(gameState.currentMapId) === 0) return;
-      if (p.y < 90 || p.y > (this.skillsVisible ? H - 225 : H - 140) || p.x > W - 60) return;
+      if (this.lastModalClosedAt && (Date.now() - this.lastModalClosedAt < 350)) return;
+      if (p.y < 70 || p.y > (this.skillsVisible ? H - 225 : H - 140) || p.x > W - 60) return;
       this.moveTarget = { x: Phaser.Math.Clamp(p.x + this.cameras.main.scrollX, this.field.left, this.field.right), y: Phaser.Math.Clamp(p.y, this.field.top, this.field.bottom) };
     });
     this.time.addEvent({ delay: 1000, callback: this.onSecondTick, callbackScope: this, loop: true });
@@ -183,7 +178,6 @@ export class MainGameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (!this.player || !this.player.body || this.dead) return;
-    if (Number(gameState.currentMapId) === 0) { this.enforceVillageHubPresentation(); return; }
     for (const sId in this.activeSkillCds) {
       if (this.activeSkillCds[sId] > 0) {
         this.activeSkillCds[sId] -= delta;
@@ -201,9 +195,8 @@ export class MainGameScene extends Phaser.Scene {
       }
     });
 
-    let baseSpeed = 175;
-    if (this.isFlyingSword) baseSpeed = 265;
-    if (this.isDashing) baseSpeed = 520;
+    const isTrucCoOrAbove = this.isPlayerFlyingRealm ? this.isPlayerFlyingRealm() : (Number(gameState.realmIdx) || 0) >= 13;
+    let baseSpeed = isTrucCoOrAbove ? 265 : 175;
     let vx = 0, vy = 0;
     if (this.joy.active) {
       vx = this.joy.x * baseSpeed; vy = this.joy.y * baseSpeed; this.moveTarget = null;
@@ -230,9 +223,7 @@ export class MainGameScene extends Phaser.Scene {
     const isAttacking = this.time.now < (this.attackUntil || 0);
     if (gameState.autoFight && !this.joy.active && !this.moveTarget && vx === 0 && vy === 0) {
       const mode = gameState.autoMode || 'farm';
-      if (gameState.afkSettings?.autoSurvivalDash && this.playerHp < this.playerHpMax * 0.35 && this.time.now >= this.lastDash + this.dashCd) this.performDash();
       if (mode === 'rush') {
-        if (gameState.afkSettings?.autoFly && !this.isFlyingSword) this.isFlyingSword = true;
         vx = baseSpeed; this.player.setFlipX(false);
       } else if (mode === 'march') {
         vx = baseSpeed * 0.85; this.player.setFlipX(false);
@@ -244,7 +235,6 @@ export class MainGameScene extends Phaser.Scene {
             for (const sId of gameState.equippedSkillIds) {
               if (!sId || this.activeSkillCds[sId] > 0) continue;
               if (sId === 'basic_attack' && dist > 115) continue;
-              if (this.isFlyingSword) this.isFlyingSword = false;
               this.castSkill(sId);
               casted = true;
               break;
@@ -252,7 +242,6 @@ export class MainGameScene extends Phaser.Scene {
           }
           const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
           if (!casted && hasBasicEquipped && dist <= 115 && !isAttacking) {
-            if (this.isFlyingSword) this.isFlyingSword = false;
             this.basicAttack();
           }
         }
@@ -266,7 +255,6 @@ export class MainGameScene extends Phaser.Scene {
             for (const sId of gameState.equippedSkillIds) {
               if (!sId || this.activeSkillCds[sId] > 0) continue;
               if (sId === 'basic_attack' && dist > 120) continue;
-              if (this.isFlyingSword) this.isFlyingSword = false;
               this.player.setFlipX(target.x < this.player.x);
               this.castSkill(sId);
               casted = true;
@@ -279,14 +267,12 @@ export class MainGameScene extends Phaser.Scene {
             const stopDist = hasReadyRangedSkill ? 220 : (hasBasicEquipped ? 85 : 220);
 
             if (dist > stopDist) {
-              if (gameState.afkSettings?.autoFly && !this.isFlyingSword && dist > 200) this.isFlyingSword = true;
               if (!isAttacking) {
                 const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
                 vx = Math.cos(angle) * baseSpeed;
                 vy = Math.sin(angle) * baseSpeed;
               }
             } else {
-              if (this.isFlyingSword) this.isFlyingSword = false;
               vx = 0; vy = 0;
               this.player.setFlipX(target.x < this.player.x);
               if (hasBasicEquipped && dist <= 125 && !isAttacking) this.basicAttack();
@@ -296,16 +282,37 @@ export class MainGameScene extends Phaser.Scene {
       }
     }
     if (isAttacking) { vx = 0; vy = 0; }
-    this.player.setVelocity(vx, vy);
+
+    // Smooth acceleration/deceleration so 12-frame locomotion does not snap between states.
+    const currentVx = Number(this.player.body.velocity.x) || 0;
+    const currentVy = Number(this.player.body.velocity.y) || 0;
+    const targetMoving = Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01;
+    let responseMs = targetMoving ? (isTrucCoOrAbove ? 72 : 88) : 118;
+    if (isAttacking) responseMs = 42;
+    const blend = 1 - Math.exp(-Math.max(1, delta) / responseMs);
+    let appliedVx = Phaser.Math.Linear(currentVx, vx, blend);
+    let appliedVy = Phaser.Math.Linear(currentVy, vy, blend);
+    if (!targetMoving && Math.abs(appliedVx) < 2) appliedVx = 0;
+    if (!targetMoving && Math.abs(appliedVy) < 2) appliedVy = 0;
+    this.player.setVelocity(appliedVx, appliedVy);
+
     this.player.x = Phaser.Math.Clamp(this.player.x, this.field.left, this.field.right);
     this.player.y = Phaser.Math.Clamp(this.player.y, this.field.top, this.field.bottom);
     const playerScale = 0.72 * this.perspective(this.player.y);
     this.player.setScale(playerScale).setDepth(Math.floor(this.player.y));
-    if (this.playerShadow) this.playerShadow.setPosition(this.player.x, this.player.y + 32 * playerScale).setScale(playerScale).setAlpha(0.45);
-    const isMoving = Math.abs(vx) > 5 || Math.abs(vy) > 5;
+    if (this.playerShadow) this.playerShadow.setPosition(this.player.x, this.player.y + 32 * playerScale).setScale(playerScale).setAlpha(0.45).setDepth(Math.max(1, Math.floor(this.player.y) - 1));
+
+    const isMoving = Math.abs(appliedVx) > 7 || Math.abs(appliedVy) > 7;
     if (this.time.now >= (this.attackUntil || 0)) {
-      if (vx !== 0) this.player.setFlipX(vx < 0);
-      if (this.isFlyingSword) this.player.play('p_fly', true); else this.player.play(isMoving ? 'p_run' : 'p_idle', true);
+      if (Math.abs(appliedVx) > 7) this.player.setFlipX(appliedVx < 0);
+      if (this.player.anims) this.player.anims.timeScale = 1;
+      if (isTrucCoOrAbove) {
+        // Trúc Cơ trở lên: idle khi đứng yên, fly khi di chuyển.
+        this.player.play(isMoving ? 'p_fly' : 'p_idle', true);
+      } else {
+        // Dưới Trúc Cơ: chỉ idle/run.
+        this.player.play(isMoving ? 'p_run' : 'p_idle', true);
+      }
     }
     this.updateFellowNpcs(time, delta);
 
@@ -360,8 +367,6 @@ export class MainGameScene extends Phaser.Scene {
     if (this.updateHerbs) this.updateHerbs(time, delta);
     if (this.updateZoneStreaming) this.updateZoneStreaming(time, delta);
     if (Phaser.Input.Keyboard.JustDown(this.keys.F) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) { if (gameState.equippedSkillIds[0]) this.castSkill(gameState.equippedSkillIds[0]); else this.basicAttack(); }
-    if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) this.performDash();
-    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.toggleFlyingSword();
     if (Phaser.Input.Keyboard.JustDown(this.keys.ONE) && gameState.equippedSkillIds[0]) this.castSkill(gameState.equippedSkillIds[0]);
     if (Phaser.Input.Keyboard.JustDown(this.keys.TWO) && gameState.equippedSkillIds[1]) this.castSkill(gameState.equippedSkillIds[1]);
     if (Phaser.Input.Keyboard.JustDown(this.keys.THREE) && gameState.equippedSkillIds[2]) this.castSkill(gameState.equippedSkillIds[2]);
@@ -371,8 +376,8 @@ export class MainGameScene extends Phaser.Scene {
   }
 
   createAnimations() {
-    const make = (key, tex, start, end, rate, repeat = -1) => { if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start, end }), frameRate: rate, repeat }); };
-    make('p_idle', 'player_idle', 0, 7, 8); make('p_run', 'player_run', 0, 7, 12); make('p_attack', 'player_attack', 0, 7, 15, 0); make('p_fly', 'player_fly', 0, 7, 10);
+    const make = (key, tex, start, end, rate, repeat = -1, yoyo = false) => { if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start, end }), frameRate: rate, repeat, yoyo }); };
+    make('p_idle', 'player_idle', 0, 11, 11, -1); make('p_run', 'player_run', 0, 11, 12, -1); make('p_attack', 'player_attack', 0, 11, 24, 0); make('p_fly', 'player_fly', 0, 11, 15, -1); make('p_fly_attack', 'player_fly_attack', 0, 11, 24, 0);
     for (let i = 1; i <= 16; i++) {
       const t = 'enemy_' + i;
       if (!this.anims.exists('e_' + t + '_idle')) this.anims.create({ key: 'e_' + t + '_idle', frames: [{ key: `${t}_idle_0` }, { key: `${t}_idle_1` }], frameRate: 4, repeat: -1 });

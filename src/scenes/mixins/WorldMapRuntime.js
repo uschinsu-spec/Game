@@ -14,6 +14,7 @@ import {
   resolvePanoramaMap
 } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
+import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
 import { travelService, TRAVEL_SOURCES } from '../../services/travelService.js';
 
@@ -250,9 +251,11 @@ export function installWorldMapRuntime(MainGameScene) {
 
     const fromMapId = gameState.currentMapId;
     const map = access.map;
-    const now = Number(this.time?.now || 0);
-
-    if (sameMapId(map.id, 0) && !sameMapId(fromMapId, 0) && now < Number(this.villageReentryBlockedUntil || 0)) {
+    const isTargetVillage = sameMapId(map.id, CANONICAL_MAP_KEYS.THANH_VAN_THON) || sameMapId(map.id, 0);
+    const blockedUntil = Math.max(Number(this.villageReentryBlockedUntil || 0), Number(travelService.villageReentryBlockedUntil || 0));
+    if (isTargetVillage && !sameMapId(fromMapId, CANONICAL_MAP_KEYS.THANH_VAN_THON) && Date.now() < blockedUntil) {
+      const remainingSec = Math.max(1, Math.ceil((blockedUntil - Date.now()) / 1000));
+      this.showToast?.(`⏳ Vừa rời thôn! Vui lòng chờ ${remainingSec}s trước khi quay lại.`);
       return this.currentMap || getMapById(fromMapId);
     }
 

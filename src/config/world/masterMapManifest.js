@@ -8,7 +8,7 @@
  * - Không còn là "toàn bộ map hợp lệ" độc quyền làm giới hạn game.
  * - Đóng vai trò là danh mục SPECIAL MAP OVERRIDES (những map có layout, asset,
  *   tòa nhà, kịch bản hoặc quái vật thiết kế thủ công đặc biệt như:
- *   Thanh Vân Thôn, Thanh Vân Ngoại Vi, Tông môn đặc biệt, Boss arena đặc biệt,
+ *   Thanh Vân Thôn, Thanh Vân Ngoại Vi, Tông môn đặc biệt, Cấm địa đặc biệt,
  *   Event map, Dungeon thiết kế tay).
  * - World node chỉ có thể đi tới runtime map đã khai báo explicit qua
  *   playableMapId. Manifest này không materialize hierarchy node tự động.
@@ -224,9 +224,9 @@ export const SPECIAL_MAP_OVERRIDES = Object.freeze([
 
     assets: Object.freeze({
       bgKey: 'bg_village_hub',
-      bgPath: 'environment/THON TRAN.png',
+      bgPath: 'environment/THON TRAN.webp',
       panoramaKey: 'bg_village_hub',
-      panoramaAsset: 'environment/THON TRAN.png',
+      panoramaAsset: 'environment/THON TRAN.webp',
       sourceWidth: 784,
       sourceHeight: 1334,
       worldWidth: 540,
@@ -234,8 +234,8 @@ export const SPECIAL_MAP_OVERRIDES = Object.freeze([
       bgmKey: 'bgm_village_peace',
       noRepeat: true,
       repeatPanorama: false,
-      field: Object.freeze({ left: 30, right: 510, top: 200, bottom: 900 }),
-      spawn: Object.freeze({ x: 270, y: 650 })
+      field: Object.freeze({ left: 30, right: 510, top: 120, bottom: 840 }),
+      spawn: Object.freeze({ x: 270, y: 480 })
     }),
 
     access: Object.freeze({
@@ -246,15 +246,12 @@ export const SPECIAL_MAP_OVERRIDES = Object.freeze([
 
     hubContent: Object.freeze({
       essentialBuildings: Object.freeze([
-        Object.freeze({ id: 'truong_thon', name: 'Phủ Trưởng Thôn', x: 270, y: 110, hitRadius: 85, role: 'village_chief', func: 'Nhiệm Vụ Khởi Đầu' }),
-        Object.freeze({ id: 'duoc_diem', name: 'Y Quán', x: 120, y: 240, hitRadius: 75, role: 'clinic', func: 'Hồi Phục & Mua Đan Dược' }),
-        Object.freeze({ id: 'nong_phu', name: 'Tiệm Tạp Hóa', x: 420, y: 240, hitRadius: 75, role: 'general_store', func: 'Bán Phù Lục & Vật Phẩm' }),
-        Object.freeze({ id: 'tho_ren', name: 'Tiệm Rèn', x: 120, y: 410, hitRadius: 75, role: 'blacksmith', func: 'Cường Hóa & Rèn Đúc' }),
-        Object.freeze({ id: 'vo_quan', name: 'Võ Quán', x: 420, y: 410, hitRadius: 75, role: 'martial_hall', func: 'Luyện Công & Tẩy Điểm' }),
-        Object.freeze({ id: 'thuong_hoi', name: 'Chợ Phiên', x: 270, y: 520, hitRadius: 85, role: 'market', func: 'Giao Dịch & Gian Hàng' }),
-        Object.freeze({ id: 'tuu_lau', name: 'Bảng Nhiệm Vụ', x: 120, y: 660, hitRadius: 75, role: 'quest_board', func: 'Treo Thưởng & Trừ Yêu' }),
-        Object.freeze({ id: 'hoi_quan', name: 'Hội Quán', x: 420, y: 660, hitRadius: 75, role: 'guild_hall', func: 'Giao Lưu & Luận Bàn' }),
-        Object.freeze({ id: 've_si_cong', name: 'Cổng Xuất Thôn', x: 270, y: 825, hitRadius: 90, role: 'portal_exit', func: 'Tiến Ra Ngoại Vi' })
+        Object.freeze({ id: 'truong_thon', name: 'Phủ Trưởng Thôn', x: 270, y: 130, hitRadius: 55, role: 'village_chief', func: 'Nhiệm Vụ Khởi Đầu' }),
+        Object.freeze({ id: 'thuong_hoi', name: 'Thương Hội', x: 397, y: 257, hitRadius: 55, role: 'market', func: 'Giao Dịch, Phù Lục & Đổi Tiền' }),
+        Object.freeze({ id: 'tho_ren', name: 'Tiệm Thợ Rèn', x: 117, y: 322, hitRadius: 55, role: 'blacksmith', func: 'Cường Hóa & Rèn Đúc Trang Bị' }),
+        Object.freeze({ id: 'duoc_diem', name: 'Dược Điếm', x: 418, y: 495, hitRadius: 55, role: 'clinic', func: 'Luyện Đan & Dược Liệu' }),
+        Object.freeze({ id: 'vo_quan', name: 'Võ Quán', x: 157, y: 640, hitRadius: 55, role: 'martial_hall', func: 'Diễn Võ & Công Pháp Cơ Bản' }),
+        Object.freeze({ id: 've_si_cong', name: 'Cổng Xuất Thôn', x: 270, y: 735, hitRadius: 60, role: 'portal_exit', func: 'Rời Thôn Ra Dã Ngoại' })
       ]),
       bgmTrack: 'bgm_village_peace'
     }),
@@ -295,9 +292,9 @@ export const SPECIAL_MAP_OVERRIDES = Object.freeze([
 
     assets: Object.freeze({
       bgKey: 'map_panorama_wilderness_shared',
-      bgPath: 'environment/map_1_thanh_van_ngoai_vi.png',
+      bgPath: 'environment/map_1_thanh_van_ngoai_vi.webp',
       panoramaKey: 'map_panorama_wilderness_shared',
-      panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.png',
+      panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.webp',
       sourceWidth: 3200,
       sourceHeight: 960,
       worldWidth: 32000,

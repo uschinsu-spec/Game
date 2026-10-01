@@ -12,7 +12,7 @@ const FONT='Be Vietnam Pro, sans-serif', COLS=7, ROWS=6, PAGE_SIZE=COLS*ROWS;
 const FILTERS=[['all','Tất cả'],['gear','Trang bị'],['consumable','Tiêu hao'],['material','Nguyên liệu'],['core','Nội Đan'],['special','Đặc biệt']];
 const SLOT_LABEL={weapon:'Vũ khí',armor:'Giáp',helm:'Mũ',boots:'Giày',amulet:'Hộ phù',shield:'Hộ thuẫn',ring:'Nhẫn',cloak:'Pháp bào'};
 const KIND_LABEL={gear:'Trang bị',herb:'Linh thảo',ore:'Khoáng thạch',beast_material:'Nguyên liệu yêu thú',core:'Nội Đan',pill:'Đan dược',talisman:'Phù lục',formation:'Trận pháp',blueprint:'Đồ phổ',token:'Lệnh bài',key:'Bí cảnh lệnh',manual:'Công pháp',quest:'Vật phẩm nhiệm vụ'};
-const SOURCE_LABEL={crafting:'Bách Nghệ / Chế tạo',boss_blueprint:'Đồ phổ Boss',sect_shop:'Cửa hàng Tông Môn',gathering:'Thu thập linh thảo',monster:'Quái vật',mining:'Khai khoáng',elite:'Yêu thú Tinh Anh',boss:'Boss',medicine_shop:'Dược Phường',merchant:'Thương nhân',dungeon:'Bí cảnh / Dungeon',quest:'Nhiệm vụ',sect_quest:'Nhiệm vụ Tông Môn',clan_quest:'Nhiệm vụ Gia Tộc'};
+const SOURCE_LABEL={crafting:'Bách Nghệ / Chế tạo',sect_shop:'Cửa hàng Tông Môn',gathering:'Thu thập linh thảo',monster:'Quái vật',mining:'Khai khoáng',medicine_shop:'Dược Phường',merchant:'Thương nhân',dungeon:'Bí cảnh / Dungeon',quest:'Nhiệm vụ',sect_quest:'Nhiệm vụ Tông Môn',clan_quest:'Nhiệm vụ Gia Tộc'};
 const STAT_LABEL={dmg:'Công kích',hp:'Sinh lực',mp:'Linh lực',def:'Phòng ngự',spd:'Tốc độ',dmgPct:'Công kích %',hpPct:'Sinh lực %',mpPct:'Linh lực %',defPct:'Phòng ngự %',critRate:'Tỷ lệ bạo kích',critDamage:'Sát thương bạo kích',armorPen:'Xuyên giáp',attackSpeed:'Tốc đánh',dodge:'Né tránh',lifeSteal:'Hút máu',elementDamage:'Sát thương hệ',damageReduction:'Giảm sát thương',controlPower:'Khống chế',healPower:'Hiệu quả hồi phục',spiritualSense:'Thần thức',cultivationSpeed:'Tốc độ tu luyện'};
 const PERCENT_STATS=new Set(['dmgPct','hpPct','mpPct','defPct','critRate','critDamage','armorPen','attackSpeed','dodge','lifeSteal','elementDamage','damageReduction','controlPower','healPower']);
 const CURRENCY_LABEL=['Bạc','Linh Thạch Hạ Phẩm','Linh Thạch Trung Phẩm','Linh Thạch Thượng Phẩm','Linh Thạch Cực Phẩm','Linh Thạch Cực Phẩm'];
@@ -44,7 +44,20 @@ export function installInventoryGridUI(MainGameScene){
     let rows=listOwnedItems().filter(x=>matches(x,filter));rows.sort((a,b)=>(b.def.rank-a.def.rank)||((b.instance?getPowerScore(b.instance):0)-(a.instance?getPowerScore(a.instance):0))||a.def.name.localeCompare(b.def.name));
     const pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));page=Math.max(0,Math.min(pages-1,Number(page)||0));const visible=rows.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
     const startX=-207,startY=-280;
-    visible.forEach((row,i)=>{const col=i%COLS,rr=Math.floor(i/COLS),x=startX+col*69,y=startY+rr*67;const border=row.instance?.locked?0xfbbf24:0x4b8192;const bg=this.add.rectangle(x,y,58,58,0x102632,1).setStrokeStyle(1.5,border).setInteractive({useHandCursor:true});panel.add(bg);addIcon(this,panel,row.def,x,y-6,34);panel.add(this.add.text(x+24,y+20,row.qty>1?String(row.qty):'',{fontFamily:FONT,fontSize:'9px',fontStyle:'bold',color:'#fff'}).setOrigin(1,1));if(row.instance?.enhance)panel.add(this.add.text(x-24,y-23,`+${row.instance.enhance}`,{fontFamily:FONT,fontSize:'8px',fontStyle:'bold',color:'#fde68a'}).setOrigin(0,0));bg.on('pointerdown',ptr=>{stopPointer(this,ptr);this.openItemDetailPanel(row.instance?.uid||row.itemId,filter,page);});});
+    visible.forEach((row,i)=>{
+      const col=i%COLS,rr=Math.floor(i/COLS),x=startX+col*69,y=startY+rr*67;
+      const border=row.instance?.locked?0xfbbf24:0x4b8192;
+      const bg=this.add.rectangle(x,y,58,58,0x102632,1).setStrokeStyle(1.5,border).setInteractive({useHandCursor:true});
+      panel.add(bg);
+      addIcon(this,panel,row.def,x,y,50);
+      if(row.qty>1){
+        panel.add(this.add.text(x+25,y+25,String(row.qty),{fontFamily:FONT,fontSize:'11px',fontStyle:'bold',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(1,1));
+      }
+      if(row.instance?.enhance){
+        panel.add(this.add.text(x-25,y-25,`+${row.instance.enhance}`,{fontFamily:FONT,fontSize:'10px',fontStyle:'bold',color:'#fde68a',stroke:'#000000',strokeThickness:3}).setOrigin(0,0));
+      }
+      bg.on('pointerdown',ptr=>{stopPointer(this,ptr);this.openItemDetailPanel(row.instance?.uid||row.itemId,filter,page);});
+    });
     panel.add(this.add.text(0,145,`${rows.length} mục • Trang ${page+1}/${pages}`,{fontFamily:FONT,fontSize:'11px',color:'#9aeaff'}).setOrigin(.5));
     btn(this,panel,-120,195,210,42,'‹ TRƯỚC',()=>this.openGearPanel(filter,page-1),false,page>0);btn(this,panel,120,195,210,42,'SAU ›',()=>this.openGearPanel(filter,page+1),false,page<pages-1);
     const stats=getEquipmentStats();const statText=Object.keys(stats).length?Object.entries(stats).slice(0,8).map(([k,v])=>fmtStat(k,v)).join(' • '):'Chưa có trang bị';

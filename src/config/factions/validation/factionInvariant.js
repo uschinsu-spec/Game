@@ -1,6 +1,8 @@
 import { validateFactionDefinition } from '../core/factionDefinitions.js';
 import { validateVassalGraph } from '../network/factionVassals.js';
 import { MAX_REALM_INDEX } from '../core/factionConstants.js';
+import { validateFactionCultivators } from '../core/factionScale.js';
+import { CANONICAL_STATIC_FACTIONS } from '../core/declarations/fixedFactionNames3950.js';
 
 function assertRichCanonicalFaction(faction,label='canonical faction'){
   if(!faction)throw new Error(`[FACTION] missing ${label}`);
@@ -10,6 +12,9 @@ function assertRichCanonicalFaction(faction,label='canonical faction'){
   if(Number(faction.economy?.treasury||0)<=0||Number(faction.economy?.income||0)<=0)throw new Error(`[FACTION] ${faction.id} missing economy baseline`);
   if(Number(faction.resources?.spiritStone||0)<=0)throw new Error(`[FACTION] ${faction.id} missing resource baseline`);
   if(Number(faction.cultivators?.leaderRealmIdx)<0||Number(faction.cultivators?.leaderRealmIdx)>MAX_REALM_INDEX)throw new Error(`[FACTION] ${faction.id} leader realm invalid`);
+  if(Number(faction.cultivators?.ancestorRealmIdx)<0||Number(faction.cultivators?.ancestorRealmIdx)>MAX_REALM_INDEX)throw new Error(`[FACTION] ${faction.id} ancestor realm invalid`);
+  const cultivationErrors=validateFactionCultivators(faction.cultivators,faction.powerTier);if(cultivationErrors.length)throw new Error(`[FACTION] ${faction.id} ${cultivationErrors.join('; ')}`);
+  const p=faction.population||{};if(Number(p.cultivators)>Number(p.population)||Number(p.eliteCultivators)>Number(p.cultivators)||Number(p.elders)>Number(p.eliteCultivators)||Number(p.topExperts)>Number(p.elders))throw new Error(`[FACTION] ${faction.id} population hierarchy invalid`);
   if(!Array.isArray(faction.organization?.ranks)||!faction.organization.ranks.length)throw new Error(`[FACTION] ${faction.id} missing organization ranks`);
 }
 
@@ -21,6 +26,7 @@ export function assertFactionBootReady({network,worldAdapter}={}){
   if(atlas?.declarationMode!=='single-source-3950')throw new Error('[FACTION] atlas is not fixed-declaration mode');
   const staticStats=network.getCanonicalStaticFactionStats?.();
   if(staticStats&&Number(staticStats.total)!==3950)throw new Error(`[FACTION] static faction total ${staticStats.total} != 3950`);
+  for(const faction of CANONICAL_STATIC_FACTIONS)assertRichCanonicalFaction(faction,'canonical static faction');
   const relationStats=network.getCanonicalRelationStats?.();
   if(relationStats){if(Number(relationStats.vassals)!==3875)throw new Error(`[FACTION] fixed vassals ${relationStats.vassals} != 3875`);if(Number(relationStats.total)!==3883)throw new Error(`[FACTION] fixed relations ${relationStats.total} != 3883`);}
   const territoryIds=worldAdapter.getAllTerritoryIds?.()||[];

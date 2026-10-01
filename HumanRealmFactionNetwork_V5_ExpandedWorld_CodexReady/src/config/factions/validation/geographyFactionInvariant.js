@@ -1,2 +1,0 @@
-const LEGACY_FIELDS=['factionProfile','cultivationFactions','apexSect','makeFactionProfile'];
-export function assertGeographyFactionFree(worldNodes=[]){const offenders=[];for(const n of worldNodes){for(const f of LEGACY_FIELDS)if(n&&Object.prototype.hasOwnProperty.call(n,f)&&n[f]!=null)offenders.push(`${n.id}:${f}`);}if(offenders.length)throw new Error(`[FACTION V5] Geography còn dữ liệu faction legacy: ${offenders.slice(0,20).join(', ')}`);return Object.freeze({ok:true,nodeCount:worldNodes.length});}

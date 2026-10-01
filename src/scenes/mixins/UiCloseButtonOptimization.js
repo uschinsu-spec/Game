@@ -48,6 +48,7 @@ export function installUiCloseButtonOptimization(MainGameScene) {
       stopPointerEvent(pointer);
       if (closed) return;
       closed = true;
+      this.lastModalClosedAt = Date.now();
       resetCombatTouch(this);
       this.closeModal();
     };
@@ -70,6 +71,7 @@ export function installUiCloseButtonOptimization(MainGameScene) {
   const originalCloseModal = proto.closeModal;
   if (typeof originalCloseModal === 'function' && !originalCloseModal.__uiCloseWrapped) {
     const wrappedCloseModal = function closeModalWithTouchReset(...args) {
+      this.lastModalClosedAt = Date.now();
       resetCombatTouch(this);
       const result = originalCloseModal.apply(this, args);
       if (this.physics?.world?.isPaused && this.physics.world.resume) {

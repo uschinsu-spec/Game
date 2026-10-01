@@ -76,7 +76,7 @@ const CONTINENT_STYLE = Object.freeze({
 });
 
 const QUEST_VERBS = Object.freeze(['điều tra', 'hộ tống', 'trấn áp', 'thu thập', 'giải cứu', 'khảo sát', 'phá trận', 'săn đuổi']);
-const ZONE_ROLES = Object.freeze(['cửa ngõ an toàn', 'vùng tài nguyên', 'địa bàn thế lực', 'hoang dã nguy hiểm', 'bí cảnh ngoại vi', 'boss territory']);
+const ZONE_ROLES = Object.freeze(['cửa ngõ an toàn', 'vùng tài nguyên', 'địa bàn thế lực', 'hoang dã nguy hiểm', 'bí cảnh ngoại vi', 'thâm xứ nguy hiểm']);
 const SERVICE_POOL = Object.freeze(['phường thị', 'đan dược', 'luyện khí', 'phù trận', 'truyền tống', 'ngự thú', 'nhiệm vụ tông môn', 'đấu giá']);
 
 const nodeById = new Map(HUMAN_REALM_WORLD_NODES.map(node => [node.id, node]));
@@ -205,8 +205,8 @@ function makeContinentDetail(node) {
     travel: { modes: unique(style.travel), strategicHubRule: 'mỗi vùng cấp cao có ít nhất một đầu mối truyền tống hoặc thương lộ chính', dangerousTravel: pick(style.hazards, seed, 1) },
     worldEvents: unique(style.events), hazards: unique(style.hazards),
     materializationBlueprint: {
-      primaryRegionRule: 'mỗi vùng cấp cao có visual identity riêng, biome riêng và boss ecology riêng',
-      secondLevelRule: 'mỗi đơn vị cấp hai được chia zone theo thành thị, tài nguyên, hoang dã, bí cảnh và boss territory'
+      primaryRegionRule: 'mỗi vùng cấp cao có visual identity riêng, biome riêng và sinh thái yêu thú riêng',
+      secondLevelRule: 'mỗi đơn vị cấp hai được chia zone theo thành thị, tài nguyên, hoang dã, bí cảnh và thâm xứ'
     }
   });
 }
@@ -240,9 +240,9 @@ function makeRegionDetail(node) {
     resources: { products, minerals, rareDropTheme: `${pick(products, seed) || 'linh vật'} / ${pick(minerals, seed, 1) || 'linh khoáng'} tinh luyện` },
     combat: {
       recommendedRealmRange: realm, enemyArchetypes: enemies,
-      packRule: `enemy thường chiếm hoang dã; tinh anh giữ tài nguyên; boss kiểm soát ${pick(style.biomes, seed, 3)} hoặc cấm địa`,
-      eliteModifier: pick(['cuồng bạo', 'hộ giáp linh lực', 'nguyên tố tăng cường', 'triệu hồi đồng loại', 'dị biến huyết mạch'], seed),
-      bossRule: `boss vùng cao hơn enemy thường 1–2 bậc cảnh giới và có cơ chế gắn với ${pick(elements.length ? elements : ['địa hình'], seed, 1)}`
+      packRule: `yêu thú phân bố theo môi trường; linh thú chiếm giữ cấm địa và ${pick(style.biomes, seed, 3)}`,
+      beastModifier: pick(['cuồng bạo', 'hộ giáp linh lực', 'nguyên tố tăng cường', 'triệu hồi đồng loại', 'dị biến huyết mạch'], seed),
+      dangerRule: `quái vật thâm xứ có cảnh giới tương ứng khu vực và cơ chế gắn với ${pick(elements.length ? elements : ['địa hình'], seed, 1)}`
     },
     exploration: {
       landmarkThemes: unique([`${node.name} chủ thành`, `${pick(style.biomes, seed)} linh mạch`, `${pick(style.biomes, seed, 2)} cổ địa`, `${pick(style.terrain, seed)} quan ải`]),
@@ -267,8 +267,8 @@ function makeTerritoryDetail(node) {
   const parentRegion = nodeById.get(node.parentId);
   const regionDetail = parentRegion ? makeRegionDetail(parentRegion) : null;
   const products = unique(base.products), minerals = unique(base.minerals), commonEnemies = unique(enemy.commonEnemies || []);
-  const realmRange = [Number(enemy.minRealmIdx || 0), Number(enemy.maxRealmIdx || Math.max(2, Number(enemy.bossRealmIdx || 2) - 1))];
-  const bossRealm = Number(enemy.bossRealmIdx || Math.min(28, realmRange[1] + 1));
+  const realmRange = [Number(enemy.minRealmIdx || 0), Number(enemy.maxRealmIdx || 2)];
+  const maxRealm = Number(enemy.maxRealmIdx || Math.min(28, realmRange[1] + 1));
   const mainBiome = pick(regionDetail?.biomes || style.biomes, seed), secondaryBiome = pick(regionDetail?.biomes || style.biomes, seed, 2);
   const capital = base.capital || `${node.name} Chủ Thành`;
   const cities = unique(base.cities), towns = unique(base.towns), villages = unique(base.villages), secrets = unique(base.secrets), forbidden = unique(base.forbidden);
@@ -286,7 +286,7 @@ function makeTerritoryDetail(node) {
       biomes: unique([mainBiome, secondaryBiome, pick(style.biomes, seed, 4)]),
       visual: `${pick(style.architecture, seed)} nổi bật trên nền ${pick(style.weather, seed)}`,
       settlementStyle: pick(style.architecture, seed, 1),
-      explorationLoop: 'vào thành nhận tin → theo tuyến tài nguyên → gặp enemy/biến cố → mở bí cảnh/cấm địa → đánh boss → quay về thành'
+      explorationLoop: 'vào thành nhận tin → theo tuyến tài nguyên → gặp biến cố/yêu thú → khám phá bí cảnh/cấm địa → quay về thành'
     },
     landmarks: unique([capital, ...cities.slice(0, 2), ...secrets.slice(0, 1), ...forbidden.slice(0, 1), ...naturalLandmarks]),
     settlements: {
@@ -307,15 +307,15 @@ function makeTerritoryDetail(node) {
       economy: `${capital} thu mua ${pick(products, seed) || 'linh dược'} và ${pick(minerals, seed, 1) || 'linh khoáng'}; giá biến động theo sự kiện vùng.`
     },
     enemyEcology: {
-      recommendedRealmRange: realmRange, bossRealmIdx: bossRealm, commonEnemies,
-      eliteEnemy: enemy.eliteEnemy || `${node.name} Tinh Anh`, fieldBoss: enemy.fieldBoss || `${node.name} Vực Chủ Yêu`,
+      recommendedRealmRange: realmRange, commonEnemies,
+      uniqueBeasts: enemy.uniqueBeasts || [`${node.name} Dị Thú`],
       spawnHabitats: unique([mainBiome, secondaryBiome, pick(style.biomes, seed, 3)]),
       behavior: unique([
         pick(['đi tuần theo bầy', 'mai phục gần tài nguyên', 'chiếm cứ đường hẹp', 'săn mồi theo giờ', 'bảo vệ lãnh địa'], seed),
-        pick(['tăng hung tính ban đêm', 'tăng số lượng khi có sự kiện', 'tinh anh xuất hiện gần tài nguyên hiếm', 'boss có lãnh địa cố định'], seed, 2)
+        pick(['tăng hung tính ban đêm', 'tăng số lượng khi có sự kiện', 'yêu thú tụ tập gần tài nguyên hiếm', 'lãnh địa nguy hiểm cố định'], seed, 2)
       ]),
       weatherModifier: `${pick(style.weather, seed)} tăng mật độ hoặc sức mạnh một nhóm enemy phù hợp nguyên tố`,
-      nightModifier: pick(['enemy âm hệ tăng', 'yêu thú săn mồi tăng', 'tầm nhìn giảm', 'tinh anh dễ xuất hiện', 'không thay đổi lớn'], seed)
+      nightModifier: pick(['enemy âm hệ tăng', 'yêu thú săn mồi tăng', 'tầm nhìn giảm', 'linh khí dị biến', 'không thay đổi lớn'], seed)
     },
     dungeonProfile: {
       secretRealms: secrets.map((name, index) => freeze({
@@ -325,8 +325,8 @@ function makeTerritoryDetail(node) {
       })),
       forbiddenZones: forbidden.map((name, index) => freeze({
         name, danger: pick(style.hazards, seed, index),
-        recommendedRealm: Math.min(28, Math.max(realmRange[1], bossRealm - 1 + index)),
-        bossTheme: enemy.fieldBoss || `${node.name} Cấm Địa Boss`
+        recommendedRealm: Math.min(28, realmRange[1] + index),
+        forbiddenTheme: `${node.name} Cấm Địa Xứ`
       }))
     },
     hazards: unique([pick(style.hazards, seed), pick(style.hazards, seed, 2), `${pick(style.weather, seed, 1)} làm thay đổi tầm nhìn/di chuyển`, `linh lực địa phương gây áp chế nếu thấp hơn cảnh giới ${realmRange[0]}`]),
@@ -338,7 +338,7 @@ function makeTerritoryDetail(node) {
     questHooks: unique([
       `${pick(QUEST_VERBS, seed)} ${pick(style.hazards, seed)} trên tuyến vào ${capital}`,
       `${pick(QUEST_VERBS, seed, 1)} ${pick(products, seed) || 'linh dược'} tại ${naturalLandmarks[1]}`,
-      `${pick(QUEST_VERBS, seed, 2)} ${enemy.eliteEnemy || 'tinh anh địa phương'}`,
+      `${pick(QUEST_VERBS, seed, 2)} dị thú tại ${naturalLandmarks[0]}`,
       `${pick(QUEST_VERBS, seed, 3)} bí mật trong ${secrets[0] || naturalLandmarks[0]}`,
       `${pick(QUEST_VERBS, seed, 4)} đoàn thương nhân qua ${pick(style.travel, seed)}`,
       `${pick(QUEST_VERBS, seed, 5)} âm mưu tranh quyền giữa các thế lực tại ${capital}`
@@ -349,7 +349,7 @@ function makeTerritoryDetail(node) {
     },
     dayNight: {
       day: `${capital} và thương lộ hoạt động mạnh; gatherer/NPC đông hơn`,
-      night: `${mainBiome} nguy hiểm hơn; elite/boss event có xác suất cao hơn`,
+      night: `${mainBiome} nguy hiểm hơn; yêu thú dị biến hoạt động mạnh hơn`,
       dawnDusk: `${pick(style.weather, seed, 2)} dễ xuất hiện và tạo buff/debuff môi trường`
     },
     weatherPattern: {
@@ -357,8 +357,8 @@ function makeTerritoryDetail(node) {
       gameplayEffect: 'weather chỉ kích hoạt asset/VFX khi người chơi ở đúng map hoặc zone'
     },
     recommendedProgression: {
-      enterRealmIdx: realmRange[0], farmRealmRange: realmRange, challengeBossRealmIdx: bossRealm,
-      exitCondition: `hoàn thành boss/waypoint chính và đạt tối thiểu cảnh giới ${Math.min(28, realmRange[1])}`
+      enterRealmIdx: realmRange[0], farmRealmRange: realmRange,
+      exitCondition: `khai phá waypoint chính và đạt tối thiểu cảnh giới ${Math.min(28, realmRange[1])}`
     },
     materializationBlueprint: {
       suggestedZoneCount: zoneCount,

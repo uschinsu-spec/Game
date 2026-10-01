@@ -1,2 +1,0 @@
-const BASE=Object.freeze({great_region:['đại truyền tống','đấu giá liên vùng','thiên cơ tình báo','đan-khí-phù-trận'],province:['truyền tống','đấu giá','nhiệm vụ','đan dược','luyện khí','phù trận'],nation:['quốc khố','thương hội','hộ tống','bounty','nghề nghiệp'],city_territory:['shop','đấu giá','truyền tống','nhiệm vụ','sửa trang bị'],settlement:['tạp hóa','nhiệm vụ địa phương','nghỉ trọ','thu mua tài nguyên']});
-export function servicesForJurisdiction(j){return Object.freeze([...(BASE[j?.type]||BASE.settlement)]);}

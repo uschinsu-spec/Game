@@ -53,7 +53,7 @@ export function createInitialWorldProgress(currentMapId = START_MAP_ID) {
     discoveredNodeIds: [HUMAN_REALM_ROOT_ID],
     visitedMapIds: [],
     unlockedWaypointMapIds: [],
-    defeatedMapBosses: [],
+
     completedDungeons: [],
     discoveredSecrets: [],
     regionProgress: {},
@@ -80,7 +80,7 @@ export function ensureWorldProgress(gameStateLike) {
     discoveredNodeIds: uniqueValidNodeIds([HUMAN_REALM_ROOT_ID, ...(source.discoveredNodeIds || [])]),
     visitedMapIds: uniqueValidMapIds(source.visitedMapIds),
     unlockedWaypointMapIds: uniqueValidMapIds(source.unlockedWaypointMapIds),
-    defeatedMapBosses: uniqueStrings(source.defeatedMapBosses),
+
     completedDungeons: uniqueStrings(source.completedDungeons),
     discoveredSecrets: uniqueStrings(source.discoveredSecrets),
     regionProgress: source.regionProgress && typeof source.regionProgress === 'object' ? { ...source.regionProgress } : {},
@@ -115,7 +115,7 @@ export function markMapVisited(gameStateLike, mapId, opts = {}) {
       discoveredNodeIds: [HUMAN_REALM_ROOT_ID],
       visitedMapIds: [],
       unlockedWaypointMapIds: [],
-      defeatedMapBosses: [],
+
       completedDungeons: [],
       discoveredSecrets: [],
       regionProgress: {},

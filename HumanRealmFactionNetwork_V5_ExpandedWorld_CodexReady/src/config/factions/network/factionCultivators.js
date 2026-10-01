@@ -1,2 +1,0 @@
-import { MAX_REALM_INDEX } from '../core/factionConstants.js';
-export function createCultivatorDistribution(input={}){const byRealm={};for(const [k,v]of Object.entries(input.byRealm||{})){const idx=Math.min(MAX_REALM_INDEX,Math.max(0,Number(k)));byRealm[idx]=(byRealm[idx]||0)+Math.max(0,Number(v||0));}return Object.freeze({byRealm:Object.freeze(byRealm),leaderRealmIdx:Math.min(MAX_REALM_INDEX,Math.max(0,Number(input.leaderRealmIdx||0))),ancestorRealmIdx:Math.min(MAX_REALM_INDEX,Math.max(0,Number(input.ancestorRealmIdx||input.leaderRealmIdx||0)))});}

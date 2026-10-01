@@ -2,7 +2,7 @@
 // dmg = mốc Damage nền của HỆ ĐANG TU (hệ không tu = 0, do ElementalCombatProgression xử lý)
 // def = DEF nền áp dụng cho 8 hệ; DEF hệ đang tu được tăng thêm theo công pháp/thuần thục.
 export const REALMS = [
-  { id: 0, name: 'Phàm Nhân (Chưa Tu Luyện)', major: 'Phàm Nhân', tier: 'Chưa Tu Luyện', expReq: 50, hp: 100, manaMax: 100, spiritualSense: 10, dmg: 5, def: 0 },
+  { id: 0, name: 'Phàm Nhân (Chưa Tu Luyện)', major: 'Phàm Nhân', tier: 'Chưa Tu Luyện', expReq: 50, hp: 100, manaMax: 100, spiritualSense: 10, dmg: 1, def: 0 },
 
   // Luyện Khí 12 tầng
   { id: 1,  name: 'Luyện Khí Tầng 1',  major: 'Luyện Khí', tier: 'Tầng 1',  expReq: 150,  hp: 300,  manaMax: 200,  spiritualSense: 20,  dmg: 25,  def: 8 },

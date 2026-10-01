@@ -1,1 +1,0 @@
-export function createMarriageAlliance({factionA,factionB,lineageA=null,lineageB=null,startCycle=0,politicalEffect=10,inheritanceEffect='shared_claim'}){return Object.freeze({type:'MARRIAGE_ALLIANCE',factionA,factionB,lineageA,lineageB,startCycle,politicalEffect,inheritanceEffect,status:'active'});}

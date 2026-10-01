@@ -23,7 +23,7 @@ export const RUNTIME_MAP_IDS = Object.freeze(MASTER_MAP_DEFINITIONS.map(m => Str
 
 export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   key: 'map_panorama_wilderness_shared',
-  asset: 'environment/map_1_thanh_van_ngoai_vi.png',
+  asset: 'environment/map_1_thanh_van_ngoai_vi.webp',
   sourceWidth: 3200,
   sourceHeight: 960,
   worldWidth: 32000,
@@ -75,8 +75,8 @@ export function buildRuntimeMap(def) {
     : (isSectHub ? 'bg_sect_hub' : (isCityHub ? 'bg_city_hub' : (isSafeHub ? 'bg_village_hub' : 'map_panorama_wilderness_shared')));
 
   const defaultBgPath = isClanHub
-    ? 'environment/GIA TOC.PNG'
-    : (isSectHub ? 'environment/TONG MON.PNG' : (isCityHub ? 'environment/THANH THI.PNG' : (isSafeHub ? 'environment/THON TRAN.png' : 'environment/map_1_thanh_van_ngoai_vi.png')));
+    ? 'environment/GIA TOC.webp'
+    : (isSectHub ? 'environment/TONG MON.webp' : (isCityHub ? 'environment/THANH THI.webp' : (isSafeHub ? 'environment/THON TRAN.webp' : 'environment/map_1_thanh_van_ngoai_vi.webp')));
 
   const defaultSourceWidth = isClanHub ? 848 : (isSectHub ? 848 : (isCityHub ? 941 : (isSafeHub ? 784 : 3200)));
   const defaultSourceHeight = isClanHub ? 1272 : (isSectHub ? 1264 : (isCityHub ? 1672 : (isSafeHub ? 1334 : 960)));
@@ -90,8 +90,8 @@ export function buildRuntimeMap(def) {
     sourceHeight: defaultSourceHeight,
     worldWidth: isSafeHub ? 540 : 32000,
     worldHeight: 960,
-    field: isSafeHub ? { left: 30, right: 510, top: 200, bottom: 900 } : { left: 60, right: 31940, top: 350, bottom: 900 },
-    spawn: isSafeHub ? { x: 270, y: 650 } : { x: 350, y: 620 },
+    field: isSafeHub ? { left: 30, right: 510, top: 120, bottom: 840 } : { left: 60, right: 31940, top: 350, bottom: 900 },
+    spawn: isSafeHub ? { x: 270, y: 480 } : { x: 350, y: 620 },
     noRepeat: isSafeHub,
     repeatPanorama: !isSafeHub
   };
@@ -155,7 +155,7 @@ export function buildRuntimeMap(def) {
         name: `${def.name} Thâm Xứ`,
         x0: Math.round(fieldLeft + span * 3),
         x1: fieldRight,
-        realmRange: [maxRealm, def.bossRealmIdx || (maxRealm + 1)],
+        realmRange: [maxRealm, maxRealm + 1],
         elementAffinities: dominantElements,
         monsterRanks: [`m_${Math.min(4, Math.floor(maxRealm / 3))}_4`],
         monsterSprites: [4, 5],

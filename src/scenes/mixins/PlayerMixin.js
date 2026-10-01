@@ -1,6 +1,6 @@
 /**
  * PlayerMixin.js
- * Quản lý: createPlayer, calcStats, performDash, flyingSword,
+ * Quản lý: createPlayer, calcStats, flyingSword,
  *           nearestEnemy, createVfxPool, spawnVfx, perspective, fixed
  */
 import { REALMS } from '../../config/realmsData.js';
@@ -29,6 +29,25 @@ export const PlayerMixin = {
 
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
+  },
+
+  // Animation tier:
+  // - Dưới Trúc Cơ (realmIdx < 13): idle / run / attack.
+  // - Trúc Cơ Sơ Kỳ trở lên (realmIdx >= 13): idle / fly / fly_attack.
+  isPlayerFlyingRealm() {
+    return (Number(gameState.realmIdx) || 0) >= 13;
+  },
+
+  playPlayerAttackAnimation(durationMs = 360) {
+    if (!this.player || !this.player.active) return;
+    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 360), 280, 520);
+    const animKey = this.isPlayerFlyingRealm() ? 'p_fly_attack' : 'p_attack';
+
+    // p_attack / p_fly_attack are 12 frames at 24 fps => 500ms base duration.
+    // timeScale keeps every frame while matching the actual combat cadence.
+    if (this.player.anims) this.player.anims.timeScale = 500 / safeDuration;
+    this.attackUntil = this.time.now + safeDuration;
+    this.player.play(animKey, true);
   },
 
   calcPlayerMaxHp() {
@@ -198,24 +217,6 @@ export const PlayerMixin = {
     }
   },
 
-  performDash() {
-    if (this.time.now < this.lastDash + this.dashCd) return;
-    this.lastDash = this.time.now;
-    this.isDashing = true;
-    this.spawnVfx(this.player.x, this.player.y, 1, 0.8, { tint: 0x66ffff, duration: 250 });
-    this.showFloatingText(this.player.x, this.player.y - 50, 'THAN PHAP LUOT!', '#66ffff');
-    this.time.delayedCall(200, () => { this.isDashing = false; });
-  },
-
-  toggleFlyingSword() {
-    this.isFlyingSword = !this.isFlyingSword;
-    if (this.isFlyingSword) {
-      this.showFloatingText(this.player.x, this.player.y - 60, 'NGỰ KIẾM PHI HÀNH (+40% TỐC)', '#ffd700');
-      this.spawnVfx(this.player.x, this.player.y + 20, 0, 0.7, { tint: 0xffd700, duration: 300 });
-    } else {
-      this.showFloatingText(this.player.x, this.player.y - 60, 'THU KIẾM ĐI BỘ', '#aaddff');
-    }
-  },
 
   isOnScreen(x, y, margin = 20) {
     const cam = this.cameras.main;

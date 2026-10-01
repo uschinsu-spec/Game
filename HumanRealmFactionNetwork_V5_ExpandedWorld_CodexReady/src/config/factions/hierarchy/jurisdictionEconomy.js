@@ -1,2 +1,0 @@
-import { hash32 } from '../generation/factionGenerator.js';
-export function economyProfileForJurisdiction(j,ctx={}){const h=hash32(j?.id||'');return Object.freeze({controllerId:ctx.controllers?.economicController||null,prosperity:30+(h%66),tradeVolume:25+((h>>3)%71),resourcePressure:15+((h>>6)%81),specialties:Object.freeze([...(j?.products||[]).slice(0,3),...(j?.minerals||[]).slice(0,2)]),marketRisk:10+((h>>8)%70)});}

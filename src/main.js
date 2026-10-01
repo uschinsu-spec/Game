@@ -1,4 +1,4 @@
-import { MainGameScene, W, H } from './scenes/MainScene.js?v=20261001-item-icons-v4';
+import { MainGameScene, W, H } from './scenes/MainScene.js?v=20261001-player12-smooth-v1';
 import { installUiModalManager } from './scenes/mixins/UiModalManager.js?v=20260928-modal-manager-unified-v1';
 import { installTransparentBottomMenuOptimization } from './scenes/mixins/TransparentBottomMenuOptimization.js?v=20260928-transparent-nav-518b6b2';
 import { installSimpleCraftingUI } from './scenes/mixins/SimpleCraftingUI.js?v=20261001-item-icons-v4';
@@ -42,6 +42,26 @@ installSimplePrimaryUI(MainGameScene);
 installNpcDialogUI(MainGameScene);
 installClanHubUI(MainGameScene);
 installSectHubUI(MainGameScene);
+// Village/City Hub UI are lazy-loaded so a delayed Drive sync or one missing feature file
+// cannot prevent the whole game from booting. Each click still routes through exactly one Hub manager.
+MainGameScene.prototype.openVillageBuildingUI = function(buildingKey) {
+  return import('./scenes/mixins/village/VillageHubUIManager.js?v=20261001-hub-ui-v4')
+    .then(({ VillageHubUIManager }) => VillageHubUIManager.openBuildingUI(this, buildingKey))
+    .catch(error => {
+      console.error('[VillageHubUI] load failed', error);
+      this.showToast?.(`⚠️ Không tải được UI Thôn: ${error?.message || 'module lỗi'}`);
+      return null;
+    });
+};
+MainGameScene.prototype.openCityBuildingUI = function(buildingKey) {
+  return import('./scenes/mixins/city/CityHubUIManager.js?v=20261001-hub-ui-v2')
+    .then(({ CityHubUIManager }) => CityHubUIManager.openBuildingUI(this, buildingKey))
+    .catch(error => {
+      console.error('[CityHubUI] load failed', error);
+      this.showToast?.(`⚠️ Không tải được UI Thành: ${error?.message || 'module lỗi'}`);
+      return null;
+    });
+};
 installSimpleSkillFullscreenUI(MainGameScene);
 installInventoryGridUI(MainGameScene);
 installCongPhapMasteryProgression(MainGameScene);

@@ -2,7 +2,7 @@
  * NpcMixin.js
  * Quản lý Toàn bộ Hệ Thống NPC Thế Giới & Tương Tác Thao Tác (Mobile & PC)
  */
-import { NPCS_DATA, VILLAGE_HOTSPOTS, VILLAGE_DECORATIONS } from '../../config/npcData.js?v=20260929-village-thon-tran-v2';
+import { NPCS_DATA } from '../../config/npcData.js?v=20260929-village-thon-tran-v2';
 import { gameState } from '../../state/gameState.js';
 import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
@@ -17,18 +17,19 @@ export const NpcMixin = {
     this.closeModal?.();
     this.moveTarget = null;
 
-    const now = Number(this.time?.now || 0);
-    const blockedUntil = now + 5000;
-    this.villageReentryBlockedUntil = blockedUntil;
-    this.portalCooldownUntil = Math.max(Number(this.portalCooldownUntil || 0), blockedUntil);
-
-    // Xuất hiện an toàn ngoài cổng dịch chuyển tại Ngoại Vi qua TravelService
-    travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
+    // Chỉ khóa quay lại thôn khi TravelService đã thực sự chuyển map thành công.
+    const didTravel = travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
       scene: this,
       source: TRAVEL_SOURCES.NPC,
       spawnX: 420,
       spawnY: 620
     });
+    if (!didTravel) return false;
+
+    const blockedUntil = Date.now() + 5000;
+    this.villageReentryBlockedUntil = blockedUntil;
+    travelService.villageReentryBlockedUntil = blockedUntil;
+    this.portalCooldownUntil = Math.max(Number(this.portalCooldownUntil || 0), blockedUntil);
     return true;
   },
 
@@ -143,16 +144,14 @@ export const NpcMixin = {
     // Cấu hình tọa độ Touch Zone trực tiếp khớp với các công trình trên hình nền
     let HUB_ELEMENTS = [];
     if (map?.uiMode === 'village_hub' || map?.type === 'safe_village' || (map?.isPeaceZone && !map?.uiMode) || gameState.currentMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
-      // 1. THÔN TRẤN (Background: THON TRAN.png)
+      // 1. THÔN TRẤN (Background: THON TRAN.webp) - Căn tâm chính xác theo từng biển chữ trên ảnh nền
       HUB_ELEMENTS = [
-        { npcId: 'truong_thon', name: 'Trưởng thôn',    x: 270, y: 107, width: 150, height: 44 },
-        { npcId: 'nong_phu',    name: 'Nông phu',       x: 484, y: 186, width: 138, height: 44 },
-        { npcId: 'tho_ren',     name: 'Thợ rèn',        x: 103, y: 276, width: 132, height: 44 },
-        { npcId: 'thuong_hoi',  name: 'Thương nhân',    x: 260, y: 364, width: 166, height: 44 },
-        { npcId: 'tuu_lau',     name: 'Chủ tửu quán',   x: 370, y: 496, width: 170, height: 44 },
-        { npcId: 'duoc_diem',   name: 'Dược nương',     x: 133, y: 547, width: 156, height: 44 },
-        { npcId: 'tho_xay',     name: 'Thợ xay',        x: 472, y: 709, width: 138, height: 44 },
-        { npcId: 've_si_cong',  name: 'Vệ sĩ cổng',     x: 269, y: 770, width: 160, height: 44 }
+        { buildingKey: 'chief',         npcId: 'truong_thon', name: 'Trưởng Thôn',   x: 270, y: 130, width: 120, height: 48 },
+        { buildingKey: 'merchant',      npcId: 'thuong_hoi',  name: 'Thương Hội',   x: 397, y: 257, width: 118, height: 50 },
+        { buildingKey: 'forge',         npcId: 'tho_ren',     name: 'Thợ Rèn',       x: 117, y: 322, width: 118, height: 52 },
+        { buildingKey: 'medicine',      npcId: 'duoc_diem',   name: 'Dược Điếm',     x: 418, y: 495, width: 116, height: 54 },
+        { buildingKey: 'martial_hall',  npcId: 'vo_quan',     name: 'Võ Quán',       x: 157, y: 640, width: 138, height: 52 },
+        { buildingKey: 'leave_village', npcId: 've_si_cong',  name: 'Rời Thôn',      x: 270, y: 735, width: 140, height: 36, renderTag: true, isExit: true, tagLabel: '🚪 RỜI THÔN ➔' }
       ];
     } else if (map?.uiMode === 'clan_hub' || map?.type === 'safe_clan') {
       // 2. GIA TỘC (Background: GIA TOC.PNG)
@@ -170,15 +169,15 @@ export const NpcMixin = {
     } else if (map?.uiMode === 'city_hub' || map?.type === 'safe_city') {
       // 3. THÀNH THỊ (Background: THANH THI.PNG)
       HUB_ELEMENTS = [
-        { npcId: 'truong_thon', name: 'Phủ Thành Chủ',      x: 293, y: 92, width: 174, height: 44 },
-        { npcId: 'duoc_diem',   name: 'Đan Đường',          x: 106, y: 261, width: 150, height: 44 },
-        { npcId: 'vo_quan',     name: 'Đấu Trường',         x: 475, y: 249, width: 150, height: 44 },
-        { npcId: 'tho_ren',     name: 'Khu Luyện Khí',      x: 118, y: 436, width: 170, height: 44 },
-        { npcId: 'nong_phu',    name: 'Tu Chân Linh Các',   x: 459, y: 505, width: 180, height: 44 },
-        { npcId: 'thuong_hoi',  name: 'Bách Nghệ Các',      x: 103, y: 649, width: 170, height: 44 },
-        { npcId: 'tuu_lau',     name: 'Vạn Bảo Thương Hội',  x: 399, y: 654, width: 200, height: 44 },
-        { npcId: 've_si_cong',  name: 'Trạm Truyền Tống',   x: 143, y: 833, width: 190, height: 44 },
-        { npcId: 'thuong_hoi',  name: 'Khu Giao Dịch Tự Do',x: 431, y: 837, width: 205, height: 44 }
+        { buildingKey: 'lord',           name: 'Phủ Thành Chủ',       x: 293, y: 92, width: 174, height: 44 },
+        { buildingKey: 'alchemy',        name: 'Đan Đường',           x: 106, y: 261, width: 150, height: 44 },
+        { buildingKey: 'arena',          name: 'Đấu Trường',          x: 475, y: 249, width: 150, height: 44 },
+        { buildingKey: 'forge',          name: 'Khu Luyện Khí',       x: 118, y: 436, width: 170, height: 44 },
+        { buildingKey: 'cultivation',    name: 'Tu Chân Linh Các',    x: 459, y: 505, width: 180, height: 44 },
+        { buildingKey: 'crafting',       name: 'Bách Nghệ Các',       x: 103, y: 649, width: 170, height: 44 },
+        { buildingKey: 'treasure_guild', name: 'Vạn Bảo Thương Hội', x: 399, y: 654, width: 200, height: 44 },
+        { buildingKey: 'travel_gate',    name: 'Trạm Truyền Tống',    x: 143, y: 833, width: 190, height: 44 },
+        { buildingKey: 'free_market',    name: 'Khu Giao Dịch Tự Do', x: 431, y: 837, width: 205, height: 44 }
       ];
     } else if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
       // 4. TÔNG MÔN (Background: TONG MON.PNG)
@@ -200,7 +199,7 @@ export const NpcMixin = {
       zone.setStrokeStyle();
     };
 
-    // Each label receives a 2× forgiving touch area. When two expanded areas overlap,
+    // Each label receives a forgiving touch area. When two expanded areas overlap,
     // the nearest label always wins so users never open a neighboring building by mistake.
     const resolveExpandedHubTarget = (pointer) => {
       const px = Number(pointer?.x);
@@ -220,10 +219,74 @@ export const NpcMixin = {
     };
 
     HUB_ELEMENTS.forEach(el => {
-      // Vùng tương tác trong suốt mở rộng 2× quanh bảng tên trên nền ảnh.
-      if (el.npcId) {
-        const hitWidth = (el.width || 180) * 2;
-        const hitHeight = (el.height || 44) * 2;
+      // 1. Xử lý nút UI trực quan (ví dụ: Nút Rời Thôn) - đóng gói độc lập, không bị chồng lớp
+      if (el.renderTag) {
+        const tagContainer = this.add.container(el.x, el.y).setDepth(510).setScrollFactor(0);
+        const tagW = el.width || 140;
+        const tagH = el.height || 36;
+        const tagBg = this.add.graphics();
+        tagBg.fillStyle(0x071e28, 0.95);
+        tagBg.fillRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+        tagBg.lineStyle(1.8, 0xf59e0b, 0.95);
+        tagBg.strokeRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+
+        const tagLabel = this.add.text(0, 0, el.tagLabel || `${el.name} ➔`, {
+          fontFamily: 'Be Vietnam Pro, sans-serif',
+          fontSize: '12px',
+          fontStyle: 'bold',
+          color: '#fef08a'
+        }).setOrigin(0.5).setStroke('#000000', 2.5);
+
+        const hitZone = this.add.rectangle(0, 0, tagW, tagH, 0xffffff, 0.001)
+          .setInteractive({ useHandCursor: true });
+
+        hitZone.on('pointerover', () => {
+          tagBg.clear();
+          tagBg.fillStyle(0x0f2f3f, 0.98);
+          tagBg.fillRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+          tagBg.lineStyle(2, 0xfde047, 1);
+          tagBg.strokeRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+        });
+
+        hitZone.on('pointerout', () => {
+          tagBg.clear();
+          tagBg.fillStyle(0x071e28, 0.95);
+          tagBg.fillRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+          tagBg.lineStyle(1.8, 0xf59e0b, 0.95);
+          tagBg.strokeRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+        });
+
+        hitZone.on('pointerdown', pointer => {
+          pointer?.event?.stopPropagation?.();
+          this.input?.stopPropagation?.();
+          this.moveTarget = null;
+          if (el.isExit || el.buildingKey === 'leave_village' || el.name === 'Rời Thôn') {
+            if (typeof this.leaveThanhVanVillageDirect === 'function') {
+              this.leaveThanhVanVillageDirect();
+            } else {
+              travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
+                scene: this,
+                source: TRAVEL_SOURCES.NPC,
+                spawnX: 420,
+                spawnY: 620
+              });
+            }
+            return;
+          }
+          if (typeof this.openVillageBuildingUI === 'function') {
+            this.openVillageBuildingUI(el.buildingKey || el.name);
+          }
+        });
+
+        tagContainer.add([tagBg, tagLabel, hitZone]);
+        this.villageHotspotObjects.push(tagContainer);
+        return;
+      }
+
+      // 2. Vùng tương tác trong suốt bao khít quanh biển chữ trên nền ảnh cho các công trình
+      if (el.buildingKey || el.npcId || el.name) {
+        const hitWidth = el.width || 110;
+        const hitHeight = el.height || 42;
         const zone = this.add.rectangle(el.x, el.y, hitWidth, hitHeight, 0xffe7a0, 0.001)
           .setDepth(500)
           .setScrollFactor(0)
@@ -276,16 +339,23 @@ export const NpcMixin = {
             }
           }
 
-          // Chạm vào Cổng: rời Hub ngay lập tức
-          if (el.npcId === 've_si_cong') {
-            this.leaveThanhVanVillageDirect?.();
-            return;
+          // Thành Thị Hub: mỗi công trình đi thẳng tới một UI/chức năng riêng.
+          if (map?.uiMode === 'city_hub' || map?.type === 'safe_city') {
+            if (typeof this.openCityBuildingUI === 'function') {
+              this.openCityBuildingUI(el.buildingKey || el.name);
+              return;
+            }
           }
 
-          // Mở modal tương tác NPC tương ứng
-          if (typeof this.openNpcDialogModal === 'function') {
-            this.openNpcDialogModal(el.npcId);
+          // Thôn Trấn Hub: mỗi công trình đi thẳng tới một UI/chức năng riêng.
+          if (map?.uiMode === 'village_hub' || map?.type === 'safe_village' || gameState.currentMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
+            if (typeof this.openVillageBuildingUI === 'function') {
+              this.openVillageBuildingUI(el.buildingKey || el.name);
+              return;
+            }
           }
+
+          this.showToast?.('⚠️ Hub UI chưa được cài đặt.');
         });
 
         this.villageHotspotObjects.push(zone);
@@ -381,19 +451,22 @@ export const NpcMixin = {
 
     if (isHub) this.createVillageImageHotspots();
     else this.clearVillageImageHotspots();
+
+    this.updateBottomUiToggleButton?.();
   },
 
   enforceVillageHubPresentation() {
     if (this.player) {
-      this.player.setVisible(false).setVelocity?.(0, 0);
-      if (this.player.body) this.player.body.enable = false;
-    }
-    this.moveTarget = null;
-    if (this.joy) {
-      this.joy.active = false;
-      this.joy.id = null;
-      this.joy.x = 0;
-      this.joy.y = 0;
+      this.player.setVisible(true);
+      if (this.player.body) {
+        this.player.body.enable = true;
+        this.player.body.setCollideWorldBounds(true);
+      }
+      const centerX = this.currentMap?.spawn?.x || 270;
+      const centerY = this.currentMap?.spawn?.y || 480;
+      if (this.player.x <= 0 || this.player.x >= W || this.player.y <= 0 || this.player.y >= H) {
+        this.player.setPosition(centerX, centerY);
+      }
     }
     if (this.cameras?.main) {
       this.cameras.main.stopFollow();
@@ -408,8 +481,8 @@ export const NpcMixin = {
     this.toggleUiBtnTxt?.setVisible?.(false);
     this.skillContainer?.setVisible?.(false);
     this.sideToggleContainer?.setVisible?.(false);
-    this.joyBase?.setVisible?.(false);
-    this.joyKnob?.setVisible?.(false);
+
+    this.updateBottomUiToggleButton?.();
   },
 
 

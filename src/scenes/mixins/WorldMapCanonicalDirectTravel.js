@@ -74,52 +74,7 @@ export function installWorldMapCanonicalDirectTravel(MainGameScene) {
     selectedMapId = null,
     page = 0
   ) {
-    // A marker click in WorldMapHierarchyUI passes the clicked world-node ID as
-    // selectedMapId while activeNodeId remains the current parent level.
-    if (selectedMapId != null) {
-      const selectedNode = getWorldNode(String(selectedMapId));
-
-      if (selectedNode) {
-        const map = declaredNodeMap(selectedNode);
-        if (map) {
-          const travelled = travelCanonical(this, map, selectedNode.name || map.name);
-          if (travelled) return true;
-          // If travel is blocked (realm/current map/etc.), keep the canonical
-          // detail panel visible so the player can see the reason/status.
-          return canonicalOpenMapPanel.call(this, activeNodeId, selectedMapId, page);
-        }
-
-        // Administrative hierarchy nodes are not runtime maps. One tap drills
-        // down to their children instead of pretending they are destinations.
-        if (!sameId(selectedNode.id, activeNodeId) && getWorldChildren(selectedNode.id).length) {
-          if (this.__worldMapUiState) this.__worldMapUiState.selectedFactionId = null;
-          return canonicalOpenMapPanel.call(this, selectedNode.id, null, 0);
-        }
-      }
-
-      // Some callers may pass a canonical map ID instead of a node ID. Travel
-      // only when it is not the explicit "open details for this same node" call.
-      const directMap = findMapById(selectedMapId);
-      if (directMap && !sameId(directMap.locationNodeId, activeNodeId)) {
-        const travelled = travelCanonical(this, directMap, directMap.name);
-        if (travelled) return true;
-      }
-    }
-
-    // Faction marker click stores selectedFactionId and reopens the same node.
-    // Resolve only the fixed faction object's declared headquarters map.
-    if (selectedMapId == null && activeNodeId != null) {
-      const marker = resolveSelectedFactionMarker(this, activeNodeId);
-      const factionMap = declaredFactionMap(marker);
-      if (marker?.faction && factionMap) {
-        const travelled = travelCanonical(this, factionMap, marker.faction.name || factionMap.name);
-        if (travelled) {
-          if (this.__worldMapUiState) this.__worldMapUiState.selectedFactionId = null;
-          return true;
-        }
-      }
-    }
-
     return canonicalOpenMapPanel.call(this, activeNodeId, selectedMapId, page);
   };
 }
+

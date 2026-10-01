@@ -1,7 +1,7 @@
 import { FACTION_ARCHETYPES } from './factionConstants.js';
 import { FIXED_GEOGRAPHIC_RULERS } from './declarations/fixedFactionNames3950.js';
 
-export const CANONICAL_LOCAL_FACTION_ATLAS_VERSION='20261001-single-source-3950-v1';
+export const CANONICAL_LOCAL_FACTION_ATLAS_VERSION='20261001-single-source-3950-v2-power-scale';
 
 function addIndex(map,key,value){if(!key)return;if(!map.has(key))map.set(key,[]);map.get(key).push(value);}
 function markerForFaction(faction){return Object.freeze({

@@ -134,11 +134,10 @@ export function getNodeRuntimePolicy(node) {
     type === 'dungeon' ||
     type === 'secret_realm' ||
     type === 'forbidden_zone' ||
-    type === 'boss_area' ||
+
     kind.includes('secret') ||
     kind.includes('forbidden') ||
-    kind.includes('dungeon') ||
-    kind.includes('boss')
+    kind.includes('dungeon')
   ) {
     return RUNTIME_POLICIES.DUNGEON;
   }

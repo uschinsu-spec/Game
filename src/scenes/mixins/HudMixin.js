@@ -5,7 +5,7 @@
 import { REALMS } from '../../config/realmsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 
-import { getMapById } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
+import { getMapById, CANONICAL_MAP_KEYS } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
 import { getFaction } from '../../config/factions/gameFactionRegistry.js?v=20260930-canonical-geography-v1';
 import { W, H } from '../constants.js';
@@ -194,6 +194,113 @@ export const HudMixin = {
       this.menuContainer.add([btnBox, iconImg, labelTxt]);
     });
     this.menuContainer.setVisible(this.menuVisible !== false);
+    this.createBottomUiToggleButton();
+  },
+
+  // ---- Bottom UI Toggle Button (Ẩn / Hiện UI dưới) ----
+  createBottomUiToggleButton() {
+    if (this.bottomUiToggleContainer) {
+      this.bottomUiToggleContainer.destroy(true);
+      this.bottomUiToggleContainer = null;
+    }
+    this.bottomUiToggleContainer = this.fixed(this.add.container(W / 2, 820), 9050);
+
+    const btnWidth = 100;
+    const btnHeight = 26;
+
+    this.bottomUiToggleBg = this.add.graphics();
+    this.bottomUiToggleHit = this.add.rectangle(0, 0, btnWidth + 10, btnHeight + 8, 0x000000, 0.001)
+      .setInteractive({ useHandCursor: true });
+    this.bottomUiToggleTxt = this.add.text(0, 0, '▼ ẨN UI', {
+      fontSize: '11.5px',
+      fontFamily: 'Be Vietnam Pro, sans-serif',
+      fontStyle: 'bold',
+      color: '#b2dfdb'
+    }).setOrigin(0.5);
+
+    this.bottomUiToggleHit.on('pointerdown', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation();
+      this.toggleBottomUI();
+    });
+
+    this.bottomUiToggleHit.on('pointerover', () => {
+      this.drawBottomUiToggleBg(true);
+    });
+
+    this.bottomUiToggleHit.on('pointerout', () => {
+      this.drawBottomUiToggleBg(false);
+    });
+
+    this.bottomUiToggleContainer.add([this.bottomUiToggleBg, this.bottomUiToggleHit, this.bottomUiToggleTxt]);
+    this.updateBottomUiToggleButton();
+  },
+
+  drawBottomUiToggleBg(isHover = false) {
+    if (!this.bottomUiToggleBg) return;
+    const g = this.bottomUiToggleBg;
+    g.clear();
+    const isHidden = this.menuVisible === false;
+    const w = isHidden ? 96 : 88;
+    const h = 24;
+    const r = 12;
+
+    const fillColor = isHidden ? 0x0c2535 : 0x071520;
+    const fillAlpha = isHover ? 0.96 : 0.88;
+    const borderColor = isHidden ? (isHover ? 0xffea78 : 0xd4af37) : (isHover ? 0x7affb7 : 0x3ab885);
+    const borderWidth = isHover ? 1.8 : 1.2;
+
+    g.fillStyle(fillColor, fillAlpha);
+    g.fillRoundedRect(-w / 2, -h / 2, w, h, r);
+    g.lineStyle(borderWidth, borderColor, 0.95);
+    g.strokeRoundedRect(-w / 2, -h / 2, w, h, r);
+  },
+
+  toggleBottomUI(forceState) {
+    if (typeof forceState === 'boolean') {
+      this.menuVisible = forceState;
+    } else {
+      this.menuVisible = (this.menuVisible === false) ? true : false;
+    }
+    this.skillsVisible = this.menuVisible;
+    this.updateBottomUiToggleButton();
+  },
+
+  updateBottomUiToggleButton() {
+    if (!this.bottomUiToggleContainer || !this.bottomUiToggleTxt) return;
+
+    const map = this.currentMap || (this.getMapById ? this.getMapById(gameState.currentMapId) : null) || getMapById(gameState.currentMapId);
+    const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub' || map?.uiMode === 'clan_hub' || gameState.currentMapId === CANONICAL_MAP_KEYS?.THANH_VAN_THON || gameState.currentMapId === 0 || gameState.currentMapId === '0';
+
+    const isVisible = this.menuVisible !== false;
+
+    // Apply visibility to containers
+    if (this.menuContainer) {
+      this.menuContainer.setVisible(isVisible);
+    }
+    if (this.skillContainer) {
+      this.skillContainer.setVisible(isVisible && !isHub);
+    }
+
+    // Position & text for the toggle button
+    let targetX = W / 2;
+    let targetY = H - 20;
+
+    if (isVisible) {
+      if (isHub) {
+        targetY = 820;
+      } else {
+        targetY = 708;
+      }
+      this.bottomUiToggleTxt.setText('▼ ẨN UI');
+      this.bottomUiToggleTxt.setColor('#b2dfdb');
+    } else {
+      targetY = H - 20;
+      this.bottomUiToggleTxt.setText('▲ HIỆN UI');
+      this.bottomUiToggleTxt.setColor('#ffe066');
+    }
+
+    this.bottomUiToggleContainer.setPosition(targetX, targetY);
+    this.drawBottomUiToggleBg(false);
   },
 
   // ---- Skill Bar (6 independent slots) ----
@@ -329,11 +436,8 @@ export const HudMixin = {
 
     menuToggle.on('pointerdown', (_pointer, _localX, _localY, event) => {
       event?.stopPropagation();
-      this.menuVisible = !this.menuVisible;
-      this.skillsVisible = this.menuVisible;
-      if (this.menuContainer) this.menuContainer.setVisible(this.menuVisible);
-      if (this.skillContainer) this.skillContainer.setVisible(this.menuVisible);
-      menuToggleIcon.setText(this.menuVisible ? '⌃' : '⌄');
+      this.toggleBottomUI();
+      menuToggleIcon.setText(this.menuVisible !== false ? '⌃' : '⌄');
     });
 
     this.sideToggleContainer.add([
@@ -466,14 +570,13 @@ export const HudMixin = {
     panel.add(optHeader);
 
     if (!gameState.afkSettings) {
-      gameState.afkSettings = { autoSkill: true, autoFly: true, autoBreakthrough: true, autoSurvivalDash: true };
+      gameState.afkSettings = { autoSkill: true, autoFly: true, autoBreakthrough: true };
     }
 
     const toggles = [
       { key: 'autoSkill', label: 'Tự Động Tung Kỹ Năng & Pháp Bảo', y: -22 },
-      { key: 'autoFly', label: 'Tự Động Ngự Kiếm Phi Hành Khi Di Chuyển Xa', y: 22 },
-      { key: 'autoSurvivalDash', label: 'Tự Thân Pháp Né Đòn (Lướt né khi HP < 35%)', y: 66 },
-      { key: 'autoBreakthrough', label: 'Tự Động Đột Phá Cảnh Giới (Dùng Đan Dược)', y: 110 },
+      { key: 'autoFly', label: 'Tự Động Ngự Kiếm Phi Hành Khi Di Chuyển Xa', y: 30 },
+      { key: 'autoBreakthrough', label: 'Tự Động Đột Phá Cảnh Giới (Dùng Đan Dược)', y: 82 },
     ];
 
     toggles.forEach(({ key, label, y }) => {
@@ -805,15 +908,8 @@ export const HudMixin = {
           const ey = cy + (dy / RADAR_Y) * halfH;
 
           if (ex >= bx + 2 && ex <= bx + bw - 2 && ey >= by + 2 && ey <= by + bh - 2) {
-            if (e.isBoss) {
-              this.mini.fillStyle(0xffaa00, 1);
-              this.mini.fillCircle(ex, ey, 3.5);
-              this.mini.lineStyle(1, 0xffe066, 0.8);
-              this.mini.strokeCircle(ex, ey, 5.5);
-            } else {
-              this.mini.fillStyle(0xef4444, 0.9);
-              this.mini.fillCircle(ex, ey, 2.2);
-            }
+            this.mini.fillStyle(0xef4444, 0.9);
+            this.mini.fillCircle(ex, ey, 2.2);
           }
         }
       });

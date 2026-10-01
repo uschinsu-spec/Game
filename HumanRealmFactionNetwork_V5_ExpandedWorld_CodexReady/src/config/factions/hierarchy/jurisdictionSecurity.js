@@ -1,2 +1,0 @@
-import { hash32 } from '../generation/factionGenerator.js';
-export function securityProfileForJurisdiction(j,ctx={}){const h=hash32(j?.id||'');return Object.freeze({controllerId:ctx.controllers?.securityController||null,garrisonBand:['nhẹ','vừa','mạnh','tinh nhuệ'][h%4],patrolDensity:20+(h%76),formationStrength:j?.type==='great_region'?90:j?.type==='province'?75:j?.type==='nation'?65:j?.type==='city_territory'?50:25,threats:Object.freeze(['thú triều','cướp tu sĩ','ma tu xâm nhập'].slice(0,1+(h%3)))});}

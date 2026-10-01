@@ -38,9 +38,9 @@ export const DEFAULT_INITIAL_STATE = {
   claimedStarterGift:false, party:{isFormed:false}, factionState:createEmptyFactionGameState(),
   currentMapId:CANONICAL_MAP_KEYS.THANH_VAN_THON,
   worldProgress:createInitialWorldProgress(CANONICAL_MAP_KEYS.THANH_VAN_THON),
-  equippedSkillIds:['basic_attack','kiem_1'], skillMastery:{}, autoFight:true, autoMode:'farm', gardenTimer:0,
+  equippedSkillIds:['basic_attack'], skillMastery:{}, autoFight:true, autoMode:'farm', gardenTimer:0,
   afkStats:{kills:0,exp:0,gold:0,startTime:Date.now()},
-  afkSettings:{autoSkill:true,autoFly:true,autoBreakthrough:true,autoSurvivalDash:true},
+  afkSettings:{autoSkill:true,autoFly:true,autoBreakthrough:true},
   __realmSchemaV3:true
 };
 
@@ -77,7 +77,7 @@ export function exportSaveCode() {
     equippedSkillIds:[...(gameState.equippedSkillIds||[])], skillMastery:deep(gameState.skillMastery||{}),
     autoFight:!!gameState.autoFight, autoMode:gameState.autoMode||'farm',
     afkStats:deep(gameState.afkStats||{kills:0,exp:0,gold:0,startTime:Date.now()}),
-    afkSettings:deep(gameState.afkSettings||{autoSkill:true,autoFly:true,autoBreakthrough:true,autoSurvivalDash:true})
+    afkSettings:deep(gameState.afkSettings||{autoSkill:true,autoFly:true,autoBreakthrough:true})
   };
   const code=`${SAVE_PREFIX}${utf8ToBase64(JSON.stringify(data))}`;
   try { localStorage.setItem('LINH_SON_SAVE_CODE',code); localStorage.setItem('LINH_SON_LAST_SAVE_TIME',String(Date.now())); } catch(e){ console.warn('Không thể ghi localStorage:',e); }
@@ -102,10 +102,10 @@ export function importSaveCode(codeString) {
     gameState.claimedStarterGift=!!data.claimedStarterGift; gameState.isMeditating=false; gameState.isResting=false;
     gameState.party=data.party||{isFormed:false}; hydrateFactionState(gameState,data.factionState);
     gameState.currentMapId=normalizeMapId(data.currentMapId); gameState.worldProgress=data.worldProgress||createInitialWorldProgress(gameState.currentMapId); ensureWorldProgress(gameState);
-    gameState.equippedSkillIds=(data.equippedSkillIds?.length?data.equippedSkillIds:['basic_attack','kiem_1']); gameState.skillMastery=data.skillMastery||{};
+    gameState.equippedSkillIds=(data.equippedSkillIds?.length?data.equippedSkillIds:['basic_attack']); gameState.skillMastery=data.skillMastery||{};
     gameState.autoFight=data.autoFight!==undefined?!!data.autoFight:true; gameState.autoMode=data.autoMode||'farm';
     gameState.afkStats=data.afkStats||{kills:0,exp:0,gold:0,startTime:Date.now()};
-    gameState.afkSettings=data.afkSettings||{autoSkill:true,autoFly:true,autoBreakthrough:true,autoSurvivalDash:true};
+    gameState.afkSettings=data.afkSettings||{autoSkill:true,autoFly:true,autoBreakthrough:true};
     try { const upgraded=exportSaveCode(); localStorage.setItem('LINH_SON_SAVE_CODE',upgraded); } catch {}
     return {success:true,data:{...data,version:SAVE_VERSION,itemState:gameState.itemState,realmIdx:gameState.realmIdx,currentMapId:gameState.currentMapId,worldProgress:gameState.worldProgress}};
   } catch(err) { console.error('Lỗi giải mã Save Code:',err); return {success:false,error:'Mã lưu bị lỗi hoặc không thể giải mã: '+err.message}; }

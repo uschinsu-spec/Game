@@ -55,7 +55,7 @@ export const gameState = {
   currentMapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
   worldProgress: createInitialWorldProgress(CANONICAL_MAP_KEYS.THANH_VAN_THON),
 
-  equippedSkillIds: ['basic_attack', 'kiem_1'],
+  equippedSkillIds: ['basic_attack'],
   skillMastery: {},
   autoFight: true,
   autoMode: 'farm',
@@ -70,7 +70,6 @@ export const gameState = {
   afkSettings: {
     autoSkill: true,
     autoFly: true,
-    autoBreakthrough: true,
-    autoSurvivalDash: true
+    autoBreakthrough: true
   }
 };

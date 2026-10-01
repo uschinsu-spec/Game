@@ -29,8 +29,7 @@ export const PANORAMA_STANDARD = Object.freeze({
 export const MAP_RUNTIME_PROFILE = Object.freeze({
   hub: Object.freeze({ worldWidth: 540, worldHeight: 960, chunkWidth: 540, activeChunkRadius: 0, defaultZones: 1 }),
   field: Object.freeze({ worldWidth: 32000, worldHeight: 960, chunkWidth: 1024, activeChunkRadius: 1, defaultZones: 4 }),
-  dungeon: Object.freeze({ worldWidth: 16000, worldHeight: 960, chunkWidth: 1024, activeChunkRadius: 1, defaultZones: 4 }),
-  boss: Object.freeze({ worldWidth: 8000, worldHeight: 960, chunkWidth: 1024, activeChunkRadius: 1, defaultZones: 2 })
+  dungeon: Object.freeze({ worldWidth: 16000, worldHeight: 960, chunkWidth: 1024, activeChunkRadius: 1, defaultZones: 4 })
 });
 
 function makeTemplate(id, type, biome, extra = {}) {

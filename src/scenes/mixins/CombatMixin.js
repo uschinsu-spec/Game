@@ -35,8 +35,13 @@ export const CombatMixin = {
 
     if (this.player && this.player.active) {
       const atkInterval = this.calcPlayerAtkInterval ? this.calcPlayerAtkInterval() : 380;
-      this.attackUntil = this.time.now + Math.min(380, Math.floor(atkInterval * 0.7));
-      this.player.play('p_attack', true);
+      const animDuration = Math.min(500, Math.max(280, Math.floor(atkInterval * 0.82)));
+      if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
+      else {
+        const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
+        this.attackUntil = this.time.now + animDuration;
+        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+      }
     }
 
     if (target && target.active && !target.isDead) {
@@ -102,9 +107,15 @@ export const CombatMixin = {
 
     if (this.player && this.player.active) {
       const isFastSkill = (skill.cd === 0 || skill.id === 'kiem_1' || skill.id === 'kiem_2');
-      const animDuration = isFastSkill ? Math.min(260, Math.floor(atkInterval * 0.65)) : 450;
-      this.attackUntil = this.time.now + animDuration;
-      this.player.play('p_attack', true);
+      const animDuration = isFastSkill
+        ? Math.min(420, Math.max(280, Math.floor(atkInterval * 0.75)))
+        : 450;
+      if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
+      else {
+        const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
+        this.attackUntil = this.time.now + animDuration;
+        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+      }
     }
 
     const elemColors = {
@@ -393,7 +404,7 @@ export const CombatMixin = {
 
   takePlayerDamage(rawDmg, elem = 'Vật Lý') {
     if (this.gameplayPaused || this.__uiHardPaused || this.isModalOpen?.()) return;
-    if (this.dead || this.time.now < this.invulnerableUntil || this.isDashing || !this.player || !this.player.active) return;
+    if (this.dead || this.time.now < this.invulnerableUntil || !this.player || !this.player.active) return;
 
     if (this.cancelRestingState) {
       this.cancelRestingState('⚔ Bị Địch Tấn Công: Ngắt Dưỡng Sức & Tĩnh Tọa!');
@@ -645,7 +656,7 @@ export const CombatMixin = {
       let targetScale = startScale;
       if (target && target.active) {
         const eScale = Math.abs(target.scaleX || 0.50);
-        targetScale = Phaser.Math.Clamp(eScale * (target.isBoss ? 1.30 : 1.00) * vfxMul, 0.40, 1.70);
+        targetScale = Phaser.Math.Clamp(eScale * 1.00 * vfxMul, 0.40, 1.70);
       }
 
       const countByMastery = [1, 2, 3, 4];
@@ -769,7 +780,7 @@ export const CombatMixin = {
       let targetScale = startScale;
       if (target && target.active) {
         const eScale = Math.abs(target.scaleX || 0.50);
-        targetScale = Phaser.Math.Clamp(eScale * (target.isBoss ? 1.60 : 1.25) * vfxMul, 0.55, 2.10);
+        targetScale = Phaser.Math.Clamp(eScale * 1.25 * vfxMul, 0.55, 2.10);
       }
 
       const crossProjectile = this.add.sprite(startX, startY, proj2Key)

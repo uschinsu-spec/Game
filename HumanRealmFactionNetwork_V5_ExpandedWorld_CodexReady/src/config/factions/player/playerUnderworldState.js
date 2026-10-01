@@ -1,2 +1,0 @@
-export function createUnderworldState(input={}){return Object.freeze({heat:Math.max(0,Math.min(1000,Number(input.heat||0))),reputation:Number(input.reputation||0),unlockedMarkets:Object.freeze([...(input.unlockedMarkets||[])]),knownContacts:Object.freeze([...(input.knownContacts||[])])});}
-export function updateUnderworldHeat(state,delta){return createUnderworldState({...state,heat:state.heat+Number(delta||0)});}

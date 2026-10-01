@@ -6,26 +6,8 @@ import { gameState } from '../state/gameState.js';
 import { CANONICAL_MAP_KEYS } from './world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 import { travelService, TRAVEL_SOURCES } from '../services/travelService.js';
 
-export const VILLAGE_HOTSPOTS = Object.freeze([
-  { npcId: 'truong_thon', x: 225, y: 125, width: 160, height: 110, label: 'Trưởng thôn' },
-  { npcId: 'nong_phu',    x: 385, y: 215, width: 140, height: 100, label: 'Nông phu' },
-  { npcId: 'tho_ren',     x: 105, y: 315, width: 140, height: 110, label: 'Thợ rèn' },
-  { npcId: 'thuong_hoi',  x: 210, y: 405, width: 150, height: 115, label: 'Thương nhân' },
-  { npcId: 'duoc_diem',   x: 130, y: 585, width: 140, height: 115, label: 'Dược nương' },
-  { npcId: 'tuu_lau',     x: 300, y: 550, width: 150, height: 120, label: 'Chủ tửu quán' },
-  { npcId: 'tho_xay',     x: 380, y: 755, width: 130, height: 95,  label: 'Thợ xay' },
-  { npcId: 've_si_cong',  x: 230, y: 825, width: 170, height: 110, label: 'Vệ sĩ cổng' }
-]);
-
-export const VILLAGE_DECORATIONS = Object.freeze([
-  { x: 270, y: 310, buildingKey: 'village_bldg_10', scale: 0.36, depth: 140 },
-  { x: 270, y: 660, buildingKey: 'village_bldg_7',  scale: 0.35, depth: 140 },
-  { x: 70,  y: 760, buildingKey: 'village_bldg_2',  scale: 0.30, depth: 140 },
-  { x: 470, y: 760, buildingKey: 'village_bldg_3',  scale: 0.30, depth: 140 },
-  { x: 70,  y: 170, buildingKey: 'village_bldg_8',  scale: 0.30, depth: 140 },
-  { x: 470, y: 170, buildingKey: 'village_bldg_5',  scale: 0.30, depth: 140 },
-  { x: 270, y: 920, buildingKey: 'village_bldg_16', scale: 0.32, depth: 140 }
-]);
+// Hub hotspots/UI đã được chuyển sang scenes/mixins/village và scenes/mixins/city.
+// File này chỉ giữ dữ liệu NPC thế giới/đối thoại ngoài hub.
 
 export const NPCS_DATA = [
   {
@@ -373,6 +355,9 @@ export const NPCS_DATA = [
         color: '#ef4444',
         execute: (scene) => {
           scene.closeModal();
+          if (typeof scene.leaveThanhVanVillageDirect === 'function') {
+            return { success: scene.leaveThanhVanVillageDirect() };
+          }
           const ok = travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
             scene,
             source: TRAVEL_SOURCES.NPC,

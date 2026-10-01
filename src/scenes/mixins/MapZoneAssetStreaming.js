@@ -81,40 +81,40 @@ function queueCombatSharedAssets(scene) {
   const required = new Set();
 
   ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore']
-    .forEach(m => queueImage(scene, `mat_${m}`, `${A}icons/materials/${m}.png`, required));
-  for (let h = 1; h <= 7; h++) queueImage(scene, `herb_${h}`, `${A}icons/materials/herb_${h}.png`, required);
+    .forEach(m => queueImage(scene, `mat_${m}`, `${A}icons/materials/${m}.webp`, required));
+  for (let h = 1; h <= 7; h++) queueImage(scene, `herb_${h}`, `${A}icons/materials/herb_${h}.webp`, required);
 
   const elemDirs = {
     hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water',
     phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical'
   };
   Object.entries(elemDirs).forEach(([elemKey, dirName]) => {
-    queueImage(scene, `vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.png`, required);
-    for (let f = 0; f < 8; f++) queueImage(scene, `vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.png`, required);
-    queueImage(scene, `vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.png`, required);
-    queueImage(scene, `vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.png`, required);
-    queueImage(scene, `vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.png`, required);
-    queueImage(scene, `vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.png`, required);
-    queueImage(scene, `vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.png`, required);
-    queueImage(scene, `vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.png`, required);
+    queueImage(scene, `vfx_${elemKey}_1`, `${A}vfx/elemental/${dirName}/proj_1.webp`, required);
+    for (let f = 0; f < 8; f++) queueImage(scene, `vfx_${elemKey}_1_${f}`, `${A}vfx/elemental/${dirName}/frame_${f}.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_2`, `${A}vfx/elemental/${dirName}/proj_2.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_3`, `${A}vfx/elemental/${dirName}/array_3.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_4`, `${A}vfx/elemental/${dirName}/swarm_4.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_5`, `${A}vfx/elemental/${dirName}/colossus_5.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_shockwave`, `${A}vfx/elemental/${dirName}/shockwave.webp`, required);
+    queueImage(scene, `vfx_${elemKey}_impact`, `${A}vfx/elemental/${dirName}/impact.webp`, required);
   });
 
   for (let i = 0; i < 8; i++) {
-    queueImage(scene, `vfx_kim_1_${i}`, `${A}vfx/sword/kim_1_frame_${i}.png`, required);
-    queueImage(scene, `vfx_kim_2_${i}`, `${A}vfx/sword/kim_2_frame_${i}.png`, required);
+    queueImage(scene, `vfx_kim_1_${i}`, `${A}vfx/sword/kim_1_frame_${i}.webp`, required);
+    queueImage(scene, `vfx_kim_2_${i}`, `${A}vfx/sword/kim_2_frame_${i}.webp`, required);
   }
-  queueImage(scene, 'vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.png`, required);
-  queueImage(scene, 'vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.png`, required);
-  queueImage(scene, 'vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.png`, required);
-  queueImage(scene, 'vfx_impact_frame7', `${A}vfx/atlas/frame_7.png`, required);
-  queueImage(scene, 'vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.png`, required);
-  queueImage(scene, 'vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.png`, required);
-  queueImage(scene, 'vfx_loi', `${A}vfx/sword/vfx_loi.png`, required);
-  queueImage(scene, 'vfx_heal', `${A}vfx/skills/vfx_heal.png`, required);
-  queueImage(scene, 'vfx_shield', `${A}vfx/skills/vfx_shield.png`, required);
-  queueImage(scene, 'vfx_speed', `${A}vfx/skills/vfx_speed.png`, required);
-  queueImage(scene, 'vfx_divine', `${A}vfx/ultimates/vfx_divine.png`, required);
-  queueSpriteSheet(scene, 'vfx', `${A}vfx/atlas/vfx_atlas.png`, { frameWidth: 128, frameHeight: 128 }, required);
+  queueImage(scene, 'vfx_kim_3_0', `${A}vfx/sword/kim_3_frame_0.webp`, required);
+  queueImage(scene, 'vfx_tru_tien_shockwave', `${A}vfx/sword/tru_tien_shockwave.webp`, required);
+  queueImage(scene, 'vfx_sword_impact_frame7', `${A}vfx/atlas/frame_7.webp`, required);
+  queueImage(scene, 'vfx_impact_frame7', `${A}vfx/atlas/frame_7.webp`, required);
+  queueImage(scene, 'vfx_sword_kiem_khi', `${A}vfx/sword/kiem_khi.webp`, required);
+  queueImage(scene, 'vfx_giant_tru_tien_sword', `${A}vfx/sword/giant_tru_tien_sword.webp`, required);
+  queueImage(scene, 'vfx_loi', `${A}vfx/sword/vfx_loi.webp`, required);
+  queueImage(scene, 'vfx_heal', `${A}vfx/skills/vfx_heal.webp`, required);
+  queueImage(scene, 'vfx_shield', `${A}vfx/skills/vfx_shield.webp`, required);
+  queueImage(scene, 'vfx_speed', `${A}vfx/skills/vfx_speed.webp`, required);
+  queueImage(scene, 'vfx_divine', `${A}vfx/ultimates/vfx_divine.webp`, required);
+  queueSpriteSheet(scene, 'vfx', `${A}vfx/atlas/vfx_atlas.webp`, { frameWidth: 128, frameHeight: 128 }, required);
 
   return required;
 }
@@ -133,17 +133,17 @@ function getZoneEnemyModels(scene, mapId, zoneNumber) {
 function queueEnemyModel(scene, def, required) {
   const n = def.spriteNum;
   if (def.isFlying) {
-    queueImage(scene, `enemy_fly_${n}_idle_0`, `${A}characters/enemies/flying/enemy_${n}/idle_0.png`, required);
-    queueImage(scene, `enemy_fly_${n}_idle_1`, `${A}characters/enemies/flying/enemy_${n}/idle_1.png`, required);
-    for (let r = 0; r < 4; r++) queueImage(scene, `enemy_fly_${n}_run_${r}`, `${A}characters/enemies/flying/enemy_${n}/run_${r}.png`, required);
-    for (let a = 0; a < 4; a++) queueImage(scene, `enemy_fly_${n}_attack_${a}`, `${A}characters/enemies/flying/enemy_${n}/attack_${a}.png`, required);
+    queueImage(scene, `enemy_fly_${n}_idle_0`, `${A}characters/enemies/flying/enemy_${n}/idle_0.webp`, required);
+    queueImage(scene, `enemy_fly_${n}_idle_1`, `${A}characters/enemies/flying/enemy_${n}/idle_1.webp`, required);
+    for (let r = 0; r < 4; r++) queueImage(scene, `enemy_fly_${n}_run_${r}`, `${A}characters/enemies/flying/enemy_${n}/run_${r}.webp`, required);
+    for (let a = 0; a < 4; a++) queueImage(scene, `enemy_fly_${n}_attack_${a}`, `${A}characters/enemies/flying/enemy_${n}/attack_${a}.webp`, required);
     return;
   }
 
-  queueImage(scene, `enemy_${n}_idle_0`, `${A}characters/enemies/ground/enemy_${n}/idle_0.png`, required);
-  queueImage(scene, `enemy_${n}_idle_1`, `${A}characters/enemies/ground/enemy_${n}/idle_1.png`, required);
-  for (let r = 0; r < 4; r++) queueImage(scene, `enemy_${n}_run_${r}`, `${A}characters/enemies/ground/enemy_${n}/run_${r}.png`, required);
-  for (let a = 0; a < 4; a++) queueImage(scene, `enemy_${n}_attack_${a}`, `${A}characters/enemies/ground/enemy_${n}/attack_${a}.png`, required);
+  queueImage(scene, `enemy_${n}_idle_0`, `${A}characters/enemies/ground/enemy_${n}/idle_0.webp`, required);
+  queueImage(scene, `enemy_${n}_idle_1`, `${A}characters/enemies/ground/enemy_${n}/idle_1.webp`, required);
+  for (let r = 0; r < 4; r++) queueImage(scene, `enemy_${n}_run_${r}`, `${A}characters/enemies/ground/enemy_${n}/run_${r}.webp`, required);
+  for (let a = 0; a < 4; a++) queueImage(scene, `enemy_${n}_attack_${a}`, `${A}characters/enemies/ground/enemy_${n}/attack_${a}.webp`, required);
 }
 
 function getFlyingNpcModelIds(zoneNumber) {
@@ -154,14 +154,14 @@ function getFlyingNpcModelIds(zoneNumber) {
 function queueGroundNpcModels(scene, required) {
   for (let f = 1; f <= 8; f++) {
     const pad = String(f).padStart(2, '0');
-    queueImage(scene, `dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.png`, required);
-    queueImage(scene, `dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.png`, required);
-    queueImage(scene, `dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.png`, required);
-    queueImage(scene, `dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.png`, required);
-    queueImage(scene, `tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.png`, required);
-    queueImage(scene, `tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.png`, required);
-    queueImage(scene, `tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.png`, required);
-    queueImage(scene, `tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.png`, required);
+    queueImage(scene, `dai_han_idle_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_idle_${pad}.webp`, required);
+    queueImage(scene, `dai_han_run_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_run_${pad}.webp`, required);
+    queueImage(scene, `dai_han_attack_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_attack_${pad}.webp`, required);
+    queueImage(scene, `dai_han_fly_${f}`, `${A}characters/npc/animated/dai_han_dao/dai_han_3d_fly_${pad}.webp`, required);
+    queueImage(scene, `tho_san_idle_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_idle_${pad}.webp`, required);
+    queueImage(scene, `tho_san_run_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_run_${pad}.webp`, required);
+    queueImage(scene, `tho_san_attack_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_attack_${pad}.webp`, required);
+    queueImage(scene, `tho_san_fly_${f}`, `${A}characters/npc/animated/tho_san_riu/tho_san_riu_3d_fly_${pad}.webp`, required);
   }
 }
 
@@ -169,8 +169,8 @@ function queueFlyingNpcModels(scene, ids, required) {
   ids.forEach(id => {
     for (let f = 1; f <= 8; f++) {
       const pad = String(f).padStart(2, '0');
-      queueImage(scene, `npc_fly_${id}_attack_${f}`, `${A}characters/npc/flying/npc_${id}/attack_${pad}.png`, required);
-      queueImage(scene, `npc_fly_${id}_fly_${f}`, `${A}characters/npc/flying/npc_${id}/fly_${pad}.png`, required);
+      queueImage(scene, `npc_fly_${id}_attack_${f}`, `${A}characters/npc/flying/npc_${id}/attack_${pad}.webp`, required);
+      queueImage(scene, `npc_fly_${id}_fly_${f}`, `${A}characters/npc/flying/npc_${id}/fly_${pad}.webp`, required);
     }
   });
 }
