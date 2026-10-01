@@ -23,7 +23,7 @@ import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStream
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20261001-item-icons-v4';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260930-profile-driven-zone-v41';
 import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20261001-map-atlas-visible-v45';
-import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20261001-fixed-faction-overlay-v37';
+import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20261001-fixed-faction-overlay-v38';
 import { installClanHubUI } from './scenes/mixins/clan/ClanHubUIManager.js?v=20261001-org-relations-v40';
 import { installSectHubUI } from './scenes/mixins/sect/SectHubUIManager.js?v=20261001-org-relations-v40';
 import { HUMAN_REALM_FACTION_NETWORK, GAME_FACTION_WORLD_ADAPTER, GAME_FACTION_MAP_ADAPTER } from './config/factions/gameFactionRegistry.js?v=20260930-canonical-geography-v1';
