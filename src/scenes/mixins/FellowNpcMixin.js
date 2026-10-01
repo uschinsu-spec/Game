@@ -1,6 +1,8 @@
 import { gameState } from '../../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { REALMS } from '../../config/realmsData.js';
+import { getNpcZoneConfig } from '../../config/world/mapNpcProgressions.js?v=20260930-dynamic-npc-progression-v6';
+import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 
 export const SINO_VIET_NAMES = [
   'Lý Tiêu Dao', 'Hàn Lập', 'Lâm Động', 'Tiêu Viêm', 'Trương Tiểu Phàm',
@@ -159,9 +161,9 @@ export const FellowNpcMixin = {
 
   getNpcSpawnConfig(mapId, homeX, elementIdx = -1) {
     const elemCfg = this.getNpcElement(elementIdx);
-    const mapNum = Number(mapId) || 1;
-    const zones = MAP_NPC_PROGRESSIONS[mapNum] || MAP_NPC_PROGRESSIONS[1];
-    const zoneCfg = zones.find(z => homeX < z.maxX) || zones[zones.length - 1];
+    const map = (this.currentMap && this.currentMap.id === mapId) ? this.currentMap : (this.getMapById ? this.getMapById(mapId) : null);
+    const zoneNumber = this.getMapZoneNumberAtX ? this.getMapZoneNumberAtX(mapId, homeX) : 1;
+    const zoneCfg = getNpcZoneConfig(map || mapId, zoneNumber);
 
     const realmIdx = Math.max(0, Math.min(REALMS.length - 1, zoneCfg.realmIdx ?? 0));
     const realmData = REALMS[realmIdx] || REALMS[0];
@@ -254,11 +256,11 @@ export const FellowNpcMixin = {
     // Khởi tạo luôn Party Followers nếu đang có tổ đội
     this.initPartyFollowers();
 
-    const curMapId = gameState.currentMapId ?? 0;
+    const curMapId = gameState.currentMapId ?? CANONICAL_MAP_KEYS.THANH_VAN_THON;
     const map = (this.currentMap && this.currentMap.id === curMapId) ? this.currentMap : (this.getMapById ? this.getMapById(curMapId) : null);
     
-    // Trong thôn (khu an toàn map 0) không sinh NPC hoang dã
-    if (!map || map.isPeaceZone || curMapId === 0) {
+    // Trong khu an toàn không sinh NPC hoang dã
+    if (!map || map.isPeaceZone || curMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
       return;
     }
 
@@ -417,11 +419,11 @@ export const FellowNpcMixin = {
     this.destroyPartyFollowers();
     if (!gameState || !gameState.party || !gameState.party.isFormed) return;
 
-    const curMapId = gameState.currentMapId ?? 0;
+    const curMapId = gameState.currentMapId ?? CANONICAL_MAP_KEYS.THANH_VAN_THON;
     const map = (this.currentMap && this.currentMap.id === curMapId) ? this.currentMap : (this.getMapById ? this.getMapById(curMapId) : null);
     
-    // Trong thôn (khu an toàn map 0) không xuất hiện, ra ngoài thôn sẽ tự động bám theo bảo vệ Player
-    if (!map || map.isPeaceZone || curMapId === 0) return;
+    // Trong khu an toàn không xuất hiện, ra ngoài chiến trường sẽ tự động bám theo bảo vệ Player
+    if (!map || map.isPeaceZone || curMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) return;
 
     const px = this.player ? this.player.x : 350;
     const py = this.player ? this.player.y : 600;

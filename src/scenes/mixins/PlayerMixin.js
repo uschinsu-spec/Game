@@ -5,7 +5,7 @@
  */
 import { REALMS } from '../../config/realmsData.js';
 
-import { CRAFTING_SYSTEM } from '../../config/craftingData.js';
+import { getEquipmentStats } from './ItemSystem.js?v=20261001-item-v3';
 import { SKILL_MASTERY_TIERS, ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
@@ -34,27 +34,21 @@ export const PlayerMixin = {
   calcPlayerMaxHp() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let hp = realm.hp;
-    if (gameState.equipped) {
-      if (gameState.equipped.armor?.bonusHp) hp += gameState.equipped.armor.bonusHp;
-      if (gameState.equipped.amulet?.bonusHp) hp += gameState.equipped.amulet.bonusHp;
-    }
-
-
-
+    const itemStats = getEquipmentStats();
+    hp += Number(itemStats.hp || 0);
+    if (itemStats.hpPct) hp = Math.floor(hp * (1 + Number(itemStats.hpPct) / 100));
 
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp && cp.bonusHpPct) hp = Math.floor(hp * (1 + cp.bonusHpPct / 100));
-    (gameState.inventory?.formations || []).forEach(fName => {
-      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
-      if (fObj && fObj.bonusHp) hp += fObj.bonusHp;
-    });
     return hp;
   },
 
   calcPlayerMaxMp() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let mp = (realm.manaMax || 100);
-    if (gameState.equipped?.amulet?.bonusMp) mp += gameState.equipped.amulet.bonusMp;
+    const itemStats = getEquipmentStats();
+    mp += Number(itemStats.mp || 0);
+    if (itemStats.mpPct) mp = Math.floor(mp * (1 + Number(itemStats.mpPct) / 100));
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp && cp.bonusMpPct) mp = Math.floor(mp * (1 + cp.bonusMpPct / 100));
 
@@ -105,7 +99,8 @@ export const PlayerMixin = {
     let sense = baseSense + permanentBonus;
 
     // Trang bị/tông môn là bonus động, không ghi vào phần bonus vĩnh viễn.
-    if (gameState.equipped?.boots?.bonusSpd) sense += Math.floor(gameState.equipped.boots.bonusSpd / 2);
+    const itemStats = getEquipmentStats();
+    sense += Math.floor(Number(itemStats.spiritualSense || 0));
 
 
     gameState.spiritualSense = sense;
@@ -130,46 +125,29 @@ export const PlayerMixin = {
     }
 
     const progress = Math.log(sense / BASE_SENSE) / Math.log(HUA_SHEN_PEAK_SENSE / BASE_SENSE);
-    const interval = Math.round(
+    let interval = Math.round(
       BASE_INTERVAL - (BASE_INTERVAL - HUA_SHEN_PEAK_INTERVAL) * progress
     );
-
+    const itemStats = getEquipmentStats();
+    if (itemStats.attackSpeed) interval = Math.round(interval / (1 + Number(itemStats.attackSpeed) / 100));
     return Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL, interval));
   },
 
   calcPlayerBaseDmg() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let dmg = realm.dmg;
-    if (gameState.equipped) {
-      if (gameState.equipped.weapon?.bonusDmg) dmg += gameState.equipped.weapon.bonusDmg;
-      if (gameState.equipped.amulet?.bonusDmg) dmg += gameState.equipped.amulet.bonusDmg;
-    }
-
-
-
-
-    (gameState.inventory?.formations || []).forEach(fName => {
-      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
-      if (fObj && fObj.bonusDmg) dmg += fObj.bonusDmg;
-    });
+    const itemStats = getEquipmentStats();
+    dmg += Number(itemStats.dmg || 0);
+    if (itemStats.dmgPct) dmg = Math.floor(dmg * (1 + Number(itemStats.dmgPct) / 100));
     return dmg;
   },
 
   calcPlayerBaseDef() {
     const realm = REALMS[gameState.realmIdx] || REALMS[0];
     let def = realm.def;
-    if (gameState.equipped) {
-      if (gameState.equipped.helm?.bonusDef) def += gameState.equipped.helm.bonusDef;
-      if (gameState.equipped.shield?.bonusDef) def += gameState.equipped.shield.bonusDef;
-    }
-
-
-
-
-    (gameState.inventory?.formations || []).forEach(fName => {
-      const fObj = CRAFTING_SYSTEM.formations.find(f => f.name === fName);
-      if (fObj && fObj.bonusDef) def += fObj.bonusDef;
-    });
+    const itemStats = getEquipmentStats();
+    def += Number(itemStats.def || 0);
+    if (itemStats.defPct) def = Math.floor(def * (1 + Number(itemStats.defPct) / 100));
     return def;
   },
 

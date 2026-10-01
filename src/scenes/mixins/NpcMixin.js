@@ -4,8 +4,12 @@
  */
 import { NPCS_DATA, VILLAGE_HOTSPOTS, VILLAGE_DECORATIONS } from '../../config/npcData.js?v=20260929-village-thon-tran-v2';
 import { gameState } from '../../state/gameState.js';
+import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 import { ensureCurrencies, addCurrency, deductCurrency } from '../../config/currencyData.js';
+import { travelService, TRAVEL_SOURCES } from '../../services/travelService.js';
 import { W, H } from '../constants.js';
+import { addItem, removeItem, getItemQuantity } from './ItemSystem.js?v=20261001-item-v3';
+import { getItemDef } from '../../config/itemCatalog.js?v=20261001-item-v3';
 
 export const NpcMixin = {
 
@@ -18,8 +22,13 @@ export const NpcMixin = {
     this.villageReentryBlockedUntil = blockedUntil;
     this.portalCooldownUntil = Math.max(Number(this.portalCooldownUntil || 0), blockedUntil);
 
-    // Xuất hiện an toàn ngoài cổng dịch chuyển tại Ngoại Vi (Map 1)
-    this.switchMap?.(1, 420, 620);
+    // Xuất hiện an toàn ngoài cổng dịch chuyển tại Ngoại Vi qua TravelService
+    travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
+      scene: this,
+      source: TRAVEL_SOURCES.NPC,
+      spawnX: 420,
+      spawnY: 620
+    });
     return true;
   },
 
@@ -33,7 +42,7 @@ export const NpcMixin = {
     this.npcsGroup = [];
 
     const curMapId = gameState.currentMapId;
-    const isHub = Number(curMapId) === 0 || this.currentMap?.isPeaceZone === true || this.currentMap?.uiMode === 'village_hub' || this.currentMap?.uiMode === 'city_hub' || this.currentMap?.uiMode === 'sect_hub';
+    const isHub = this.currentMap?.isPeaceZone === true || this.currentMap?.uiMode === 'village_hub' || this.currentMap?.uiMode === 'city_hub' || this.currentMap?.uiMode === 'sect_hub' || this.currentMap?.uiMode === 'clan_hub';
     if (isHub) return;
 
     const currentNpcs = NPCS_DATA.filter(n => n.mapId === curMapId);
@@ -125,53 +134,63 @@ export const NpcMixin = {
 
   createVillageImageHotspots() {
     this.clearVillageImageHotspots?.();
-    const mapId = Number(gameState.currentMapId ?? 0);
     const map = this.currentMap;
-    const isHub = mapId === 0 || map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
+    const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub' || map?.uiMode === 'clan_hub' || gameState.currentMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON;
     if (!isHub) return;
 
     this.villageHotspotObjects = [];
 
     // Cấu hình tọa độ Touch Zone trực tiếp khớp với các công trình trên hình nền
     let HUB_ELEMENTS = [];
-
-    if (mapId === 0 || map?.uiMode === 'village_hub' || map?.type === 'safe_village') {
+    if (map?.uiMode === 'village_hub' || map?.type === 'safe_village' || (map?.isPeaceZone && !map?.uiMode) || gameState.currentMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
       // 1. THÔN TRẤN (Background: THON TRAN.png)
       HUB_ELEMENTS = [
-        { npcId: 'truong_thon', name: 'Trưởng thôn',    x: 225, y: 125, width: 160, height: 110 },
-        { npcId: 'nong_phu',    name: 'Nông phu',       x: 385, y: 215, width: 140, height: 100 },
-        { npcId: 'tho_ren',     name: 'Thợ rèn',        x: 105, y: 315, width: 140, height: 110 },
-        { npcId: 'thuong_hoi',  name: 'Thương nhân',    x: 210, y: 405, width: 150, height: 115 },
-        { npcId: 'duoc_diem',   name: 'Dược nương',     x: 130, y: 585, width: 140, height: 115 },
-        { npcId: 'tuu_lau',     name: 'Chủ tửu quán',   x: 300, y: 550, width: 150, height: 120 },
-        { npcId: 'tho_xay',     name: 'Thợ xay',        x: 380, y: 755, width: 130, height: 95 },
-        { npcId: 've_si_cong',  name: 'Vệ sĩ cổng',     x: 230, y: 825, width: 170, height: 110 }
+        { npcId: 'truong_thon', name: 'Trưởng thôn',    x: 270, y: 107, width: 150, height: 44 },
+        { npcId: 'nong_phu',    name: 'Nông phu',       x: 484, y: 186, width: 138, height: 44 },
+        { npcId: 'tho_ren',     name: 'Thợ rèn',        x: 103, y: 276, width: 132, height: 44 },
+        { npcId: 'thuong_hoi',  name: 'Thương nhân',    x: 260, y: 364, width: 166, height: 44 },
+        { npcId: 'tuu_lau',     name: 'Chủ tửu quán',   x: 370, y: 496, width: 170, height: 44 },
+        { npcId: 'duoc_diem',   name: 'Dược nương',     x: 133, y: 547, width: 156, height: 44 },
+        { npcId: 'tho_xay',     name: 'Thợ xay',        x: 472, y: 709, width: 138, height: 44 },
+        { npcId: 've_si_cong',  name: 'Vệ sĩ cổng',     x: 269, y: 770, width: 160, height: 44 }
+      ];
+    } else if (map?.uiMode === 'clan_hub' || map?.type === 'safe_clan') {
+      // 2. GIA TỘC (Background: GIA TOC.PNG)
+      HUB_ELEMENTS = [
+        { npcId: 'truong_thon', name: 'Tế Đàn Gia Tộc',     x: 274, y: 159, width: 150, height: 44 },
+        { npcId: 'truong_thon', name: 'Từ Đường Tổ Tiên',   x: 102, y: 204, width: 170, height: 44 },
+        { npcId: 've_si_cong',  name: 'Bí Cảnh Gia Tộc',    x: 464, y: 232, width: 150, height: 44 },
+        { npcId: 'truong_thon', name: 'Đại Điện Tộc Trưởng',x: 271, y: 429, width: 190, height: 44 },
+        { npcId: 'tho_ren',     name: 'Lò Rèn Luyện Khí',   x: 93, y: 528, width: 170, height: 44 },
+        { npcId: 'vo_quan',     name: 'Diễn Võ Trường',     x: 465, y: 544, width: 178, height: 44 },
+        { npcId: 'tuu_lau',     name: 'Chợ Gia Tộc',        x: 92, y: 736, width: 160, height: 44 },
+        { npcId: 'duoc_diem',   name: 'Bách Nghệ Dược Phòng',x: 269, y: 849, width: 162, height: 44 },
+        { npcId: 'vo_quan',     name: 'Tàng Thư Các',       x: 463, y: 829, width: 170, height: 44 }
       ];
     } else if (map?.uiMode === 'city_hub' || map?.type === 'safe_city') {
-      // 2. THÀNH THỊ (Background: THANH THI.PNG)
+      // 3. THÀNH THỊ (Background: THANH THI.PNG)
       HUB_ELEMENTS = [
-        { npcId: 'truong_thon', name: 'Phủ Thành Chủ',   x: 270, y: 120, width: 180, height: 115 },
-        { npcId: 'thuong_hoi',  name: 'Đấu Giá Các',     x: 120, y: 250, width: 150, height: 115 },
-        { npcId: 'nong_phu',    name: 'Tiền Trang',      x: 420, y: 250, width: 150, height: 115 },
-        { npcId: 'thuong_hoi',  name: 'Vạn Bảo Thương Hội',x: 270, y: 390, width: 180, height: 115 },
-        { npcId: 'tuu_lau',     name: 'Túy Tiên Lầu',    x: 120, y: 530, width: 150, height: 115 },
-        { npcId: 'duoc_diem',   name: 'Thiên Đan Các',   x: 420, y: 530, width: 150, height: 115 },
-        { npcId: 'tho_ren',     name: 'Thần Khí Phường', x: 120, y: 670, width: 150, height: 115 },
-        { npcId: 'vo_quan',     name: 'Thiên Đô Võ Đài', x: 420, y: 670, width: 150, height: 115 },
-        { npcId: 've_si_cong',  name: 'Cổng Thành',      x: 270, y: 835, width: 185, height: 115 }
+        { npcId: 'truong_thon', name: 'Phủ Thành Chủ',      x: 293, y: 92, width: 174, height: 44 },
+        { npcId: 'duoc_diem',   name: 'Đan Đường',          x: 106, y: 261, width: 150, height: 44 },
+        { npcId: 'vo_quan',     name: 'Đấu Trường',         x: 475, y: 249, width: 150, height: 44 },
+        { npcId: 'tho_ren',     name: 'Khu Luyện Khí',      x: 118, y: 436, width: 170, height: 44 },
+        { npcId: 'nong_phu',    name: 'Tu Chân Linh Các',   x: 459, y: 505, width: 180, height: 44 },
+        { npcId: 'thuong_hoi',  name: 'Bách Nghệ Các',      x: 103, y: 649, width: 170, height: 44 },
+        { npcId: 'tuu_lau',     name: 'Vạn Bảo Thương Hội',  x: 399, y: 654, width: 200, height: 44 },
+        { npcId: 've_si_cong',  name: 'Trạm Truyền Tống',   x: 143, y: 833, width: 190, height: 44 },
+        { npcId: 'thuong_hoi',  name: 'Khu Giao Dịch Tự Do',x: 431, y: 837, width: 205, height: 44 }
       ];
     } else if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
-      // 3. TÔNG MÔN (Background: TONG MON.PNG)
+      // 4. TÔNG MÔN (Background: TONG MON.PNG)
       HUB_ELEMENTS = [
-        { npcId: 'truong_thon', name: 'Đại Điện Chưởng Môn', x: 270, y: 120, width: 180, height: 115 },
-        { npcId: 'vo_quan',     name: 'Tàng Kinh Các',       x: 120, y: 250, width: 150, height: 115 },
-        { npcId: 'duoc_diem',   name: 'Luyện Đan Điện',      x: 420, y: 250, width: 150, height: 115 },
-        { npcId: 'tho_ren',     name: 'Luyện Khí Phường',    x: 120, y: 410, width: 150, height: 115 },
-        { npcId: 'truong_thon', name: 'Chấp Pháp Đường',     x: 420, y: 410, width: 150, height: 115 },
-        { npcId: 'tuu_lau',     name: 'Nhiệm Vụ Đường',      x: 270, y: 540, width: 180, height: 115 },
-        { npcId: 'nong_phu',    name: 'Linh Thú Viên',       x: 120, y: 670, width: 150, height: 115 },
-        { npcId: 'vo_quan',     name: 'Diễn Võ Trường',      x: 420, y: 670, width: 150, height: 115 },
-        { npcId: 've_si_cong',  name: 'Sơn Môn Xuất Hành',   x: 270, y: 835, width: 185, height: 115 }
+        { npcId: 'truong_thon', name: 'Đại Điện Chưởng Môn',x: 270, y: 159, width: 190, height: 44 },
+        { npcId: 've_si_cong',  name: 'Bí Cảnh Tông Môn',   x: 107, y: 307, width: 150, height: 44 },
+        { npcId: 'vo_quan',     name: 'Đấu Trường Tông Môn',x: 443, y: 362, width: 174, height: 44 },
+        { npcId: 'duoc_diem',   name: 'Luyện Đan Điện',     x: 136, y: 493, width: 160, height: 44 },
+        { npcId: 'tuu_lau',     name: 'Nhiệm Vụ Đường',     x: 269, y: 632, width: 160, height: 44 },
+        { npcId: 'thuong_hoi',  name: 'Chợ Giao Dịch',      x: 434, y: 554, width: 175, height: 44 },
+        { npcId: 'tho_ren',     name: 'Bách Nghệ Luyện Khí',x: 108, y: 827, width: 178, height: 44 },
+        { npcId: 'vo_quan',     name: 'Tàng Kinh Các',      x: 430, y: 821, width: 190, height: 44 }
       ];
     }
 
@@ -181,10 +200,31 @@ export const NpcMixin = {
       zone.setStrokeStyle();
     };
 
+    // Each label receives a 2× forgiving touch area. When two expanded areas overlap,
+    // the nearest label always wins so users never open a neighboring building by mistake.
+    const resolveExpandedHubTarget = (pointer) => {
+      const px = Number(pointer?.x);
+      const py = Number(pointer?.y);
+      if (!Number.isFinite(px) || !Number.isFinite(py)) return null;
+      const matches = (this.villageHotspotObjects || []).filter(candidate => {
+        const bounds = candidate?.__hubBounds;
+        return bounds && Math.abs(px - bounds.x) <= bounds.w / 2 && Math.abs(py - bounds.y) <= bounds.h / 2;
+      });
+      return matches.sort((a, b) => {
+        const aa = a.__hubBounds;
+        const bb = b.__hubBounds;
+        const da = ((px - aa.x) / aa.w) ** 2 + ((py - aa.y) / aa.h) ** 2;
+        const db = ((px - bb.x) / bb.w) ** 2 + ((py - bb.y) / bb.h) ** 2;
+        return da - db;
+      })[0] || null;
+    };
+
     HUB_ELEMENTS.forEach(el => {
-      // Vùng tương tác trong suốt bao phủ toàn bộ công trình và biển hiệu chữ trên hình nền
+      // Vùng tương tác trong suốt mở rộng 2× quanh bảng tên trên nền ảnh.
       if (el.npcId) {
-        const zone = this.add.rectangle(el.x, el.y, el.width || 180, el.height || 140, 0xffe7a0, 0.001)
+        const hitWidth = (el.width || 180) * 2;
+        const hitHeight = (el.height || 44) * 2;
+        const zone = this.add.rectangle(el.x, el.y, hitWidth, hitHeight, 0xffe7a0, 0.001)
           .setDepth(500)
           .setScrollFactor(0)
           .setInteractive({ useHandCursor: true });
@@ -197,7 +237,15 @@ export const NpcMixin = {
         zone.on('pointerup', () => resetZone(zone));
         zone.on('pointercancel', () => resetZone(zone));
 
+        zone.__hubBounds = { x: el.x, y: el.y, w: hitWidth, h: hitHeight };
+        zone.__hubElement = el;
+
         zone.on('pointerdown', pointer => {
+          const resolvedZone = resolveExpandedHubTarget(pointer);
+          if (resolvedZone && resolvedZone !== zone) {
+            resolvedZone.emit('pointerdown', pointer);
+            return;
+          }
           this.input?.stopPropagation?.();
           pointer?.event?.stopPropagation?.();
           pointer?.event?.preventDefault?.();
@@ -211,6 +259,22 @@ export const NpcMixin = {
           // Hiệu ứng chớp sáng vàng kim phản hồi tương tác
           zone.setFillStyle(0xffffff, 0.25).setStrokeStyle(3, 0xffd700, 1);
           this.time?.delayedCall?.(150, () => resetZone(zone));
+
+          // Gia Tộc Hub: Mở giao diện công trình Gia Tộc chuyên biệt
+          if (map?.uiMode === 'clan_hub' || map?.type === 'safe_clan') {
+            if (typeof this.openClanBuildingUI === 'function') {
+              this.openClanBuildingUI(el.name || el.npcId);
+              return;
+            }
+          }
+
+          // Tông Môn Hub: Mở giao diện công trình Tông Môn chuyên biệt
+          if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
+            if (typeof this.openSectBuildingUI === 'function') {
+              this.openSectBuildingUI(el.name || el.npcId);
+              return;
+            }
+          }
 
           // Chạm vào Cổng: rời Hub ngay lập tức
           if (el.npcId === 've_si_cong') {
@@ -237,7 +301,12 @@ export const NpcMixin = {
     let strokeColor = 0x4ade80; // green-400
     let titleColor = '#fef08a';
 
-    if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
+    if (map?.uiMode === 'clan_hub' || map?.type === 'safe_clan') {
+      typeBadge = '🏛️ GIA TỘC';
+      badgeColor = 0x7c2d12; // amber-900
+      strokeColor = 0xf59e0b; // amber-500
+      titleColor = '#fef3c7';
+    } else if (map?.uiMode === 'sect_hub' || map?.type === 'safe_sect') {
       typeBadge = '⛩️ TÔNG MÔN';
       badgeColor = 0x581c87; // purple-900
       strokeColor = 0xc084fc; // purple-400
@@ -260,7 +329,7 @@ export const NpcMixin = {
     headerBg.lineStyle(1.8, strokeColor, 0.95);
     headerBg.strokeRoundedRect(-plateWidth / 2, -plateHeight / 2, plateWidth, plateHeight, 8);
 
-    // Tag Loại Map (Tông Môn / Thành Thị / Thôn Trấn)
+    // Tag Loại Map (Gia Tộc / Tông Môn / Thành Thị / Thôn Trấn)
     const badgeGfx = this.add.graphics();
     badgeGfx.fillStyle(badgeColor, 0.95);
     badgeGfx.fillRoundedRect(-plateWidth / 2 + 8, -14, 98, 28, 6);
@@ -291,9 +360,8 @@ export const NpcMixin = {
   },
 
   syncVillageHubMode() {
-    const mapId = Number(gameState.currentMapId ?? 0);
     const map = this.currentMap;
-    const isHub = mapId === 0 || map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub';
+    const isHub = map?.isPeaceZone === true || map?.uiMode === 'village_hub' || map?.uiMode === 'city_hub' || map?.uiMode === 'sect_hub' || map?.uiMode === 'clan_hub' || gameState.currentMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON;
 
     if (isHub) this.enforceVillageHubPresentation();
     else {
@@ -353,23 +421,15 @@ export const NpcMixin = {
   },
 
   claimStarterGift() {
+    if (gameState.claimedStarterGift) return { success:false, msg:'Đã nhận quà tân thủ' };
     gameState.claimedStarterGift = true;
     addCurrency(gameState, 'silver', 1000);
-    if (typeof gameState.herbs !== 'object' || gameState.herbs === null) gameState.herbs = {};
-    gameState.herbs['Ngưng Khí Thảo'] = (gameState.herbs['Ngưng Khí Thảo'] || 0) + 10;
-    gameState.ores = (gameState.ores || 0) + 5;
-    if (!gameState.materials) gameState.materials = {};
-    gameState.materials.beastPelts = (gameState.materials.beastPelts || 0) + 5;
-
-    // Tặng kèm Dẫn Khí Quyết nếu chưa có
-    if (!gameState.learnedCongPhapIds) gameState.learnedCongPhapIds = [];
-    if (!gameState.learnedCongPhapIds.includes('dan_khi_quyet')) {
-      gameState.learnedCongPhapIds.push('dan_khi_quyet');
-      gameState.activeCongPhapId = 'dan_khi_quyet';
-    }
+    addItem('herb_pham_linh', 10);
+    addItem('ore_pham_linh', 5);
+    addItem('beast_pham_hide', 5);
 
     this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_heal', 1.2, 800, false);
-    this.showFloatingText(this.player.x, this.player.y - 80, '🎉 Nhận Quà Tân Thủ: +1.000 Bạc, +10 Thảo, +5 Khoáng, +5 Da Thú, +[Dẫn Khí Quyết]!', '#ffd700', '14px');
+    this.showFloatingText(this.player.x, this.player.y - 80, '🎉 Nhận Quà Tân Thủ: +1.000 Bạc, +10 Linh Thảo, +5 Khoáng, +5 Da Thú!', '#ffd700', '14px');
     this.updateHUD();
     this.closeModal();
   },
@@ -412,48 +472,35 @@ export const NpcMixin = {
   // ----------------------------------------------------------------
   // GIAO DỊCH VỚI NPC (MUA / BÁN TÀI NGUYÊN)
   // ----------------------------------------------------------------
-  tradeWithNpc(type, payload) {
+  tradeWithNpc(type, payload = {}) {
     const c = ensureCurrencies(gameState);
+    const oreId = 'ore_pham_linh';
+    const herbId = 'herb_pham_linh';
 
     if (type === 'buy_ores') {
-      if (c.silver < payload.costSilver) {
-        this.showFloatingText(this.player.x, this.player.y - 60, `Không đủ Bạc! Cần ${payload.costSilver} Bạc.`, '#ff5555');
-        return { success: false, msg: 'Không đủ Bạc' };
-      }
+      if (c.silver < payload.costSilver) return { success:false, msg:'Không đủ Bạc' };
       deductCurrency(gameState, 'silver', payload.costSilver);
-      gameState.ores = (gameState.ores || 0) + payload.addOres;
-      this.updateHUD();
-      this.showFloatingText(this.player.x, this.player.y - 60, `+${payload.addOres} Khoáng Thạch!`, '#38bdf8');
-      return { success: true, msg: `Đã mua ${payload.addOres} Khoáng Thạch!` };
+      addItem(oreId, payload.addOres || 1);
+      this.updateHUD?.();
+      this.showFloatingText?.(this.player.x, this.player.y - 60, `+${payload.addOres || 1} ${getItemDef(oreId)?.name}!`, '#38bdf8');
+      return { success:true, msg:'Đã mua khoáng thạch' };
     }
 
     if (type === 'sell_ores') {
-      if ((gameState.ores || 0) < payload.costOres) {
-        this.showFloatingText(this.player.x, this.player.y - 60, `Không đủ ${payload.costOres} Khoáng Thạch để bán!`, '#ff5555');
-        return { success: false, msg: 'Không đủ Khoáng Thạch' };
-      }
-      gameState.ores -= payload.costOres;
-      addCurrency(gameState, 'silver', payload.addSilver);
-      this.updateHUD();
-      this.showFloatingText(this.player.x, this.player.y - 60, `+${payload.addSilver} Bạc!`, '#ffd700');
-      return { success: true, msg: `Đã bán 5 Khoáng nhận ${payload.addSilver} Bạc!` };
+      const qty = payload.costOres || 1;
+      if (getItemQuantity(oreId) < qty) return { success:false, msg:'Không đủ Khoáng Thạch' };
+      removeItem(oreId, qty); addCurrency(gameState, 'silver', payload.addSilver || 0); this.updateHUD?.();
+      this.showFloatingText?.(this.player.x, this.player.y - 60, `+${payload.addSilver || 0} Bạc!`, '#ffd700');
+      return { success:true, msg:'Đã bán khoáng thạch' };
     }
 
     if (type === 'buy_herbs') {
-      if (c.silver < payload.costSilver) {
-        this.showFloatingText(this.player.x, this.player.y - 60, `Không đủ Bạc! Cần ${payload.costSilver} Bạc.`, '#ff5555');
-        return { success: false, msg: 'Không đủ Bạc' };
-      }
-      deductCurrency(gameState, 'silver', payload.costSilver);
-      if (typeof gameState.herbs !== 'object' || gameState.herbs === null) gameState.herbs = {};
-      const herbName = payload.herbName || 'Ngưng Khí Thảo';
-      gameState.herbs[herbName] = (gameState.herbs[herbName] || 0) + payload.addHerbs;
-      this.updateHUD();
-      this.showFloatingText(this.player.x, this.player.y - 60, `+${payload.addHerbs} ${herbName}!`, '#4ade80');
-      return { success: true, msg: `Đã mua ${payload.addHerbs} ${herbName}!` };
+      if (c.silver < payload.costSilver) return { success:false, msg:'Không đủ Bạc' };
+      deductCurrency(gameState, 'silver', payload.costSilver); addItem(herbId, payload.addHerbs || 1); this.updateHUD?.();
+      this.showFloatingText?.(this.player.x, this.player.y - 60, `+${payload.addHerbs || 1} ${getItemDef(herbId)?.name}!`, '#4ade80');
+      return { success:true, msg:'Đã mua linh thảo' };
     }
-
-    return { success: false };
+    return { success:false };
   },
 
   // ----------------------------------------------------------------

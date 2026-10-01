@@ -72,7 +72,7 @@ function addChoice(scene, panel, y, icon, title, subtitle, palette, onPress, ena
 }
 
 function syncLoadedState(scene, message) {
-  const targetMapId = Number.isFinite(gameState.currentMapId) ? gameState.currentMapId : 0;
+  const targetMapId = gameState.currentMapId || 'map_thanh_van_thon';
   scene.playerHpMax = scene.calcPlayerMaxHp?.() ?? scene.playerHpMax;
   scene.playerHp = scene.playerHpMax;
   const maxMp = scene.calcPlayerMaxMp?.() ?? gameState.manaMax ?? 500;

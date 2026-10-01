@@ -41,24 +41,16 @@ function addButton(scene, panel, x, y, w, h, label, action, opts = {}) {
 }
 
 export function getAvailableSkillsForCurrentArea(scene, activeElem = 'Kiếm') {
-  const mapId = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
-  const isThanhVan = mapId <= 1;
-
   return ELEMENTAL_SKILLS.filter(skill => {
     const isTargetElem = (skill.id === 'basic_attack') || (skill.elem === activeElem) || (activeElem === 'Kiếm' && String(skill.id).startsWith('kiem_'));
     if (!isTargetElem) return false;
-    if (isThanhVan && Number(skill.minRealm ?? 0) >= 4) {
-      return false;
-    }
     return true;
   });
 }
 
 function renderElementTabs(scene, panel, activeElem) {
   const [fill, stroke, color] = PALETTES['Kiếm'];
-  const mapId = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
-  const isThanhVan = mapId <= 1;
-  const tabTitle = isThanhVan ? 'KIẾM ĐẠO — THANH VÂN TRẤN' : 'KIẾM ĐẠO — 5 THẦN THÔNG GỐC';
+  const tabTitle = 'KIẾM ĐẠO — THANH VÂN TRẤN';
   addButton(scene, panel, 0, -320, 474, 44, tabTitle, null, {
     fill,
     stroke,

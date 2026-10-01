@@ -1,5 +1,6 @@
 import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
+import { getEquipmentStats } from './ItemSystem.js?v=20261001-item-icons-v4';
 
 export const ELEMENTS_8 = Object.freeze(['Vật Lý', 'Kim', 'Mộc', 'Thủy', 'Hỏa', 'Thổ', 'Lôi', 'Phong']);
 
@@ -40,16 +41,22 @@ export function installElementalCombatProgression(MainGameScene) {
       const cpBonusPct = Math.max(0, Number(cp?.bonusDmgPct) || 0);
       const masteryPct = 35 + Math.round(masteryMul * 145); // Sơ Nhập ~86% -> Viên Mãn 180%
       const totalPct = masteryPct + cpBonusPct;
-      return Math.max(1, Math.floor(realmBase * (1 + totalPct / 100)));
+      const itemElementPct = Math.max(0, Number(getEquipmentStats().elementDamage || 0));
+      return Math.max(1, Math.floor(realmBase * (1 + totalPct / 100) * (1 + itemElementPct / 100)));
     }
 
     // Nếu không có công pháp chuyên biệt: Người chơi vẫn sở hữu 100% Sát Thương Cảnh Giới gốc
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     if (cp && cp.elem === 'Toàn Hệ') {
       const bonusPct = Math.max(0, Number(cp.bonusDmgPct) || 10);
-      return Math.max(1, Math.floor(realmBase * (1 + bonusPct / 100)));
+      const itemElementPct = Math.max(0, Number(getEquipmentStats().elementDamage || 0));
+      return Math.max(1, Math.floor(realmBase * (1 + bonusPct / 100) * (1 + itemElementPct / 100)));
     }
 
+    if (wanted !== 'Vật Lý') {
+      const itemElementPct = Math.max(0, Number(getEquipmentStats().elementDamage || 0));
+      return Math.max(1, Math.floor(realmBase * (1 + itemElementPct / 100)));
+    }
     return realmBase;
   };
 

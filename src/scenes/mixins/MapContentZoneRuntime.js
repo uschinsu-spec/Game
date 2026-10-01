@@ -1,46 +1,137 @@
 /**
  * MapContentZoneRuntime.js
+ * =========================================================================
+ * UNIFIED MAP CONTENT & ZONE RUNTIME ADAPTER
+ * =========================================================================
+ * Phân bổ nội dung (Enemy, Herb, Mineral, Roaming NPC) hoàn toàn dựa trên:
+ * - Zone geometry từ worldRegistry
+ * - map.realmRange & zone.realmRange
+ * - map.locationKind & biome
+ * - Profile density (Low / Medium / High / Extreme)
  *
- * Single active adapter for map-dependent gameplay content.
- * Enemy, herb, mineral and roaming-NPC zone selection all consume the exact
- * same zone geometry from worldRegistry. No active gameplay system owns its
- * own x-threshold map geometry anymore.
+ * Áp dụng thống nhất cho toàn bộ các map (Thành Vực, Dã Ngoại, Bí Cảnh, Cấm Địa).
  */
 import { MONSTER_RANKS } from '../../config/monstersData.js';
 import { getHerbsByRank } from '../../config/herbsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { REALMS } from '../../config/realmsData.js';
-import { getNpcProgressionForMap } from '../../config/world/mapNpcProgressions.js?v=20260929-single-map-system-v2';
+import { getNpcProgressionForMap, getNpcZoneConfig } from '../../config/world/mapNpcProgressions.js?v=20260930-dynamic-npc-progression-v6';
+import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
 import {
   getMapById,
   getMapZones,
   getMapZoneNumberAtX
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+} from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
 
 const OWNER = 'MapContentZoneRuntime';
-const ENEMY_ZONE_STEPS = Object.freeze([450, 300, 220, 160]);
-const HERB_ZONE_STEPS = Object.freeze([
-  Object.freeze([850, 1200]),
-  Object.freeze([520, 780]),
-  Object.freeze([340, 520]),
-  Object.freeze([220, 360])
-]);
-const MINERAL_STEPS = Object.freeze({
-  1: Object.freeze([
+
+export const DENSITY_PROFILES = Object.freeze({
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  EXTREME: 'extreme'
+});
+
+export const MINERAL_STEP_PROFILES = Object.freeze({
+  [DENSITY_PROFILES.LOW]: Object.freeze([
+    Object.freeze([1400, 1800]),
+    Object.freeze([1100, 1400]),
+    Object.freeze([850, 1100]),
+    Object.freeze([650, 850])
+  ]),
+  [DENSITY_PROFILES.MEDIUM]: Object.freeze([
     Object.freeze([1050, 1350]),
     Object.freeze([760, 980]),
     Object.freeze([560, 760]),
     Object.freeze([420, 600])
   ]),
-  2: Object.freeze([
-    Object.freeze([900, 1150]),
-    Object.freeze([650, 850]),
-    Object.freeze([460, 620]),
-    Object.freeze([300, 430])
+  [DENSITY_PROFILES.HIGH]: Object.freeze([
+    Object.freeze([800, 1050]),
+    Object.freeze([580, 780]),
+    Object.freeze([420, 580]),
+    Object.freeze([300, 440])
+  ]),
+  [DENSITY_PROFILES.EXTREME]: Object.freeze([
+    Object.freeze([550, 750]),
+    Object.freeze([400, 550]),
+    Object.freeze([280, 400]),
+    Object.freeze([200, 300])
   ])
 });
+
+export const HERB_STEP_PROFILES = Object.freeze({
+  [DENSITY_PROFILES.LOW]: Object.freeze([
+    Object.freeze([1100, 1500]),
+    Object.freeze([750, 1100]),
+    Object.freeze([500, 750]),
+    Object.freeze([350, 520])
+  ]),
+  [DENSITY_PROFILES.MEDIUM]: Object.freeze([
+    Object.freeze([850, 1200]),
+    Object.freeze([520, 780]),
+    Object.freeze([340, 520]),
+    Object.freeze([220, 360])
+  ]),
+  [DENSITY_PROFILES.HIGH]: Object.freeze([
+    Object.freeze([600, 900]),
+    Object.freeze([380, 580]),
+    Object.freeze([250, 380]),
+    Object.freeze([160, 260])
+  ]),
+  [DENSITY_PROFILES.EXTREME]: Object.freeze([
+    Object.freeze([400, 650]),
+    Object.freeze([260, 420]),
+    Object.freeze([170, 270]),
+    Object.freeze([110, 190])
+  ])
+});
+
+export const ENEMY_STEP_PROFILES = Object.freeze({
+  [DENSITY_PROFILES.LOW]: Object.freeze([600, 450, 350, 260]),
+  [DENSITY_PROFILES.MEDIUM]: Object.freeze([450, 300, 220, 160]),
+  [DENSITY_PROFILES.HIGH]: Object.freeze([320, 220, 160, 120]),
+  [DENSITY_PROFILES.EXTREME]: Object.freeze([220, 150, 110, 80])
+});
+
 const MAX_STATIC_ENEMIES = 96;
+
+/**
+ * Phân giải mức độ mật độ tài nguyên/quái vật theo metadata map & zone
+ */
+export function resolveMapDensityLevel(map, zone = null) {
+  if (!map) return DENSITY_PROFILES.MEDIUM;
+
+  const kind = String(map.locationKind || map.type || '').toLowerCase();
+  const minRealm = Number(zone?.realmRange?.[0] ?? map.realmRange?.[0] ?? map.minRealm ?? 0);
+
+  // Bí cảnh, cấm địa, dungeon nguy hiểm -> EXTREME / HIGH
+  if (kind.includes('forbidden') || kind.includes('dungeon') || kind.includes('cấm') || minRealm >= 16) {
+    return DENSITY_PROFILES.EXTREME;
+  }
+  if (kind.includes('secret') || kind.includes('bí cảnh') || kind.includes('deep') || minRealm >= 8) {
+    return DENSITY_PROFILES.HIGH;
+  }
+  if (kind.includes('starter') || kind.includes('outskirt') || minRealm <= 1) {
+    return DENSITY_PROFILES.MEDIUM;
+  }
+  return DENSITY_PROFILES.MEDIUM;
+}
+
+export function getMineralProfile(map, zone = null) {
+  const density = resolveMapDensityLevel(map, zone);
+  return MINERAL_STEP_PROFILES[density] || MINERAL_STEP_PROFILES[DENSITY_PROFILES.MEDIUM];
+}
+
+export function getHerbProfile(map, zone = null) {
+  const density = resolveMapDensityLevel(map, zone);
+  return HERB_STEP_PROFILES[density] || HERB_STEP_PROFILES[DENSITY_PROFILES.MEDIUM];
+}
+
+export function getEnemyProfile(map, zone = null) {
+  const density = resolveMapDensityLevel(map, zone);
+  return ENEMY_STEP_PROFILES[density] || ENEMY_STEP_PROFILES[DENSITY_PROFILES.MEDIUM];
+}
 
 function clampZoneNumber(zoneNumber, count = 4) {
   return Math.max(1, Math.min(count, Number(zoneNumber) || 1));
@@ -57,8 +148,9 @@ function reduceEvenly(points, maxCount) {
 function buildEnemySpawnPoints(map) {
   const points = [];
   const zones = getMapZones(map.id);
+  const enemySteps = getEnemyProfile(map);
   zones.forEach((zone, index) => {
-    const step = ENEMY_ZONE_STEPS[Math.min(index, ENEMY_ZONE_STEPS.length - 1)];
+    const step = enemySteps[Math.min(index, enemySteps.length - 1)];
     const start = Math.max(Number(map.field?.left || 60) + 80, Math.ceil(zone.x0));
     const end = Math.min(Number(map.field?.right || map.worldWidth - 60) - 100, Math.floor(zone.x1));
     for (let x = start; x < end; x += step) points.push({ x, zone: index + 1 });
@@ -83,48 +175,27 @@ function buildVariableZonePoints(map, stepProfile, edgePadding = 100) {
 function installEnemyZoneRuntime(proto) {
   proto.getEnemySpawnConfig = function getEnemySpawnConfigFromUnifiedMap(mapId, zone = 1, slotIndex = 0) {
     const map = getMapById(mapId);
-    const mapNum = Number(map.id) || 0;
-    const strictZone = clampZoneNumber(zone, Math.max(1, getMapZones(map.id).length));
+    const zones = getMapZones(map?.id) || [];
+    const strictZone = clampZoneNumber(zone, Math.max(1, zones.length));
+    const currentZoneDef = zones[strictZone - 1];
 
-    // Vạn Mộc keeps its authored four monster stages; geometry comes from registry.
-    if (mapNum === 2) {
-      const vanMocZoneConfigs = {
-        1: { monsterId: 'm_1_1', spriteNum: 5, stageLabel: 'Sơ Kỳ', color: '#a7f3d0', sizeMultiplier: 1.2 },
-        2: { monsterId: 'm_1_2', spriteNum: 4, stageLabel: 'Trung Kỳ', color: '#fde68a', sizeMultiplier: 1.4 },
-        3: { monsterId: 'm_1_3', spriteNum: 9, stageLabel: 'Hậu Kỳ', color: '#fdba74', sizeMultiplier: 1.6 },
-        4: { monsterId: 'm_1_4', spriteNum: 7, stageLabel: 'Đỉnh Phong', color: '#fb7185', sizeMultiplier: 1.8 }
-      };
-      const cfg = vanMocZoneConfigs[clampZoneNumber(strictZone, 4)];
-      const monsterData = MONSTER_RANKS.find(m => m.id === cfg.monsterId) || MONSTER_RANKS[4];
-      return {
-        monsterData,
-        spriteNum: cfg.spriteNum,
-        baseScale: 0.50 * cfg.sizeMultiplier,
-        displayName: `${monsterData.name} • ${cfg.stageLabel}`,
-        nameColor: cfg.color,
-        nameFontSize: strictZone === 4 ? '10px' : (strictZone === 3 ? '9.5px' : '9px'),
-        vanMocZone: strictZone,
-        vanMocStage: cfg.stageLabel,
-        vanMocSizeMultiplier: cfg.sizeMultiplier
-      };
-    }
-
-    let rankOffset = 0;
-    if (strictZone === 1) rankOffset = slotIndex % 2;
-    else if (strictZone === 2) rankOffset = slotIndex % 3;
-    else rankOffset = 1 + (slotIndex % 3);
-
-    const mIdx = Math.min(MONSTER_RANKS.length - 1, (map.monsterIdxStart || 0) + rankOffset);
+    // Realm and ranks driven by zone/map realmRange
+    const minRealm = Number(currentZoneDef?.realmRange?.[0] ?? map?.realmRange?.[0] ?? map?.minRealm ?? 0);
+    const maxRealm = Number(currentZoneDef?.realmRange?.[1] ?? map?.realmRange?.[1] ?? (minRealm + 3));
+    const rankOffset = strictZone === 1 ? (slotIndex % 2) : (strictZone === 2 ? (slotIndex % 3) : (1 + (slotIndex % 3)));
+    const mIdx = Math.min(MONSTER_RANKS.length - 1, (map?.monsterIdxStart || Math.min(12, minRealm)) + rankOffset);
     const monsterData = MONSTER_RANKS[mIdx];
-    const spriteNum = monsterData.spriteNum || ((mIdx % 16) + 1);
+    const isFlying = minRealm >= 4 && (slotIndex % 2 === 1);
+    const enemySpriteNum = isFlying ? ((slotIndex % 10) + 1) : (monsterData?.spriteNum || ((mIdx % 16) + 1));
+    const displayName = isFlying ? `[Phi Thiên] ${monsterData?.name || 'Yêu Thú'}` : (monsterData?.name || 'Yêu Thú');
 
     return {
       monsterData,
-      isFlying: false,
-      spriteNum,
-      baseScale: 0.50,
-      displayName: monsterData.name,
-      nameColor: '#ffd700',
+      isFlying,
+      spriteNum: enemySpriteNum,
+      baseScale: isFlying ? 0.52 : 0.50,
+      displayName,
+      nameColor: isFlying ? '#67e8f9' : '#ffd700',
       nameFontSize: '9px'
     };
   };
@@ -141,20 +212,21 @@ function installResourceZoneRuntime(proto) {
     this.herbsGroup = [];
     this.herbTarget = null;
 
-    const map = getMapById(gameState.currentMapId ?? this.currentMap?.id ?? 0);
-    if (map.isPeaceZone || map.id === 0) {
+    const map = getMapById(gameState.currentMapId ?? this.currentMap?.id);
+    if (!map || map.isPeaceZone || map.id === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
       this.initMineralNodes();
       return;
     }
 
-    const mapRank = Math.min(5, Math.max(1, Number(map.id)));
+    const mapRank = Math.min(5, Math.max(1, Math.floor((map.minRealm || 0) / 3) + 1));
     const availableHerbs = getHerbsByRank(mapRank);
     if (!availableHerbs?.length) {
       this.initMineralNodes();
       return;
     }
 
-    buildVariableZonePoints(map, HERB_ZONE_STEPS, 100).forEach((sp, index) => {
+    const herbProfile = getHerbProfile(map);
+    buildVariableZonePoints(map, herbProfile, 100).forEach((sp, index) => {
       const y = Phaser.Math.Between(this.field.top + 35, this.field.bottom - 35);
       const herbDef = availableHerbs[index % availableHerbs.length] || availableHerbs[0];
       this.spawnOneHerb(sp.x, y, sp.zone, index, herbDef);
@@ -173,11 +245,11 @@ function installResourceZoneRuntime(proto) {
     this.mineralNodes = [];
     this.mineralTarget = null;
 
-    const map = getMapById(gameState.currentMapId ?? this.currentMap?.id ?? 0);
-    const profile = MINERAL_STEPS[Number(map.id)];
-    if (!profile) return;
+    const map = getMapById(gameState.currentMapId ?? this.currentMap?.id);
+    if (!map || map.isPeaceZone) return;
 
-    buildVariableZonePoints(map, profile, 180).forEach((sp, index) => {
+    const mineralProfile = getMineralProfile(map);
+    buildVariableZonePoints(map, mineralProfile, 180).forEach((sp, index) => {
       const y = Phaser.Math.Between(this.field.top + 42, this.field.bottom - 38);
       this.spawnMineralNode(sp.x, y, sp.zone, index);
     });
@@ -188,18 +260,14 @@ function installNpcZoneRuntime(proto) {
   proto.getNpcSpawnConfig = function getNpcSpawnConfigFromUnifiedZones(mapId, homeX, elementIdx = -1) {
     const elemCfg = this.getNpcElement(elementIdx);
     const map = getMapById(mapId);
-    const mapNum = Number(map.id) || 0;
-    const progression = getNpcProgressionForMap(mapNum);
-    const zoneNumber = clampZoneNumber(getMapZoneNumberAtX(mapNum, homeX), progression.length);
-    const zoneCfg = progression[zoneNumber - 1] || progression[progression.length - 1];
+    const zoneNumber = getMapZoneNumberAtX(map.id, homeX);
+    const zoneCfg = getNpcZoneConfig(map, zoneNumber);
 
     const realmIdx = Math.max(0, Math.min(REALMS.length - 1, zoneCfg.realmIdx ?? 0));
     const realmData = REALMS[realmIdx] || REALMS[0];
     let tierLevel = 1;
     let isFlying = false;
 
-    // Tier behavior is realm-driven, never map-ID-driven. This keeps future
-    // materialized Nam Lăng locations compatible without inventing hidden maps.
     if (realmIdx >= 13 && realmIdx <= 16) {
       tierLevel = 2;
       isFlying = true;
@@ -221,7 +289,8 @@ function installNpcZoneRuntime(proto) {
       || ELEMENTAL_SKILLS[0];
 
     return {
-      mapId: mapNum,
+      mapId: map.id,
+      canonicalKey: map.canonicalKey || map.id,
       zone: zoneNumber,
       realmIdx,
       realmMajor: realmData.major,

@@ -3,6 +3,8 @@
  * Quản lý Danh sách và Dữ liệu Tương tác của các NPC trong Game
  */
 import { gameState } from '../state/gameState.js';
+import { CANONICAL_MAP_KEYS } from './world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
+import { travelService, TRAVEL_SOURCES } from '../services/travelService.js';
 
 export const VILLAGE_HOTSPOTS = Object.freeze([
   { npcId: 'truong_thon', x: 225, y: 125, width: 160, height: 110, label: 'Trưởng thôn' },
@@ -30,7 +32,7 @@ export const NPCS_DATA = [
     id: 'truong_thon',
     name: 'Trưởng Thôn (Triệu Lão Gia)',
     title: '[TRƯỞNG THÔN]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 270,
     y: 120,
     icon: '📜',
@@ -92,7 +94,7 @@ export const NPCS_DATA = [
     id: 'tho_ren',
     name: 'Thợ Rèn (Lý Thiết Tượng)',
     title: '[THỢ RÈN]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 130,
     y: 340,
     icon: '🔨',
@@ -109,7 +111,7 @@ export const NPCS_DATA = [
         desc: 'Mở Bách Nghệ Các để luyện chế đan dược, phù lục, trận pháp',
         color: '#ea580c',
         execute: (scene) => {
-          scene.openCraftingPanel('pills');
+          scene.openCraftingPanel('gear');
           return { success: true };
         }
       },
@@ -138,7 +140,7 @@ export const NPCS_DATA = [
     id: 'duoc_diem',
     name: 'Dược Nương (Liễu Dược Sư)',
     title: '[DƯỢC NƯƠNG]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 410,
     y: 220,
     icon: '💊',
@@ -189,7 +191,7 @@ export const NPCS_DATA = [
     id: 'tuu_lau',
     name: 'Chủ Tửu Quán (Túy Tiên Quán)',
     title: '[CHỦ TỬU QUÁN]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 360,
     y: 570,
     icon: '🍶',
@@ -232,7 +234,7 @@ export const NPCS_DATA = [
     id: 'thuong_hoi',
     name: 'Thương Nhân (Vạn Bảo Các)',
     title: '[THƯƠNG NHÂN]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 140,
     y: 540,
     icon: '🏦',
@@ -290,7 +292,7 @@ export const NPCS_DATA = [
     id: 'nong_phu',
     name: 'Nông Phu (Điền Bá)',
     title: '[NÔNG PHU]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 478,
     y: 205,
     icon: '🌾',
@@ -325,7 +327,7 @@ export const NPCS_DATA = [
     id: 'tho_xay',
     name: 'Thợ Xây (Lỗ Công)',
     title: '[THỢ XÂY]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 473,
     y: 747,
     icon: '🏗️',
@@ -353,7 +355,7 @@ export const NPCS_DATA = [
     id: 've_si_cong',
     name: 'Vệ Sĩ Cổng (Hộ Vệ Thanh Vân)',
     title: '[VỆ SĨ CỔNG]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 270,
     y: 825,
     icon: '🛡️',
@@ -371,9 +373,13 @@ export const NPCS_DATA = [
         color: '#ef4444',
         execute: (scene) => {
           scene.closeModal();
-          scene.portalCooldownUntil = (scene.time?.now || 0) + 3500;
-          scene.switchMap(1, 420, 620);
-          return { success: true };
+          const ok = travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
+            scene,
+            source: TRAVEL_SOURCES.NPC,
+            spawnX: 420,
+            spawnY: 620
+          });
+          return { success: ok };
         }
       },
       {
@@ -393,7 +399,7 @@ export const NPCS_DATA = [
     id: 'vo_quan',
     name: 'Võ Quán (Tần Quán Chủ)',
     title: '[VÕ QUÁN]',
-    mapId: 0,
+    mapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     x: 390,
     y: 380,
     icon: '🥋',

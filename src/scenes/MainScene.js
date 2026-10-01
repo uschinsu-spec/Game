@@ -5,21 +5,20 @@
  * Toàn bộ map runtime do WorldMapRuntime.js sở hữu duy nhất.
  * Toàn bộ world-map UI do WorldMapHierarchyUI.js sở hữu duy nhất.
  */
-import { getMapById } from '../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+import { getMapById } from '../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../state/gameState.js';
 import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-mastery-vfx-v4';
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20260928-combat-unified-v5';
-import { EnemyMixin } from './mixins/EnemyMixin.js?v=20260928-enemy-loot-unified-v1';
-import { PlayerMixin } from './mixins/PlayerMixin.js';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261001-item-icons-v4';
+import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-item-icons-v4';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
-import { NpcMixin } from './mixins/NpcMixin.js?v=20260928-npc-dialog-unified-v1';
+import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-item-icons-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
-import { HerbsMixin } from './mixins/HerbsMixin.js?v=20260928-unified-resources-v2';
-import { exportSaveCode } from '../state/saveSystem.js';
-import { loadAllItemIcons } from '../config/iconManifest.js?v=20260928-game-icons-v1';
+import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
+import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
 
 export { W, H } from './constants.js';
 
@@ -97,7 +96,6 @@ export class MainGameScene extends Phaser.Scene {
     for (let n = 1; n <= 16; n++) this.load.image(`npc_${n}`, `${A}characters/npc/portraits/npc_${n}.png`);
     for (let i = 0; i < 10; i++) this.load.image(`skill_${i}`, A + `icons/skills/skill_${i}.png`);
     ELEMENTAL_SKILLS.forEach(skill => this.load.image(skill.icon, A + `icons/skills/unique/${skill.id}.png`));
-    for (let i = 0; i < 18; i++) this.load.image(`item_${i}`, A + `icons/items/item_${i}.png`);
 
     ['beast_pelt', 'beast_fur', 'beast_claw', 'beast_blood', 'beast_horn', 'herb', 'ore'].forEach(m => this.load.image(`mat_${m}`, A + `icons/materials/${m}.png`));
     for (let h = 1; h <= 7; h++) this.load.image(`herb_${h}`, A + `icons/materials/herb_${h}.png`);
@@ -107,14 +105,10 @@ export class MainGameScene extends Phaser.Scene {
     for (let i = 0; i < 12; i++) this.load.image(`stage_${i}`, A + `icons/stages/stage_${i}.png`);
     ['bag', 'realm', 'skills', 'auto', 'settings', 'close', 'map', 'gold', 'pill', 'quest'].forEach(icon => this.load.image(`ui_${icon}`, A + `icons/ui/${icon}.png`));
     ['bag', 'realm', 'skills', 'sect', 'craft', 'map', 'attack', 'auto', 'gold'].forEach(icon => this.load.image(`xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`));
-    this.load.image('hud_skin', A + 'ui/hud_skin.png');
-    this.load.image('hud_portrait', A + 'ui/hud_portrait.png');
-    // Zone 3D images cho World Map UI
-    ['zone_nation', 'zone_wild', 'zone_secret', 'zone_city',
-     'zone_village', 'zone_continent', 'zone_region', 'zone_province'
-    ].forEach(k => this.load.image(k, `${A}ui/map/zones/${k}.png`));
+    this.load.image('hud_skin', A + 'ui/hud_skin.webp');
+    this.load.image('hud_portrait', A + 'ui/hud_portrait.webp');
+    this.load.image('human_realm_atlas', A + 'ui/map/human_realm_atlas.webp');
     for (let i = 1; i <= 16; i++) this.load.image(`village_bldg_${i}`, `${A}environment/THON TRAN/${i}.png`);
-    loadAllItemIcons(this, A);
 
     const elemDirs = { hoa: 'fire', loi: 'lightning', kim: 'metal', thuy: 'water', phong: 'wind', moc: 'wood', tho: 'earth', ly: 'physical' };
     Object.entries(elemDirs).forEach(([elemKey, dirName]) => {
@@ -147,6 +141,7 @@ export class MainGameScene extends Phaser.Scene {
   }
 
   create() {
+    window.__ACTIVE_PHASER_SCENE__ = this;
     this.applyMapRuntimeConfig(gameState.currentMapId);
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
     this.createAnimations();

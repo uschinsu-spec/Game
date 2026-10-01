@@ -4,6 +4,7 @@
  * into the engine runtime map catalog.
  */
 import {
+  SPECIAL_MAP_OVERRIDES,
   MASTER_MAP_DEFINITIONS,
   ZONE_TYPES,
   UI_MODES,
@@ -15,9 +16,10 @@ import {
   isMapSafeHub,
   getMapUiMode,
   getMapCombatZones
-} from './masterMapManifest.js?v=20260929-master-map-manifest-v1';
+} from './masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
+import { HUMAN_REALM_WORLD_NODES, RUNTIME_POLICIES } from './humanRealmWorld.js?v=20261001-canonical-geography-single-ruler-v2';
 
-export const RUNTIME_MAP_IDS = Object.freeze(MASTER_MAP_DEFINITIONS.map(m => Number(m.id)));
+export const RUNTIME_MAP_IDS = Object.freeze(MASTER_MAP_DEFINITIONS.map(m => String(m.id)));
 
 export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   key: 'map_panorama_wilderness_shared',
@@ -28,26 +30,56 @@ export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   worldHeight: 960
 });
 
+// Explicit destination index. It stores metadata only; maps are materialized
+// lazily by WorldRegistry when the player travels there.
+const WORLD_RUNTIME_NODES = Object.freeze(HUMAN_REALM_WORLD_NODES.filter(node => node.playableMapId && node.runtimePolicy !== RUNTIME_POLICIES.NONE));
+const WORLD_RUNTIME_NODE_BY_DESTINATION = new Map(WORLD_RUNTIME_NODES.map(node => [String(node.playableMapId), node]));
+const WORLD_RUNTIME_NODE_BY_ID = new Map(WORLD_RUNTIME_NODES.map(node => [String(node.id), node]));
+
+export function getDeclaredWorldRuntimeMapDefinition(identifier) {
+  const node = WORLD_RUNTIME_NODE_BY_DESTINATION.get(String(identifier)) || WORLD_RUNTIME_NODE_BY_ID.get(String(identifier));
+  if (!node) return null;
+  const isHub = node.runtimePolicy === RUNTIME_POLICIES.HUB;
+  const isDungeon = node.runtimePolicy === RUNTIME_POLICIES.DUNGEON;
+  const isCity = node.type === 'city_territory';
+  return Object.freeze({
+    id: node.playableMapId,
+    canonicalKey: node.playableMapId,
+    name: node.name,
+    subName: node.desc,
+    nodeId: node.id,
+    geography: Object.freeze({ nodeId: node.id }),
+    runtimePolicy: node.runtimePolicy,
+    type: isHub ? (isCity ? ZONE_TYPES.SAFE_CITY : ZONE_TYPES.SAFE_VILLAGE) : (isDungeon ? ZONE_TYPES.COMBAT_DUNGEON : ZONE_TYPES.COMBAT_WILDERNESS),
+    uiMode: isHub ? (isCity ? UI_MODES.CITY_HUB : UI_MODES.VILLAGE_HUB) : UI_MODES.COMBAT_BATTLEFIELD,
+    isPeaceZone: isHub,
+    realmRange: node.realmRange || [0, 3],
+    access: Object.freeze({ minRealmIdx: Number(node.realmRange?.[0] || 0) }),
+    dominantElements: node.elements || []
+  });
+}
+
 export function buildRuntimeMap(def) {
   if (!def) return null;
-  const isSafeHub = def.isPeaceZone === true || def.type === ZONE_TYPES.SAFE_VILLAGE || def.type === ZONE_TYPES.SAFE_CITY || def.type === ZONE_TYPES.SAFE_SECT;
+  const isSafeHub = def.isPeaceZone === true || def.type === ZONE_TYPES.SAFE_VILLAGE || def.type === ZONE_TYPES.SAFE_CITY || def.type === ZONE_TYPES.SAFE_SECT || def.type === ZONE_TYPES.SAFE_CLAN;
   const templateId = isSafeHub
-    ? (def.type === ZONE_TYPES.SAFE_CITY ? 'HUB_CITY_01' : (def.type === ZONE_TYPES.SAFE_SECT ? 'HUB_SECT_01' : 'HUB_VILLAGE_01'))
+    ? (def.type === ZONE_TYPES.SAFE_CITY ? 'HUB_CITY_01' : (def.type === ZONE_TYPES.SAFE_SECT ? 'HUB_SECT_01' : (def.type === ZONE_TYPES.SAFE_CLAN ? 'HUB_CLAN_01' : 'HUB_VILLAGE_01')))
     : 'FIELD_GRASSLAND_01';
 
+  const isClanHub = def.type === ZONE_TYPES.SAFE_CLAN || def.uiMode === UI_MODES.CLAN_HUB;
   const isSectHub = def.type === ZONE_TYPES.SAFE_SECT || def.uiMode === UI_MODES.SECT_HUB;
   const isCityHub = def.type === ZONE_TYPES.SAFE_CITY || def.uiMode === UI_MODES.CITY_HUB;
 
-  const defaultBgKey = isSectHub
-    ? 'bg_sect_hub'
-    : (isCityHub ? 'bg_city_hub' : (isSafeHub ? 'bg_village_hub' : 'map_panorama_wilderness_shared'));
+  const defaultBgKey = isClanHub
+    ? 'bg_clan_hub'
+    : (isSectHub ? 'bg_sect_hub' : (isCityHub ? 'bg_city_hub' : (isSafeHub ? 'bg_village_hub' : 'map_panorama_wilderness_shared')));
 
-  const defaultBgPath = isSectHub
-    ? 'environment/TONG MON.PNG'
-    : (isCityHub ? 'environment/THANH THI.PNG' : (isSafeHub ? 'environment/THON TRAN.png' : 'environment/map_1_thanh_van_ngoai_vi.png'));
+  const defaultBgPath = isClanHub
+    ? 'environment/GIA TOC.PNG'
+    : (isSectHub ? 'environment/TONG MON.PNG' : (isCityHub ? 'environment/THANH THI.PNG' : (isSafeHub ? 'environment/THON TRAN.png' : 'environment/map_1_thanh_van_ngoai_vi.png')));
 
-  const defaultSourceWidth = isSectHub ? 848 : (isCityHub ? 941 : (isSafeHub ? 784 : 3200));
-  const defaultSourceHeight = isSectHub ? 1264 : (isCityHub ? 1672 : (isSafeHub ? 1334 : 960));
+  const defaultSourceWidth = isClanHub ? 848 : (isSectHub ? 848 : (isCityHub ? 941 : (isSafeHub ? 784 : 3200)));
+  const defaultSourceHeight = isClanHub ? 1272 : (isSectHub ? 1264 : (isCityHub ? 1672 : (isSafeHub ? 1334 : 960)));
 
   const assets = def.assets || {
     bgKey: defaultBgKey,

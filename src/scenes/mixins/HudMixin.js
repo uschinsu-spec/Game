@@ -5,9 +5,9 @@
 import { REALMS } from '../../config/realmsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 
-import { getMapById } from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
-import { getFaction } from '../../config/factions/gameFactionRegistry.js?v=20260930-faction-v5';
+import { getFaction } from '../../config/factions/gameFactionRegistry.js?v=20260930-canonical-geography-v1';
 import { W, H } from '../constants.js';
 
 export const HudMixin = {

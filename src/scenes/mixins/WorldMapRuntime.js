@@ -12,9 +12,10 @@ import {
   getMapById,
   getTravelRoutesForMap,
   resolvePanoramaMap
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+} from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
 import { ensureWorldProgress, markMapVisited } from '../../state/worldProgress.js';
+import { travelService, TRAVEL_SOURCES } from '../../services/travelService.js';
 
 const MAP_RUNTIME_OWNER = 'WorldMapRuntime';
 const A = './assets/';
@@ -301,28 +302,15 @@ export function installWorldMapRuntime(MainGameScene) {
 
   proto.triggerPortalTeleport = function triggerPortalTeleportFromRegistry(portal) {
     const targetMapId = portal?.targetMapId;
-    const access = canEnterMap(targetMapId, gameState);
-    if (!access.ok) {
-      if (access.reason === 'REALM') {
-        const realmName = REALMS[access.requiredRealmIdx]?.name || 'cảnh giới cao hơn';
-        this.showFloatingText?.(
-          this.player?.x || 270,
-          (this.player?.y || 620) - 70,
-          `Tu vi chưa đủ! Cần [${realmName}] để tiến vào.`,
-          '#ff5555',
-          '14px'
-        );
-      }
-      return;
-    }
+    if (!targetMapId) return;
 
-    const now = Number(this.time?.now || 0);
-    const fromMapId = gameState.currentMapId;
-    const key = this.getPortalCooldownKey(fromMapId, targetMapId);
-    if ((this[key] || 0) > now) return;
-    this[key] = now + 3500;
-
-    this.switchMap(targetMapId, portal.targetSpawnX, portal.targetSpawnY);
+    travelService.travel(targetMapId, {
+      scene: this,
+      source: TRAVEL_SOURCES.PORTAL,
+      spawnX: portal.targetSpawnX,
+      spawnY: portal.targetSpawnY,
+      cooldownMs: 3500
+    });
   };
 
   const originalCreate = proto.create;

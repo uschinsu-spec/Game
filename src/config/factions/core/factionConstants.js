@@ -1,4 +1,4 @@
-export const FACTION_SYSTEM_VERSION = '20260930-human-realm-faction-network-v5-expanded-world-clean-install';
+export const FACTION_SYSTEM_VERSION = '20261001-single-source-3950-v1';
 
 export const FACTION_ARCHETYPES = Object.freeze({
   SECT: 'SECT', CULTIVATION_FAMILY: 'CULTIVATION_FAMILY', ANCIENT_CLAN: 'ANCIENT_CLAN',
@@ -31,7 +31,6 @@ export const CONTROLLER_DIMENSIONS = Object.freeze(['political','cultivation','e
 export const SITE_CONTROLLER_DIMENSIONS = Object.freeze(['security','resource','cultivation','exploration','intelligence','underworld']);
 export const MAX_REALM_INDEX = 28;
 export const CONTINENT_KEYS = Object.freeze(['south','east','west','north','central']);
-export const CANONICAL_PLAYER_SECT_IDS = Object.freeze(['van_kiem_tong','thai_bach_tong','liet_diem_cung','bang_phach_cac','hau_tho_mon','thanh_moc_cac','phong_loi_cac','cuu_tieu_loi_dien','thanh_the_tong']);
 export const TICK_KINDS = Object.freeze({SHORT:'short',DAILY:'daily',MONTHLY:'monthly',SEASONAL:'seasonal',YEARLY:'yearly'});
-export const JURISDICTION_NODE_TYPES = Object.freeze(['realm','continent','great_region','province','nation','city_territory','settlement']);
+export const JURISDICTION_NODE_TYPES = Object.freeze(['realm','continent','great_region','region','province','nation','city_territory','settlement']);
 export const SITE_NODE_TYPES = Object.freeze(['location']);

@@ -77,10 +77,167 @@ function addAction(scene, panel, action, y, statusText) {
   panel.add([box, title, desc, arrow]);
 }
 
+function getContextualNpc(scene, npc) {
+  if (!npc) return null;
+  const mode = scene?.currentMap?.uiMode;
+  const mapName = scene?.currentMap?.name || 'Gia Tộc';
+
+  if (mode === 'clan_hub') {
+    if (npc.id === 'truong_thon') {
+      return {
+        ...npc,
+        title: '[TỘC TRƯỞNG]',
+        name: `Tộc Trưởng (${mapName})`,
+        icon: '🏛️',
+        color: '#f59e0b',
+        tagBg: 0x3d1d06,
+        tagBorder: 0xf59e0b,
+        greeting: `Huyết mạch đồng tâm! Chào mừng tộc nhân trở về Tổ Địa ${mapName}. Hãy nỗ lực tu hành vì sự hưng thịnh của gia tộc!`
+      };
+    }
+    if (npc.id === 'vo_quan') {
+      return {
+        ...npc,
+        title: '[TÀNG THƯ CÁC]',
+        name: 'Trưởng Lão Truyền Công',
+        icon: '📖',
+        color: '#fbbf24',
+        tagBg: 0x3d1d06,
+        tagBorder: 0xf59e0b,
+        greeting: 'Nơi lưu giữ toàn bộ bí pháp gia truyền và công pháp tu luyện khai sáng của các bậc tiền bối gia tộc.'
+      };
+    }
+    if (npc.id === 'duoc_diem') {
+      return {
+        ...npc,
+        title: '[ĐAN DƯỢC PHÒNG]',
+        name: 'Đan Sư Gia Tộc',
+        icon: '🌿',
+        color: '#34d399',
+        tagBg: 0x063024,
+        tagBorder: 0x34d399,
+        greeting: 'Luyện chế linh đan bồi dưỡng huyết mạch tinh anh và hỗ trợ tộc nhân vượt qua bình cảnh đột phá.'
+      };
+    }
+    if (npc.id === 'tho_ren') {
+      return {
+        ...npc,
+        title: '[LÒ RÈN GIA TỘC]',
+        name: 'Đúc Khí Trưởng Lão',
+        icon: '⚒️',
+        color: '#fb923c',
+        tagBg: 0x381907,
+        tagBorder: 0xfb923c,
+        greeting: 'Rèn đúc thần binh, tôi luyện pháp bảo gia truyền để bảo vệ sản nghiệp và địa bàn của thế gia.'
+      };
+    }
+    if (npc.id === 'tuu_lau') {
+      return {
+        ...npc,
+        title: '[NHIỆM VỤ TỘC NHÂN]',
+        name: 'Chấp Sự Gia Tộc',
+        icon: '📜',
+        color: '#38bdf8',
+        tagBg: 0x08293d,
+        tagBorder: 0x38bdf8,
+        greeting: 'Bảng ủy thác gia tộc: Tiếp nhận nhiệm vụ tuần tra, thu thập tài nguyên và tích lũy điểm cống hiến.'
+      };
+    }
+    if (npc.id === 'nong_phu') {
+      return {
+        ...npc,
+        title: '[LINH ĐIỀN DƯỢC VIÊN]',
+        name: 'Chưởng Quản Điền Trang',
+        icon: '🌾',
+        color: '#a3e635',
+        tagBg: 0x1d3606,
+        tagBorder: 0xa3e635,
+        greeting: 'Quản lý linh điền, dược trang và nguồn cung ứng linh thảo, khoáng thạch cho toàn bộ tộc nhân.'
+      };
+    }
+    if (npc.id === 'thuong_hoi') {
+      return {
+        ...npc,
+        title: '[THƯƠNG HỘI GIA TỘC]',
+        name: 'Chưởng Quỹ Gia Tộc',
+        icon: '💰',
+        color: '#facc15',
+        tagBg: 0x3d3206,
+        tagBorder: 0xfacc15,
+        greeting: 'Trao đổi ngân quỹ, bổng lộc tộc nhân và cung ứng các loại tài nguyên tu luyện quý giá.'
+      };
+    }
+  } else if (mode === 'sect_hub') {
+    if (npc.id === 'truong_thon') {
+      return {
+        ...npc,
+        title: '[CHƯỞNG MÔN]',
+        name: `Chưởng Môn (${mapName})`,
+        icon: '⛩️',
+        color: '#c084fc',
+        tagBg: 0x2e0854,
+        tagBorder: 0xc084fc,
+        greeting: `Đạo tâm như nhất! Chào mừng đệ tử/đạo hữu đến với Sơn Môn ${mapName}. Vấn đạo cầu trường sinh!`
+      };
+    }
+    if (npc.id === 'vo_quan') {
+      return {
+        ...npc,
+        title: '[TÀNG KINH CÁC]',
+        name: 'Trưởng Lão Tàng Kinh',
+        icon: '📜',
+        color: '#a855f7',
+        tagBg: 0x2e0854,
+        tagBorder: 0xa855f7,
+        greeting: 'Vạn quyển đạo thư, tâm pháp thượng thừa và thần thông ngũ hành truyền thừa ngàn năm của bản tông.'
+      };
+    }
+    if (npc.id === 'duoc_diem') {
+      return {
+        ...npc,
+        title: '[LUYỆN ĐAN ĐIỆN]',
+        name: 'Đan Đạo Trưởng Lão',
+        icon: '🧪',
+        color: '#2dd4bf',
+        tagBg: 0x06332c,
+        tagBorder: 0x2dd4bf,
+        greeting: 'Đan phương thượng thừa, linh đan thánh phẩm phụng sự đệ tử tông môn đột phá cảnh giới.'
+      };
+    }
+    if (npc.id === 'tho_ren') {
+      return {
+        ...npc,
+        title: '[LUYỆN KHÍ PHƯỜNG]',
+        name: 'Khí Đạo Trưởng Lão',
+        icon: '⚔️',
+        color: '#e879f9',
+        tagBg: 0x3d0745,
+        tagBorder: 0xe879f9,
+        greeting: 'Luyện chế phi kiếm bản mệnh, tôi đúc hộ thân pháp bảo uy lực trấn phái.'
+      };
+    }
+    if (npc.id === 'tuu_lau') {
+      return {
+        ...npc,
+        title: '[NHIỆM VỤ ĐƯỜNG]',
+        name: 'Chấp Sự Tông Môn',
+        icon: '📋',
+        color: '#60a5fa',
+        tagBg: 0x0b254d,
+        tagBorder: 0x60a5fa,
+        greeting: 'Bảng nhiệm vụ tông môn: Trừ ma vệ đạo, thu thập linh tài, tích lũy công đức đổi pháp bảo.'
+      };
+    }
+  }
+
+  return npc;
+}
+
 export const NpcDialogUI = {
   openNpcDialogModal(npcId) {
-    const npc = NPCS_DATA.find(n => n.id === npcId);
-    if (!npc) return;
+    const rawNpc = NPCS_DATA.find(n => n.id === npcId);
+    if (!rawNpc) return;
+    const npc = getContextualNpc(this, rawNpc);
     const panel = createShell(this, npc);
     addNpcCard(this, panel, npc);
 

@@ -11,7 +11,7 @@ import {
   getWorldNode,
   getWorldNodeForMap,
   getWorldAncestors
-} from '../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+} from '../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 
 export const WORLD_PROGRESS_SCHEMA = 1;
 

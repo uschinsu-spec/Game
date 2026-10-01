@@ -1,6 +1,25 @@
 // QUẢN LÝ TOÀN BỘ TRẠNG THÁI NGƯỜI CHƠI & DỮ LIỆU TU TIÊN
 import { createInitialWorldProgress } from './worldProgress.js';
 import { createEmptyFactionGameState } from '../config/factions/game/gameStateBridge.js';
+import { CANONICAL_MAP_KEYS } from '../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
+
+export const ITEM_STATE_SCHEMA_VERSION = 3;
+export const ITEM_EQUIPMENT_SLOTS = Object.freeze(['weapon','armor','helm','boots','amulet','shield','ring','cloak']);
+
+export function createInitialItemState() {
+  return {
+    schemaVersion: ITEM_STATE_SCHEMA_VERSION,
+    stacks: {},          // stackable item: itemId -> quantity
+    instances: {},       // unique gear: uid -> instance
+    equipped: Object.fromEntries(ITEM_EQUIPMENT_SLOTS.map(slot => [slot, null])),
+    quickSlots: [null, null, null, null],
+    discovered: {},      // itemId -> true
+    cooldowns: {},       // cooldownGroup -> timestamp
+    activeFormation: null,
+    temporaryBuffs: [],
+    counters: { uid: 0 }
+  };
+}
 
 export const gameState = {
   // Cảnh giới & Tu vi
@@ -15,12 +34,10 @@ export const gameState = {
   mana: 100,
   aptitude: 'Ngũ Hành Linh Căn',
 
-  // Tài nguyên & Tiền tệ
+  // Tiền tệ. Toàn bộ vật phẩm/tài nguyên nằm DUY NHẤT trong itemState.
   gold: 0,
   currencies: { silver: 0, low: 0, mid: 0, high: 0, extreme: 0 },
-  herbs: {},
-  ores: 0,
-  materials: { beastPelts: 0, beastFurs: 0, beastClaws: 0, beastBlood: 0, beastHorns: 0 },
+  itemState: createInitialItemState(),
 
   // Công pháp / tu luyện
   activeCongPhapId: null,
@@ -28,38 +45,16 @@ export const gameState = {
   congPhapMastery: {},
   isMeditating: false,
   isResting: false,
-  activePillBuff: null,
   claimedStarterGift: false,
 
   party: { isFormed: false },
 
-  // Hệ thế lực V5 — source duy nhất cho tông môn/gia tộc/thương hội/chính trị
+  // Hệ thế lực V5
   factionState: createEmptyFactionGameState(),
 
-  // Trang bị
-  equipped: {
-    weapon: null,
-    armor: null,
-    helm: null,
-    boots: null,
-    amulet: null,
-    shield: null,
-    ring: null,
-    cloak: null
-  },
+  currentMapId: CANONICAL_MAP_KEYS.THANH_VAN_THON,
+  worldProgress: createInitialWorldProgress(CANONICAL_MAP_KEYS.THANH_VAN_THON),
 
-  inventory: {
-    items: [],
-    pills: {},
-    talismans: {},
-    formations: []
-  },
-
-  currentMapId: 0,
-  // Chỉ lưu tiến độ khám phá quan trọng; không lưu state của hàng triệu địa danh.
-  worldProgress: createInitialWorldProgress(0),
-
-  gearPlus: 0,
   equippedSkillIds: ['basic_attack', 'kiem_1'],
   skillMastery: {},
   autoFight: true,
@@ -70,8 +65,6 @@ export const gameState = {
     kills: 0,
     exp: 0,
     gold: 0,
-    ores: 0,
-    pelts: 0,
     startTime: Date.now()
   },
   afkSettings: {

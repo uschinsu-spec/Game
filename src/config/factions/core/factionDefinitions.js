@@ -1,4 +1,4 @@
-import { FACTION_ARCHETYPES, FACTION_VISIBILITY, CANONICAL_PLAYER_SECT_IDS, FACTION_DATA_LEVELS } from './factionConstants.js';
+import { FACTION_ARCHETYPES, FACTION_VISIBILITY, FACTION_DATA_LEVELS } from './factionConstants.js';
 import { isValidScope, isValidPowerTier } from './factionScale.js';
 import { validateStableId } from './factionIds.js';
 import { createFactionDNA } from './factionDNA.js';
@@ -9,7 +9,7 @@ function freezeObject(value) {
 }
 
 export function isValidFactionId(id) {
-  const value=String(id||''); return CANONICAL_PLAYER_SECT_IDS.includes(value) || validateStableId(value, 'faction.');
+  const value=String(id||''); return validateStableId(value, 'faction.');
 }
 
 export function createFactionDefinition(input) {

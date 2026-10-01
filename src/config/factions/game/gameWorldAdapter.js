@@ -2,7 +2,7 @@ import { JURISDICTION_NODE_TYPES, SITE_NODE_TYPES } from '../core/factionConstan
 
 const DENSITY = Object.freeze({ south:1.08,east:1.0,west:.78,north:.82,central:1.32 });
 const CONTINENTS = new Set(['south','east','west','north','central']);
-const TYPE_TO_SCOPE = Object.freeze({realm:'HUMAN_REALM',continent:'CONTINENT',great_region:'PRIMARY_REGION',province:'SECONDARY_TERRITORY',nation:'NATION',commandery:'COMMANDERY',city_territory:'CITY',settlement:'SETTLEMENT',location:'SITE'});
+const TYPE_TO_SCOPE = Object.freeze({realm:'HUMAN_REALM',continent:'CONTINENT',great_region:'PRIMARY_REGION',region:'PRIMARY_REGION',province:'SECONDARY_TERRITORY',nation:'NATION',commandery:'COMMANDERY',city_territory:'CITY',settlement:'SETTLEMENT',location:'SITE'});
 
 function makeIndex(worldNodes){
   const byId=new Map(),children=new Map();
@@ -35,9 +35,9 @@ export function createGameWorldAdapter({worldNodes=[],worldSeed='game-default'}=
   getContinentKeyForNode:id=>resolveContinent(getNode(id),idx().byId),
   getContinentKeyForTerritory:id=>resolveContinent(getNode(id)||getNode(territoryFor(id)?.id),idx().byId),
   getCivilizationDensity:id=>DENSITY[resolveContinent(getNode(id)||getNode(territoryFor(id)?.id),idx().byId)]||1,
-  getImportance:id=>{const n=getNode(id);if(!n)return 1;if(n.type==='great_region')return 1.45;if(n.type==='province')return 1.25;if(n.type==='nation')return 1.15;if(n.type==='city_territory')return 1.05;if(n.type==='settlement')return .72;return .6;},
+  getImportance:id=>{const n=getNode(id);if(!n)return 1;if(n.type==='great_region'||n.type==='region')return 1.45;if(n.type==='province')return 1.25;if(n.type==='nation')return 1.15;if(n.type==='city_territory')return 1.05;if(n.type==='settlement')return .72;return .6;},
   resolveTerritoryId:id=>territoryFor(typeof id==='object'?(id.locationNodeId||id.nodeId||id.geography?.nodeId||id.id):id)?.id||null,
   resolveJurisdictionForNode:id=>{let cur=getNode(id),seen=new Set();while(cur&&!seen.has(cur.id)){if(JURISDICTION_NODE_TYPES.includes(cur.type))return compactNode(cur,idx());seen.add(cur.id);cur=cur.parentId?getNode(cur.parentId):null;}return null;},
-  validateGeography({expectedTerritories=437}={}){const counts={};for(const n of worldNodes)counts[n.type]=(counts[n.type]||0)+1;return Object.freeze({ok:(counts.province||0)===expectedTerritories&&!(worldNodes.some(n=>n.factionProfile||n.cultivationFactions||n.apexSect||n.makeFactionProfile)),nodeCount:worldNodes.length,counts:Object.freeze(counts),legacyFactionFields:worldNodes.filter(n=>n.factionProfile||n.cultivationFactions||n.apexSect||n.makeFactionProfile).map(n=>n.id)});}
+  validateGeography({expectedTerritories=125}={}){const counts={};for(const n of worldNodes)counts[n.type]=(counts[n.type]||0)+1;return Object.freeze({ok:(counts.province||0)===expectedTerritories&&!(worldNodes.some(n=>n.factionProfile||n.cultivationFactions||n.apexSect||n.makeFactionProfile)),nodeCount:worldNodes.length,counts:Object.freeze(counts),legacyFactionFields:worldNodes.filter(n=>n.factionProfile||n.cultivationFactions||n.apexSect||n.makeFactionProfile).map(n=>n.id)});}
  });
 }

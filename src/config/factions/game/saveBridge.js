@@ -22,6 +22,21 @@ function hydrateWorld(saved, seed) {
   return world;
 }
 
+// Keep the top-level object identity stable. Runtime coordinators retain a
+// reference to gameState.factionState, so replacing it on load/reset leaves
+// them reading stale data until a full page reload.
+function replaceFactionState(gameState, nextState) {
+  const current = gameState?.factionState;
+  if (!current || typeof current !== 'object') {
+    gameState.factionState = nextState;
+    return nextState;
+  }
+  for (const key of Object.keys(current)) delete current[key];
+  Object.assign(current, nextState);
+  gameState.factionState = current;
+  return current;
+}
+
 export function serializeGameFactionState(gameState) {
   const state = ensureFactionGameState(gameState);
   return clone({
@@ -43,13 +58,11 @@ export const serializeFactionState = serializeGameFactionState;
 
 export function hydrateFactionState(gameState, saved) {
   if (!saved || typeof saved !== 'object' || Number(saved.version) !== 5) {
-    gameState.factionState = createEmptyFactionGameState();
-    return gameState.factionState;
+    return replaceFactionState(gameState, createEmptyFactionGameState());
   }
   const state = { ...createEmptyFactionGameState(), ...clone(saved) };
   state.world = hydrateWorld(saved.world, state.worldSeed);
   state.history = [...(saved.history || [])].slice(-200);
   state.activeEvents = [...(saved.activeEvents || [])].slice(-100);
-  gameState.factionState = state;
-  return state;
+  return replaceFactionState(gameState, state);
 }

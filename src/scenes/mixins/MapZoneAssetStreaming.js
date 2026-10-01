@@ -9,10 +9,11 @@
  */
 import { gameState } from '../../state/gameState.js';
 import {
+  CANONICAL_MAP_KEYS,
   getMapById,
   getMapZones,
   getMapZoneNumberAtX
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+} from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 
 const OWNER = 'MapZoneAssetStreaming';
 const A = './assets/';
@@ -26,9 +27,10 @@ function sameMapId(a, b) {
   return String(a) === String(b);
 }
 
-function isMapZero(mapOrId) {
-  const id = typeof mapOrId === 'object' && mapOrId ? mapOrId.id : mapOrId;
-  return sameMapId(id, 0);
+function isPeaceHub(mapOrId) {
+  const map = typeof mapOrId === 'object' && mapOrId ? mapOrId : getMapById(mapOrId);
+  if (!map) return false;
+  return !!(map.isPeaceZone || map.uiMode === 'village_hub' || map.uiMode === 'city_hub' || map.uiMode === 'sect_hub' || map.uiMode === 'clan_hub');
 }
 
 function isQueued(scene, key) {
@@ -321,7 +323,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.ensureCombatSharedAssets = function ensureCombatSharedAssets() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isPeaceHub(map)) return Promise.resolve(false);
     if (this.__combatAssetsReady) return Promise.resolve(true);
     if (this.__combatSharedPromise) return this.__combatSharedPromise;
 
@@ -348,7 +350,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.ensureMapZoneAssets = function ensureMapZoneAssets(mapId, zoneNumber) {
     const map = getMapById(mapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isPeaceHub(map)) return Promise.resolve(false);
     const zones = getMapZones(map.id);
     const zone = Math.max(1, Math.min(zones.length, Number(zoneNumber) || 1));
     const zoneKey = `${map.id}:${zone}`;
@@ -386,7 +388,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.activateCombatZone = function activateCombatZone(zoneNumber) {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isPeaceHub(map)) return Promise.resolve(false);
     const zones = getMapZones(map.id);
     const zone = Math.max(1, Math.min(zones.length, Number(zoneNumber) || 1));
     const activationKey = `${map.id}:${zone}`;
@@ -428,7 +430,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.ensureActiveMapZoneAssets = function ensureActiveMapZoneAssets() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) return Promise.resolve(false);
+    if (!map || map.isPeaceZone || isPeaceHub(map)) return Promise.resolve(false);
     const x = this.player?.x ?? map.spawn?.x ?? 350;
     const zone = getMapZoneNumberAtX(map.id, x);
     return this.activateCombatZone(zone);
@@ -437,7 +439,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
   proto.initBattlefield = function streamedInitBattlefield() {
     this.cleanupBattlefield?.();
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) {
+    if (!map || map.isPeaceZone || isPeaceHub(map)) {
       this.__combatAssetsReady = false;
       return;
     }
@@ -446,7 +448,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.initFellowNpcs = function streamedInitFellowNpcs() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) {
+    if (!map || map.isPeaceZone || isPeaceHub(map)) {
       clearFellowObjects(this);
       return;
     }
@@ -455,7 +457,7 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   proto.initHerbs = function streamedInitHerbs() {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map)) return originalInitHerbs?.call(this);
+    if (!map || map.isPeaceZone || isPeaceHub(map)) return originalInitHerbs?.call(this);
     if (!this.__combatAssetsReady) {
       this.ensureActiveMapZoneAssets();
       return;
@@ -465,26 +467,26 @@ export function installMapZoneAssetStreaming(MainGameScene) {
 
   if (typeof originalCastSkill === 'function') {
     proto.castSkill = function streamedCastSkill(...args) {
-      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return false;
+      if (!isPeaceHub(gameState.currentMapId) && !this.__combatAssetsReady) return false;
       return originalCastSkill.apply(this, args);
     };
   }
   if (typeof originalBasicAttack === 'function') {
     proto.basicAttack = function streamedBasicAttack(...args) {
-      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return false;
+      if (!isPeaceHub(gameState.currentMapId) && !this.__combatAssetsReady) return false;
       return originalBasicAttack.apply(this, args);
     };
   }
   if (typeof originalSpawnVfx === 'function') {
     proto.spawnVfx = function streamedSpawnVfx(...args) {
-      if (!isMapZero(gameState.currentMapId) && !this.__combatAssetsReady) return null;
+      if (!isPeaceHub(gameState.currentMapId) && !this.__combatAssetsReady) return null;
       return originalSpawnVfx.apply(this, args);
     };
   }
 
   proto.updateZoneStreaming = function updateZoneStreaming(time, delta) {
     const map = getMapById(gameState.currentMapId);
-    if (!map || map.isPeaceZone || isMapZero(map) || !this.player?.active) return;
+    if (!map || map.isPeaceZone || isPeaceHub(map) || !this.player?.active) return;
 
     const now = Number(time || 0);
     if (now < Number(this.__nextZoneStreamCheckAt || 0)) return;

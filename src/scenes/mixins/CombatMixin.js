@@ -7,7 +7,7 @@ import { REALMS } from '../../config/realmsData.js';
 import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-sword-only-v2';
 import { gameState } from '../../state/gameState.js';
 import { getCongPhapById } from '../../config/congPhapData.js';
-import { CRAFTING_SYSTEM, calculatePillEfficiency, getPlayerPillRank } from '../../config/craftingData.js';
+import { getItemByName, getItemQuantity, removeItem, useItem, getEquipmentStats, damageEquippedDurability } from './ItemSystem.js?v=20261001-item-v3';
 
 export const CombatMixin = {
 
@@ -43,10 +43,11 @@ export const CombatMixin = {
       const curDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
       if (curDist <= 135) {
         const sense = this.calcPlayerSpiritualSense ? this.calcPlayerSpiritualSense() : (gameState.spiritualSense || 10);
-        const critRate = 0.15 + (sense * 0.005);
+        const itemStats = getEquipmentStats();
+        const critRate = Math.min(0.95, 0.15 + (sense * 0.005) + Number(itemStats.critRate || 0) / 100);
         const isCrit = Math.random() < critRate;
         let dmg = this.calcPlayerElementalDmg ? this.calcPlayerElementalDmg('Vật Lý') : (this.playerDmg || 1);
-        if (isCrit) dmg = Math.floor(dmg * 1.85);
+        if (isCrit) dmg = Math.floor(dmg * (1.85 + Number(itemStats.critDamage || 0) / 100));
         this.damageEnemy(target, dmg, isCrit);
         this.spawnVfx(target.x, target.y, 0, 0.65, { duration: 220, grow: 1.3, tint: 0xffeedd });
 
@@ -338,8 +339,24 @@ export const CombatMixin = {
 
   damageEnemy(enemy, dmg, isCrit, attacker = { type: 'player', name: 'Bạn' }) {
     if (!enemy || !enemy.active || enemy.isDead) return;
-    const finalDmg = Math.max(1, Math.floor(dmg || 1));
+    let incoming = Math.max(1, Number(dmg) || 1);
+    const isPlayerAttack = (attacker?.type || 'player') === 'player';
+    if (isPlayerAttack) {
+      const stats = getEquipmentStats();
+      const rawDef = Math.max(0, Number(enemy?.monsterData?.def ?? enemy?.def ?? 0));
+      const effectiveDef = rawDef * (1 - Math.min(95, Math.max(0, Number(stats.armorPen || 0))) / 100);
+      incoming = Math.max(1, incoming - effectiveDef);
+    }
+    const finalDmg = Math.max(1, Math.floor(incoming));
     enemy.hp -= finalDmg;
+
+    if (isPlayerAttack) {
+      const lifeSteal = Math.max(0, Number(getEquipmentStats().lifeSteal || 0));
+      if (lifeSteal > 0 && Number.isFinite(this.playerHpMax)) {
+        const heal = Math.max(0, Math.floor(finalDmg * Math.min(50, lifeSteal) / 100));
+        if (heal > 0) this.playerHp = Math.min(this.playerHpMax, Number(this.playerHp || 0) + heal);
+      }
+    }
 
     if (attacker?.type === 'player' && this.cancelRestingState) {
       this.cancelRestingState();
@@ -382,8 +399,15 @@ export const CombatMixin = {
       this.cancelRestingState('⚔ Bị Địch Tấn Công: Ngắt Dưỡng Sức & Tĩnh Tọa!');
     }
 
+    const itemStats = getEquipmentStats();
+    const dodge = Math.min(60, Math.max(0, Number(itemStats.dodge || 0)));
+    if (dodge > 0 && Math.random() < dodge / 100) {
+      this.showFloatingText(this.player.x, this.player.y - 30, 'NÉ', '#89e5df');
+      return;
+    }
     const def = this.calcPlayerElementalDef ? this.calcPlayerElementalDef(elem) : (this.calcPlayerDef ? this.calcPlayerDef() : 0);
-    const dmg = Math.max(1, rawDmg - def);
+    const reduction = Math.min(75, Math.max(0, Number(itemStats.damageReduction || 0)));
+    const dmg = Math.max(1, Math.floor(Math.max(1, rawDmg - def) * (1 - reduction / 100)));
     this.playerHp = Math.max(0, this.playerHp - dmg);
     this.showFloatingText(this.player.x, this.player.y - 30, `-${dmg}`, '#ff7777');
     this.updateHUD();
@@ -395,6 +419,7 @@ export const CombatMixin = {
   playerDeath() {
     if (this.dead) return;
     this.dead = true;
+    damageEquippedDurability(5);
     this.player.setVelocity(0, 0).setTint(0x777777).setAlpha(0.45);
     this.moveTarget = null;
     this.joy.active = false;
@@ -423,17 +448,8 @@ export const CombatMixin = {
   },
 
   onSecondTick() {
-    let pillSpeed = 0;
-    if (gameState.activePillBuff) {
-      gameState.activePillBuff.durationLeft = (gameState.activePillBuff.durationLeft || 1) - 1;
-      pillSpeed = gameState.activePillBuff.speed || 0;
-      if (gameState.activePillBuff.durationLeft <= 0) {
-        const expiredName = gameState.activePillBuff.name;
-        gameState.activePillBuff = null;
-        this.updateHUD();
-        this.showFloatingText(this.player.x, this.player.y - 70, `Dược lực của [${expiredName}] đã tiêu tán hết!`, '#a0aec0');
-      }
-    }
+    const itemStats = getEquipmentStats();
+    const pillSpeed = Math.max(0, Number(itemStats.cultivationSpeed) || 0);
 
     const cp = gameState.activeCongPhapId ? getCongPhapById(gameState.activeCongPhapId) : null;
     let cpSpeed = 0;
@@ -505,50 +521,26 @@ export const CombatMixin = {
   },
 
   consumePill(pillName) {
-    if (!gameState.inventory.pills || !gameState.inventory.pills[pillName] || gameState.inventory.pills[pillName] <= 0) {
+    const pill = getItemByName(pillName);
+    if (!pill || pill.kind !== 'pill') return { success:false, error:'Đan dược không tồn tại' };
+    if (getItemQuantity(pill.id) <= 0) {
       this.showFloatingText(this.player.x, this.player.y - 60, `Không có [${pillName}] trong túi!`, '#ff5555');
-      return { success: false, error: 'Không có đan dược trong túi' };
+      return { success:false, error:'Không có đan dược trong túi' };
     }
-
-    const pill = CRAFTING_SYSTEM.pills.find(p => p.name === pillName);
-    if (!pill) return { success: false, error: 'Đan dược không tồn tại' };
-
-    if (pill.type === 'heal') {
-      gameState.inventory.pills[pillName]--;
-      const healHp = pill.healHp || 300;
-      this.playerHp = Math.min(this.calcPlayerMaxHp(), (this.playerHp || 0) + healHp);
-      this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_heal', 0.8, 600, false);
-      this.showFloatingText(this.player.x, this.player.y - 60, `+${healHp} HP (${pill.name})!`, '#4ade80');
-      this.updateHUD();
-      return { success: true, type: 'heal' };
-    }
-
-    if (pill.type === 'breakthrough') {
+    if (pill.effect?.type === 'breakthrough') {
       this.showFloatingText(this.player.x, this.player.y - 60, `Hãy nhấn [ĐỘT PHÁ] trong bảng Cảnh Giới để dùng [${pill.name}]!`, '#ffd700');
-      return { success: false, error: 'Dùng khi đột phá cảnh giới' };
+      return { success:false, error:'Dùng khi đột phá cảnh giới' };
     }
-
-    const check = calculatePillEfficiency(pill, gameState.realmIdx);
-    if (!check.canUse) {
-      this.showFloatingText(this.player.x, this.player.y - 70, `❌ ${check.reason}`, '#ff4444', '13px');
-      return { success: false, error: check.reason };
+    const result = useItem(pill.id, this);
+    if (!result.success) {
+      this.showFloatingText(this.player.x, this.player.y - 60, `❌ ${result.error || 'Không thể dùng item'}`, '#ff5555');
+      return result;
     }
-
-    gameState.inventory.pills[pillName]--;
-    const duration = pill.durationSec || 180;
-    gameState.activePillBuff = {
-      name: pill.name,
-      speed: check.effectiveSpeed,
-      rank: pill.pillRank,
-      durationLeft: duration,
-      expiresAt: Date.now() + duration * 1000
-    };
-
-    this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_cast', 1.0, 800, false);
-    const floatColor = (check.efficiency < 1.0) ? '#f59e0b' : '#38bdf8';
-    this.showFloatingText(this.player.x, this.player.y - 70, `💊 Nuốt [${pill.name}]: +${check.effectiveSpeed} Tu Vi/s (${duration}s)!`, floatColor, '14px');
+    if (result.type === 'heal') this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_heal', 0.8, 600, false);
+    else this.spawnSpellVfx(this.player.x, this.player.y, 'vfx_cast', 1.0, 800, false);
+    this.showFloatingText(this.player.x, this.player.y - 70, `💊 Đã dùng [${pill.name}]`, '#38bdf8', '14px');
     this.updateHUD();
-    return { success: true, type: 'cultivation', buff: gameState.activePillBuff, check };
+    return result;
   },
 
   gainExp(amt, showVisual = false) {
@@ -558,8 +550,9 @@ export const CombatMixin = {
     if (gameState.exp >= realm.expReq) {
       if (realm.bottleneck) {
         const reqPill = realm.pillNeeded;
-        if (gameState.afkSettings?.autoBreakthrough && gameState.inventory.pills[reqPill] > 0) {
-          gameState.inventory.pills[reqPill]--;
+        const reqPillDef = getItemByName(reqPill);
+        if (gameState.afkSettings?.autoBreakthrough && reqPillDef && getItemQuantity(reqPillDef.id) > 0) {
+          removeItem(reqPillDef.id, 1);
           if (gameState.realmIdx < REALMS.length - 1) {
             gameState.realmIdx++;
             gameState.exp = 0;

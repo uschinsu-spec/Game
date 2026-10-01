@@ -11,7 +11,7 @@ import { ELEMENTAL_SKILLS } from '../../config/skillsData.js?v=20260928-skill-ma
 import {
   getMapById,
   resolvePanoramaMap
-} from '../../config/world/worldRegistry.js?v=20260929-single-map-system-v1';
+} from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 import { gameState } from '../../state/gameState.js';
 
 const ASSET_ROOT = './assets/';
@@ -51,14 +51,21 @@ function queueBootAssets(scene) {
   queueSpriteSheet(scene, 'player_attack', A + 'characters/player/player_attack.png', { frameWidth: 128, frameHeight: 128 });
   queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.png', { frameWidth: 128, frameHeight: 128 });
 
-  // Core Hub background assets (Thôn Trấn / Thành Thị / Tông Môn)
+  // Core Hub background assets (Thôn Trấn / Thành Thị / Tông Môn / Gia Tộc)
   queueImage(scene, 'bg_village_hub', A + 'environment/THON TRAN.png');
   queueImage(scene, 'bg_city_hub', A + 'environment/THANH THI.PNG');
   queueImage(scene, 'bg_sect_hub', A + 'environment/TONG MON.PNG');
+  queueImage(scene, 'bg_clan_hub', A + 'environment/GIA TOC.PNG');
 
   // Visible HUD/menu shell only.
-  queueImage(scene, 'hud_skin', A + 'ui/hud_skin.png');
-  queueImage(scene, 'hud_portrait', A + 'ui/hud_portrait.png');
+  queueImage(scene, 'hud_skin', A + 'ui/hud_skin.webp');
+  queueImage(scene, 'hud_portrait', A + 'ui/hud_portrait.webp');
+  // Map UI and Atlas assets (Active assets only)
+  queueImage(scene, 'human_realm_atlas', A + 'ui/map/human_realm_atlas.webp');
+  queueImage(scene, 'sub_level_atlas', A + 'ui/map/sub_level_atlas.webp');
+  queueImage(scene, 'world_map_ui_skin', A + 'ui/world_map/world_map_ui_skin.webp');
+  ['info_card', 'action_gold', 'back_button', 'close_button']
+    .forEach(name => queueImage(scene, `map_ui_${name}`, A + `ui/world_map/kit/${name}.webp`));
   ['bag', 'realm', 'craft', 'skills', 'auto'].forEach(icon => {
     queueImage(scene, `xianxia_${icon}`, A + `icons/ui/xianxia_${icon}_bright.png`);
   });
@@ -216,7 +223,7 @@ export function installBootAssetOptimizationV3(MainGameScene) {
     this.updateHUD?.();
 
     const map = getMapById(gameState.currentMapId);
-    if (map && !map.isPeaceZone && Number(map.id) !== 0) {
+    if (map && !map.isPeaceZone) {
       this.ensureActiveMapZoneAssets?.();
     } else {
       this.__combatAssetsReady = false;

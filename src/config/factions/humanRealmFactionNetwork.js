@@ -1,8 +1,6 @@
-import { SUPREME_FACTIONS } from './core/supremeFactions.js';
-import { PLAYER_SECT_FACTIONS } from './core/playerSects.js';
-import { ALL_CONTINENT_POWERS } from './core/continentPowers.js';
-import { SUPREME_RELATIONS } from './core/supremeRelations.js';
-import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js?v=20260930-canonical-local-v2';
+import { FIXED_ROOT_FACTIONS, CANONICAL_STATIC_FACTION_STATS } from './core/declarations/fixedFactionNames3950.js';
+import { FIXED_FACTION_RELATIONS, FIXED_FACTION_VASSALS, FIXED_RELATION_STATS, getFixedVassalsForTerritory } from './core/declarations/fixedFactionRelations.js';
+import { createCanonicalLocalFactionAtlas } from './core/canonicalLocalFactionAtlas.js?v=20261001-single-source-3950-v1';
 import { getJurisdictionBudget } from './hierarchy/jurisdictionBudgets.js';
 import { buildInheritedPresences } from './hierarchy/factionPresence.js';
 import { buildSiteFactionContext } from './hierarchy/siteControl.js';
@@ -11,7 +9,6 @@ import { combineInfluence } from './network/factionInfluence.js';
 import { resolveTerritoryControllers } from './network/territoryControllers.js';
 import { relationFor, createRelation } from './network/factionDiplomacy.js';
 import { indexBranches } from './network/factionBranches.js?v=20260930-canonical-local-v1';
-import { planVassalsForTerritory } from './network/factionVassalPlanner.js';
 import { BoundedFactionCache } from './runtime/factionCache.js';
 import { RELATION_TYPES } from './core/factionConstants.js';
 
@@ -31,19 +28,19 @@ function canonicalBranchPresence(branch, jurisdictionId) {
 }
 
 export class HumanRealmFactionNetwork {
-  constructor({worldSeed='linh-son-phi-kiem-v5',worldAdapter,playerSects=PLAYER_SECT_FACTIONS,coreFactions=[],branches=[],vassals=[],relations=[],assets=[]}={}){
+  constructor({worldSeed='linh-son-phi-kiem-v5',worldAdapter,coreFactions=[],branches=[],vassals=[],relations=[],assets=[]}={}){
     this.worldSeed=worldSeed;
     this.worldAdapter=worldAdapter;
     this.factions=new Map();
     this.dynamicFactions=new Map();
-    this.rootPresenceFactions=Object.freeze([...SUPREME_FACTIONS,...ALL_CONTINENT_POWERS,...playerSects,...coreFactions]);
     this.canonicalAtlas=createCanonicalLocalFactionAtlas({worldAdapter});
+    this.rootPresenceFactions=Object.freeze([...FIXED_ROOT_FACTIONS,...coreFactions]);
     for(const f of [...this.rootPresenceFactions,...this.canonicalAtlas.factions])this.factions.set(f.id,f);
     const branchById=new Map([...this.canonicalAtlas.branches,...branches].map(branch=>[branch.id,branch]));
     this.branches=[...branchById.values()];
     this.branchIndex=indexBranches(this.branches);
-    this.vassals=[...vassals];
-    this.relations=[...SUPREME_RELATIONS,...relations];
+    this.vassals=[...FIXED_FACTION_VASSALS,...vassals];
+    this.relations=[...FIXED_FACTION_RELATIONS,...relations];
     this.assets=[...assets];
     this.jurisdictionCache=new BoundedFactionCache(96);
     this.influenceCache=new BoundedFactionCache(96);
@@ -60,6 +57,8 @@ export class HumanRealmFactionNetwork {
   getAllCoreFactions(){return Object.freeze([...this.factions.values()]);}
   getAllKnownFactions(){return Object.freeze([...this.factions.values(),...this.dynamicFactions.values()]);}
   getCanonicalFactionAtlasStats(){return this.canonicalAtlas.stats;}
+  getCanonicalStaticFactionStats(){return CANONICAL_STATIC_FACTION_STATS;}
+  getCanonicalRelationStats(){return FIXED_RELATION_STATS;}
   getJurisdiction(id){return this.worldAdapter?.getJurisdiction?.(id)||null;}
   listJurisdictionChildren(id,opts){return this.worldAdapter?.getChildren?.(id,opts)||Object.freeze([]);}
   getLocalFactionsForJurisdiction(id){
@@ -115,14 +114,14 @@ export class HumanRealmFactionNetwork {
     return Object.freeze(raw.map(marker=>Object.freeze({...marker,faction:this.getFaction(marker.factionId),branch:marker.branchId?this.branchIndex.byId.get(marker.branchId)||null:null})).filter(marker=>marker.faction).sort((a,b)=>{const directA=String(a.worldNodeId)===String(nodeId)?1:0,directB=String(b.worldNodeId)===String(nodeId)?1:0;if(directA!==directB)return directB-directA;const tier=(tierWeight[b.powerTier]||0)-(tierWeight[a.powerTier]||0);if(tier)return tier;return String(a.label).localeCompare(String(b.label),'vi');}).slice(0,Math.max(1,Math.min(16,limit))));
   }
   getTerritoryControllers(id){return this._controllersWithOverrides(id,this.getInfluenceForTerritory(id));}
-  getFactionRelation(a,b){const found=relationFor(this.relations,a,b);if(found)return found;const fa=this.getFaction(a),fb=this.getFaction(b);const same=fa&&fb&&fa.continentIds?.some(x=>fb.continentIds?.includes(x));return createRelation({a,b,type:RELATION_TYPES.NEUTRAL,trust:0,respect:same?20:0});}
+  getFactionRelation(a,b){const found=relationFor(this.relations,a,b);if(found)return found;return createRelation({a,b,type:RELATION_TYPES.NEUTRAL});}
   getFactionBranches(id){return Object.freeze([...(this.branchIndex.byParent.get(id)||[])]);}
   getBranchesForJurisdiction(id){return Object.freeze([...(this.branchIndex.byMapNode.get(id)||this.branchIndex.byTerritory.get(id)||[])]);}
   ensureBranchesForTerritory(id){const cached=this.branchCache.get(id);if(cached)return cached;const territory=this.worldAdapter?.getTerritory?.(id);if(!territory)return Object.freeze([]);return this.branchCache.set(id,Object.freeze([...(this.branchIndex.byTerritory.get(territory.id)||[])]));}
   ensureBranchesForJurisdiction(id){const territory=this.worldAdapter?.getTerritory?.(id)||this.worldAdapter?.resolveJurisdictionForNode?.(id);return territory?this.ensureBranchesForTerritory(territory.id):Object.freeze([]);}
   getFactionVassals(id){return Object.freeze(this.vassals.filter(v=>v.overlordId===id));}
   getFactionAssets(id){return Object.freeze(this.assets.filter(a=>a.factionId===id));}
-  ensureVassalsForTerritory(id){const cached=this.vassalCache.get(id);if(cached)return cached;const t=this.worldAdapter?.getTerritory?.(id);if(!t)return Object.freeze([]);const local=this.getLocalFactionsForJurisdiction(t.id);const overlords=this.getInheritedPresencesForJurisdiction(t.id,{limit:8}).map(p=>this.getFaction(p.factionId)).filter(Boolean);const links=planVassalsForTerritory({territory:t,localFactions:local,candidateOverlords:overlords,worldSeed:this.worldSeed});for(const v of links)if(!this.vassals.some(x=>x.overlordId===v.overlordId&&x.vassalId===v.vassalId))this.vassals.push(v);return this.vassalCache.set(id,links);}
+  ensureVassalsForTerritory(id){const cached=this.vassalCache.get(id);if(cached)return cached;const t=this.worldAdapter?.getTerritory?.(id);if(!t)return Object.freeze([]);const fixed=getFixedVassalsForTerritory(t.id);const extras=this.vassals.filter(v=>!v.fixed&&v.territoryId===t.id);return this.vassalCache.set(id,Object.freeze([...fixed,...extras]));}
   hasTerritoryBlueprint(id){return Boolean(this.worldAdapter?.getTerritory?.(id));}
   clearCaches(){this.jurisdictionCache.clear();this.influenceCache.clear();this.siteCache.clear();this.vassalCache.clear();this.branchCache.clear();}
 }

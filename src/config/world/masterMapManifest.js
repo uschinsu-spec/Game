@@ -1,47 +1,25 @@
 /**
  * masterMapManifest.js
  * =========================================================================
- * MASTER MAP MANIFEST — HỆ THỐNG QUẢN LÝ BẢN ĐỒ TOÀN CÕI NHÂN GIỚI (5 ĐẠI LỤC - 437 CHÂU/ĐẠO/LĨNH/PHỦ)
+ * SPECIAL MAP OVERRIDES — CÁC BẢN ĐỒ CÓ THIẾT KẾ ĐẶC BIỆT / TAY
  * =========================================================================
- * 
- * QUY CHUẨN ĐỒNG NHẤT TOÀN DIỆN:
- * 1. SINGLE AUTHORITATIVE SOURCE OF TRUTH: Toàn bộ bản đồ, khu vực an toàn, khu vực chiến đấu,
- *    asset background, cơ chế hoạt động, quái vật, ngũ hành, tài nguyên, đô thị, bí cảnh và cấm địa
- *    được quy chuẩn hóa và quản lý tập trung tại đây.
- * 2. CHUẨN HÓA ĐỊNH DANH (CANONICAL KEYS): Không còn phụ thuộc vào số thứ tự rời rạc `map 0 1 2`.
- *    Toàn bộ map sử dụng Canonical Key chuẩn hóa:
- *    - `map_thanh_van_thon`     : Thôn Trấn Khởi Nguyên (Safe Village Hub · THON TRAN.png)
- *    - `map_thanh_van_ngoai_vi` : Sơn Đạo Khởi Nguyên (Combat Wilderness)
- *    - `map_van_moc_sam_lam`    : Cổ Lâm Độc Chướng (Combat Wilderness)
- *    - 437 Châu / Đạo / Lĩnh / Phủ: `map_thanh_chau`, `map_van_chau`, `map_lac_chau`...
- * 3. KẾ THỪA TOÀN BỘ 9 NHÓM DỮ LIỆU TỪ ATLAS NHÂN GIỚI (nhan_gioi_437_atlas_chi_tiet.md):
- *    - Bản sắc map & Biome (Primary & Secondary Biome, Địa thế, Visual priority)
- *    - Đô thị & Dân cư (Thủ phủ, Thành thị quan trọng, 5 Trấn, 5 Thôn, Dịch vụ lõi)
- *    - Địa danh khám phá (Cổ Lâm/Dược Cốc, 3 Bí Cảnh, 2 Cấm Địa, Waypoints)
- *    - Tài nguyên & Kinh tế (Sản vật, Khoáng vật, Gather zones, Tài nguyên hiếm)
- *    - Enemy Ecology (Dải cảnh giới realmIdx, Quái thường, Quái tinh anh, Field Boss, Ngũ hành)
- *    - Hazard & Thời tiết (Nguy cơ, Thời tiết thay đổi, Linh lực áp chế, Hiện tượng hiếm)
- *    - Thế lực & Tông môn (Đại tông xuyên vùng, Thế lực lõi địa phương, Xung đột chính)
- *    - Sự kiện & Nhiệm vụ (World events, Quest hooks)
- *    - Blueprint Materialize (Z1 Cửa ngõ -> Z5/Z6 Boss Territory)
- * 4. CỰC KỲ TỐI ƯU & SIÊU NHẸ KHI CHƠI GAME:
- *    - Sử dụng mô hình Schema Generator + O(1) Cached Maps.
- *    - Không nạp dư thừa tài nguyên khi chưa chuyển map.
+ *
+ * VAI TRÒ MỚI:
+ * - Không còn là "toàn bộ map hợp lệ" độc quyền làm giới hạn game.
+ * - Đóng vai trò là danh mục SPECIAL MAP OVERRIDES (những map có layout, asset,
+ *   tòa nhà, kịch bản hoặc quái vật thiết kế thủ công đặc biệt như:
+ *   Thanh Vân Thôn, Thanh Vân Ngoại Vi, Tông môn đặc biệt, Boss arena đặc biệt,
+ *   Event map, Dungeon thiết kế tay).
+ * - World node chỉ có thể đi tới runtime map đã khai báo explicit qua
+ *   playableMapId. Manifest này không materialize hierarchy node tự động.
  */
 import {
   HUMAN_REALM_ROOT_ID,
-  HUMAN_REALM_CONTINENTS,
-  HUMAN_REALM_WORLD_NODES,
-  HUMAN_REALM_SCALE,
   STARTER_WORLD_IDS,
   NAM_LANG_ROOT_ID
-} from './humanRealmWorld.js?v=20260929-human-realm-v4';
-import {
-  getHumanRealmDetailProfile,
-  HUMAN_REALM_DETAIL_VERSION
-} from './humanRealmDetailedAtlas.js?v=20260929-human-realm-detail-v1';
+} from './humanRealmWorld.js?v=20261001-canonical-geography-single-ruler-v2';
 
-export const MAP_MANIFEST_VERSION = '20260929-master-map-manifest-v4-canonical-unified';
+export const MAP_MANIFEST_VERSION = '20260930-special-map-overrides-v5-unified';
 
 // -----------------------------------------------------------------------------
 // 1. CÁC HẰNG SỐ VÀ ENUM QUY CHUẨN
@@ -51,6 +29,7 @@ export const ZONE_TYPES = Object.freeze({
   SAFE_VILLAGE: 'safe_village',     // Thôn Trấn an toàn (Hub)
   SAFE_CITY: 'safe_city',           // Thành Thị an toàn (Hub)
   SAFE_SECT: 'safe_sect',           // Tông Môn an toàn (Hub)
+  SAFE_CLAN: 'safe_clan',           // Gia Tộc an toàn (Hub)
   COMBAT_WILDERNESS: 'combat_wild', // Dã Ngoại chiến đấu
   COMBAT_DUNGEON: 'combat_dungeon'  // Bí Cảnh / Cấm Địa chiến đấu
 });
@@ -59,6 +38,7 @@ export const UI_MODES = Object.freeze({
   VILLAGE_HUB: 'village_hub',               // Giao diện Hub Thôn Trấn (Interactive image / buildings)
   CITY_HUB: 'city_hub',                     // Giao diện Hub Thành Thị (THANH THI.PNG)
   SECT_HUB: 'sect_hub',                     // Giao diện Hub Tông Môn (TONG MON.PNG)
+  CLAN_HUB: 'clan_hub',                     // Giao diện Hub Gia Tộc (GIA TOC.PNG)
   COMBAT_BATTLEFIELD: 'combat_battlefield'  // Giao diện Chiến Trường (Player, Joystick, Kỹ năng, Quái vật)
 });
 
@@ -83,8 +63,7 @@ export const CONTINENT_IDS = Object.freeze({
 
 export const CANONICAL_MAP_KEYS = Object.freeze({
   THANH_VAN_THON: 'map_thanh_van_thon',
-  THANH_VAN_NGOAI_VI: 'map_thanh_van_ngoai_vi',
-  VAN_MOC_SAM_LAM: 'map_van_moc_sam_lam'
+  THANH_VAN_NGOAI_VI: 'map_thanh_van_ngoai_vi'
 });
 
 export const MAJOR_PROVINCES = Object.freeze({
@@ -208,220 +187,15 @@ export const CONTINENT_DEFINITIONS = Object.freeze({
 });
 
 // -----------------------------------------------------------------------------
-// 3. QUY TRÌNH RESOLVE ASSET & PHÂN LOẠI KHU VỰC
+// 3. DANH MỤC SPECIAL MAP OVERRIDES (CÁC MAP THIẾT KẾ ĐẶC BIỆT)
 // -----------------------------------------------------------------------------
 
-function classifyTerritoryZoneType(node, index) {
-  if (node.id === STARTER_WORLD_IDS.province) return ZONE_TYPES.SAFE_VILLAGE;
-  const mod = index % 5;
-  if (mod === 0) return ZONE_TYPES.SAFE_CITY;         // Thành Thị trung tâm (Hub lớn)
-  if (mod === 1) return ZONE_TYPES.SAFE_SECT;         // Tông Môn / Sơn môn thánh địa
-  if (mod === 2 || mod === 3) return ZONE_TYPES.COMBAT_WILDERNESS; // Dã ngoại săn quái
-  return ZONE_TYPES.COMBAT_DUNGEON;                  // Bí cảnh / Hang động / Cấm địa
-}
-
-function classifyTerritoryUiMode(zoneType) {
-  switch (zoneType) {
-    case ZONE_TYPES.SAFE_VILLAGE: return UI_MODES.VILLAGE_HUB;
-    case ZONE_TYPES.SAFE_CITY: return UI_MODES.CITY_HUB;
-    case ZONE_TYPES.SAFE_SECT: return UI_MODES.SECT_HUB;
-    default: return UI_MODES.COMBAT_BATTLEFIELD;
-  }
-}
-
-function resolveAssetProfile(continentId, zoneType, theme) {
-  const isHub = zoneType === ZONE_TYPES.SAFE_VILLAGE || zoneType === ZONE_TYPES.SAFE_CITY || zoneType === ZONE_TYPES.SAFE_SECT;
-  let bgKey = 'map_panorama_wilderness_shared';
-  let bgPath = 'environment/map_1_thanh_van_ngoai_vi.png';
-  let sourceWidth = 3200;
-  let sourceHeight = 960;
-
-  if (zoneType === ZONE_TYPES.SAFE_VILLAGE) {
-    bgKey = 'bg_village_hub';
-    bgPath = 'environment/THON TRAN.png';
-    sourceWidth = 784;
-    sourceHeight = 1334;
-  } else if (zoneType === ZONE_TYPES.SAFE_CITY) {
-    bgKey = 'bg_city_hub';
-    bgPath = 'environment/THANH THI.PNG';
-    sourceWidth = 941;
-    sourceHeight = 1672;
-  } else if (zoneType === ZONE_TYPES.SAFE_SECT) {
-    bgKey = 'bg_sect_hub';
-    bgPath = 'environment/TONG MON.PNG';
-    sourceWidth = 848;
-    sourceHeight = 1264;
-  }
-
-  return Object.freeze({
-    bgKey,
-    bgPath,
-    panoramaKey: bgKey,
-    panoramaAsset: bgPath,
-    sourceWidth,
-    sourceHeight,
-    worldWidth: isHub ? 540 : 32000,
-    worldHeight: 960,
-    tilesetTheme: theme || 'temperate_grassland',
-    bgmTrack: CONTINENT_DEFINITIONS[continentId]?.bgmKey || 'bgm_south_nam_lang',
-    noRepeat: isHub,
-    repeatPanorama: !isHub
-  });
-}
-
-function slugifyVi(value) {
-  return String(value || '')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-}
-
-// -----------------------------------------------------------------------------
-// 4. DANH MỤC TOÀN BỘ 437 CHÂU · ĐẠO · LĨNH · PHỦ (NHÂN GIỚI ATLAS MANIFEST)
-// -----------------------------------------------------------------------------
-
-function buildTerritoryManifest() {
-  const territories = [];
-  const provinceNodes = HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province');
-  const seenKeys = new Map();
-
-  provinceNodes.forEach((node, index) => {
-    const continentId = node.continentId || (node.id.startsWith('nl.') ? 'south' : 'south');
-    const continentDef = CONTINENT_DEFINITIONS[continentId] || CONTINENT_DEFINITIONS.south;
-    const detailProfile = getHumanRealmDetailProfile(node.id);
-    const zoneType = classifyTerritoryZoneType(node, index);
-    const uiMode = classifyTerritoryUiMode(zoneType);
-    const isPeaceZone = zoneType === ZONE_TYPES.SAFE_VILLAGE || zoneType === ZONE_TYPES.SAFE_CITY || zoneType === ZONE_TYPES.SAFE_SECT;
-    const assets = resolveAssetProfile(continentId, zoneType, node.theme);
-
-    const minRealm = node.enemyProfile?.minRealmIdx ?? (continentId === 'south' ? 0 : 6);
-    const maxRealm = node.enemyProfile?.maxRealmIdx ?? (minRealm + 3);
-    const bossRealm = node.enemyProfile?.bossRealmIdx ?? (maxRealm + 1);
-
-    const rawSlug = slugifyVi(node.name);
-    let canonicalKey = `map_${rawSlug}`;
-    if (seenKeys.has(canonicalKey)) {
-      const count = seenKeys.get(canonicalKey) + 1;
-      seenKeys.set(canonicalKey, count);
-      canonicalKey = `map_${rawSlug}_${count}`;
-    } else {
-      seenKeys.set(canonicalKey, 1);
-    }
-
-    const runtimeMapId = 3 + index;
-    const manifestEntry = Object.freeze({
-      id: runtimeMapId,
-      canonicalKey,
-      key: canonicalKey,
-      nodeId: node.id,
-      name: node.name,
-      displayTypeLabel: node.displayTypeLabel || continentDef.secondaryLabel.toUpperCase(),
-      unitType: continentDef.secondaryLabel,
-      continentId,
-      continentName: continentDef.name,
-      primaryRegionId: node.regionId || node.parentId,
-      primaryRegionName: node.regionName || node.parentId,
-      
-      // 1. Phân loại & Chế độ hoạt động
-      type: zoneType,
-      uiMode,
-      isPeaceZone,
-      
-      // 2. Cảnh giới & Ngũ Hành
-      realmRange: Object.freeze([minRealm, maxRealm]),
-      bossRealmIdx: bossRealm,
-      dominantElements: Object.freeze(node.enemyProfile?.dominantElements || [...continentDef.primaryElements]),
-      
-      // 3. Asset & Visual
-      assets,
-      
-      // 4. Bản sắc map & Biome
-      biome: Object.freeze({
-        primary: detailProfile?.identity?.primaryBiome || 'sơn lâm',
-        secondary: detailProfile?.identity?.secondaryBiome || 'linh điền',
-        terrain: detailProfile?.identity?.terrain || 'thung lũng linh mạch',
-        visualPriority: detailProfile?.identity?.visualPriority || 'thôn trấn quanh linh điền'
-      }),
-
-      // 5. Đô thị & Dân cư
-      settlements: Object.freeze({
-        capital: node.capital || detailProfile?.settlements?.capital || `${node.name} Thành`,
-        notableCities: Object.freeze(node.notableCities || detailProfile?.settlements?.cities || []),
-        notableTowns: Object.freeze(node.notableTowns || detailProfile?.settlements?.towns || []),
-        notableVillages: Object.freeze(node.notableVillages || detailProfile?.settlements?.villages || []),
-        coreServices: Object.freeze(detailProfile?.settlements?.services || ['phường thị', 'đan dược', 'luyện khí', 'truyền tống'])
-      }),
-
-      // 6. Địa danh khám phá
-      exploration: Object.freeze({
-        landmarks: Object.freeze(detailProfile?.exploration?.landmarks || [`${node.name} Cổ Lâm`, `${node.name} Dược Cốc`]),
-        secretRealms: Object.freeze(node.secretRealms || detailProfile?.exploration?.secretRealms || []),
-        forbiddenZones: Object.freeze(node.forbiddenZones || detailProfile?.exploration?.forbiddenZones || []),
-        mainWaypoint: node.capital || `${node.name} Thành`
-      }),
-
-      // 7. Tài nguyên & Kinh tế
-      resourceProfile: Object.freeze({
-        products: Object.freeze(node.products || detailProfile?.resources?.products || []),
-        minerals: Object.freeze(node.minerals || detailProfile?.resources?.minerals || []),
-        rareResource: detailProfile?.resources?.rareProduct || node.products?.[0] || 'Linh Dược',
-        gatherZones: Object.freeze(detailProfile?.resources?.gatherZones || ['dược khu', 'khoáng khu'])
-      }),
-
-      // 8. Kẻ địch & Sinh thái (Enemy Ecology)
-      enemyProfile: Object.freeze({
-        commonEnemies: Object.freeze(node.enemyProfile?.commonEnemies || detailProfile?.combat?.commonEnemies || ['Dã Thú', 'Yêu Lang']),
-        eliteEnemy: node.enemyProfile?.eliteEnemy || detailProfile?.combat?.eliteEnemy || `${node.name} Tinh Anh`,
-        fieldBoss: node.enemyProfile?.fieldBoss || detailProfile?.combat?.fieldBoss || `${node.name} Lãnh Chúa`,
-        spawnDensity: isPeaceZone ? 0 : (300 - Math.min(150, minRealm * 5))
-      }),
-
-      // 9. Hazard & Thời tiết
-      hazardAndWeather: Object.freeze({
-        hazards: Object.freeze(detailProfile?.hazards?.environmental || ['thú triều', 'sơn tặc tu sĩ']),
-        weather: Object.freeze(detailProfile?.hazards?.weather || ['linh vũ', 'sương núi']),
-        suppressionThreshold: minRealm,
-        rarePhenomenon: detailProfile?.hazards?.rarePhenomenon || 'linh vũ'
-      }),
-
-      // 10. Thế lực (Đang để trống để thiết kế mới)
-      factionProfile: Object.freeze({
-        dominantFaction: null,
-        localFactions: Object.freeze([]),
-        coreConflict: null
-      }),
-
-      // 11. Sự kiện & Nhiệm vụ
-      eventsAndQuests: Object.freeze({
-        worldEvents: Object.freeze(detailProfile?.events?.worldEvents || ['linh dược thành thục', 'yêu thú công thành']),
-        questHooks: Object.freeze(detailProfile?.events?.questHooks || ['trấn áp yêu thú', 'thu thập linh dược'])
-      }),
-
-      // 12. Blueprint Materialize Zones (Z1 - Z6)
-      blueprintZones: Object.freeze(detailProfile?.blueprint?.zones || []),
-      
-      // Trạng thái Materialized trong Game runtime
-      materializedPlayableMapId: node.id === STARTER_WORLD_IDS.province ? 0 : null
-    });
-
-    territories.push(manifestEntry);
-  });
-
-  return Object.freeze(territories);
-}
-
-export const MASTER_TERRITORY_MANIFEST = buildTerritoryManifest();
-
-// -----------------------------------------------------------------------------
-// 5. RUNTIME PLAYABLE MAPS (CANONICAL MAP IDENTIFIERS)
-// -----------------------------------------------------------------------------
-
-export const MASTER_MAP_DEFINITIONS = Object.freeze([
+export const SPECIAL_MAP_OVERRIDES = Object.freeze([
   // ---------------------------------------------------------------------------
-  // MAP 0 / map_thanh_van_thon: THANH VÂN THÔN (KHỞI NGUYÊN HUB - AN TOÀN)
+  // map_thanh_van_thon: THANH VÂN THÔN (KHỞI NGUYÊN HUB - AN TOÀN)
   // ---------------------------------------------------------------------------
   Object.freeze({
-    id: 0,
+    id: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     canonicalKey: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     key: CANONICAL_MAP_KEYS.THANH_VAN_THON,
     name: 'Thanh Vân Thôn',
@@ -489,10 +263,10 @@ export const MASTER_MAP_DEFINITIONS = Object.freeze([
   }),
 
   // ---------------------------------------------------------------------------
-  // MAP 1 / map_thanh_van_ngoai_vi: THANH VÂN NGOẠI VI (DÃ NGOẠI KHỞI ĐẦU)
+  // map_thanh_van_ngoai_vi: THANH VÂN NGOẠI VI (DÃ NGOẠI KHỞI ĐẦU)
   // ---------------------------------------------------------------------------
   Object.freeze({
-    id: 1,
+    id: CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI,
     canonicalKey: CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI,
     key: CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI,
     name: 'Thanh Vân Ngoại Vi',
@@ -609,194 +383,69 @@ export const MASTER_MAP_DEFINITIONS = Object.freeze([
     })
   }),
 
-  // ---------------------------------------------------------------------------
-  // MAP 2 / map_van_moc_sam_lam: VẠN MỘC SÂM LÂM (DÃ NGOẠI TRUNG CẤP)
-  // ---------------------------------------------------------------------------
-  Object.freeze({
-    id: 2,
-    canonicalKey: CANONICAL_MAP_KEYS.VAN_MOC_SAM_LAM,
-    key: CANONICAL_MAP_KEYS.VAN_MOC_SAM_LAM,
-    name: 'Vạn Mộc Sâm Lâm',
-    subName: 'Cổ Lâm Độc Chướng · Dã Ngoại Trung Cấp',
-    type: ZONE_TYPES.COMBAT_WILDERNESS,
-    uiMode: UI_MODES.COMBAT_BATTLEFIELD,
-    isPeaceZone: false,
-
-    geography: Object.freeze({
-      continentId: CONTINENT_IDS.SOUTH,
-      continent: 'Nam Lăng Đại Lục',
-      greatRegion: 'Thanh Linh Vực',
-      province: 'Thanh Châu',
-      nation: 'Đại Ly Quốc',
-      commandery: 'Nam Sơn Quận',
-      city: 'Thanh Hà Thành Vực',
-      location: 'Vạn Mộc Sâm Lâm',
-      nodeId: STARTER_WORLD_IDS.map2
-    }),
-
-    dimensions: Object.freeze({
-      width: 32000,
-      height: 960,
-      baseGroundY: 820
-    }),
-
-    assets: Object.freeze({
-      bgKey: 'map_panorama_wilderness_shared',
-      bgPath: 'environment/map_1_thanh_van_ngoai_vi.png',
-      panoramaKey: 'map_panorama_wilderness_shared',
-      panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.png',
-      sourceWidth: 3200,
-      sourceHeight: 960,
-      worldWidth: 32000,
-      worldHeight: 960,
-      bgmKey: 'bgm_wilderness_combat',
-      noRepeat: false,
-      repeatPanorama: true,
-      field: Object.freeze({ left: 60, right: 31940, top: 350, bottom: 900 }),
-      spawn: Object.freeze({ x: 350, y: 620 })
-    }),
-
-    access: Object.freeze({
-      minRealmIdx: 3,
-      minRealmName: 'Luyện Khí Tầng 3',
-      requiresQuestId: null,
-          }),
-
-    hubContent: null,
-
-    combatContent: Object.freeze({
-      zones: Object.freeze([
-        Object.freeze({
-          id: 'outer',
-          name: 'Vạn Mộc Ngoại Lâm',
-          x0: 650,
-          x1: 8000,
-          realmRange: Object.freeze([3, 5]),
-          elementAffinities: Object.freeze([ELEMENT_TYPES.MOC, ELEMENT_TYPES.THUY]),
-          monsterRanks: Object.freeze(['m_1_1', 'm_1_2']),
-          monsterSprites: Object.freeze([5, 4]),
-          flyingMonsterSprites: Object.freeze([1, 2, 3]),
-          herbTiers: Object.freeze([2, 3, 4]),
-          oreTiers: Object.freeze([2, 3]),
-          densityDistance: 320
-        }),
-        Object.freeze({
-          id: 'jade_leaf',
-          name: 'Bích Diệp Lâm',
-          x0: 8000,
-          x1: 16000,
-          realmRange: Object.freeze([6, 8]),
-          elementAffinities: Object.freeze([ELEMENT_TYPES.MOC, ELEMENT_TYPES.PHONG]),
-          monsterRanks: Object.freeze(['m_1_2', 'm_1_3']),
-          monsterSprites: Object.freeze([4, 9]),
-          flyingMonsterSprites: Object.freeze([3, 4, 5]),
-          herbTiers: Object.freeze([3, 4, 5]),
-          oreTiers: Object.freeze([3, 4]),
-          densityDistance: 260
-        }),
-        Object.freeze({
-          id: 'ancient',
-          name: 'Thiên Niên Cổ Lâm',
-          x0: 16000,
-          x1: 24000,
-          realmRange: Object.freeze([9, 11]),
-          elementAffinities: Object.freeze([ELEMENT_TYPES.MOC, ELEMENT_TYPES.LOI]),
-          monsterRanks: Object.freeze(['m_1_3', 'm_1_4']),
-          monsterSprites: Object.freeze([9, 7]),
-          flyingMonsterSprites: Object.freeze([5, 6, 7]),
-          herbTiers: Object.freeze([4, 5, 6]),
-          oreTiers: Object.freeze([4, 5]),
-          densityDistance: 200
-        }),
-        Object.freeze({
-          id: 'abyss',
-          name: 'Vạn Mộc Thâm Uyên',
-          x0: 24000,
-          x1: 31940,
-          realmRange: Object.freeze([12, 12]),
-          elementAffinities: Object.freeze([ELEMENT_TYPES.MOC, ELEMENT_TYPES.HOA]),
-          monsterRanks: Object.freeze(['m_1_4', 'm_2_1']),
-          monsterSprites: Object.freeze([7, 12]),
-          flyingMonsterSprites: Object.freeze([7, 8, 9]),
-          herbTiers: Object.freeze([5, 6, 7]),
-          oreTiers: Object.freeze([5]),
-          densityDistance: 150
-        })
-      ]),
-      resourceSpawns: Object.freeze({
-        herbIds: Object.freeze(['herb_3', 'herb_4', 'herb_5', 'herb_6', 'herb_7']),
-        oreTiers: Object.freeze([3, 4, 5])
-      })
-    })
-  })
 ]);
 
-// -----------------------------------------------------------------------------
-// 6. CACHED MAPS VÀ TIỆN ÍCH TRUY XUẤT NHANH O(1)
-// -----------------------------------------------------------------------------
+export const MASTER_MAP_DEFINITIONS = SPECIAL_MAP_OVERRIDES;
+export const MASTER_TERRITORY_MANIFEST = Object.freeze([]);
 
-const mapByIdMap = new Map();
-const mapByCanonicalKeyMap = new Map();
-const mapByNodeIdMap = new Map();
-
-for (const m of MASTER_MAP_DEFINITIONS) {
-  mapByIdMap.set(Number(m.id), m);
-  mapByCanonicalKeyMap.set(m.canonicalKey, m);
-  if (m.key) mapByCanonicalKeyMap.set(m.key, m);
-  if (m.geography?.nodeId) mapByNodeIdMap.set(m.geography.nodeId, m);
-}
-
-const territoryByNodeIdMap = new Map(MASTER_TERRITORY_MANIFEST.map(t => [t.nodeId, t]));
-const territoryByIdMap = new Map(MASTER_TERRITORY_MANIFEST.map(t => [t.id, t]));
-const territoryByCanonicalKeyMap = new Map(MASTER_TERRITORY_MANIFEST.map(t => [t.canonicalKey, t]));
-
+// Territory lookup APIs remain available while the hierarchy is supplied by
+// worldRegistry.  Initialising these indexes prevents a ReferenceError in any
+// legacy caller that asks for territory metadata before a hierarchy adapter
+// supplies entries.
+const territoryByIdMap = new Map();
+const territoryByCanonicalKeyMap = new Map();
+const territoryByNodeIdMap = new Map();
 const territoriesByContinentMap = new Map();
 const territoriesByRegionMap = new Map();
 
-for (const t of MASTER_TERRITORY_MANIFEST) {
-  if (!territoriesByContinentMap.has(t.continentId)) territoriesByContinentMap.set(t.continentId, []);
-  territoriesByContinentMap.get(t.continentId).push(t);
+// -----------------------------------------------------------------------------
+// 4. LOOKUP O(1) CHO CÁC SPECIAL MAP OVERRIDES
+// -----------------------------------------------------------------------------
 
-  if (!territoriesByRegionMap.has(t.primaryRegionId)) territoriesByRegionMap.set(t.primaryRegionId, []);
-  territoriesByRegionMap.get(t.primaryRegionId).push(t);
+const specialOverrideByIdMap = new Map();
+const specialOverrideByCanonicalKeyMap = new Map();
+const specialOverrideByNodeIdMap = new Map();
+
+for (const m of SPECIAL_MAP_OVERRIDES) {
+  specialOverrideByIdMap.set(String(m.id), m);
+  specialOverrideByCanonicalKeyMap.set(m.canonicalKey, m);
+  if (m.key) specialOverrideByCanonicalKeyMap.set(m.key, m);
+  if (m.geography?.nodeId) specialOverrideByNodeIdMap.set(m.geography.nodeId, m);
 }
 
-export function findMasterMapById(identifier) {
+export function findSpecialMapOverride(identifier) {
   if (identifier === undefined || identifier === null) return null;
-  
-  if (typeof identifier === 'number') {
-    return mapByIdMap.get(identifier) || territoryByIdMap.get(identifier) || null;
-  }
-  
+
   const str = String(identifier).trim();
-  if (territoryByNodeIdMap.has(str)) return territoryByNodeIdMap.get(str);
-  if (mapByNodeIdMap.has(str)) return mapByNodeIdMap.get(str);
-  if (territoryByCanonicalKeyMap.has(str)) return territoryByCanonicalKeyMap.get(str);
-  if (mapByCanonicalKeyMap.has(str)) return mapByCanonicalKeyMap.get(str);
-  
-  const parsedNum = Number(str);
-  if (!isNaN(parsedNum)) {
-    if (mapByIdMap.has(parsedNum)) return mapByIdMap.get(parsedNum);
-    if (territoryByIdMap.has(parsedNum)) return territoryByIdMap.get(parsedNum);
-  }
+  // 1. Tra theo canonical string key
+  if (specialOverrideByIdMap.has(str)) return specialOverrideByIdMap.get(str);
+  // 2. Tra theo node ID (world hierarchy)
+  if (specialOverrideByNodeIdMap.has(str)) return specialOverrideByNodeIdMap.get(str);
+  // 3. Tra theo canonical key alias
+  if (specialOverrideByCanonicalKeyMap.has(str)) return specialOverrideByCanonicalKeyMap.get(str);
 
   return null;
 }
 
-/**
- * Tra cứu Map Runtime bằng bất kỳ định danh nào (Số, Key chuẩn, hoặc Node ID).
- */
+export function getSpecialMapOverride(identifier) {
+  return findSpecialMapOverride(identifier) || SPECIAL_MAP_OVERRIDES[0];
+}
+
+export function findMasterMapById(identifier) {
+  return findSpecialMapOverride(identifier);
+}
+
 export function getMasterMapById(identifier) {
-  return findMasterMapById(identifier) || MASTER_MAP_DEFINITIONS[0];
+  return getSpecialMapOverride(identifier);
 }
 
 export function getAllMasterMaps() {
-  return MASTER_MAP_DEFINITIONS;
+  return SPECIAL_MAP_OVERRIDES;
 }
 
 export function isMapSafeHub(mapIdentifier) {
   const map = getMasterMapById(mapIdentifier);
-  return map.isPeaceZone === true || map.type === ZONE_TYPES.SAFE_VILLAGE || map.type === ZONE_TYPES.SAFE_CITY || map.type === ZONE_TYPES.SAFE_SECT;
+  return map.isPeaceZone === true || map.type === ZONE_TYPES.SAFE_VILLAGE || map.type === ZONE_TYPES.SAFE_CITY || map.type === ZONE_TYPES.SAFE_SECT || map.type === ZONE_TYPES.SAFE_CLAN;
 }
 
 export function getMapUiMode(mapIdentifier) {

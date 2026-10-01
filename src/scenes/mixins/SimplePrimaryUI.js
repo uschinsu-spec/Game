@@ -5,6 +5,7 @@ import { getCongPhapById } from '../../config/congPhapData.js';
 import { gameState } from '../../state/gameState.js';
 import { stopPointer } from './UiModalManager.js';
 import { ELEMENTS_8 } from './ElementalCombatProgression.js';
+import { getItemByName, getItemQuantity, removeItem, getEquipmentStats } from './ItemSystem.js?v=20261001-item-icons-v4';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 
@@ -64,7 +65,8 @@ function breakthroughState() {
   } else if ((gameState.exp || 0) >= currentRealm.expReq) {
     if (currentRealm.bottleneck) {
       requiredPill = currentRealm.pillNeeded;
-      const have = gameState.inventory?.pills?.[requiredPill] || 0;
+      const requiredDef = getItemByName(requiredPill);
+      const have = requiredDef ? getItemQuantity(requiredDef.id) : 0;
       canBreak = have > 0;
       reason = canBreak ? `Đủ Tu Vi và đã có ${requiredPill}.` : `Cần 1 ${requiredPill} để đột phá.`;
     } else {
@@ -98,7 +100,8 @@ function renderCharacterSummary(scene, panel) {
   const sense = scene.calcPlayerSpiritualSense?.() || 10;
   const atkInterval = scene.calcPlayerAtkInterval?.() || 400;
   const atkSpeed = (1000 / atkInterval).toFixed(1);
-  const critRate = (15 + (sense * 0.5)).toFixed(1);
+  const itemStats = getEquipmentStats();
+  const critRate = (15 + (sense * 0.5) + Number(itemStats.critRate || 0)).toFixed(1);
 
   const stats = scene.add.text(-215, -274,
     `❤️ HP: ${maxHp.toLocaleString('vi-VN')}     🔷 MP: ${maxMp.toLocaleString('vi-VN')}\n` +
@@ -191,7 +194,7 @@ function renderBreakthroughDetail(scene, panel) {
   const req = scene.add.text(-215, -245,
     `Tu Vi: ${exp.toLocaleString('vi-VN')} / ${expReq.toLocaleString('vi-VN')}\n` +
     `${activeCp ? `Công pháp: ${activeCp.name} (Max: ${activeCp.maxStage})` : 'Công pháp: Chưa chọn'}\n` +
-    `${requiredPill ? `Đan dược cần: ${requiredPill} • Có: ${gameState.inventory?.pills?.[requiredPill] || 0}` : 'Đan dược: Không yêu cầu'}\n\n${reason}`, {
+    `${requiredPill ? `Đan dược cần: ${requiredPill} • Có: ${(() => { const d=getItemByName(requiredPill); return d ? getItemQuantity(d.id) : 0; })()}` : 'Đan dược: Không yêu cầu'}\n\n${reason}`, {
       fontFamily: FONT, fontSize: '15px', color: '#e7fbff', lineSpacing: 10,
       wordWrap: { width: 430, useAdvancedWrap: true }
     }).setOrigin(0, 0);
@@ -200,7 +203,10 @@ function renderBreakthroughDetail(scene, panel) {
   addButton(scene, panel, 0, 120, 430, 62, 'XÁC NHẬN ĐỘT PHÁ', () => {
     const state = breakthroughState();
     if (!state.canBreak) return;
-    if (state.requiredPill) gameState.inventory.pills[state.requiredPill]--;
+    if (state.requiredPill) {
+      const pill = getItemByName(state.requiredPill);
+      if (!pill || !removeItem(pill.id, 1).success) return;
+    }
     if (gameState.realmIdx < REALMS.length - 1) {
       gameState.realmIdx++;
       gameState.exp = 0;
@@ -227,13 +233,8 @@ export const CharacterPrimaryModal = Object.freeze({
   }
 });
 
-// Compatibility alias for old imports. It intentionally contains NO map method.
-export const CharacterMapPrimaryModal = CharacterPrimaryModal;
-
-// Deprecated installer kept only for compatibility with old external imports.
-// New game bootstrap does not call it.
 export function installSimplePrimaryUI(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__simplePrimaryUiInstalled) return;
-  MainGameScene.prototype.__simplePrimaryUiInstalled = true;
+  if (!MainGameScene?.prototype || MainGameScene.prototype.__simplePrimaryUiV3Installed) return;
+  MainGameScene.prototype.__simplePrimaryUiV3Installed = true;
   MainGameScene.prototype.openCharacterPanel = CharacterPrimaryModal.openCharacterPanel;
 }

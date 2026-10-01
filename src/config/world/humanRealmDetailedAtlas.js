@@ -8,7 +8,7 @@
 import {
   HUMAN_REALM_ROOT_ID,
   HUMAN_REALM_WORLD_NODES
-} from './humanRealmWorld.js?v=20260929-human-realm-v4';
+} from './humanRealmWorld.js?v=20261001-canonical-geography-single-ruler-v2';
 
 export const HUMAN_REALM_DETAIL_VERSION = '20260929-human-realm-detailed-atlas-v1';
 
@@ -404,7 +404,7 @@ function makeLocalDetail(node) {
 function buildDetail(node) {
   if (node.id === HUMAN_REALM_ROOT_ID) return makeRealmDetail();
   if (node.type === 'continent') return makeContinentDetail(node);
-  if (node.type === 'great_region') return makeRegionDetail(node);
+  if (node.type === 'region') return makeRegionDetail(node);
   if (node.type === 'province') return makeTerritoryDetail(node);
   return makeLocalDetail(node);
 }
@@ -412,7 +412,7 @@ function buildDetail(node) {
 export const HUMAN_REALM_DETAIL_COUNTS = Object.freeze({
   totalNodes: HUMAN_REALM_WORLD_NODES.length,
   continents: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'continent').length,
-  primaryRegions: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'great_region').length,
+  primaryRegions: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'region').length,
   secondLevelTerritories: HUMAN_REALM_WORLD_NODES.filter(node => node.type === 'province').length,
   playableLocations: HUMAN_REALM_WORLD_NODES.filter(node => node.playableMapId != null).length
 });

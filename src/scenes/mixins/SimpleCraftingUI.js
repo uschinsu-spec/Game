@@ -1,380 +1,41 @@
 import { W, H } from '../constants.js';
-import {
-  CRAFTING_SYSTEM,
-  calculatePillEfficiency,
-  getPlayerPillRank,
-  canCraftRecipe,
-  deductCraftMaterials
-} from '../../config/craftingData.js';
-import { getHerbByName } from '../../config/herbsData.js';
+import { listRecipes, getItemDef, getRecipe, getRealmItemRank } from '../../config/itemCatalog.js?v=20261001-item-v3';
+import { getItemQuantity, craftItem } from './ItemSystem.js?v=20261001-item-v3';
 import { gameState } from '../../state/gameState.js';
 import { stopPointer } from './UiModalManager.js';
 
-const FONT = 'Be Vietnam Pro, sans-serif';
-
-function isThanhVanArea(scene) {
-  const id = Number(gameState.currentMapId ?? scene?.currentMap?.id ?? 0);
-  return id === 0 || id === 1;
+const FONT='Be Vietnam Pro, sans-serif';
+const TABS=[['gear','⚒ LUYỆN KHÍ'],['pills','💊 ĐAN'],['talismans','📜 PHÙ'],['formations','☸ TRẬN']];
+function button(scene,panel,x,y,w,h,label,fn,active=false,enabled=true){
+  const bg=scene.add.rectangle(x,y,w,h,active?0x146b78:(enabled?0x123b4b:0x26343c),1).setStrokeStyle(1.5,active?0x7cf3ff:0x4f8190).setInteractive({useHandCursor:enabled});
+  const t=scene.add.text(x,y,label,{fontFamily:FONT,fontSize:'12px',fontStyle:'bold',color:enabled?'#f4fdff':'#7c8d96',align:'center',wordWrap:{width:w-10}}).setOrigin(.5);panel.add([bg,t]);
+  if(enabled)bg.on('pointerdown',p=>{stopPointer(scene,p);fn?.();});return bg;
 }
+function shell(scene,title,sub=''){return scene.createModalShell(title,sub,{headerY:-427,headerH:88,titleFontSize:'22px',titleY:-445,subY:-414,subtitleColor:'#9aeaff'});}
+function rankName(r){return ['Phàm','Nhất','Nhị','Tam','Tứ','Ngũ'][r]||String(r);}
 
-function createShell(scene, title, subtitle = '') {
-  return scene.createModalShell(title, subtitle, {
-    headerY: -427,
-    headerH: 88,
-    titleFontSize: '22px',
-    titleY: -445,
-    subY: -414,
-    subtitleColor: '#9aeaff'
-  });
-}
-
-function addButton(scene, panel, x, y, w, h, label, onPress, opts = {}) {
-  const enabled = opts.enabled !== false;
-  const fill = enabled ? (opts.fill ?? 0x0e4f68) : 0x253544;
-  const stroke = enabled ? (opts.stroke ?? 0x55e6ff) : 0x536270;
-  const color = enabled ? (opts.color ?? '#f4fdff') : '#8493a0';
-
-  const bg = scene.add.rectangle(x, y, w, h, fill, 1)
-    .setStrokeStyle(2, stroke, 1)
-    .setInteractive({ useHandCursor: enabled });
-  const txt = scene.add.text(x, y, label, {
-    fontFamily: FONT,
-    fontSize: opts.fontSize ?? '15px',
-    fontStyle: 'bold',
-    color,
-    align: 'center',
-    wordWrap: { width: Math.max(60, w - 18), useAdvancedWrap: true }
-  }).setOrigin(0.5);
-
-  if (enabled && typeof onPress === 'function') {
-    bg.on('pointerdown', pointer => {
-      stopPointer(scene, pointer);
-      onPress();
-    });
-  }
-  panel.add([bg, txt]);
-  return bg;
-}
-
-function gradeColor(item) {
-  return {
-    'Cực Phẩm': 0xffb020,
-    'Thượng Phẩm': 0xff72e6,
-    'Trung Phẩm': 0x66ddff
-  }[item?.grade] || 0x66f5a3;
-}
-
-function ownedCount(tab, item) {
-  if (tab === 'pills') return gameState.inventory?.pills?.[item.name] || 0;
-  if (tab === 'talismans') return gameState.inventory?.talismans?.[item.name] || 0;
-  if (tab === 'formations') return (gameState.inventory?.formations || []).includes(item.name) ? 1 : 0;
-  return 0;
-}
-
-function ingredientLines(item) {
-  const lines = [];
-  if (Array.isArray(item.recipeHerbs) && item.recipeHerbs.length) {
-    item.recipeHerbs.forEach(req => {
-      const have = (typeof gameState.herbs === 'object' && gameState.herbs) ? (gameState.herbs[req.name] || 0) : 0;
-      const icon = getHerbByName(req.name)?.emoji || '🌿';
-      lines.push({ text: `${icon} ${req.name}: ${have}/${req.count}`, ok: have >= req.count });
-    });
-  }
-  if ((item.costOres || 0) > 0) {
-    const have = gameState.ores || 0;
-    lines.push({ text: `💎 Khoáng: ${have}/${item.costOres}`, ok: have >= item.costOres });
-  }
-  if ((item.costGold || 0) > 0) {
-    const have = gameState.gold || 0;
-    lines.push({ text: `✨ Linh Thạch: ${have}/${item.costGold}`, ok: have >= item.costGold });
-  }
-  return lines;
-}
-
-function tabLabel(tab) {
-  if (tab === 'talismans') return 'PHÙ LỤC';
-  if (tab === 'formations') return 'TRẬN PHÁP';
-  return 'ĐAN DƯỢC';
-}
-
-function renderCategoryTabs(scene, panel, currentTab) {
-  const tabs = [
-    { key: 'pills', label: '💊 ĐAN DƯỢC' },
-    { key: 'talismans', label: '📜 PHÙ LỤC' },
-    { key: 'formations', label: '☸ TRẬN PHÁP' }
-  ];
-  tabs.forEach((tab, idx) => {
-    const x = -168 + idx * 168;
-    const active = tab.key === currentTab;
-    addButton(scene, panel, x, -352, 154, 52, tab.label,
-      () => scene.openCraftingPanel(tab.key), {
-        fill: active ? 0x126783 : 0x0b3a50,
-        stroke: active ? 0x7cf3ff : 0x32778e,
-        color: active ? '#ffffff' : '#b8eafa',
-        fontSize: '13px'
-      });
-  });
-}
-
-function renderRankSelector(scene, panel, activeRank) {
-  const earlyOnly = isThanhVanArea(scene);
-
-  if (earlyOnly) {
-    // Thanh Vân: chỉ mở Phàm Phẩm (0) & Nhất Phẩm (1)
-    const earlyRanks = [
-      { rank: 0, label: '🌱 PHÀM PHẨM', x: -116 },
-      { rank: 1, label: '💊 NHẤT PHẨM', x: 116 }
-    ];
-    earlyRanks.forEach(({ rank, label, x }) => {
-      const active = rank === activeRank;
-      addButton(scene, panel, x, -280, 220, 48, label,
-        () => scene.openCraftingPanel('pills', rank), {
-          fill: active ? 0x176b55 : 0x123443,
-          stroke: active ? 0x7dffca : 0x4b8192,
-          color: active ? '#edfff5' : '#c8edf6',
-          fontSize: '13px'
-        });
-    });
-
-    const note = scene.add.text(0, -236, 'Thanh Vân: Đan Dược mở tối đa Nhất Phẩm', {
-      fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#a9f5ff'
-    }).setOrigin(0.5);
-    panel.add(note);
-    return;
-  }
-
-  // Toàn bộ 6 Cấp Phẩm: Phàm (0), Nhất (1), Nhị (2), Tam (3), Tứ (4), Ngũ (5)
-  const ranks = [
-    { rank: 0, label: '🌱 PHÀM' },
-    { rank: 1, label: '💊 NHẤT' },
-    { rank: 2, label: '🔮 NHỊ' },
-    { rank: 3, label: '✨ TAM' },
-    { rank: 4, label: '👑 TỨ' },
-    { rank: 5, label: '⚡ NGŨ' }
-  ];
-
-  ranks.forEach((r, idx) => {
-    const row = Math.floor(idx / 3);
-    const col = idx % 3;
-    const x = -164 + col * 164;
-    const y = -294 + row * 44;
-    const active = r.rank === activeRank;
-    addButton(scene, panel, x, y, 150, 38, r.label,
-      () => scene.openCraftingPanel('pills', r.rank), {
-        fill: active ? 0x176b55 : 0x123443,
-        stroke: active ? 0x7dffca : 0x4b8192,
-        color: active ? '#edfff5' : '#c8edf6',
-        fontSize: '12px'
-      });
-  });
-}
-
-function renderList(scene, panel, tab, activeRank) {
-  let items = CRAFTING_SYSTEM[tab] || [];
-  if (tab === 'pills') {
-    items = items.filter(item => Number(item.pillRank ?? 1) === Number(activeRank));
-  }
-  items = items.slice(0, 7);
-
-  const startY = tab === 'pills' ? -180 : -270;
-  const rowH = 72;
-
-  if (!items.length) {
-    const empty = scene.add.text(0, -60, 'Chưa có nội dung ở mục này.', {
-      fontFamily: FONT, fontSize: '18px', color: '#c8f4ff'
-    }).setOrigin(0.5);
-    panel.add(empty);
-    return;
-  }
-
-  items.forEach((item, idx) => {
-    const y = startY + idx * rowH;
-    const owned = ownedCount(tab, item);
-    const color = gradeColor(item);
-    const box = scene.add.rectangle(0, y, 476, 60, 0x0d3347, 1)
-      .setStrokeStyle(2, color, 0.95)
-      .setInteractive({ useHandCursor: true });
-    const name = scene.add.text(-218, y - 10, item.name, {
-      fontFamily: FONT,
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0, 0.5);
-    const meta = scene.add.text(-218, y + 14, `[${item.rank || ''}${item.grade ? ` • ${item.grade}` : ''}]  •  Có: ${owned}`, {
-      fontFamily: FONT,
-      fontSize: '12px',
-      color: '#a9eaff'
-    }).setOrigin(0, 0.5);
-    const arrow = scene.add.text(215, y, '›', {
-      fontFamily: FONT,
-      fontSize: '32px',
-      fontStyle: 'bold',
-      color: '#7cf3ff'
-    }).setOrigin(0.5);
-
-    box.on('pointerdown', pointer => {
-      stopPointer(scene, pointer);
-      scene.openCraftingPanel(tab, activeRank, item.name);
-    });
-    panel.add([box, name, meta, arrow]);
-  });
-}
-
-function renderDetail(scene, panel, tab, activeRank, item) {
-  const owned = ownedCount(tab, item);
-
-  const crumb = scene.add.text(-230, -352, `BÁCH NGHỆ  ›  ${tabLabel(tab)}`, {
-    fontFamily: FONT,
-    fontSize: '13px',
-    color: '#8feaff'
-  }).setOrigin(0, 0.5);
-  const itemName = scene.add.text(-230, -306, item.name, {
-    fontFamily: FONT,
-    fontSize: '24px',
-    fontStyle: 'bold',
-    color: '#fff19a',
-    wordWrap: { width: 455, useAdvancedWrap: true }
-  }).setOrigin(0, 0.5);
-  const rank = scene.add.text(-230, -268, `[${item.rank || ''}${item.grade ? ` • ${item.grade}` : ''}]   •   Đang có: ${owned}`, {
-    fontFamily: FONT,
-    fontSize: '14px',
-    fontStyle: 'bold',
-    color: '#a8f5ff'
-  }).setOrigin(0, 0.5);
-
-  const descBg = scene.add.rectangle(0, -168, 470, 130, 0x0d3347, 1)
-    .setStrokeStyle(1.5, 0x3c91aa, 1);
-  const desc = scene.add.text(-215, -214, item.desc || 'Không có mô tả.', {
-    fontFamily: FONT,
-    fontSize: '15px',
-    color: '#e4f9ff',
-    lineSpacing: 6,
-    wordWrap: { width: 430, useAdvancedWrap: true }
-  }).setOrigin(0, 0);
-  panel.add([crumb, itemName, rank, descBg, desc]);
-
-  let infoY = -74;
-  if (tab === 'pills' && item.type === 'cultivation') {
-    const eff = calculatePillEfficiency(item, gameState.realmIdx);
-    const effText = eff.canUse
-      ? `✨ Hiệu quả: +${eff.effectiveSpeed} Tu Vi/s • ${item.durationSec || 0}s • ${Math.round((eff.efficiency || 1) * 100)}% dược lực`
-      : `⚠️ ${eff.reason}`;
-    const effObj = scene.add.text(-215, infoY, effText, {
-      fontFamily: FONT,
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: eff.canUse ? '#79ffd1' : '#ff9ca8',
-      wordWrap: { width: 430, useAdvancedWrap: true }
-    }).setOrigin(0, 0.5);
-    panel.add(effObj);
-    infoY += 52;
-  }
-
-  const reqTitle = scene.add.text(-215, infoY, 'NGUYÊN LIỆU CẦN', {
-    fontFamily: FONT,
-    fontSize: '15px',
-    fontStyle: 'bold',
-    color: '#ffe77a'
-  }).setOrigin(0, 0.5);
-  panel.add(reqTitle);
-  infoY += 38;
-
-  const reqs = ingredientLines(item);
-  reqs.forEach(req => {
-    const line = scene.add.text(-205, infoY, `${req.ok ? '✓' : '✕'}  ${req.text}`, {
-      fontFamily: FONT,
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: req.ok ? '#78ffc2' : '#ff9aa8'
-    }).setOrigin(0, 0.5);
-    panel.add(line);
-    infoY += 34;
-  });
-
-  const alreadyFormation = tab === 'formations' && owned > 0;
-  const canCraft = !alreadyFormation && canCraftRecipe(item, gameState);
-  const actionLabel = tab === 'formations' ? 'XÁC NHẬN BỐ TRÍ' : tab === 'talismans' ? 'XÁC NHẬN LUYỆN PHÙ' : 'XÁC NHẬN LUYỆN ĐAN';
-
-  addButton(scene, panel, 0, 285, 430, 58, alreadyFormation ? 'ĐÃ SỞ HỮU TRẬN PHÁP' : actionLabel, () => {
-    if (!canCraftRecipe(item, gameState)) {
-      scene.showFloatingText(scene.player.x, scene.player.y - 60, 'Không đủ nguyên liệu!', '#ff7777');
-      return;
+export function installSimpleCraftingUI(MainGameScene){
+  if(!MainGameScene?.prototype||MainGameScene.prototype.__simpleCraftingUiInstalled)return;
+  const p=MainGameScene.prototype;p.__simpleCraftingUiInstalled=true;
+  p.openCraftingPanel=function openCraftingPanel(tab='gear',rankFilter=null,recipeId=null,page=0){
+    tab=TABS.some(x=>x[0]===tab)?tab:'gear';const maxRank=getRealmItemRank(gameState.realmIdx);const rank=rankFilter==null?maxRank:Math.max(0,Math.min(5,Number(rankFilter)||0));
+    if(recipeId){
+      const recipe=getRecipe(recipeId),def=getItemDef(recipe?.outputId);if(!recipe||!def)return this.openCraftingPanel(tab,rank,null,0);
+      const panel=shell(this,'BÁCH NGHỆ V3','Chi tiết công thức');
+      panel.add(this.add.text(-230,-340,def.name,{fontFamily:FONT,fontSize:'21px',fontStyle:'bold',color:def.color||'#fff19a',wordWrap:{width:460}}).setOrigin(0,.5));
+      panel.add(this.add.text(-230,-302,`${def.rankName||''} • ${def.grade||def.kind} • Đang có: ${getItemQuantity(def.id)}`,{fontFamily:FONT,fontSize:'12px',color:'#9aeaff'}).setOrigin(0,.5));
+      panel.add(this.add.text(-230,-255,def.desc||'',{fontFamily:FONT,fontSize:'13px',color:'#e4f9ff',wordWrap:{width:460},lineSpacing:5}).setOrigin(0,0));
+      let y=-125;for(const req of recipe.inputs||[]){const rd=getItemDef(req.itemId),have=getItemQuantity(req.itemId),ok=have>=req.qty;panel.add(this.add.text(-220,y,`${ok?'✓':'✕'} ${rd?.name||req.itemId}: ${have}/${req.qty}`,{fontFamily:FONT,fontSize:'12px',fontStyle:'bold',color:ok?'#78ffc2':'#ff9aa8',wordWrap:{width:440}}).setOrigin(0,.5));y+=32;}
+      if(recipe.currency?.amount){const have=Number(gameState.currencies?.[recipe.currency.key]||0);panel.add(this.add.text(-220,y,`${have>=recipe.currency.amount?'✓':'✕'} Linh thạch: ${have}/${recipe.currency.amount}`,{fontFamily:FONT,fontSize:'12px',color:have>=recipe.currency.amount?'#78ffc2':'#ff9aa8'}).setOrigin(0,.5));}
+      button(this,panel,0,320,430,58,'XÁC NHẬN CHẾ TẠO',()=>{const r=craftItem(recipe.id,1);this.showFloatingText?.(this.player.x,this.player.y-60,r.success?`Chế tạo thành công [${def.name}]!`:`❌ ${r.error}` ,r.success?'#ffd700':'#ff6666','13px');this.updateHUD?.();this.openCraftingPanel(tab,rank,recipe.id,0);});
+      button(this,panel,0,395,430,48,'‹ QUAY LẠI',()=>this.openCraftingPanel(tab,rank,null,page));return;
     }
-    deductCraftMaterials(item, gameState);
-    if (tab === 'pills') {
-      gameState.inventory.pills[item.name] = (gameState.inventory.pills[item.name] || 0) + 1;
-      scene.showFloatingText(scene.player.x, scene.player.y - 60, `Luyện thành [${item.name}]!`, '#ffd700');
-    } else if (tab === 'talismans') {
-      gameState.inventory.talismans[item.name] = (gameState.inventory.talismans[item.name] || 0) + 1;
-      scene.showFloatingText(scene.player.x, scene.player.y - 60, `Luyện thành [${item.name}]!`, '#66ffcc');
-    } else {
-      if (!gameState.inventory.formations.includes(item.name)) gameState.inventory.formations.push(item.name);
-      scene.showFloatingText(scene.player.x, scene.player.y - 60, `Bố trí [${item.name}]!`, '#ffd700');
-    }
-    scene.updateHUD();
-    scene.openCraftingPanel(tab, activeRank, item.name);
-  }, {
-    enabled: canCraft,
-    fill: 0x166044,
-    stroke: 0x61ffc0,
-    color: '#ffffff',
-    fontSize: '16px'
-  });
-
-  if (tab === 'pills' && owned > 0) {
-    addButton(scene, panel, 0, 354, 430, 54, 'DÙNG ĐAN DƯỢC NGAY', () => {
-      const result = scene.consumePill(item.name);
-      if (result?.success) scene.openCraftingPanel(tab, activeRank, item.name);
-    }, {
-      fill: 0x145f7a,
-      stroke: 0x69e7ff,
-      color: '#ffffff',
-      fontSize: '15px'
-    });
-  }
-
-  addButton(scene, panel, 0, 420, 430, 48, '‹ QUAY LẠI DANH SÁCH', () => {
-    scene.openCraftingPanel(tab, activeRank);
-  }, {
-    fill: 0x303e50,
-    stroke: 0x94b8cc,
-    color: '#eaf8ff',
-    fontSize: '14px'
-  });
-}
-
-export function installSimpleCraftingUI(MainGameScene) {
-  if (!MainGameScene?.prototype || MainGameScene.prototype.__simpleCraftingUiInstalled) return;
-  const proto = MainGameScene.prototype;
-  proto.__simpleCraftingUiInstalled = true;
-
-  proto.openCraftingPanel = function openSimpleCraftingPanel(currentTab = 'pills', pillRankFilter = null, itemName = null) {
-    const tab = ['pills', 'talismans', 'formations'].includes(currentTab) ? currentTab : 'pills';
-    const isThanhVan = isThanhVanArea(this);
-    const playerRank = Math.max(0, getPlayerPillRank(gameState.realmIdx));
-
-    let activeRank = 0;
-    if (tab === 'pills') {
-      if (pillRankFilter !== null && pillRankFilter !== undefined) {
-        activeRank = Number(pillRankFilter);
-      } else {
-        activeRank = isThanhVan ? 0 : Math.min(5, playerRank);
-      }
-    }
-
-    if (itemName) {
-      const item = (CRAFTING_SYSTEM[tab] || []).find(entry => entry.name === itemName);
-      if (item) {
-        const itemRank = Number(item.pillRank ?? activeRank);
-        const panel = createShell(this, 'BÁCH NGHỆ', 'Chi tiết & xác nhận');
-        renderDetail(this, panel, tab, itemRank, item);
-        return;
-      }
-    }
-
-    const panel = createShell(this, 'BÁCH NGHỆ', 'Chọn mục cần xem');
-    renderCategoryTabs(this, panel, tab);
-    if (tab === 'pills') renderRankSelector(this, panel, activeRank);
-    renderList(this, panel, tab, activeRank);
+    const panel=shell(this,'BÁCH NGHỆ V3','Một hệ chế tạo duy nhất');
+    TABS.forEach(([k,l],i)=>button(this,panel,-180+i*120,-350,110,46,l,()=>this.openCraftingPanel(k,Math.min(rank,maxRank)),k===tab));
+    const ranks=[0,1,2,3,4,5];ranks.forEach((r,i)=>button(this,panel,-200+i*80,-292,72,38,rankName(r),()=>this.openCraftingPanel(tab,r),r===rank,r<=maxRank));
+    const all=listRecipes(tab,rank);const per=7,pages=Math.max(1,Math.ceil(all.length/per));page=Math.max(0,Math.min(pages-1,Number(page)||0));const rows=all.slice(page*per,page*per+per);
+    let y=-225;for(const rec of rows){const def=getItemDef(rec.outputId),can=(rec.inputs||[]).every(x=>getItemQuantity(x.itemId)>=x.qty)&&Number(gameState.currencies?.[rec.currency?.key]||0)>=Number(rec.currency?.amount||0);button(this,panel,0,y,460,54,`${can?'✓':'•'} ${def?.name||rec.outputId}`,()=>this.openCraftingPanel(tab,rank,rec.id,page),false,true);y+=66;}
+    panel.add(this.add.text(0,270,`Trang ${page+1}/${pages} • ${all.length} công thức`,{fontFamily:FONT,fontSize:'11px',color:'#9aeaff'}).setOrigin(.5));
+    button(this,panel,-120,322,210,45,'‹ TRƯỚC',()=>this.openCraftingPanel(tab,rank,null,page-1),false,page>0);button(this,panel,120,322,210,45,'SAU ›',()=>this.openCraftingPanel(tab,rank,null,page+1),false,page<pages-1);
   };
 }
