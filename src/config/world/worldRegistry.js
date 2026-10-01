@@ -13,8 +13,6 @@ import {
   getDeclaredWorldRuntimeMapDefinition
 } from './playableMaps.js?v=20260929-single-map-system-v2';
 import {
-  getMasterMapById,
-  findMasterMapById,
   findSpecialMapOverride,
   getSpecialMapOverride,
   SPECIAL_MAP_OVERRIDES,
@@ -47,7 +45,7 @@ import { getTravelRoutesForMap as getRawTravelRoutesForMap, resolveAnchorPoint }
 import { getMapTemplate, MAP_TEMPLATES, PANORAMA_STANDARD } from './mapTemplates.js?v=20260929-single-map-system-v1';
 import { HUMAN_REALM_FACTION_NETWORK } from '../factions/gameFactionRegistry.js?v=20260930-canonical-geography-v1';
 
-export const MAP_SYSTEM_VERSION = '20260930-human-realm-managed-atlas-v6';
+export const MAP_SYSTEM_VERSION = '20261001-fixed-canonical-controllers-v7';
 export const START_MAP_ID = CANONICAL_MAP_KEYS.THANH_VAN_THON;
 export const DEFAULT_ZONE_COUNT = 4;
 
@@ -103,9 +101,6 @@ export {
   getAllHumanRealmDetailProfiles
 };
 
-/**
- * Phân giải runtimePolicy cho một world node hoặc hierarchy node
- */
 export function getNodeRuntimePolicy(node) {
   if (!node) return RUNTIME_POLICIES.NONE;
   if (node.containerOnly === true) return RUNTIME_POLICIES.NONE;
@@ -120,12 +115,10 @@ export function getNodeRuntimePolicy(node) {
   const type = String(node.type || '').toLowerCase();
   const kind = String(node.locationKind || '').toLowerCase();
 
-  // 1. Navigation Nodes & Pure Container Nodes -> NONE
   if (['realm', 'continent', 'great_region', 'province', 'nation', 'commandery', 'settlement', 'container', 'faction_group'].includes(type)) {
     return RUNTIME_POLICIES.NONE;
   }
 
-  // 2. Playable Hubs (Thành Vực, Thành Thị, Tông Môn Sơn Môn, Tổ Địa Thế Gia, Thôn Trang)
   if (
     type === 'city_territory' ||
     type === 'city' ||
@@ -137,7 +130,6 @@ export function getNodeRuntimePolicy(node) {
     return RUNTIME_POLICIES.HUB;
   }
 
-  // 3. Playable Dungeons / Secret Realms / Forbidden Zones
   if (
     type === 'dungeon' ||
     type === 'secret_realm' ||
@@ -151,7 +143,6 @@ export function getNodeRuntimePolicy(node) {
     return RUNTIME_POLICIES.DUNGEON;
   }
 
-  // 4. Playable Combat Maps / Wilderness
   if (
     type === 'location' ||
     type === 'wilderness' ||
@@ -162,7 +153,6 @@ export function getNodeRuntimePolicy(node) {
     return RUNTIME_POLICIES.MAP;
   }
 
-  // 5. Leaf Faction Sơn Môn / Tổ Địa
   if (type === 'sect' || type === 'clan' || type === 'family') {
     return RUNTIME_POLICIES.HUB;
   }
@@ -176,8 +166,7 @@ for (const map of ALL_PLAYABLE_MAPS) {
   if (map?.canonicalKey) mapById.set(map.canonicalKey, map);
   if (map?.key) mapById.set(map.key, map);
 }
-// Numeric IDs are accepted only by save migration. Runtime indexes contain
-// canonical string map IDs exclusively.
+
 const nodeById = new Map(HUMAN_REALM_WORLD_NODES.map(node => [node.id, node]));
 const childrenByParent = new Map();
 const zoneCache = new Map();
@@ -191,6 +180,7 @@ function getDeclaredFactionRuntimeMapDefinition(identifier) {
   const faction = (HUMAN_REALM_FACTION_NETWORK.getAllCoreFactions?.() || [])
     .find(item => item?.headquarters?.playableMapId === id) || null;
   if (!faction) return null;
+
   const isClan = faction.archetype === 'CULTIVATION_FAMILY' || faction.archetype === 'ANCIENT_CLAN';
   const definition = Object.freeze({
     id,
@@ -213,6 +203,7 @@ for (const node of HUMAN_REALM_WORLD_NODES) {
   if (!childrenByParent.has(key)) childrenByParent.set(key, []);
   childrenByParent.get(key).push(node);
 }
+
 const nodeByMapId = new Map(
   HUMAN_REALM_WORLD_NODES
     .filter(node => node.playableMapId != null)
@@ -226,22 +217,14 @@ function enrichWorldNode(rawNode) {
   if (!rawNode) return null;
   if (enrichedNodeCache.has(rawNode.id)) return enrichedNodeCache.get(rawNode.id);
 
+  // Geography only exposes the fixed canonical controller ID. It no longer
+  // projects a rulerFaction object into map nodes; faction UI uses its own
+  // canonical marker so Tông Môn/Thế Gia are never mixed into Châu/Vực labels.
   const controllerFactionId = getTerritoryController(rawNode.id);
-  const controllerFaction = controllerFactionId ? HUMAN_REALM_FACTION_NETWORK.getFaction(controllerFactionId) : null;
-  let enriched = controllerFaction ? Object.freeze({
-    ...rawNode,
-    controllerFactionId,
-    // Compatibility data for the unchanged map and faction UI. The record is
-    // a projection of Faction V5, never a geography-owned faction definition.
-    rulerFaction: Object.freeze({
-      id: controllerFaction.id,
-      name: controllerFaction.name,
-      archetype: controllerFaction.archetype,
-      type: controllerFaction.archetype === 'SECT' ? 'Tông Môn' : 'Thế Gia',
-      rankLabel: controllerFaction.meta?.rankLabel || 'Thế Lực Quản Lý',
-      duty: 'Quản Lý Chính'
-    })
-  }) : rawNode;
+  let enriched = controllerFactionId
+    ? Object.freeze({ ...rawNode, controllerFactionId })
+    : rawNode;
+
   const detailedAtlas = getHumanRealmDetailProfile(rawNode.id);
   if (detailedAtlas) {
     enriched = Object.freeze({
@@ -264,27 +247,14 @@ function cacheRuntimeMap(runtimeMap, aliasKey = null) {
   if (aliasKey) mapById.set(String(aliasKey), runtimeMap);
 }
 
-/**
- * UNIFIED RUNTIME MAP RESOLVER
- * =========================================================================
- * Pipeline duy nhất phân giải map runtime đã được khai báo:
- * 1. Validate canonical string ID
- * 2. Kiểm tra Cache O(1)
- * 3. Kiểm tra Special Map Overrides (masterMapManifest: Thanh Vân Thôn, Ngoại Vi, Boss Arena...)
- * 4. Theo liên kết playableMapId đã khai báo của world node
- * 5. Không tự tạo map từ hierarchy node hoặc faction ID
- * =========================================================================
- */
 export function resolveRuntimeMap(identifier) {
   if (identifier === null || identifier === undefined) return null;
   const strId = String(identifier).trim();
   if (!strId) return null;
 
-  // Fast cache hit
   if (mapById.has(strId)) return mapById.get(strId);
   if (mapById.has(identifier)) return mapById.get(identifier);
 
-  // 2. Kiểm tra Special Map Overrides (masterMapManifest.js)
   const specialOverride = findSpecialMapOverride(strId) || findSpecialMapOverride(identifier);
   if (specialOverride) {
     const runtimeMap = buildRuntimeMap(specialOverride);
@@ -294,8 +264,6 @@ export function resolveRuntimeMap(identifier) {
     }
   }
 
-  // Explicit gameplay destinations are lazily materialized from the canonical
-  // declaration index. This never applies to hierarchy navigation nodes.
   const declared = getDeclaredWorldRuntimeMapDefinition(strId);
   if (declared) {
     const runtimeMap = buildRuntimeMap(declared);
@@ -314,15 +282,12 @@ export function resolveRuntimeMap(identifier) {
     }
   }
 
-  // 3. Tra cứu World Node trong Human Realm hierarchy
   let curr = nodeById.get(strId) || nodeByMapId.get(strId);
   if (!curr) {
     curr = HUMAN_REALM_WORLD_NODES.find(n => n.id === strId || n.name === strId || `map_${slugifyVi(n.name)}` === strId);
   }
 
   if (curr?.playableMapId != null && curr.playableMapId !== strId) {
-    // A hierarchy node can only resolve to a map it explicitly declares.
-    // No node is converted into a runtime map just because it has an ID.
     return resolveRuntimeMap(curr.playableMapId);
   }
 
@@ -336,7 +301,11 @@ export function findMapById(mapId) {
 export function hasDeclaredRuntimeDestination(identifier) {
   if (identifier === null || identifier === undefined) return false;
   const id = String(identifier);
-  return mapById.has(id) || Boolean(findSpecialMapOverride(id) || getDeclaredWorldRuntimeMapDefinition(id) || getDeclaredFactionRuntimeMapDefinition(id));
+  return mapById.has(id) || Boolean(
+    findSpecialMapOverride(id) ||
+    getDeclaredWorldRuntimeMapDefinition(id) ||
+    getDeclaredFactionRuntimeMapDefinition(id)
+  );
 }
 
 export function getMapById(mapId) {
@@ -426,12 +395,7 @@ export function getWorldChildren(parentId) {
   return (childrenByParent.get(parentId ?? '__root__') || []).map(enrichWorldNode);
 }
 
-/**
- * Canonical administrative type. The rendered map retains its historic node
- * types (continent/great_region) so marker layout and drill-down stay intact.
- */
 export function getCanonicalNodeType(nodeOrId) {
-  // Keep this lookup raw: enrichment itself consults controller assignments.
   const node = typeof nodeOrId === 'string' ? nodeById.get(nodeOrId) : nodeOrId;
   return node?.canonicalType || node?.type || null;
 }
@@ -450,7 +414,9 @@ export function getDirectTerritories(parentId) {
     : parentType === 'region' ? 'province'
       : parentType === 'province' ? 'nation'
         : parentType === 'nation' ? 'city_territory' : null;
-  return childType ? directByKind(parentId, node => getCanonicalNodeType(node) === childType) : Object.freeze([]);
+  return childType
+    ? directByKind(parentId, node => getCanonicalNodeType(node) === childType)
+    : Object.freeze([]);
 }
 
 export function getDirectWildernesses(parentId) {
@@ -462,11 +428,14 @@ export function getDirectSecretRealms(parentId) {
 }
 
 /**
- * Stable controller edges. Faction IDs are resolved by the V5 owner supplied
- * by the overlay/integration layer; geography never creates faction records.
+ * Fixed canonical controller edges only.
+ * Every child jurisdiction reads the single faction declared for that exact
+ * jurisdiction in fixedFactionNames3950.js/canonicalLocalFactionAtlas.
+ * No candidate pool, rotation, fallback or UI-side assignment is allowed.
  */
-export function getControllerAssignments(parentId, { resolveFactionId } = {}) {
-  if (!resolveFactionId && controllerAssignmentCache.has(parentId)) return controllerAssignmentCache.get(parentId);
+export function getControllerAssignments(parentId) {
+  if (controllerAssignmentCache.has(parentId)) return controllerAssignmentCache.get(parentId);
+
   const parentType = getCanonicalNodeType(parentId);
   const childType = parentType === 'great_region' ? 'region'
     : parentType === 'region' ? 'province'
@@ -475,33 +444,25 @@ export function getControllerAssignments(parentId, { resolveFactionId } = {}) {
   const children = childType
     ? rawDirectByKind(parentId, node => getCanonicalNodeType(node) === childType)
     : [];
-  const eligible = (HUMAN_REALM_FACTION_NETWORK.getAllCoreFactions?.() || [])
-    .filter(faction => faction?.archetype === 'SECT' || faction?.archetype === 'CULTIVATION_FAMILY' || faction?.archetype === 'ANCIENT_CLAN')
-    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  const used = new Set();
-  const assignments = Object.freeze(children.map((child, index) => {
-    const local = (HUMAN_REALM_FACTION_NETWORK.getFactionsForJurisdiction?.(child.id, { limit: 32 }) || [])
-      .filter(faction => eligible.includes(faction))
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-    const factionId = typeof resolveFactionId === 'function'
-      ? resolveFactionId(child, index, children)
-      : [...local, ...eligible].find(faction => !used.has(faction.id))?.id || null;
-    if (factionId) used.add(factionId);
+
+  const assignments = Object.freeze(children.map(child => {
+    const fixed = HUMAN_REALM_FACTION_NETWORK.getLocalFactionsForJurisdiction?.(child.id) || [];
+    const faction = fixed.length === 1 ? fixed[0] : null;
     return Object.freeze({
-    parentId,
-    controlledNodeId: child.id,
-    controllerFactionId: factionId
+      parentId,
+      controlledNodeId: child.id,
+      controllerFactionId: faction?.id || null
     });
   }));
-  if (!resolveFactionId) controllerAssignmentCache.set(parentId, assignments);
+
+  controllerAssignmentCache.set(parentId, assignments);
   return assignments;
 }
 
-export function getTerritoryController(nodeId, options = {}) {
-  // Raw lookup avoids re-entering enrichWorldNode while resolving its owner.
+export function getTerritoryController(nodeId) {
   const node = nodeById.get(nodeId);
   if (!node?.parentId) return null;
-  return getControllerAssignments(node.parentId, options)
+  return getControllerAssignments(node.parentId)
     .find(assignment => assignment.controlledNodeId === node.id)?.controllerFactionId || null;
 }
 
@@ -547,7 +508,12 @@ export function canEnterMap(mapId, state) {
   const access = map.access || {};
   const realmIdx = Number(state?.realmIdx || 0);
   if (realmIdx < Number(access.minRealmIdx || 0)) {
-    return { ok: false, reason: 'REALM', requiredRealmIdx: Number(access.minRealmIdx || 0), map };
+    return {
+      ok: false,
+      reason: 'REALM',
+      requiredRealmIdx: Number(access.minRealmIdx || 0),
+      map
+    };
   }
   return { ok: true, reason: null, map };
 }
@@ -587,7 +553,9 @@ export function resolvePanoramaMap(mapOrId) {
 export function getPanoramaPreloadEntries() {
   const unique = new Map();
   for (const map of ALL_PLAYABLE_MAPS) {
-    if (map.panoramaAsset && !unique.has(map.panoramaKey)) unique.set(map.panoramaKey, map.panoramaAsset);
+    if (map.panoramaAsset && !unique.has(map.panoramaKey)) {
+      unique.set(map.panoramaKey, map.panoramaAsset);
+    }
   }
   return [...unique.entries()].map(([key, asset]) => ({ key, asset }));
 }
