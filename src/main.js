@@ -15,12 +15,13 @@ import { installMerchantTalismanFormationShop } from './scenes/mixins/MerchantTa
 import { installItemSystem } from './scenes/mixins/ItemSystem.js?v=20261001-item-icons-v4';
 import { assertSingleItemSystem } from './config/itemSystemInvariant.js?v=20261001-item-icons-v4';
 import { installWorldMapRuntime } from './scenes/mixins/WorldMapRuntime.js?v=20260930-canonical-map-id-v7';
-import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20261001-map-atlas-visible-v44';
+import { installWorldMapHierarchyUI } from './scenes/mixins/WorldMapHierarchyUI.js?v=20261001-map-atlas-visible-v45';
+import { installMapAtlasRuntimeGuard } from './scenes/mixins/MapAtlasRuntimeGuard.js?v=20261001-map-atlas-visible-v45';
 import { installMapContentZoneRuntime } from './scenes/mixins/MapContentZoneRuntime.js?v=20260930-profile-driven-zone-v41';
 import { installMapZoneAssetStreaming } from './scenes/mixins/MapZoneAssetStreaming.js?v=20260930-zone-stream-v2';
 import { installItemIconStreaming } from './scenes/mixins/ItemIconStreaming.js?v=20261001-item-icons-v4';
 import { assertSingleMapSystem } from './config/world/mapSystemInvariant.js?v=20260930-profile-driven-zone-v41';
-import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20261001-map-atlas-visible-v44';
+import { installBootAssetOptimizationV3 } from './scenes/mixins/BootAssetOptimizationV3.js?v=20261001-map-atlas-visible-v45';
 import { installFactionSystemIntegration } from './scenes/mixins/FactionSystemIntegration.js?v=20260930-no-gear-enemy-drop-v36';
 import { installClanHubUI } from './scenes/mixins/clan/ClanHubUIManager.js?v=20261001-org-relations-v40';
 import { installSectHubUI } from './scenes/mixins/sect/SectHubUIManager.js?v=20261001-org-relations-v40';
@@ -49,6 +50,7 @@ installMerchantTalismanFormationShop(MainGameScene);
 // Exactly one active map runtime, one map UI, and one map-zone geometry provider.
 installWorldMapRuntime(MainGameScene);
 installWorldMapHierarchyUI(MainGameScene);
+installMapAtlasRuntimeGuard(MainGameScene);
 installMapContentZoneRuntime(MainGameScene);
 
 // The unified implementation remains the same canonical map UI owner expected by the invariant.
