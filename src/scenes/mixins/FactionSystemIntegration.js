@@ -5,7 +5,7 @@ import { attachFactionContextToScene } from '../../config/factions/game/mapRunti
 import { installFactionUI } from './FactionUI.js?v=20260930-faction-teleport-v30';
 import { installFactionSearchUI } from './FactionSearchUI.js?v=20260930-canonical-local-v2';
 import { installPlayerFactionUI } from './PlayerFactionUI.js';
-import { installWorldMapFactionOverlay } from './WorldMapFactionOverlay.js?v=20261001-fixed-rulers-v2';
+import { installWorldMapFactionOverlay } from './WorldMapFactionOverlay.js?v=20261001-fixed-rulers-v3';
 
 export function installFactionSystemIntegration(MainGameScene, { network, worldAdapter, mapAdapter, gameState } = {}) {
   if (!MainGameScene?.prototype || !network || !worldAdapter || !gameState) return null;
