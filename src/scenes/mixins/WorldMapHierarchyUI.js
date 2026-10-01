@@ -10,6 +10,8 @@
  * - Vực/Châu/Quốc chỉ là node phân cấp, tuyệt đối không phải runtime map.
  * - Map gameplay chỉ gồm Thành, Hoang Dã, Bí Cảnh và Sơn Môn/Tổ Địa Tông Môn/Gia Tộc.
  * - Chỉ destination có runtime map canonical mới được phép di chuyển.
+ * - Tông Môn/Thế Gia chỉ dùng faction ID + headquarters.playableMapId đã khai báo cố định.
+ *   UI tuyệt đối không sinh faction ID hoặc map ID dự phòng.
  */
 import { REALMS } from '../../config/realmsData.js';
 import {
@@ -31,7 +33,7 @@ import { stopPointer } from './UiModalManager.js';
 
 const FONT = 'Be Vietnam Pro, sans-serif';
 const MAP_UI_OWNER = 'WorldMapHierarchyUI';
-const MAP_UI_LAYOUT_VERSION = '20261001-explicit-playable-map-types-v43';
+const MAP_UI_LAYOUT_VERSION = '20261001-fixed-faction-destinations-v47';
 const LEGACY_TO_ROOT = new Set(['nam_lang', 'van_tinh_hai', 'than_chau', 'man_hoang', 'thai_hu']);
 const MAX_WORLD_MARKERS = 14;
 const MAX_FACTION_MARKERS = 8;
@@ -234,41 +236,25 @@ function factionGovernedNode(marker, activeNode) {
   return nodeId ? getWorldNode(String(nodeId)) : null;
 }
 
-function factionHeadquartersMapId(faction, familyHint = null) {
-  if (faction?.headquarters?.playableMapId) return String(faction.headquarters.playableMapId);
-  const id = faction?.id;
-  if (!id) return null;
-  const family = familyHint ?? isFamilyArchetype(faction?.archetype);
-  const kind = family ? 'family' : 'sect';
-  return `map_faction_${kind}_${String(id).replace(/[^a-zA-Z0-9_]/g, '_')}`;
+function factionHeadquartersMapId(faction) {
+  const declaredMapId = faction?.headquarters?.playableMapId;
+  return declaredMapId ? String(declaredMapId) : null;
 }
 
 function factionRuntimeDestination(faction, governedNode) {
   const headquartersMapId = factionHeadquartersMapId(faction);
   const headquartersMap = headquartersMapId ? findMapById(headquartersMapId) : null;
-  if (headquartersMap) {
-    return Object.freeze({
-      node: governedNode || null,
-      map: headquartersMap,
-      kind: 'faction_headquarters',
-      direct: true
-    });
-  }
-
-  // Thành là map gameplay. Vực/Châu/Quốc chỉ là container phân cấp và không được
-  // tự động rơi xuống Hoang Dã/Bí Cảnh/Thành con làm "map đại diện".
-  if (governedNode && ['city_territory', 'city'].includes(governedNode.type)) {
-    const cityMap = resolveNodeMap(governedNode);
-    if (cityMap) return Object.freeze({ node: governedNode, map: cityMap, kind: 'city', direct: true });
-  }
-
-  return Object.freeze({ node: governedNode || null, map: null, kind: 'container', direct: false });
+  return Object.freeze({
+    node: governedNode || null,
+    map: headquartersMap || null,
+    kind: headquartersMap ? 'faction_headquarters' : 'missing_faction_map',
+    direct: Boolean(headquartersMap)
+  });
 }
 
 function factionTravelLabel(faction, destination) {
   if (!destination?.map) return 'CHƯA CÓ MAP';
   if (destination.kind === 'faction_headquarters') return isFamilyArchetype(faction?.archetype) ? 'VÀO THẾ GIA' : 'VÀO TÔNG MÔN';
-  if (destination.kind === 'city') return 'ĐI ĐẾN THÀNH';
   return 'DI CHUYỂN';
 }
 
@@ -286,7 +272,10 @@ function buildFactionMarkers(scene, activeNode) {
   const canonical = overlay?.mapMarkers || [];
   if (canonical.length) {
     return canonical
-      .filter(marker => marker?.faction && (marker.faction.archetype === 'SECT' || isFamilyArchetype(marker.faction.archetype)))
+      .filter(marker => marker?.faction
+        && marker.faction.meta?.canonical === true
+        && marker.faction.meta?.declarationMode === 'fixed'
+        && (marker.faction.archetype === 'SECT' || isFamilyArchetype(marker.faction.archetype)))
       .slice(0, MAX_FACTION_MARKERS)
       .map(marker => {
         const family = isFamilyArchetype(marker.faction.archetype);
@@ -359,7 +348,6 @@ function markerSlot(marker, index, total, faction = false, allMarkers = []) {
   const kind = node?.locationKind || '';
   const type = node?.type || '';
 
-  // 1. Khởi nguyên đặc biệt (Thanh Vân Thôn & Thanh Vân Ngoại Vi)
   if (kind === 'safe_hub' || node?.id === 'nl.loc.thanh_ha.thanh_van_thon') {
     return [-70, 0];
   }
@@ -367,33 +355,19 @@ function markerSlot(marker, index, total, faction = false, allMarkers = []) {
     return [70, 0];
   }
 
-  // 2. 2 Bí Cảnh (2 góc Cực TRÊN và Cực DƯỚI)
   const isSecret = kind.includes('secret') || kind === 'secret_realm';
   if (isSecret) {
-    const secretSlots = [
-      [0, -230], // Góc TRÊN (Cực Bắc)
-      [0, 230]   // Góc DƯỚI (Cực Nam)
-    ];
+    const secretSlots = [[0, -230], [0, 230]];
     const secretMarkers = allMarkers.filter(m => m.node?.locationKind?.includes('secret') || m.node?.locationKind === 'secret_realm');
     const sIdx = secretMarkers.indexOf(marker);
     return secretSlots[sIdx >= 0 ? sIdx % secretSlots.length : index % secretSlots.length];
   }
 
-  // 3. 5 Khu Vực (5 Vực / 5 Châu / 5 Quốc Gia / 5 Thành Thị) & 5 Hoang Dã theo 5 phương: Bắc (0), Tây (1), Trung (2), Đông (3), Nam (4)
   const primarySlots = [
-    [-75, -150],  // Phương BẮC (Khu Vực)
-    [-135, -55],  // Phương TÂY (Khu Vực)
-    [0, -20],     // Phương TRUNG (Khu Vực)
-    [135, -55],   // Phương ĐÔNG (Khu Vực)
-    [-75, 150]    // Phương NAM (Khu Vực)
+    [-75, -150], [-135, -55], [0, -20], [135, -55], [-75, 150]
   ];
-
   const wildSlots = [
-    [75, -150],   // Phương BẮC (Hoang Dã)
-    [-135, 15],   // Phương TÂY (Hoang Dã)
-    [0, 50],      // Phương TRUNG (Hoang Dã)
-    [135, 15],    // Phương ĐÔNG (Hoang Dã)
-    [75, 150]     // Phương NAM (Hoang Dã)
+    [75, -150], [-135, 15], [0, 50], [135, 15], [75, 150]
   ];
 
   const isWild = kind.includes('wild') || kind === 'field';
@@ -520,43 +494,36 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
   let accent = locked ? COLOR.locked : current ? 0x00e5ff : (marker.accent || COLOR.blue);
   let bgFill = 0x071e2e;
   let strokeColor = 0x38bdf8;
-  let symbol = current ? '●' : '○';
   let textColor = '#ffffff';
 
   if (isSecret) {
     accent = 0xd946ef;
     strokeColor = 0xd946ef;
     bgFill = 0x22082e;
-    symbol = '★';
     textColor = '#f5d0fe';
   } else if (isWild) {
     accent = 0x22c55e;
     strokeColor = 0x22c55e;
     bgFill = 0x052112;
-    symbol = '▲';
     textColor = '#bbf7d0';
   } else if (isStarterVillage) {
     accent = 0xfacc15;
     strokeColor = 0xfacc15;
     bgFill = 0x2e1e02;
-    symbol = '🏠';
     textColor = '#fef08a';
   } else if (isStarterOutskirt) {
     accent = 0xf97316;
     strokeColor = 0xf97316;
     bgFill = 0x2e0f02;
-    symbol = '⚔';
     textColor = '#fed7aa';
   } else if (isPrimary) {
     accent = 0x00e5ff;
     strokeColor = 0x00e5ff;
     bgFill = 0x031828;
-    symbol = '✦';
     textColor = '#ffffff';
   }
 
   const callout = scene.add.container(x, y);
-
   const ruler = node?.rulerFaction;
   let labelName, rulerName, boxW, boxH;
 
@@ -591,7 +558,6 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
-
     boxW = Math.max(86, labelName.width + 22);
     boxH = selected ? 28 : 24;
   }
@@ -599,10 +565,8 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
   const glowBg = (selected || current)
     ? scene.add.rectangle(0, 0, boxW + 8, boxH + 8, accent, 0.35)
     : null;
-
   const labelBg = scene.add.rectangle(0, 0, boxW, boxH, bgFill, 0.94)
     .setStrokeStyle(selected ? 2.5 : 1.8, strokeColor, 0.95);
-
   const hit = scene.add.rectangle(0, 0, boxW + 10, boxH + 10, 0x000000, 0.001)
     .setInteractive({ useHandCursor: true });
 
@@ -613,7 +577,6 @@ function renderMarker(scene, mapContainer, marker, pos, selected, onSelect) {
 
   if (glowBg) callout.add(glowBg);
   callout.add([labelBg, labelName, rulerName, hit].filter(Boolean));
-
   mapContainer.add(callout);
 }
 
@@ -624,7 +587,6 @@ function renderMapHeader(scene, panel, node) {
   panel.add(scene.add.text(-230, -338, 'VỊ TRÍ HIỆN TẠI', {
     fontFamily: FONT, fontSize: '8px', fontStyle: 'bold', color: '#66dff4'
   }).setOrigin(0, 0.5));
-
   const chip = scene.add.rectangle(0, -312, 462, 38, COLOR.panel2, 1).setStrokeStyle(1.2, 0x1f7187);
   panel.add(chip);
   panel.add(scene.add.text(-216, -312, '⌖', {
@@ -636,7 +598,6 @@ function renderMapHeader(scene, panel, node) {
   panel.add(scene.add.text(208, -312, '1 BẢN ĐỒ', {
     fontFamily: FONT, fontSize: '7px', fontStyle: 'bold', color: '#6f9aaa'
   }).setOrigin(1, 0.5));
-
   panel.add(scene.add.text(-230, -282, truncateLabel(breadcrumb(node.id), 68), {
     fontFamily: FONT, fontSize: '7.5px', color: '#6da5b8'
   }).setOrigin(0, 0.5));
@@ -690,33 +651,12 @@ function getEnemyInfoForNode(node) {
   else if (id.includes('nam_lang') || id.includes('.nl') || id.startsWith('nl')) contKey = 'south';
 
   const ENEMY_TIER_BY_CONTINENT = {
-    south: {
-      realm: 'Luyện Khí (Tầng 1 - 12)',
-      monster: 'Yêu Thú Sơ Giai',
-      guardian: 'Thủ Hộ: Luyện Khí Viên Mãn'
-    },
-    east: {
-      realm: 'Trúc Cơ (Sơ Kỳ - Đỉnh Phong)',
-      monster: 'Yêu Thú Nhị Giai',
-      guardian: 'Thủ Hộ: Trúc Cơ Đỉnh Phong'
-    },
-    west: {
-      realm: 'Kim Đan (Sơ Kỳ - Đỉnh Phong)',
-      monster: 'Yêu Thú Tam Giai',
-      guardian: 'Thủ Hộ: Kim Đan Cự Đầu'
-    },
-    north: {
-      realm: 'Nguyên Anh (Sơ Kỳ - Đỉnh Phong)',
-      monster: 'Cổ Thú Tứ Giai',
-      guardian: 'Thủ Hộ: Nguyên Anh Lão Quái'
-    },
-    center: {
-      realm: 'Hóa Thần (Sơ Kỳ - Đỉnh Phong)',
-      monster: 'Thần Thú Ngũ Giai',
-      guardian: 'Thủ Hộ: Hóa Thần Chí Tôn'
-    }
+    south: { realm: 'Luyện Khí (Tầng 1 - 12)', monster: 'Yêu Thú Sơ Giai', guardian: 'Thủ Hộ: Luyện Khí Viên Mãn' },
+    east: { realm: 'Trúc Cơ (Sơ Kỳ - Đỉnh Phong)', monster: 'Yêu Thú Nhị Giai', guardian: 'Thủ Hộ: Trúc Cơ Đỉnh Phong' },
+    west: { realm: 'Kim Đan (Sơ Kỳ - Đỉnh Phong)', monster: 'Yêu Thú Tam Giai', guardian: 'Thủ Hộ: Kim Đan Cự Đầu' },
+    north: { realm: 'Nguyên Anh (Sơ Kỳ - Đỉnh Phong)', monster: 'Cổ Thú Tứ Giai', guardian: 'Thủ Hộ: Nguyên Anh Lão Quái' },
+    center: { realm: 'Hóa Thần (Sơ Kỳ - Đỉnh Phong)', monster: 'Thần Thú Ngũ Giai', guardian: 'Thủ Hộ: Hóa Thần Chí Tôn' }
   };
-
   const tier = ENEMY_TIER_BY_CONTINENT[contKey] || ENEMY_TIER_BY_CONTINENT.south;
   if (isSecret) {
     return {
@@ -781,11 +721,9 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
     }).setOrigin(0, 0.5));
     const destinationLine = destination.kind === 'faction_headquarters'
       ? `Bản đồ thế lực: ${destination.map?.name || faction.meta?.seatName || faction.name}`
-      : destination.kind === 'city'
-        ? `Bản đồ Thành: ${destination.map?.name || territoryName}`
-        : `${territoryName} là khu vực phân cấp; chọn Thành, Hoang Dã hoặc Bí Cảnh để di chuyển.`;
+      : `Dữ liệu map cố định của ${faction.name} chưa hợp lệ.`;
     panel.add(scene.add.text(-208, 332, truncateLabel(destinationLine, 110), {
-      fontFamily: FONT, fontSize: '8px', color: destination.map ? '#9bd8e8' : '#8a98a0',
+      fontFamily: FONT, fontSize: '8px', color: destination.map ? '#9bd8e8' : '#ff8d9a',
       wordWrap: { width: 416, useAdvancedWrap: true }
     }).setOrigin(0, 0));
 
@@ -799,7 +737,7 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
           ? `KHÓA • ${required}`
           : canOpenTerritory
             ? 'XEM PHÂN VÙNG'
-            : 'CHƯA CÓ MAP';
+            : 'LỖI MAP THẾ LỰC';
     addButton(scene, panel, -105, 382, 198, 36, travelLabel, () => {
       if (travelEnabled) {
         travelTo(scene, destination.map, `${faction.name} • ${territoryName}`);
@@ -838,23 +776,11 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
     const ruler = node.rulerFaction;
     if (ruler) {
       const isClan = ruler.type === 'Thế Gia' || ruler.type === 'Gia Tộc';
-      let targetFaction = null;
-      if (scene.network) {
-        const localFactions = scene.network.getLocalFactionsForJurisdiction?.(node.id) || [];
-        targetFaction = localFactions.find(f => f.name === ruler.name)
-          || localFactions.find(f => isClan ? isFamilyArchetype(f.archetype) : f.archetype === 'SECT');
-        
-        if (!targetFaction) {
-          const jurFactions = scene.network.getFactionsForJurisdiction?.(node.id) || [];
-          targetFaction = jurFactions.find(f => f.name === ruler.name)
-            || jurFactions.find(f => isClan ? isFamilyArchetype(f.archetype) : f.archetype === 'SECT');
-        }
-
-        if (!targetFaction) {
-          targetFaction = scene.network.getAllKnownFactions?.().find(f => f.name === ruler.name);
-        }
-      }
-      const targetFactionId = targetFaction?.id || ruler.id || `faction.hr.local.${isClan ? 'family' : 'sect'}.${node.id.replace(/\./g, '_')}`;
+      const factionNetwork = scene.network
+        || scene.getFactionRuntime?.()?.network
+        || scene.getFactionRuntimeCoordinator?.()?.network
+        || null;
+      const targetFaction = ruler.id ? (factionNetwork?.getFaction?.(ruler.id) || null) : null;
 
       const rulerLabel = ruler.rankLabel || (ruler.duty ? `${ruler.type} ${ruler.duty}` : ruler.type);
       panel.add(scene.add.text(-208, 312, truncateLabel(`🏰 Thống Lĩnh: ${ruler.name} • ${rulerLabel}`, 48), {
@@ -867,10 +793,7 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
         lineSpacing: 3
       }).setOrigin(0, 0));
 
-      // Vực/Châu/Quốc là container; ruler đi vào Sơn Môn/Tổ Địa của chính thế lực,
-      // còn nút phân vùng chỉ mở các map con Thành/Hoang Dã/Bí Cảnh để người chơi tự chọn.
-      const factionLike = targetFaction || { id: targetFactionId, archetype: isClan ? 'CULTIVATION_FAMILY' : 'SECT' };
-      const factionMapId = factionHeadquartersMapId(factionLike, isClan);
+      const factionMapId = factionHeadquartersMapId(targetFaction);
       const factionMap = factionMapId ? findMapById(factionMapId) : null;
       const factionAccess = factionMap ? canEnterMap(factionMap.id, gameState) : { ok: false };
       const factionCurrent = factionMap ? sameMapId(factionMap.id, gameState.currentMapId) : false;
@@ -883,7 +806,7 @@ function renderSelectedDetail(scene, panel, activeNode, selectedMarker, openNode
           ? (isClan ? 'VÀO THẾ GIA' : 'VÀO TÔNG MÔN')
           : factionMap
             ? `KHÓA • ${factionRequired}`
-            : 'CHƯA CÓ MAP THẾ LỰC';
+            : 'LỖI MAP THẾ LỰC';
       addButton(scene, panel, -105, 382, 198, 38, factionButtonLabel, () => {
         if (!factionMap || factionCurrent || !factionAccess.ok) return;
         travelTo(scene, factionMap, ruler.name);
@@ -1012,8 +935,6 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
     ) || null;
   }
 
-  const tallMap = true;
-  // The header stays intentionally compact, with the current hierarchy level prominent.
   panel.add(scene.add.text(0, -428, truncateLabel(activeNode.name || 'NHÂN GIỚI', 32), {
     fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#ffe49a'
   }).setOrigin(0.5));
@@ -1025,7 +946,7 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   panel.add(mapContainer);
   renderTerrain(scene, mapContainer, activeNode);
 
-  const mapClearHit = scene.add.rectangle(0, 0, 456, tallMap ? 568 : 376, 0x000000, 0.001).setInteractive({ useHandCursor: false });
+  const mapClearHit = scene.add.rectangle(0, 0, 456, 568, 0x000000, 0.001).setInteractive({ useHandCursor: false });
   mapClearHit.on('pointerdown', pointer => {
     stopPointer(scene, pointer);
     state.selectedFactionId = null;
@@ -1034,7 +955,6 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   mapContainer.add(mapClearHit);
 
   if (rootAtlas) {
-    // 5 ĐẠI LỤC VÙNG CHỌN TRỰC TIẾP TRÊN BẢN ĐỒ (Không vẽ marker, không vẽ khung vàng đè lên hình ảnh)
     const CONTINENT_AREAS = [
       { id: 'bm', name: 'Bắc Minh Đại Lục', x: 0, y: -160, w: 220, h: 120 },
       { id: 'tm', name: 'Tây Mạc Đại Lục', x: -145, y: -20, w: 140, h: 140 },
@@ -1046,11 +966,9 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
     CONTINENT_AREAS.forEach(area => {
       const hit = scene.add.rectangle(area.x, area.y, area.w, area.h, 0x000000, 0.001)
         .setInteractive({ useHandCursor: true });
-      
       const hoverGlow = scene.add.rectangle(area.x, area.y, area.w, area.h, 0x38bdf8, 0.0)
         .setStrokeStyle(1.5, 0x38bdf8, 0)
         .setVisible(false);
-      
       hit.on('pointerover', () => {
         hoverGlow.setVisible(true).setFillStyle(0x38bdf8, 0.10).setStrokeStyle(1.5, 0x38bdf8, 0.7);
       });
@@ -1062,7 +980,6 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
         state.selectedFactionId = null;
         scene.openMapPanel(area.id, null, 0);
       });
-
       mapContainer.add([hoverGlow, hit]);
     });
   } else {
@@ -1136,8 +1053,6 @@ function renderVisualMap(scene, panel, activeNode, selectedMapId, page = 0) {
   );
 }
 
-// The painted atlas is the entrance to the existing world hierarchy. Coordinates
-// are normalized to the source artwork so the five labels remain clickable after resizing.
 export function installWorldMapHierarchyUI(MainGameScene) {
   if (!MainGameScene?.prototype) return;
   const proto = MainGameScene.prototype;
@@ -1179,8 +1094,7 @@ export function installWorldMapHierarchyUI(MainGameScene) {
     panel.header.setVisible(false);
     panel.titleTxt.setVisible(false);
     panel.subtitleTxt.setVisible(false);
-    // The original skin has a clean edge. The generated map frame stays in the
-    // asset kit for future use, but is not composited because it is not a clean alpha asset.
+
     if (scene.textures.exists('world_map_ui_skin')) {
       const skin = scene.add.image(0, 0, 'world_map_ui_skin').setDisplaySize(534, 954).setScrollFactor(0);
       panel.addAt(skin, 1);
