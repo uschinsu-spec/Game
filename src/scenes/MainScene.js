@@ -52,11 +52,11 @@ export class MainGameScene extends Phaser.Scene {
     // Player uses only run (25 frames) + attack (20 frames).
     for (let f = 1; f <= 25; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp`);
+      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp?v=20261002-player-transparent-v4`);
     }
     for (let f = 1; f <= 20; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp`);
+      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp?v=20261002-player-transparent-v4`);
     }
 
     for (let i = 1; i <= 16; i++) {
