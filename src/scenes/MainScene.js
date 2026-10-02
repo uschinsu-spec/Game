@@ -11,9 +11,9 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-assets-v3';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-runtime-v6';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-assets-v3';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-runtime-v6';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-shared-vfx-pool-v5';
@@ -52,11 +52,11 @@ export class MainGameScene extends Phaser.Scene {
     // Player uses only run (25 frames) + attack (20 frames).
     for (let f = 1; f <= 25; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp?v=20261002-player-transparent-v4`);
+      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp?v=20261002-player-runtime-v6`);
     }
     for (let f = 1; f <= 20; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp?v=20261002-player-transparent-v4`);
+      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp?v=20261002-player-runtime-v6`);
     }
 
     for (let i = 1; i <= 16; i++) {
