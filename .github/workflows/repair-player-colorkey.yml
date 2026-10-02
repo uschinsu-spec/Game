@@ -1,5 +1,5 @@
 name: Exact player checkerboard repair
-# retry after fixing color-distance overflow
+# retry with border-connected checker removal
 on:
   push:
     paths:
