@@ -48,9 +48,8 @@ export const CombatMixin = {
       const animDuration = Math.min(500, Math.max(280, Math.floor(atkInterval * 0.82)));
       if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
       else {
-        const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
         this.attackUntil = this.time.now + animDuration;
-        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+        this.player.play('p_attack', true);
       }
     }
 
@@ -132,9 +131,8 @@ export const CombatMixin = {
         : 450;
       if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
       else {
-        const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
         this.attackUntil = this.time.now + animDuration;
-        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+        this.player.play('p_attack', true);
       }
     }
 
@@ -470,7 +468,8 @@ export const CombatMixin = {
     this.playerHp = this.playerHpMax;
     gameState.mana = gameState.manaMax;
     this.player.setPosition(350, 620).setVelocity(0, 0).clearTint().setAlpha(1);
-    this.player.play('p_idle', true);
+    this.player.stop();
+    this.player.setTexture('player_run_01');
     this.playerShadow?.setPosition(this.player.x, this.player.y + 35);
     this.invulnerableUntil = this.time.now + 2500;
     this.dead = false;
