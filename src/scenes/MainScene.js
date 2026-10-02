@@ -16,7 +16,7 @@ import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
 import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-player12-smooth-v1';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
-import { FellowNpcMixin } from './mixins/FellowNpcMixin.js';
+import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-ai-tick-v1';
 import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
 import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
 
@@ -316,6 +316,42 @@ export class MainGameScene extends Phaser.Scene {
     }
     this.updateFellowNpcs(time, delta);
 
+    // Enemy AI "thinks" at 10 Hz while movement/animation still update every frame.
+    // Reuse one shared target snapshot so every enemy does not rebuild the same candidate list.
+    const ENEMY_AI_TICK_MS = 100;
+    const shouldRefreshEnemyAi = time >= Number(this.__nextEnemyAiTickAt || 0);
+    if (shouldRefreshEnemyAi) {
+      this.__nextEnemyAiTickAt = time + ENEMY_AI_TICK_MS;
+      const candidates = [{ type: 'player', x: this.player.x, y: this.player.y, ref: this.player }];
+
+      const partyFollowers = this.partyFollowers || [];
+      for (let i = 0; i < partyFollowers.length; i++) {
+        const f = partyFollowers[i];
+        if (f && !f.isDead && f.sprite?.visible && f.sprite?.active) {
+          candidates.push({ type: 'party_follower', x: f.sprite.x, y: f.sprite.y, ref: f });
+        }
+      }
+
+      const fellowNpcs = this.fellowNpcs || [];
+      for (let i = 0; i < fellowNpcs.length; i++) {
+        const n = fellowNpcs[i];
+        if (n && !n.isDead && n.sprite?.visible && n.sprite?.active) {
+          candidates.push({ type: 'fellow_npc', x: n.sprite.x, y: n.sprite.y, ref: n });
+        }
+      }
+
+      const mapNpcs = this.npcsGroup || [];
+      for (let i = 0; i < mapNpcs.length; i++) {
+        const n = mapNpcs[i];
+        if (n?.container?.active && n.container.visible) {
+          candidates.push({ type: 'map_npc', x: n.container.x, y: n.container.y, ref: n });
+        }
+      }
+
+      this.__enemyTargetCandidates = candidates;
+    }
+
+    const enemyTargetCandidates = this.__enemyTargetCandidates || [];
     const CULL_RANGE_X = 950;
     const enemiesCopy = this.enemies;
     for (let i = 0; i < enemiesCopy.length; i++) {
@@ -331,19 +367,62 @@ export class MainGameScene extends Phaser.Scene {
       enemy.setScale(pScale).setDepth(Math.floor(enemy.y));
       if (enemy.hpBar?.active) { enemy.hpBg.setPosition(enemy.x, enemy.y - 36 * pScale).setDepth(Math.floor(enemy.y) + 1); enemy.hpBar.setPosition(enemy.x - (enemy.barW || 36) / 2, enemy.y - 36 * pScale).setDepth(Math.floor(enemy.y) + 2); enemy.nameText.setPosition(enemy.x, enemy.y - 47 * pScale).setDepth(Math.floor(enemy.y) + 3); }
 
-      let nearestTarget = null, minTargetDist = 999999;
-      const candidates = [{ type: 'player', x: this.player.x, y: this.player.y, ref: this.player }];
-      (this.partyFollowers || []).forEach(f => { if (f && !f.isDead && f.sprite?.visible && f.sprite?.active) candidates.push({ type: 'party_follower', x: f.sprite.x, y: f.sprite.y, ref: f }); });
-      (this.fellowNpcs || []).forEach(n => { if (n && !n.isDead && n.sprite?.visible && n.sprite?.active) candidates.push({ type: 'fellow_npc', x: n.sprite.x, y: n.sprite.y, ref: n }); });
-      (this.npcsGroup || []).forEach(n => { if (n?.container?.active && n.container.visible) candidates.push({ type: 'map_npc', x: n.container.x, y: n.container.y, ref: n }); });
-      candidates.forEach(c => { const d = Phaser.Math.Distance.Between(enemy.x, enemy.y, c.x, c.y); if (d < minTargetDist) { minTargetDist = d; nearestTarget = c; } });
+      let nearestTarget = enemy.__aiTarget || null;
+
+      // Target selection is throttled; squared distance avoids a sqrt for every candidate.
+      if (shouldRefreshEnemyAi || !nearestTarget) {
+        let bestTarget = null;
+        let bestDistSq = Number.POSITIVE_INFINITY;
+        for (let c = 0; c < enemyTargetCandidates.length; c++) {
+          const candidate = enemyTargetCandidates[c];
+          const dx = candidate.x - enemy.x;
+          const dy = candidate.y - enemy.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            bestTarget = candidate;
+          }
+        }
+        enemy.__aiTarget = bestTarget;
+        nearestTarget = bestTarget;
+      }
+
+      // Read the selected target's live position each frame so movement stays smooth.
+      let targetX = 0, targetY = 0, targetValid = false;
+      if (nearestTarget?.type === 'player') {
+        targetValid = !!(this.player?.active && !this.dead);
+        if (targetValid) { targetX = this.player.x; targetY = this.player.y; }
+      } else if (nearestTarget?.type === 'party_follower') {
+        const f = nearestTarget.ref;
+        targetValid = !!(f && !f.isDead && f.sprite?.active && f.sprite.visible);
+        if (targetValid) { targetX = f.sprite.x; targetY = f.sprite.y; }
+      } else if (nearestTarget?.type === 'fellow_npc') {
+        const n = nearestTarget.ref;
+        targetValid = !!(n && !n.isDead && n.sprite?.active && n.sprite.visible);
+        if (targetValid) { targetX = n.sprite.x; targetY = n.sprite.y; }
+      } else if (nearestTarget?.type === 'map_npc') {
+        const n = nearestTarget.ref;
+        targetValid = !!(n?.container?.active && n.container.visible);
+        if (targetValid) { targetX = n.container.x; targetY = n.container.y; }
+      }
+
+      if (!targetValid) {
+        enemy.__aiTarget = null;
+        nearestTarget = null;
+      } else {
+        // Keep x/y fresh because existing projectile/attack code expects them on the target wrapper.
+        nearestTarget.x = targetX;
+        nearestTarget.y = targetY;
+      }
+
+      const minTargetDist = nearestTarget ? Math.hypot(targetX - enemy.x, targetY - enemy.y) : 999999;
 
       let evx = 0, evy = 0;
       const isEnemyAttacking = this.time.now < (enemy.attackUntil || 0);
       if (nearestTarget && minTargetDist < 500) {
-        enemy.setFlipX(nearestTarget.x < enemy.x);
+        enemy.setFlipX(targetX < enemy.x);
         if (enemy.isRanged) {
-          if (minTargetDist > 220) { const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, nearestTarget.x, nearestTarget.y); evx = Math.cos(angle) * 50; evy = Math.sin(angle) * 50; }
+          if (minTargetDist > 220) { const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, targetX, targetY); evx = Math.cos(angle) * 50; evy = Math.sin(angle) * 50; }
           if (minTargetDist <= 260) { if (enemy.atkTimer === undefined || enemy.atkTimer > 1800) enemy.atkTimer = 400; enemy.atkTimer -= delta; if (enemy.atkTimer <= 0) { enemy.atkTimer = 1600 + Math.random() * 800; this.enemyShootProjectile(enemy, nearestTarget); } }
         } else {
           if (minTargetDist > 80) { const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, nearestTarget.x, nearestTarget.y); evx = Math.cos(angle) * 58; evy = Math.sin(angle) * 58; }
