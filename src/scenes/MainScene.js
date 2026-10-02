@@ -16,7 +16,7 @@ import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
 import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-auto-scan-3hz-v3';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
-import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-ai-tick-3hz-v2';
+import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-entity-ui-throttle-v4';
 import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
 import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
 
@@ -376,20 +376,72 @@ export class MainGameScene extends Phaser.Scene {
     }
 
     const enemyTargetCandidates = this.__enemyTargetCandidates || [];
+
+    // Entity labels / HP bars do not need full frame-rate updates.
+    // Keep gameplay movement every frame, but move attached enemy UI at 20 Hz.
+    const ENEMY_UI_TICK_MS = 50;
+    const shouldUpdateEnemyUi = time >= Number(this.__nextEnemyUiTickAt || 0);
+    if (shouldUpdateEnemyUi) this.__nextEnemyUiTickAt = time + ENEMY_UI_TICK_MS;
+
     const CULL_RANGE_X = 950;
     const enemiesCopy = this.enemies;
     for (let i = 0; i < enemiesCopy.length; i++) {
       const enemy = enemiesCopy[i];
       if (!enemy || !enemy.active || enemy.isDead) continue;
       if (Math.abs(enemy.x - this.player.x) > CULL_RANGE_X) {
-        if (enemy.visible) { enemy.setVisible(false); if (enemy.body) { enemy.body.enable = false; enemy.setVelocity(0, 0); } enemy.hpBar?.setVisible(false); enemy.hpBg?.setVisible(false); enemy.nameText?.setVisible(false); }
+        if (enemy.visible) {
+          enemy.setVisible(false);
+          if (enemy.body) { enemy.body.enable = false; enemy.setVelocity(0, 0); }
+          enemy.hpBar?.setVisible(false);
+          enemy.hpBg?.setVisible(false);
+          enemy.nameText?.setVisible(false);
+          enemy.__forceUiSync = true;
+        }
         continue;
       }
-      if (!enemy.visible) { enemy.setVisible(true); if (enemy.body) enemy.body.enable = true; enemy.hpBar?.setVisible(true); enemy.hpBg?.setVisible(true); enemy.nameText?.setVisible(true); }
+      if (!enemy.visible) {
+        enemy.setVisible(true);
+        if (enemy.body) enemy.body.enable = true;
+        enemy.hpBar?.setVisible(true);
+        enemy.hpBg?.setVisible(true);
+        enemy.nameText?.setVisible(true);
+        enemy.__forceUiSync = true;
+      }
       if (!enemy.body) continue;
+
       const pScale = (enemy.baseEnemyScale || 0.50) * this.perspective(enemy.y);
-      enemy.setScale(pScale).setDepth(Math.floor(enemy.y));
-      if (enemy.hpBar?.active) { enemy.hpBg.setPosition(enemy.x, enemy.y - 36 * pScale).setDepth(Math.floor(enemy.y) + 1); enemy.hpBar.setPosition(enemy.x - (enemy.barW || 36) / 2, enemy.y - 36 * pScale).setDepth(Math.floor(enemy.y) + 2); enemy.nameText.setPosition(enemy.x, enemy.y - 47 * pScale).setDepth(Math.floor(enemy.y) + 3); }
+      const enemyDepth = Math.floor(enemy.y);
+
+      // Avoid redundant sprite setters when perspective/depth did not materially change.
+      if (!Number.isFinite(enemy.__lastRenderScale) || Math.abs(enemy.__lastRenderScale - pScale) > 0.002) {
+        enemy.setScale(pScale);
+        enemy.__lastRenderScale = pScale;
+      }
+      if (enemy.__lastRenderDepth !== enemyDepth) {
+        enemy.setDepth(enemyDepth);
+        enemy.__lastRenderDepth = enemyDepth;
+      }
+
+      if (enemy.hpBar?.active && (shouldUpdateEnemyUi || enemy.__forceUiSync)) {
+        const uiX = enemy.x;
+        const uiY = enemy.y;
+        const moved = !Number.isFinite(enemy.__lastUiX)
+          || Math.abs(enemy.__lastUiX - uiX) > 0.5
+          || Math.abs(enemy.__lastUiY - uiY) > 0.5
+          || Math.abs(Number(enemy.__lastUiScale || 0) - pScale) > 0.002
+          || enemy.__lastUiDepth !== enemyDepth;
+
+        if (moved || enemy.__forceUiSync) {
+          enemy.hpBg.setPosition(uiX, uiY - 36 * pScale).setDepth(enemyDepth + 1);
+          enemy.hpBar.setPosition(uiX - (enemy.barW || 36) / 2, uiY - 36 * pScale).setDepth(enemyDepth + 2);
+          enemy.nameText.setPosition(uiX, uiY - 47 * pScale).setDepth(enemyDepth + 3);
+          enemy.__lastUiX = uiX;
+          enemy.__lastUiY = uiY;
+          enemy.__lastUiScale = pScale;
+          enemy.__lastUiDepth = enemyDepth;
+        }
+        enemy.__forceUiSync = false;
+      }
 
       let nearestTarget = enemy.__aiTarget || null;
 
