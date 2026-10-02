@@ -498,7 +498,7 @@ export const FellowNpcMixin = {
 
     const px = this.player.x;
     const py = this.player.y;
-    const PARTY_TARGET_TICK_MS = 100;
+    const PARTY_TARGET_TICK_MS = 1000 / 3;
     const shouldRefreshPartyTargets = time >= Number(this.__nextPartyTargetTickAt || 0);
     if (shouldRefreshPartyTargets) this.__nextPartyTargetTickAt = time + PARTY_TARGET_TICK_MS;
 
@@ -688,8 +688,8 @@ export const FellowNpcMixin = {
     const CULL_RANGE_X = 950;
     const playerX = this.player.x;
 
-    // Keep visuals/movement at frame rate, but expensive AI decisions at 10 Hz.
-    const FELLOW_AI_TICK_MS = 100;
+    // Keep visuals/movement at frame rate, but expensive AI decisions at 3 Hz.
+    const FELLOW_AI_TICK_MS = 1000 / 3;
     const shouldThinkFellowAi = time >= Number(this.__nextFellowAiTickAt || 0);
     if (shouldThinkFellowAi) this.__nextFellowAiTickAt = time + FELLOW_AI_TICK_MS;
 
