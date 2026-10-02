@@ -38,9 +38,10 @@ export const PlayerMixin = {
 
   playPlayerAttackAnimation(durationMs = 500) {
     if (!this.player || !this.player.active) return;
-    // 25 frames need ~420ms minimum on a 60Hz display to avoid obvious frame loss.
-    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 500), 420, 650);
-    const baseDuration = 625; // 25 frames at 40 fps.
+    // 20 attack frames at 40 fps = 500ms base.
+    // 340ms stays close to the 60Hz display limit while keeping combat responsive.
+    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 500), 340, 650);
+    const baseDuration = 500;
 
     if (this.player.anims) this.player.anims.timeScale = baseDuration / safeDuration;
     this.attackUntil = this.time.now + safeDuration;

@@ -11,9 +11,9 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player25-v1';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-assets-v3';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player25-v1';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-assets-v3';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-shared-vfx-pool-v5';
@@ -49,11 +49,14 @@ export class MainGameScene extends Phaser.Scene {
     this.load.on('progress', value => bootUi?.progress(value));
     this.load.on('loaderror', () => bootUi?.assetError());
 
-    // Player: only 2 animations, 25 fixed 192x192 frames each.
+    // Player uses only run (25 frames) + attack (20 frames).
     for (let f = 1; f <= 25; f++) {
       const pad = String(f).padStart(2, '0');
-      this.load.image(\`player_run_\${pad}\`, \`\${A}characters/player/player_run_\${pad}.webp\`);
-      this.load.image(\`player_attack_\${pad}\`, \`\${A}characters/player/player_attack_\${pad}.webp\`);
+      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp`);
+    }
+    for (let f = 1; f <= 20; f++) {
+      const pad = String(f).padStart(2, '0');
+      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp`);
     }
 
     for (let i = 1; i <= 16; i++) {
@@ -536,9 +539,9 @@ export class MainGameScene extends Phaser.Scene {
 
   createAnimations() {
     const make = (key, tex, start, end, rate, repeat = -1, yoyo = false) => { if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start, end }), frameRate: rate, repeat, yoyo }); };
-    const playerFrames = kind => Array.from({ length: 25 }, (_, i) => ({ key: \`player_\${kind}_\${String(i + 1).padStart(2, '0')}\` }));
-    if (!this.anims.exists('p_run')) this.anims.create({ key: 'p_run', frames: playerFrames('run'), frameRate: 25, repeat: -1 });
-    if (!this.anims.exists('p_attack')) this.anims.create({ key: 'p_attack', frames: playerFrames('attack'), frameRate: 40, repeat: 0 });
+    const playerFrames = (kind, count) => Array.from({ length: count }, (_, i) => ({ key: `player_${kind}_${String(i + 1).padStart(2, '0')}` }));
+    if (!this.anims.exists('p_run')) this.anims.create({ key: 'p_run', frames: playerFrames('run', 25), frameRate: 25, repeat: -1 });
+    if (!this.anims.exists('p_attack')) this.anims.create({ key: 'p_attack', frames: playerFrames('attack', 20), frameRate: 40, repeat: 0 });
     for (let i = 1; i <= 16; i++) {
       const t = 'enemy_' + i;
       if (!this.anims.exists('e_' + t + '_idle')) this.anims.create({ key: 'e_' + t + '_idle', frames: [{ key: `${t}_idle_0` }, { key: `${t}_idle_1` }], frameRate: 4, repeat: -1 });
