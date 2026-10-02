@@ -1,4 +1,5 @@
 name: Build player run/attack assets
+# Corrected mapping: attack 5x4, run 5x5.
 
 on:
   push:
