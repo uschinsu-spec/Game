@@ -1,0 +1,31 @@
+name: Hybrid player mask rebuild
+on:
+  push:
+    paths:
+      - ".github/workflows/repair-player-hybrid.yml"
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --disable-pip-version-check "rembg[cpu]" pillow numpy opencv-python-headless
+      - run: python scripts/repair_player_hybrid.py
+      - name: Verify counts
+        run: |
+          test "$(find assets/characters/player -maxdepth 1 -name 'player_run_??.webp' | wc -l)" -eq 25
+          test "$(find assets/characters/player -maxdepth 1 -name 'player_attack_??.webp' | wc -l)" -eq 20
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/characters/player/player_run_*.webp assets/characters/player/player_attack_*.webp
+          git commit -m "Rebuild player with hybrid transparency mask"
+          git pull --rebase origin main
+          git push
