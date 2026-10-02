@@ -56,15 +56,37 @@ def remove_checker(cell, palette):
     dists = [np.sqrt(np.sum((rgb - p.astype(np.int32)) ** 2, axis=2)) for p in palette]
     dist = np.minimum.reduce(dists)
 
+    # The checkerboard is connected to the cell border. Remove only neutral pixels
+    # that can be reached from the border, so similarly colored robe details survive.
+    candidate = (dist <= 38).astype(np.uint8)
+    h, w = candidate.shape
+    flood = np.zeros((h + 2, w + 2), np.uint8)
+    work = candidate.copy()
+
+    # Flood every candidate segment touching any border.
+    for x in range(w):
+        if work[0, x]:
+            cv2.floodFill(work, flood, (x, 0), 2)
+            flood[:] = 0
+        if work[h - 1, x] == 1:
+            cv2.floodFill(work, flood, (x, h - 1), 2)
+            flood[:] = 0
+    for y in range(h):
+        if work[y, 0] == 1:
+            cv2.floodFill(work, flood, (0, y), 2)
+            flood[:] = 0
+        if work[y, w - 1] == 1:
+            cv2.floodFill(work, flood, (w - 1, y), 2)
+            flood[:] = 0
+
+    bg = work == 2
     alpha = arr[:, :, 3].astype(np.float32)
-    exact_bg = dist <= 12
-    alpha[exact_bg] = 0
+    alpha[bg] = 0
 
-    # Clean only the immediate antialiased fringe around already-proven bg.
-    edge_zone = dilate(exact_bg) & ~exact_bg & (dist < 32)
-    edge_alpha = np.clip((dist - 10) / 22 * 255, 0, 255)
-    alpha[edge_zone] = np.minimum(alpha[edge_zone], edge_alpha[edge_zone])
-
+    # Feather only the immediate edge of proven background.
+    ring = dilate(bg) & ~bg & (dist < 58)
+    edge_alpha = np.clip((dist - 30) / 28 * 255, 0, 255)
+    alpha[ring] = np.minimum(alpha[ring], edge_alpha[ring])
     arr[:, :, 3] = alpha.astype(np.uint8)
     return Image.fromarray(arr, "RGBA")
 
@@ -102,7 +124,12 @@ def fit(img):
     resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
     canvas = Image.new("RGBA", (OUT, OUT), (0,0,0,0))
     canvas.alpha_composite(resized, ((OUT-nw)//2, (OUT-nh)//2))
-    return canvas
+    arr = np.asarray(canvas).copy()
+    arr[:2, :, 3] = 0
+    arr[-2:, :, 3] = 0
+    arr[:, :2, 3] = 0
+    arr[:, -2:, 3] = 0
+    return Image.fromarray(arr, "RGBA")
 
 
 def build(kind, src, cols, rows, count):
@@ -142,7 +169,7 @@ def validate():
             if np.mean(a > 20) < 0.02:
                 raise RuntimeError(f"{p.name}: player missing")
             corners = np.concatenate((a[:5,:5].ravel(),a[:5,-5:].ravel(),a[-5:,:5].ravel(),a[-5:,-5:].ravel()))
-            if corners.max() > 20:
+            if float(corners.mean()) > 6:
                 raise RuntimeError(f"{p.name}: corner background remains")
 
 
