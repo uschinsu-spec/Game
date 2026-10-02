@@ -18,12 +18,12 @@ export const PlayerMixin = {
     this.playerDmg = this.calcPlayerDmg();
 
     const spawn = this.currentMap?.spawn || { x: 350, y: 620 };
-    this.player = this.physics.add.sprite(spawn.x, spawn.y, 'player_run_01')
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, 'player_idle', 0)
       .setScale(0.85)
       .setDepth(620);
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(44, 70).setOffset(42, 40);
-    this.player.stop();
+    this.player.play('p_idle');
 
     this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 35, 40, 14, 0x000000, 0.45).setDepth(1);
 
@@ -31,21 +31,23 @@ export const PlayerMixin = {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
   },
 
-  // Realm still affects movement speed, but player visuals use only run + attack.
+  // Animation tier:
+  // - Dưới Trúc Cơ (realmIdx < 13): idle / run / attack.
+  // - Trúc Cơ Sơ Kỳ trở lên (realmIdx >= 13): idle / fly / fly_attack.
   isPlayerFlyingRealm() {
     return (Number(gameState.realmIdx) || 0) >= 13;
   },
 
-  playPlayerAttackAnimation(durationMs = 500) {
+  playPlayerAttackAnimation(durationMs = 360) {
     if (!this.player || !this.player.active) return;
-    // 20 attack frames at 40 fps = 500ms base.
-    // 340ms stays close to the 60Hz display limit while keeping combat responsive.
-    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 500), 340, 650);
-    const baseDuration = 500;
+    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 360), 280, 520);
+    const animKey = this.isPlayerFlyingRealm() ? 'p_fly_attack' : 'p_attack';
 
-    if (this.player.anims) this.player.anims.timeScale = baseDuration / safeDuration;
+    // p_attack / p_fly_attack are 12 frames at 24 fps => 500ms base duration.
+    // timeScale keeps every frame while matching the actual combat cadence.
+    if (this.player.anims) this.player.anims.timeScale = 500 / safeDuration;
     this.attackUntil = this.time.now + safeDuration;
-    this.player.play('p_attack', true);
+    this.player.play(animKey, true);
   },
 
   calcPlayerMaxHp() {
@@ -193,8 +195,7 @@ export const PlayerMixin = {
     if (gameState.isResting) {
       this.player.setVelocity(0, 0);
       this.moveTarget = null;
-      this.player.stop();
-      this.player.setTexture('player_run_01');
+      this.player.play('p_idle', true);
       gameState.autoFight = false;
       this.updateAutoBtnVisual();
       this.showFloatingText(this.player.x, this.player.y - 70, '🛌 DƯỠNG SỨC: Hồi HP & Pháp Lực (+5%/s)', '#86efac', '14px');

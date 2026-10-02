@@ -11,9 +11,9 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-live-v7';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-shared-vfx-pool-v5';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-live-v7';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-shared-vfx-pool-v5';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-shared-vfx-pool-v5';
@@ -44,21 +44,16 @@ export class MainGameScene extends Phaser.Scene {
 
   preload() {
     const A = './assets/';
-    const PLAYER_ASSET_V = encodeURIComponent(new URLSearchParams(window.location.search).get('v') || '20261002-player-live-v7');
     const bootUi = window.__GAME_BOOT__;
     bootUi?.stage('Đang chuẩn bị tài nguyên bản đồ...');
     this.load.on('progress', value => bootUi?.progress(value));
     this.load.on('loaderror', () => bootUi?.assetError());
 
-    // Player uses only run (25 frames) + attack (20 frames).
-    for (let f = 1; f <= 25; f++) {
-      const pad = String(f).padStart(2, '0');
-      this.load.image(`player_run_${pad}`, `${A}characters/player/player_run_${pad}.webp?v=${PLAYER_ASSET_V}`);
-    }
-    for (let f = 1; f <= 20; f++) {
-      const pad = String(f).padStart(2, '0');
-      this.load.image(`player_attack_${pad}`, `${A}characters/player/player_attack_${pad}.webp?v=${PLAYER_ASSET_V}`);
-    }
+    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_run', A + 'characters/player/player_run.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly_attack', A + 'characters/player/player_fly_attack.webp', { frameWidth: 192, frameHeight: 192 });
 
     for (let i = 1; i <= 16; i++) {
       this.load.image(`enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.webp`);
@@ -312,7 +307,7 @@ export class MainGameScene extends Phaser.Scene {
     }
     if (isAttacking) { vx = 0; vy = 0; }
 
-    // Smooth acceleration/deceleration so the 25-frame locomotion does not snap between states.
+    // Smooth acceleration/deceleration so 12-frame locomotion does not snap between states.
     const currentVx = Number(this.player.body.velocity.x) || 0;
     const currentVy = Number(this.player.body.velocity.y) || 0;
     const targetMoving = Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01;
@@ -335,15 +330,12 @@ export class MainGameScene extends Phaser.Scene {
     if (this.time.now >= (this.attackUntil || 0)) {
       if (Math.abs(appliedVx) > 7) this.player.setFlipX(appliedVx < 0);
       if (this.player.anims) this.player.anims.timeScale = 1;
-
-      if (isMoving) {
-        if (this.player.anims?.currentAnim?.key !== 'p_run' || !this.player.anims.isPlaying) {
-          this.player.play('p_run', true);
-        }
+      if (isTrucCoOrAbove) {
+        // Trúc Cơ trở lên: idle khi đứng yên, fly khi di chuyển.
+        this.player.play(isMoving ? 'p_fly' : 'p_idle', true);
       } else {
-        // No idle asset: freeze on the first run frame.
-        this.player.stop();
-        if (this.player.texture?.key !== 'player_run_01') this.player.setTexture('player_run_01');
+        // Dưới Trúc Cơ: chỉ idle/run.
+        this.player.play(isMoving ? 'p_run' : 'p_idle', true);
       }
     }
     this.updateFellowNpcs(time, delta);
@@ -540,9 +532,7 @@ export class MainGameScene extends Phaser.Scene {
 
   createAnimations() {
     const make = (key, tex, start, end, rate, repeat = -1, yoyo = false) => { if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start, end }), frameRate: rate, repeat, yoyo }); };
-    const playerFrames = (kind, count) => Array.from({ length: count }, (_, i) => ({ key: `player_${kind}_${String(i + 1).padStart(2, '0')}` }));
-    if (!this.anims.exists('p_run')) this.anims.create({ key: 'p_run', frames: playerFrames('run', 25), frameRate: 25, repeat: -1 });
-    if (!this.anims.exists('p_attack')) this.anims.create({ key: 'p_attack', frames: playerFrames('attack', 20), frameRate: 40, repeat: 0 });
+    make('p_idle', 'player_idle', 0, 11, 11, -1); make('p_run', 'player_run', 0, 11, 12, -1); make('p_attack', 'player_attack', 0, 11, 24, 0); make('p_fly', 'player_fly', 0, 11, 15, -1); make('p_fly_attack', 'player_fly_attack', 0, 11, 24, 0);
     for (let i = 1; i <= 16; i++) {
       const t = 'enemy_' + i;
       if (!this.anims.exists('e_' + t + '_idle')) this.anims.create({ key: 'e_' + t + '_idle', frames: [{ key: `${t}_idle_0` }, { key: `${t}_idle_1` }], frameRate: 4, repeat: -1 });
