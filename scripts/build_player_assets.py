@@ -53,6 +53,7 @@ def patch_main():
 
     # Fix accidental escaped template literals from the first migration.
     t = t.replace("\\" + bt, bt)
+    t = t.replace("\\${", "${")
 
     old_preload = (
         "    // Player: only 2 animations, 25 fixed 192x192 frames each.\n"
