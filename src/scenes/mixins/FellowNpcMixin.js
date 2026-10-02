@@ -498,6 +498,9 @@ export const FellowNpcMixin = {
 
     const px = this.player.x;
     const py = this.player.y;
+    const PARTY_TARGET_TICK_MS = 100;
+    const shouldRefreshPartyTargets = time >= Number(this.__nextPartyTargetTickAt || 0);
+    if (shouldRefreshPartyTargets) this.__nextPartyTargetTickAt = time + PARTY_TARGET_TICK_MS;
 
     for (let i = 0; i < this.partyFollowers.length; i++) {
       const f = this.partyFollowers[i];
@@ -537,9 +540,14 @@ export const FellowNpcMixin = {
 
       // 1. Quét tìm quái xung quanh Player (bán kính 380px)
       let target = f.targetEnemy;
-      if (!target || !target.active || target.isDead || Phaser.Math.Distance.Between(px, py, target.x, target.y) > 420) {
-        target = this.findNearestEnemyForNpc(px, py, 380);
-        f.targetEnemy = target;
+      const partyTargetInvalid = !target || !target.active || target.isDead || Phaser.Math.Distance.Between(px, py, target.x, target.y) > 420;
+      if (partyTargetInvalid) {
+        target = null;
+        f.targetEnemy = null;
+        if (shouldRefreshPartyTargets) {
+          target = this.findNearestEnemyForNpc(px, py, 380);
+          f.targetEnemy = target;
+        }
       }
 
       // Tính lực tách giãn khoảng cách (Separation Repulsion) để các Hiệp Khách KHÔNG CHỒNG LÊN NHAU
@@ -680,6 +688,11 @@ export const FellowNpcMixin = {
     const CULL_RANGE_X = 950;
     const playerX = this.player.x;
 
+    // Keep visuals/movement at frame rate, but expensive AI decisions at 10 Hz.
+    const FELLOW_AI_TICK_MS = 100;
+    const shouldThinkFellowAi = time >= Number(this.__nextFellowAiTickAt || 0);
+    if (shouldThinkFellowAi) this.__nextFellowAiTickAt = time + FELLOW_AI_TICK_MS;
+
     for (let i = 0; i < this.fellowNpcs.length; i++) {
       const npc = this.fellowNpcs[i];
       if (!npc || !npc.sprite) continue;
@@ -775,23 +788,38 @@ export const FellowNpcMixin = {
 
       // 3. AI Tự Động Quét Tìm Quái Vật
       let target = npc.targetEnemy;
-      if (!target || !target.active || target.isDead || Math.abs(target.x - sx) > npc.searchRange) {
-        target = this.findNearestEnemyForNpc(sx, sy, npc.searchRange);
-        npc.targetEnemy = target;
+      const fellowTargetInvalid = !target || !target.active || target.isDead || Math.abs(target.x - sx) > npc.searchRange;
+      if (fellowTargetInvalid) {
+        target = null;
+        npc.targetEnemy = null;
+        if (shouldThinkFellowAi) {
+          target = this.findNearestEnemyForNpc(sx, sy, npc.searchRange);
+          npc.targetEnemy = target;
+        }
       }
 
-      // Tính lực tách giãn (Separation) giữa các Tán Tu để không đứng đè lên nhau
-      let wildPushVx = 0, wildPushVy = 0;
-      for (let j = 0; j < this.fellowNpcs.length; j++) {
-        if (i === j) continue;
-        const otherNpc = this.fellowNpcs[j];
-        if (!otherNpc || !otherNpc.sprite || otherNpc.isDead || !otherNpc.sprite.visible) continue;
-        const d = Phaser.Math.Distance.Between(sx, sy, otherNpc.sprite.x, otherNpc.sprite.y);
-        if (d > 0 && d < 48) {
-          const factor = (48 - d) / 48;
-          wildPushVx += ((sx - otherNpc.sprite.x) / d) * 70 * factor;
-          wildPushVy += ((sy - otherNpc.sprite.y) / d) * 70 * factor;
+      // Separation is an AI decision, so reuse its last result between AI ticks.
+      let wildPushVx = Number(npc.__separationVx || 0);
+      let wildPushVy = Number(npc.__separationVy || 0);
+      if (shouldThinkFellowAi) {
+        wildPushVx = 0;
+        wildPushVy = 0;
+        for (let j = 0; j < this.fellowNpcs.length; j++) {
+          if (i === j) continue;
+          const otherNpc = this.fellowNpcs[j];
+          if (!otherNpc || !otherNpc.sprite || otherNpc.isDead || !otherNpc.sprite.visible) continue;
+          const dx = sx - otherNpc.sprite.x;
+          const dy = sy - otherNpc.sprite.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq > 0 && distSq < 48 * 48) {
+            const d = Math.sqrt(distSq);
+            const factor = (48 - d) / 48;
+            wildPushVx += (dx / d) * 70 * factor;
+            wildPushVy += (dy / d) * 70 * factor;
+          }
         }
+        npc.__separationVx = wildPushVx;
+        npc.__separationVy = wildPushVy;
       }
 
       // 4. Di chuyển & Tấn công Mục tiêu
@@ -1282,14 +1310,16 @@ export const FellowNpcMixin = {
   findNearestEnemyForNpc(x, y, maxDist = 550) {
     if (!this.enemies || this.enemies.length === 0) return null;
     let nearest = null;
-    let minDist = maxDist;
+    let minDistSq = maxDist * maxDist;
 
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       if (!e || !e.active || e.isDead) continue;
-      const d = Phaser.Math.Distance.Between(x, y, e.x, e.y);
-      if (d < minDist) {
-        minDist = d;
+      const dx = e.x - x;
+      const dy = e.y - y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
         nearest = e;
       }
     }
