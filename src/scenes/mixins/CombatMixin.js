@@ -21,8 +21,18 @@ export const CombatMixin = {
       this.cancelRestingState();
     }
 
-    // Tầm cận chiến vật lý (bắt mục tiêu cận chiến <= 160px)
-    let target = this.nearestEnemy(160, true);
+    // Auto reuses the 3 Hz cached target; manual combat keeps direct targeting.
+    let target = null;
+    if (gameState.autoFight) {
+      const cached = this.__autoPlayerTarget;
+      if (cached && cached.active && !cached.isDead && cached.visible && this.isEnemyOnScreen?.(cached, 20)) {
+        const dx = cached.x - this.player.x;
+        const dy = cached.y - this.player.y;
+        if ((dx * dx + dy * dy) <= 160 * 160) target = cached;
+      }
+    } else {
+      target = this.nearestEnemy(160, true);
+    }
     if (target && target.active) {
       this.player.setFlipX(target.x < this.player.x);
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
@@ -99,8 +109,18 @@ export const CombatMixin = {
       this.cancelRestingState();
     }
 
-    // Ranged skill targeting (strictly limited to visible on-screen enemies)
-    const target = this.nearestEnemy(460, true);
+    // Auto reuses the 3 Hz cached target instead of scanning again on every cast.
+    let target = null;
+    if (gameState.autoFight) {
+      const cached = this.__autoPlayerTarget;
+      if (cached && cached.active && !cached.isDead && cached.visible && this.isEnemyOnScreen?.(cached, 20)) {
+        const dx = cached.x - this.player.x;
+        const dy = cached.y - this.player.y;
+        if ((dx * dx + dy * dy) <= 460 * 460) target = cached;
+      }
+    } else {
+      target = this.nearestEnemy(460, true);
+    }
     if (target && target.active) {
       this.player.setFlipX(target.x < this.player.x);
     }
