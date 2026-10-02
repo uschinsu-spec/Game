@@ -234,13 +234,23 @@ export const PlayerMixin = {
   },
 
   nearestEnemy(maxDist = 460, onlyOnScreen = true) {
-    let closest = null, minD = maxDist;
+    let closest = null;
+    let minDistSq = maxDist * maxDist;
+    const px = this.player.x;
+    const py = this.player.y;
+
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       if (!e || !e.active || e.isDead || !e.visible) continue;
       if (onlyOnScreen && !this.isEnemyOnScreen(e, 20)) continue;
-      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
-      if (d < minD) { minD = d; closest = e; }
+
+      const dx = e.x - px;
+      const dy = e.y - py;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
+        closest = e;
+      }
     }
     return closest;
   },
