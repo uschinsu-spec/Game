@@ -499,8 +499,17 @@ export const FellowNpcMixin = {
     const px = this.player.x;
     const py = this.player.y;
     const PARTY_TARGET_TICK_MS = 1000 / 3;
+    const PARTY_VISUAL_TICK_MS = 1000 / 30;
+    const PARTY_UI_TICK_MS = 50;
+
     const shouldRefreshPartyTargets = time >= Number(this.__nextPartyTargetTickAt || 0);
     if (shouldRefreshPartyTargets) this.__nextPartyTargetTickAt = time + PARTY_TARGET_TICK_MS;
+
+    const shouldUpdatePartyVisual = time >= Number(this.__nextPartyVisualTickAt || 0);
+    if (shouldUpdatePartyVisual) this.__nextPartyVisualTickAt = time + PARTY_VISUAL_TICK_MS;
+
+    const shouldUpdatePartyUi = time >= Number(this.__nextPartyUiTickAt || 0);
+    if (shouldUpdatePartyUi) this.__nextPartyUiTickAt = time + PARTY_UI_TICK_MS;
 
     for (let i = 0; i < this.partyFollowers.length; i++) {
       const f = this.partyFollowers[i];
@@ -509,12 +518,39 @@ export const FellowNpcMixin = {
       const sx = f.sprite.x;
       const sy = f.sprite.y;
       const pScale = 0.72 * this.perspective(sy);
+      const depth = Math.floor(sy);
 
-      f.sprite.setScale(pScale).setDepth(Math.floor(sy));
-      f.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale).setDepth(Math.floor(sy) - 1);
-      f.nameTag.setPosition(sx, sy - 48).setDepth(Math.floor(sy) + 3);
-      f.hpBg.setPosition(sx, sy - 37).setDepth(Math.floor(sy) + 1);
-      f.hpBar.setPosition(sx - f.barW / 2, sy - 37).setDepth(Math.floor(sy) + 2);
+      if (!Number.isFinite(f.__lastRenderScale) || Math.abs(f.__lastRenderScale - pScale) > 0.002) {
+        f.sprite.setScale(pScale);
+        f.__lastRenderScale = pScale;
+      }
+      if (f.__lastRenderDepth !== depth) {
+        f.sprite.setDepth(depth);
+        f.__lastRenderDepth = depth;
+      }
+
+      if (shouldUpdatePartyVisual || f.__forceVisualSync) {
+        f.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale).setDepth(depth - 1);
+      }
+
+      if (shouldUpdatePartyUi || f.__forceVisualSync) {
+        const moved = !Number.isFinite(f.__lastUiX)
+          || Math.abs(f.__lastUiX - sx) > 0.5
+          || Math.abs(f.__lastUiY - sy) > 0.5
+          || Math.abs(Number(f.__lastUiScale || 0) - pScale) > 0.002
+          || f.__lastUiDepth !== depth;
+
+        if (moved || f.__forceVisualSync) {
+          f.nameTag.setPosition(sx, sy - 48).setDepth(depth + 3);
+          f.hpBg.setPosition(sx, sy - 37).setDepth(depth + 1);
+          f.hpBar.setPosition(sx - f.barW / 2, sy - 37).setDepth(depth + 2);
+          f.__lastUiX = sx;
+          f.__lastUiY = sy;
+          f.__lastUiScale = pScale;
+          f.__lastUiDepth = depth;
+        }
+        f.__forceVisualSync = false;
+      }
 
       // Xử lý hồi sinh
       if (f.isDead) {
@@ -531,6 +567,7 @@ export const FellowNpcMixin = {
             .clearTint()
             .setTint(f.tint)
             .setAlpha(1);
+          f.__forceVisualSync = true;
           f.sprite.play(`${f.modelType}_idle`, true);
           this.spawnVfx(f.sprite.x, f.sprite.y, 0, 0.6, { tint: f.tint, duration: 250 });
           this.showFloatingText(f.sprite.x, f.sprite.y - 45, `[Tổ Đội · ${f.name}] Trợ Chiến!`, '#ffd700', '10px');
@@ -688,10 +725,19 @@ export const FellowNpcMixin = {
     const CULL_RANGE_X = 950;
     const playerX = this.player.x;
 
-    // Keep visuals/movement at frame rate, but expensive AI decisions at 3 Hz.
+    // Keep sprite/physics movement at frame rate, but throttle attached visuals and AI.
     const FELLOW_AI_TICK_MS = 1000 / 3;
+    const FELLOW_VISUAL_TICK_MS = 1000 / 30;
+    const FELLOW_UI_TICK_MS = 50;
+
     const shouldThinkFellowAi = time >= Number(this.__nextFellowAiTickAt || 0);
     if (shouldThinkFellowAi) this.__nextFellowAiTickAt = time + FELLOW_AI_TICK_MS;
+
+    const shouldUpdateFellowVisual = time >= Number(this.__nextFellowVisualTickAt || 0);
+    if (shouldUpdateFellowVisual) this.__nextFellowVisualTickAt = time + FELLOW_VISUAL_TICK_MS;
+
+    const shouldUpdateFellowUi = time >= Number(this.__nextFellowUiTickAt || 0);
+    if (shouldUpdateFellowUi) this.__nextFellowUiTickAt = time + FELLOW_UI_TICK_MS;
 
     for (let i = 0; i < this.fellowNpcs.length; i++) {
       const npc = this.fellowNpcs[i];
@@ -712,6 +758,7 @@ export const FellowNpcMixin = {
           npc.hpBg.setVisible(false);
           npc.hpBar.setVisible(false);
           if (npc.flyingSword) npc.flyingSword.setVisible(false);
+          npc.__forceVisualSync = true;
         }
         continue;
       }
@@ -725,57 +772,103 @@ export const FellowNpcMixin = {
         npc.hpBg.setVisible(true);
         npc.hpBar.setVisible(true);
         if (npc.flyingSword) npc.flyingSword.setVisible(true);
+        npc.__forceVisualSync = true;
       }
 
-      // Cập nhật vị trí UI & Phi Kiếm đi theo sprite
+      // Sprite movement stays per-frame. Attached visuals/UI are rate-limited.
       const sx = npc.sprite.x;
       const sy = npc.sprite.y;
       const pScale = 0.72 * this.perspective(sy);
-      
+      const baseDepth = Math.floor(sy);
+      const spriteDepth = baseDepth + (npc.isFlying ? 10 : 0);
+
+      if (npc.__originMode !== (npc.isFlying ? 'flying' : 'ground')) {
+        npc.sprite.setOrigin(0.5, npc.isFlying ? 0.78 : 0.5);
+        npc.__originMode = npc.isFlying ? 'flying' : 'ground';
+      }
+      if (!Number.isFinite(npc.__lastRenderScale) || Math.abs(npc.__lastRenderScale - pScale) > 0.002) {
+        npc.sprite.setScale(pScale);
+        npc.__lastRenderScale = pScale;
+      }
+      if (npc.__lastRenderDepth !== spriteDepth) {
+        npc.sprite.setDepth(spriteDepth);
+        npc.__lastRenderDepth = spriteDepth;
+      }
+
       if (npc.isFlying) {
-        // 1. Bay lượn bồng bềnh trên không trung
-        const hoverOffset = Math.sin(time * 0.0035 + (npc.homeX || 0)) * 6;
-        // Origin 0.78 đưa thân ảnh NPC bay cao hẳn lên trời so với bóng mặt đất
-        npc.sprite.setOrigin(0.5, 0.78);
-        npc.sprite.setScale(pScale).setDepth(Math.floor(sy) + 10);
-        
-        // Nghiêng nhẹ phi hành theo hướng di chuyển (Bank Tilt)
+        // Keep banking smooth because it is part of the character motion itself.
         const vx = npc.sprite.body ? npc.sprite.body.velocity.x : 0;
         const targetTilt = Phaser.Math.Clamp(vx * 0.0007, -0.15, 0.15);
         npc.sprite.rotation = Phaser.Math.Linear(npc.sprite.rotation || 0, targetTilt, 0.12);
-        
-        // Bóng đổ nằm trên mặt đất, kích thước thu nhỏ & mờ nhẹ
-        const shadowScale = pScale * (0.75 + 0.03 * Math.sin(time * 0.0035));
-        npc.shadow.setPosition(sx, sy + 22 * pScale)
-          .setScale(shadowScale, shadowScale * 0.45)
-          .setAlpha(0.32)
-          .setDepth(Math.floor(sy) - 1);
 
-        // Phi Kiếm ngự ngay dưới bàn chân đang lơ lửng
-        if (npc.flyingSword) {
-          const swordY = sy - 18 * pScale + hoverOffset;
-          npc.flyingSword.setPosition(sx, swordY)
-            .setScale(0.60 * pScale)
-            .setRotation(npc.sprite.rotation)
-            .setFlipX(npc.sprite.flipX)
-            .setDepth(Math.floor(sy) + 9)
-            .setVisible(true);
+        if (shouldUpdateFellowVisual || npc.__forceVisualSync) {
+          const hoverOffset = Math.sin(time * 0.0035 + (npc.homeX || 0)) * 6;
+          const shadowScale = pScale * (0.75 + 0.03 * Math.sin(time * 0.0035));
+          npc.shadow.setPosition(sx, sy + 22 * pScale)
+            .setScale(shadowScale, shadowScale * 0.45)
+            .setAlpha(0.32)
+            .setDepth(baseDepth - 1);
+
+          if (npc.flyingSword) {
+            const swordY = sy - 18 * pScale + hoverOffset;
+            npc.flyingSword.setPosition(sx, swordY)
+              .setScale(0.60 * pScale)
+              .setRotation(npc.sprite.rotation)
+              .setFlipX(npc.sprite.flipX)
+              .setDepth(baseDepth + 9);
+            if (!npc.flyingSword.visible) npc.flyingSword.setVisible(true);
+          }
         }
 
-        // Tên & Thanh máu ở phía trên đầu nhân vật bay
-        const uiY = sy - 84 * pScale + hoverOffset;
-        npc.nameTag.setPosition(sx, uiY - 14).setDepth(Math.floor(sy) + 15);
-        npc.hpBg.setPosition(sx, uiY).setDepth(Math.floor(sy) + 12);
-        npc.hpBar.setPosition(sx - npc.barW / 2, uiY).setDepth(Math.floor(sy) + 13);
+        if (shouldUpdateFellowUi || npc.__forceVisualSync) {
+          const hoverOffset = Math.sin(time * 0.0035 + (npc.homeX || 0)) * 6;
+          const uiY = sy - 84 * pScale + hoverOffset;
+          const moved = !Number.isFinite(npc.__lastUiX)
+            || Math.abs(npc.__lastUiX - sx) > 0.5
+            || Math.abs(npc.__lastUiY - uiY) > 0.5
+            || Math.abs(Number(npc.__lastUiScale || 0) - pScale) > 0.002
+            || npc.__lastUiDepth !== baseDepth;
+
+          if (moved || npc.__forceVisualSync) {
+            npc.nameTag.setPosition(sx, uiY - 14).setDepth(baseDepth + 15);
+            npc.hpBg.setPosition(sx, uiY).setDepth(baseDepth + 12);
+            npc.hpBar.setPosition(sx - npc.barW / 2, uiY).setDepth(baseDepth + 13);
+            npc.__lastUiX = sx;
+            npc.__lastUiY = uiY;
+            npc.__lastUiScale = pScale;
+            npc.__lastUiDepth = baseDepth;
+          }
+          npc.__forceVisualSync = false;
+        }
       } else {
-        npc.sprite.setOrigin(0.5, 0.5);
-        npc.sprite.rotation = 0;
-        npc.sprite.setScale(pScale).setDepth(Math.floor(sy));
-        npc.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale, pScale * 0.33).setAlpha(0.4).setDepth(Math.floor(sy) - 1);
-        npc.nameTag.setPosition(sx, sy - 48).setDepth(Math.floor(sy) + 3);
-        npc.hpBg.setPosition(sx, sy - 37).setDepth(Math.floor(sy) + 1);
-        npc.hpBar.setPosition(sx - npc.barW / 2, sy - 37).setDepth(Math.floor(sy) + 2);
-        if (npc.flyingSword) npc.flyingSword.setVisible(false);
+        if (npc.sprite.rotation !== 0) npc.sprite.rotation = 0;
+
+        if (shouldUpdateFellowVisual || npc.__forceVisualSync) {
+          npc.shadow.setPosition(sx, sy + 30 * pScale)
+            .setScale(pScale, pScale * 0.33)
+            .setAlpha(0.4)
+            .setDepth(baseDepth - 1);
+          if (npc.flyingSword?.visible) npc.flyingSword.setVisible(false);
+        }
+
+        if (shouldUpdateFellowUi || npc.__forceVisualSync) {
+          const moved = !Number.isFinite(npc.__lastUiX)
+            || Math.abs(npc.__lastUiX - sx) > 0.5
+            || Math.abs(npc.__lastUiY - sy) > 0.5
+            || Math.abs(Number(npc.__lastUiScale || 0) - pScale) > 0.002
+            || npc.__lastUiDepth !== baseDepth;
+
+          if (moved || npc.__forceVisualSync) {
+            npc.nameTag.setPosition(sx, sy - 48).setDepth(baseDepth + 3);
+            npc.hpBg.setPosition(sx, sy - 37).setDepth(baseDepth + 1);
+            npc.hpBar.setPosition(sx - npc.barW / 2, sy - 37).setDepth(baseDepth + 2);
+            npc.__lastUiX = sx;
+            npc.__lastUiY = sy;
+            npc.__lastUiScale = pScale;
+            npc.__lastUiDepth = baseDepth;
+          }
+          npc.__forceVisualSync = false;
+        }
       }
 
       // 2. Xử lý Hồi Sinh khi Chết
