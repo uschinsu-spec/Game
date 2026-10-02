@@ -16,7 +16,7 @@ import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
 import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-player12-smooth-v1';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
-import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-ai-tick-v1';
+import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-ai-tick-3hz-v2';
 import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
 import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
 
@@ -316,9 +316,9 @@ export class MainGameScene extends Phaser.Scene {
     }
     this.updateFellowNpcs(time, delta);
 
-    // Enemy AI "thinks" at 10 Hz while movement/animation still update every frame.
+    // Enemy AI "thinks" at 3 Hz while movement/animation still update every frame.
     // Reuse one shared target snapshot so every enemy does not rebuild the same candidate list.
-    const ENEMY_AI_TICK_MS = 100;
+    const ENEMY_AI_TICK_MS = 1000 / 3;
     const shouldRefreshEnemyAi = time >= Number(this.__nextEnemyAiTickAt || 0);
     if (shouldRefreshEnemyAi) {
       this.__nextEnemyAiTickAt = time + ENEMY_AI_TICK_MS;
