@@ -285,25 +285,26 @@ export const SPECIAL_MAP_OVERRIDES = Object.freeze([
     }),
 
     dimensions: Object.freeze({
-      width: 32000,
-      height: 960,
-      baseGroundY: 820
+      width: 3584,
+      height: 3584,
+      baseGroundY: 3584
     }),
 
     assets: Object.freeze({
       bgKey: 'map_panorama_wilderness_shared',
-      bgPath: 'environment/map_1_thanh_van_ngoai_vi.webp',
+      bgPath: 'environment/map_1_thanh_van_ngoai_vi.jpg',
       panoramaKey: 'map_panorama_wilderness_shared',
-      panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.webp',
-      sourceWidth: 3200,
-      sourceHeight: 960,
-      worldWidth: 32000,
-      worldHeight: 960,
+      panoramaAsset: 'environment/map_1_thanh_van_ngoai_vi.jpg',
+      sourceWidth: 3584,
+      sourceHeight: 3584,
+      worldWidth: 3584,
+      worldHeight: 3584,
       bgmKey: 'bgm_wilderness_combat',
-      noRepeat: false,
-      repeatPanorama: true,
-      field: Object.freeze({ left: 60, right: 31940, top: 350, bottom: 900 }),
-      spawn: Object.freeze({ x: 350, y: 620 })
+      noRepeat: true,
+      repeatPanorama: false,
+      isIsometric: true,
+      field: Object.freeze({ left: 120, right: 3464, top: 120, bottom: 3464 }),
+      spawn: Object.freeze({ x: 1792, y: 1792 })
     }),
 
     access: Object.freeze({

@@ -19,16 +19,16 @@ export const PlayerMixin = {
 
     const spawn = this.currentMap?.spawn || { x: 350, y: 620 };
     this.player = this.physics.add.sprite(spawn.x, spawn.y, 'player_idle', 0)
-      .setScale(0.85)
+      .setScale(0.62)
       .setDepth(620);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(44, 70).setOffset(42, 40);
+    this.player.body.setSize(45, 68).setOffset(74, 90);
     this.player.play('p_idle');
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 35, 40, 14, 0x000000, 0.45).setDepth(1);
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 26, 32, 11, 0x000000, 0.45).setDepth(1);
 
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, (this.worldH > 1500) ? 0 : 40);
   },
 
   // Animation tier:
@@ -38,14 +38,14 @@ export const PlayerMixin = {
     return (Number(gameState.realmIdx) || 0) >= 13;
   },
 
-  playPlayerAttackAnimation(durationMs = 360) {
+  playPlayerAttackAnimation(durationMs = 480) {
     if (!this.player || !this.player.active) return;
-    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 360), 280, 520);
+    const safeDuration = Phaser.Math.Clamp(Math.floor(Number(durationMs) || 480), 280, 2200);
     const animKey = this.isPlayerFlyingRealm() ? 'p_fly_attack' : 'p_attack';
 
-    // p_attack / p_fly_attack are 12 frames at 24 fps => 500ms base duration.
-    // timeScale keeps every frame while matching the actual combat cadence.
-    if (this.player.anims) this.player.anims.timeScale = 500 / safeDuration;
+    // p_attack has 40 frames (base 888ms at 45fps); p_fly_attack is 12 frames (base 750ms at 16fps).
+    const baseDuration = animKey === 'p_attack' ? 888 : 750;
+    if (this.player.anims) this.player.anims.timeScale = baseDuration / safeDuration;
     this.attackUntil = this.time.now + safeDuration;
     this.player.play(animKey, true);
   },
@@ -466,6 +466,9 @@ export const PlayerMixin = {
   },
 
   perspective(y) {
+    if (this.currentMap?.isIsometric || this.currentMap?.assets?.isIsometric || (this.worldH || 0) > 1500) {
+      return 1.0;
+    }
     const t = Phaser.Math.Clamp((y - this.field.top) / (this.field.bottom - this.field.top), 0, 1);
     return 0.65 + 0.55 * t;
   },

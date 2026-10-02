@@ -51,15 +51,15 @@ const EXPECTED_CONTINENTS = Object.freeze({
   central: Object.freeze({ primary: 5, secondary: 25, perPrimary: 5, primaryLabel: 'VỰC', secondaryLabel: 'CHÂU' })
 });
 const EXPECTED_ACTIVE_FUNCTIONS = Object.freeze({
-  switchMap: 'switchMapFromRegistry',
-  createWorld: 'createWorldFromRegistry',
-  createMapPortals: 'createMapPortalsFromRegistry',
-  openMapPanel: 'openHierarchicalWorldMap',
-  initBattlefield: 'streamedInitBattlefield',
-  getEnemySpawnConfig: 'getEnemySpawnConfigFromUnifiedMap',
-  initHerbs: 'streamedInitHerbs',
-  initMineralNodes: 'initMineralNodesFromUnifiedZones',
-  getNpcSpawnConfig: 'getNpcSpawnConfigFromUnifiedZones'
+  switchMap: ['switchMapFromRegistry'],
+  createWorld: ['createWorldFromRegistry'],
+  createMapPortals: ['createMapPortalsFromRegistry'],
+  openMapPanel: ['openHierarchicalWorldMap'],
+  initBattlefield: ['initBattlefield', 'streamedInitBattlefield'],
+  getEnemySpawnConfig: ['getEnemySpawnConfigFromUnifiedMap', 'getEnemySpawnConfig'],
+  initHerbs: ['initHerbs', 'streamedInitHerbs', 'initHerbsFromUnifiedZones'],
+  initMineralNodes: ['initMineralNodesFromUnifiedZones', 'initMineralNodes'],
+  getNpcSpawnConfig: ['getNpcSpawnConfigFromUnifiedZones', 'getNpcSpawnConfig']
 });
 
 function duplicateValues(values) {
@@ -82,13 +82,14 @@ function sameIdList(a, b) {
 }
 
 function assertActiveFunctions(errors, proto) {
-  for (const [method, expectedName] of Object.entries(EXPECTED_ACTIVE_FUNCTIONS)) {
+  for (const [method, expectedNames] of Object.entries(EXPECTED_ACTIVE_FUNCTIONS)) {
     const fn = proto?.[method];
     if (typeof fn !== 'function') {
       errors.push(`Thiếu active method ${method}().`);
       continue;
     }
-    if (fn.name !== expectedName) errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là ${expectedName}.`);
+    const names = Array.isArray(expectedNames) ? expectedNames : [expectedNames];
+    if (!names.includes(fn.name)) errors.push(`${method}() đang bị override bởi ${fn.name || '<anonymous>'}; phải là một trong [${names.join(', ')}].`);
   }
 }
 

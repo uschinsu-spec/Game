@@ -23,7 +23,7 @@ export const RUNTIME_MAP_IDS = Object.freeze(MASTER_MAP_DEFINITIONS.map(m => Str
 
 export const SHARED_WILDERNESS_PANORAMA = Object.freeze({
   key: 'map_panorama_wilderness_shared',
-  asset: 'environment/map_1_thanh_van_ngoai_vi.webp',
+  asset: 'environment/map_1_thanh_van_ngoai_vi.jpg',
   sourceWidth: 3200,
   sourceHeight: 960,
   worldWidth: 32000,
@@ -76,7 +76,7 @@ export function buildRuntimeMap(def) {
 
   const defaultBgPath = isClanHub
     ? 'environment/GIA TOC.webp'
-    : (isSectHub ? 'environment/TONG MON.webp' : (isCityHub ? 'environment/THANH THI.webp' : (isSafeHub ? 'environment/THON TRAN.webp' : 'environment/map_1_thanh_van_ngoai_vi.webp')));
+    : (isSectHub ? 'environment/TONG MON.webp' : (isCityHub ? 'environment/THANH THI.webp' : (isSafeHub ? 'environment/THON TRAN.webp' : 'environment/map_1_thanh_van_ngoai_vi.jpg')));
 
   const defaultSourceWidth = isClanHub ? 848 : (isSectHub ? 848 : (isCityHub ? 941 : (isSafeHub ? 784 : 3200)));
   const defaultSourceHeight = isClanHub ? 1272 : (isSectHub ? 1264 : (isCityHub ? 1672 : (isSafeHub ? 1334 : 960)));

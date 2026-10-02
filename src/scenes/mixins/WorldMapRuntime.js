@@ -193,14 +193,14 @@ export function installWorldMapRuntime(MainGameScene) {
   };
 
   proto.getDirectMapRoute = function getDirectMapRoute(fromMapId, toMapId) {
-    return getTravelRoutesForMap(fromMapId).find(route => sameMapId(route.targetMapId, toMapId)) || null;
+    return getTravelRoutesForMap(fromMapId).find(route => sameMapId(route.targetMapId, toMapId) || sameMapId(route.toMapId, toMapId)) || null;
   };
 
   const commitMapSwitch = function commitMapSwitch(map, spawnX, spawnY) {
     const fromMapId = gameState.currentMapId;
     const linkedRoute = this.getDirectMapRoute(fromMapId, map.id);
-    const sx = linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? 270;
-    const sy = linkedRoute?.targetSpawnY ?? spawnY ?? map.spawn?.y ?? 620;
+    const sx = linkedRoute?.targetSpawn?.x ?? linkedRoute?.targetSpawnX ?? spawnX ?? map.spawn?.x ?? (Number(map.worldWidth) > 1500 ? 1792 : 270);
+    const sy = linkedRoute?.targetSpawn?.y ?? linkedRoute?.targetSpawnY ?? spawnY ?? map.spawn?.y ?? (Number(map.worldHeight) > 1500 ? 1792 : 620);
 
     this.applyMapRuntimeConfig(map.id);
     gameState.currentMapId = map.id;
@@ -218,7 +218,8 @@ export function installWorldMapRuntime(MainGameScene) {
       this.cameras.main.stopFollow();
       this.cameras.main.setScroll(0, 0);
     } else if (this.player) {
-      this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, 40);
+      const followOffsetY = (this.worldH > 1500) ? 0 : 40;
+      this.cameras.main.startFollow(this.player, true, 0.08, 0.08, 0, followOffsetY);
     }
 
     const bg = createPanoramaBackground(this, map);
@@ -226,8 +227,19 @@ export function installWorldMapRuntime(MainGameScene) {
       console.warn('[Map runtime] Không tạo được background cho map:', map.id);
     }
 
-    if (this.player) this.player.setPosition(sx, sy).setVelocity(0, 0);
+    if (this.player) {
+      this.player.setPosition(sx, sy).setVelocity(0, 0);
+      if (this.player.body) this.player.body.enable = true;
+    }
     this.moveTarget = null;
+
+    // Đảm bảo không bị pause gameplay hay đơ input khi chuyển cảnh
+    if (this.physics?.world?.isPaused && this.physics.world.resume) {
+      this.physics.world.resume();
+    }
+    this.gameplayPaused = false;
+    this.__uiHardPaused = false;
+    this.__uiWorldPaused = false;
 
     this.createNpcs?.();
     this.createMapPortals?.();

@@ -65,8 +65,13 @@ export function installTouchInputOptimization(MainGameScene) {
       }
 
       // UI/portal/NPC interactive đang nằm dưới ngón tay: để GameObject đó xử lý.
-      // Đây là phần sửa chính cho lỗi đang combat mà UI không bấm được.
-      if (Array.isArray(currentlyOver) && currentlyOver.length > 0) {
+      const uiOver = (currentlyOver || []).filter(obj => {
+        if (!obj || !obj.active) return false;
+        if (obj === this.bg) return false;
+        if (obj.depth !== undefined && obj.depth < 0) return false;
+        return true;
+      });
+      if (uiOver.length > 0) {
         resetJoy(this);
         return;
       }

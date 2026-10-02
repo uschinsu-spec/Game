@@ -52,6 +52,18 @@ function queueBootAssets(scene) {
   queueSpriteSheet(scene, 'player_fly', A + 'characters/player/player_fly.webp', { frameWidth: 192, frameHeight: 192 });
   queueSpriteSheet(scene, 'player_fly_attack', A + 'characters/player/player_fly_attack.webp', { frameWidth: 192, frameHeight: 192 });
 
+  // Fellow NPCs: Unified single 1536x960 8x5 spritesheet per NPC
+  queueSpriteSheet(scene, 'npc_1', A + 'characters/npc/npc_1.webp?v=20261002-unified-v1', { frameWidth: 192, frameHeight: 192 });
+  queueSpriteSheet(scene, 'npc_2', A + 'characters/npc/npc_2.webp?v=20261002-unified-v1', { frameWidth: 192, frameHeight: 192 });
+
+  // Ground enemies 1..16 & Flying enemies 1..10
+  for (let enemyId = 1; enemyId <= 16; enemyId++) {
+    queueSpriteSheet(scene, `enemy_${enemyId}`, A + `characters/enemies/enemy_${enemyId}.webp?v=20261002-unified-v1`, { frameWidth: 192, frameHeight: 192 });
+  }
+  for (let enemyId = 1; enemyId <= 10; enemyId++) {
+    queueSpriteSheet(scene, `enemy_fly_${enemyId}`, A + `characters/enemies/enemy_fly_${enemyId}.webp?v=20261002-unified-v2`, { frameWidth: 192, frameHeight: 192 });
+  }
+
   // Core Hub background assets (Thôn Trấn / Thành Thị / Tông Môn / Gia Tộc)
   queueImage(scene, 'bg_village_hub', A + 'environment/THON TRAN.webp');
   queueImage(scene, 'bg_city_hub', A + 'environment/THANH THI.webp');
@@ -114,9 +126,30 @@ function createBootPlayerAnimations(scene) {
   };
   make('p_idle', 'player_idle', 0, 11, 10, -1);
   make('p_run', 'player_run', 0, 11, 12, -1);
-  make('p_attack', 'player_attack', 0, 11, 16, 0);
+  make('p_attack', 'player_attack', 0, 39, 45, 0);
   make('p_fly', 'player_fly', 0, 11, 12, -1);
   make('p_fly_attack', 'player_fly_attack', 0, 11, 16, 0);
+  const makeNpcAnim = (prefix, tex) => {
+    make(`${prefix}_idle`, tex, 0, 3, 6, -1);
+    make(`${prefix}_run`, tex, 4, 7, 8, -1);
+    make(`${prefix}_attack`, tex, 8, 25, 18, 0);
+    make(`${prefix}_fly`, tex, 26, 39, 10, -1);
+  };
+  makeNpcAnim('npc_1', 'npc_1');
+  makeNpcAnim('npc_warrior', 'npc_1');
+  makeNpcAnim('npc_2', 'npc_2');
+  makeNpcAnim('dai_han', 'npc_1');
+  makeNpcAnim('tho_san', 'npc_2');
+  for (let i = 1; i <= 16; i++) {
+    make(`e_enemy_${i}_idle`, `enemy_${i}`, 0, 3, 6, -1);
+    make(`e_enemy_${i}_run`, `enemy_${i}`, 0, 3, 8, -1);
+    make(`e_enemy_${i}_attack`, `enemy_${i}`, 4, 15, 12, 0);
+  }
+  for (let i = 1; i <= 10; i++) {
+    make(`e_enemy_fly_${i}_idle`, `enemy_fly_${i}`, 0, 3, 6, -1);
+    make(`e_enemy_fly_${i}_run`, `enemy_fly_${i}`, 0, 3, 8, -1);
+    make(`e_enemy_fly_${i}_attack`, `enemy_fly_${i}`, 4, 15, 12, 0);
+  }
 }
 
 function restoreRuntimeMethods(scene, saved) {

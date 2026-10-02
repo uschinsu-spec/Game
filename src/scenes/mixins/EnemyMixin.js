@@ -10,6 +10,7 @@ import { getCongPhapById } from '../../config/congPhapData.js';
 import { ensureCurrencies, addCurrency } from '../../config/currencyData.js';
 import { getItemDef } from '../../config/itemCatalog.js?v=20261001-item-icons-v4';
 import { generateEnemyLoot, awardLoot } from './ItemSystem.js?v=20261001-item-icons-v4';
+import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 
 export const EnemyMixin = {
 
@@ -46,21 +47,25 @@ export const EnemyMixin = {
       return;
     }
 
-    if (typeof this.ensureActiveMapZoneAssets === 'function') {
-      this.ensureActiveMapZoneAssets();
-      return;
-    }
-
     const totalW = this.worldW || 32000;
 
-    // -------------------------------------------------------------------------
-    // SPAWN CỐ ĐỊNH THEO TỶ LỆ MẬT ĐỘ TĂNG DẦN THEO ĐỘ SÂU BẢN ĐỒ (DENSITY GRADIENT)
-    // - Vùng 1 (Đầu map: 650 -> 4,000px): Thưa thớt, an toàn cho tân thủ (khoảng cách ~450px)
-    // - Vùng 2 (Trung gian: 4,000 -> 12,000px): Mật độ vừa (khoảng cách ~300px)
-    // - Vùng 3 (Thâm sâu: 12,000 -> 22,000px): Mật độ cao (khoảng cách ~220px)
-    // - Vùng 4 (Tận cùng / Gần Cấm Địa: 22,000 -> W - 500px): Dày đặc nhất (khoảng cách ~160px)
-    // -------------------------------------------------------------------------
-    const spawnPoints = [];
+    if ((this.worldH || 0) > 1500) {
+      // Bản đồ 2.5D Isometric (3584x3584px): Rải quái theo lưới 2 chiều
+      const stepX = 350;
+      const stepY = 350;
+      let slot = 0;
+      for (let x = 350; x < totalW - 350; x += stepX) {
+        for (let y = this.field.top + 80; y < this.field.bottom - 80; y += stepY) {
+          const distToSpawn = Math.hypot(x - 1792, y - 1792);
+          if (distToSpawn < 280) continue;
+          const jitterX = x + Phaser.Math.Between(-50, 50);
+          const jitterY = y + Phaser.Math.Between(-50, 50);
+          const zone = distToSpawn < 900 ? 1 : (distToSpawn < 1600 ? 2 : 3);
+          this.spawnOneFixedEnemy(jitterX, jitterY, slot++, zone);
+        }
+      }
+      return;
+    }
 
     if (totalW > 5000) {
       // Bản đồ săn quái rộng lớn (32,000px)
@@ -135,7 +140,7 @@ export const EnemyMixin = {
     const baseEnemyScale = config.baseScale;
 
     const isFlying = config.isFlying || false;
-    const initialTex = isFlying ? `enemy_fly_${enemySpriteNum}_idle_0` : `enemy_${enemySpriteNum}_idle_0`;
+    const initialTex = isFlying ? `enemy_fly_${enemySpriteNum}` : `enemy_${enemySpriteNum}`;
     const initialAnim = isFlying ? `e_enemy_fly_${enemySpriteNum}_idle` : `e_enemy_${enemySpriteNum}_idle`;
 
     const enemy = this.enemyGroup.create(homeX, homeY, initialTex)
@@ -287,7 +292,8 @@ export const EnemyMixin = {
 
     // Reset thanh máu
     if (enemy.hpBar) enemy.hpBar.width = enemy.barW || 36;
-    enemy.play('e_enemy_' + enemy.enemySpriteNum + '_idle', true);
+    const idleAnim = (enemy.isFlying ? 'e_enemy_fly_' : 'e_enemy_') + enemy.enemySpriteNum + '_idle';
+    if (this.anims.exists(idleAnim)) enemy.play(idleAnim, true);
 
     // Kiểm tra cự ly tới Player để bật hiển thị mượt mà
     const playerX = this.player ? this.player.x : 350;
@@ -305,128 +311,64 @@ export const EnemyMixin = {
     }
   },
 
-  enemyAttack(enemy, target = null) {
+  enemyCastSkill(enemy, skillId = 'basic_attack', target = null, cooldown = 1800) {
     if (!enemy || !enemy.active || enemy.isDead) return;
 
-    const targetX = target ? target.x : (this.player ? this.player.x : enemy.x);
-    enemy.setFlipX(targetX < enemy.x);
-    enemy.attackUntil = this.time.now + 450;
+    const skillDef = ELEMENTAL_SKILLS.find(s => s.id === skillId) || ELEMENTAL_SKILLS[0];
+    const targetObj = target || (this.player ? { type: 'player', x: this.player.x, y: this.player.y, ref: this.player } : null);
+    if (!targetObj) return;
 
-    const atkAnim = 'e_enemy_' + enemy.enemySpriteNum + '_attack';
+    const targetX = targetObj.x;
+    const targetY = targetObj.y;
+    enemy.setFlipX(targetX < enemy.x);
+
+    // Tốc độ animation tỷ lệ thuận với tốc độ đánh (nếu đánh chậm thì animation cũng chậm rõ nét)
+    const atkCooldown = typeof cooldown === 'number' ? cooldown : (enemy.attackInterval || 1800);
+    const atkDuration = Math.max(400, Math.min(1600, Math.round(atkCooldown * 0.65)));
+    enemy.attackUntil = this.time.now + atkDuration;
+
+    const atkAnim = `e_${enemy.isFlying ? 'enemy_fly_' : 'enemy_'}${enemy.enemySpriteNum}_attack`;
     if (this.anims.exists(atkAnim)) {
-      enemy.play(atkAnim, false);
-      enemy.once('animationcomplete', () => {
-        if (enemy && enemy.active && !enemy.isDead && this.time.now >= (enemy.attackUntil || 0)) {
-          const idleAnim = 'e_enemy_' + enemy.enemySpriteNum + '_idle';
-          if (this.anims.exists(idleAnim)) enemy.play(idleAnim, true);
-        }
-      });
+      enemy.play(atkAnim, true);
+      // Base animation là 12 frame @ 12 fps = 1000ms base
+      if (enemy.anims) {
+        enemy.anims.timeScale = 1000 / atkDuration;
+      }
     }
 
-    // Windup before melee impact connects
-    this.time.delayedCall(160, () => {
+    // Thời điểm va chạm trúng đích ở đỉnh điểm đòn cắn / trảm (48% thời lượng animation)
+    const hitDelay = Math.round(atkDuration * 0.48);
+    this.time.delayedCall(hitDelay, () => {
       if (!enemy || !enemy.active || enemy.isDead) return;
-      const enemyDmg = enemy.dmg || 20;
 
-      // 1. Hit Player
-      if (this.player && this.player.active && !this.dead) {
-        const d = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
-        if (d <= 130) {
-          this.takePlayerDamage(enemyDmg);
-          this.spawnVfx(this.player.x, this.player.y - 12, 0, 0.45, { tint: 0xff3344, duration: 180 });
-        }
-      }
+      const baseDmg = enemy.dmg || 20;
+      const skillDmgMul = Number(skillDef.dmgMul || 1.0);
+      const enemyDmg = Math.max(1, Math.round(baseDmg * skillDmgMul));
 
-      // 2. Hit Party Followers (Tổ Đội)
-      if (this.partyFollowers && this.partyFollowers.length > 0) {
-        for (let i = 0; i < this.partyFollowers.length; i++) {
-          const f = this.partyFollowers[i];
-          if (f && !f.isDead && f.sprite && f.sprite.visible) {
-            const dF = Phaser.Math.Distance.Between(enemy.x, enemy.y, f.sprite.x, f.sprite.y);
-            if (dF <= 130) {
-              this.takePartyFollowerDamage(f, enemyDmg * 0.75);
-            }
-          }
-        }
-      }
+      // Kiểm tra cự ly trúng đòn
+      const curDist = Math.hypot(targetX - enemy.x, targetY - enemy.y);
+      const maxHitRange = skillDef.isAoE ? 240 : 135;
+      if (curDist > maxHitRange) return;
 
-      // 3. Hit Fellow NPCs (Tán Tu / Đồng Đạo Ngoài Map)
-      if (this.fellowNpcs && this.fellowNpcs.length > 0) {
-        for (let i = 0; i < this.fellowNpcs.length; i++) {
-          const npc = this.fellowNpcs[i];
-          if (npc && !npc.isDead && npc.sprite && npc.sprite.visible) {
-            const dNpc = Phaser.Math.Distance.Between(enemy.x, enemy.y, npc.sprite.x, npc.sprite.y);
-            if (dNpc <= 130) {
-              this.takeFellowNpcDamage(npc, enemyDmg * 0.8);
-            }
-          }
-        }
-      }
+      // Hiệu ứng va chạm đòn đánh vật lý
+      this.spawnVfx?.(targetX, targetY - 10, 0, 0.55, { tint: 0xff3344, duration: 200, grow: 1.2 });
 
-      // 4. Hit Map NPCs
-      if (this.npcsGroup && this.npcsGroup.length > 0) {
-        for (let i = 0; i < this.npcsGroup.length; i++) {
-          const mNpc = this.npcsGroup[i];
-          if (mNpc && mNpc.container && mNpc.container.active) {
-            const dM = Phaser.Math.Distance.Between(enemy.x, enemy.y, mNpc.container.x, mNpc.container.y);
-            if (dM <= 130) {
-              this.showFloatingText(mNpc.container.x, mNpc.container.y - 60, `🛡️ Hộ Thể!`, '#38bdf8', '11px');
-              this.spawnVfx(mNpc.container.x, mNpc.container.y, 0, 0.4, { tint: 0x38bdf8, duration: 200 });
-            }
-          }
-        }
+      // Gây sát thương lên mục tiêu tương ứng
+      if (targetObj.type === 'player' && this.player && this.player.active && !this.dead) {
+        this.takePlayerDamage?.(enemyDmg);
+      } else if (targetObj.type === 'party_follower' && targetObj.ref && !targetObj.ref.isDead) {
+        this.takePartyFollowerDamage?.(targetObj.ref, enemyDmg * 0.75);
+      } else if (targetObj.type === 'fellow_npc' && targetObj.ref && !targetObj.ref.isDead) {
+        this.takeFellowNpcDamage?.(targetObj.ref, enemyDmg * 0.8);
+      } else if (targetObj.type === 'map_npc' && targetObj.ref) {
+        this.showFloatingText?.(targetX, targetY - 60, `🛡️ Hộ Thể!`, '#38bdf8', '11px');
+        this.spawnVfx?.(targetX, targetY, 0, 0.4, { tint: 0x38bdf8, duration: 200 });
       }
     });
   },
 
-  enemyShootProjectile(enemy, target = null) {
-    if (!enemy || !enemy.active || enemy.isDead) return;
-
-    const targetX = target ? target.x : (this.player ? this.player.x : enemy.x);
-    const targetY = target ? target.y : (this.player ? this.player.y : enemy.y);
-    enemy.setFlipX(targetX < enemy.x);
-    enemy.attackUntil = this.time.now + 450;
-
-    const atkAnim = 'e_enemy_' + enemy.enemySpriteNum + '_attack';
-    if (this.anims.exists(atkAnim)) {
-      enemy.play(atkAnim, false);
-    }
-
-    const startX = enemy.x, startY = enemy.y - 15;
-    const enemyDmg = enemy.dmg || 40;
-
-    const proj = this.add.circle(startX, startY, 7, 0xff3355, 0.95).setDepth(Math.floor(startY) + 50);
-    this.tweens.add({
-      targets: proj,
-      x: targetX, y: targetY,
-      duration: 550,
-      ease: 'Linear',
-      onComplete: () => {
-        if (proj && proj.active) proj.destroy();
-
-        // Sát thương theo loại target
-        if (target) {
-          if (target.type === 'player' && this.player && this.player.active && !this.dead) {
-            const d = Phaser.Math.Distance.Between(targetX, targetY, this.player.x, this.player.y);
-            if (d < 60) {
-              this.takePlayerDamage(enemyDmg);
-              this.spawnVfx(this.player.x, this.player.y - 12, 0, 0.5, { tint: 0xff2244, duration: 200 });
-            }
-          } else if (target.type === 'party_follower' && target.ref && !target.ref.isDead) {
-            this.takePartyFollowerDamage(target.ref, enemyDmg * 0.75);
-          } else if (target.type === 'fellow_npc' && target.ref && !target.ref.isDead) {
-            this.takeFellowNpcDamage(target.ref, enemyDmg * 0.8);
-          } else if (target.type === 'map_npc' && target.ref) {
-            this.showFloatingText(targetX, targetY - 60, `🛡️ Hộ Thể!`, '#38bdf8', '11px');
-          }
-        } else if (this.player && this.player.active && !this.dead) {
-          const d = Phaser.Math.Distance.Between(targetX, targetY, this.player.x, this.player.y);
-          if (d < 50) {
-            this.takePlayerDamage(enemyDmg);
-            this.spawnVfx(this.player.x, this.player.y - 12, 0, 0.5, { tint: 0xff2244, duration: 200 });
-          }
-        }
-      }
-    });
-  },
+  enemyAttack(enemy, target = null, cooldown = 1800) {
+    const sId = enemy.equippedSkillId || enemy.skillId || 'basic_attack';
+    return this.enemyCastSkill(enemy, sId, target, cooldown);
+  }
 };

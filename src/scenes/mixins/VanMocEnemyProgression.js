@@ -40,8 +40,9 @@ function applyVanMocVisual(scene, enemy, strictZone) {
 
   if (spriteNum && enemy.enemySpriteNum !== spriteNum) {
     enemy.enemySpriteNum = spriteNum;
-    enemy.setTexture?.(`enemy_${spriteNum}_idle_0`);
-    enemy.play?.(`e_enemy_${spriteNum}_idle`, true);
+    const tex = enemy.isFlying ? `enemy_fly_${spriteNum}` : `enemy_${spriteNum}`;
+    enemy.setTexture?.(tex);
+    enemy.play?.(`e_${enemy.isFlying ? 'enemy_fly_' : 'enemy_'}${spriteNum}_idle`, true);
   }
 
   enemy.vanMocZone = strictZone;

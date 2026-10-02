@@ -45,8 +45,8 @@ export class VillageHubUIManager {
       return travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
         scene,
         source: TRAVEL_SOURCES.NPC,
-        spawnX: 420,
-        spawnY: 620
+        spawnX: 1792,
+        spawnY: 1792
       });
     }
     const npcId = NPC_KEY_MAP[key] || key;

@@ -3,6 +3,7 @@ import { ELEMENTAL_SKILLS } from '../../config/skillsData.js';
 import { REALMS } from '../../config/realmsData.js';
 import { getNpcZoneConfig } from '../../config/world/mapNpcProgressions.js?v=20260930-dynamic-npc-progression-v6';
 import { CANONICAL_MAP_KEYS } from '../../config/world/masterMapManifest.js?v=20260930-special-map-overrides-v5-unified';
+import { getMapById } from '../../config/world/worldRegistry.js?v=20260930-canonical-geography-v1';
 
 export const SINO_VIET_NAMES = [
   'Lý Tiêu Dao', 'Hàn Lập', 'Lâm Động', 'Tiêu Viêm', 'Trương Tiểu Phàm',
@@ -16,10 +17,10 @@ export const SINO_VIET_NAMES = [
 ];
 
 export const PARTY_MEMBERS_DEF = [
-  { modelType: 'dai_han', name: 'Nhiếp Phong',   tint: 0xbbe1fa, offsetX: -48, offsetY: -26, title: '⚔️ Lam Đao' },
-  { modelType: 'tho_san', name: 'Bộ Kinh Vân',   tint: 0xfecaca, offsetX: -48, offsetY:  26, title: '🪓 Xích Rìu' },
-  { modelType: 'dai_han', name: 'Tiêu Phong',    tint: 0xbbf7d0, offsetX: -84, offsetY: -16, title: '⚔️ Bích Đao' },
-  { modelType: 'tho_san', name: 'Đoàn Dự',       tint: 0xf3e8ff, offsetX: -84, offsetY:  16, title: '🪓 Tử Rìu' }
+  { modelType: 'npc_1', name: 'Nhiếp Phong',   tint: 0xbbe1fa, offsetX: -48, offsetY: -26, title: '⚔️ Phong Kiếm', elem: 'Phong', eKey: 'phong', isSword: true },
+  { modelType: 'npc_2', name: 'Bộ Kinh Vân',   tint: 0xfecaca, offsetX: -48, offsetY:  26, title: '⚔️ Vân Kiếm',   elem: 'Thủy',  eKey: 'thuy',  isSword: true },
+  { modelType: 'npc_1', name: 'Tiêu Phong',    tint: 0xbbf7d0, offsetX: -84, offsetY: -16, title: '⚔️ Bích Kiếm',  elem: 'Mộc',   eKey: 'moc',   isSword: false },
+  { modelType: 'npc_2', name: 'Đoàn Dự',       tint: 0xf3e8ff, offsetX: -84, offsetY:  16, title: '⚔️ Tử Kiếm',    elem: 'Lôi',   eKey: 'loi',   isSword: false }
 ];
 
 export const OUTFIT_COLOR_PALETTES = [
@@ -159,81 +160,97 @@ export const FellowNpcMixin = {
     return Phaser.Utils.Array.GetRandom(NPC_ELEMENTS);
   },
 
+  calcNpcAtkInterval(spiritualSense) {
+    const sense = Math.max(1, spiritualSense || 10);
+    const BASE_SENSE = 20;
+    const HUA_SHEN_PEAK_SENSE = 5700;
+    const BASE_INTERVAL = 2000;
+    const HUA_SHEN_PEAK_INTERVAL = 500;
+    const MIN_INTERVAL = 450;
+    const MAX_INTERVAL = 2600;
+
+    if (sense <= BASE_SENSE) {
+      const lowSenseInterval = Math.round(BASE_INTERVAL * (BASE_SENSE / sense));
+      return Math.max(BASE_INTERVAL, Math.min(MAX_INTERVAL, lowSenseInterval));
+    }
+
+    const progress = Math.log(sense / BASE_SENSE) / Math.log(HUA_SHEN_PEAK_SENSE / BASE_SENSE);
+    const interval = Math.round(
+      BASE_INTERVAL - (BASE_INTERVAL - HUA_SHEN_PEAK_INTERVAL) * progress
+    );
+    return Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL, interval));
+  },
+
+  getNpcConfigFromRealm(realmIdx = 0, elemDef = null) {
+    const rIdx = Math.max(0, Math.min(REALMS.length - 1, Number(realmIdx) || 0));
+    const realmData = REALMS[rIdx] || REALMS[0];
+    const sense = realmData.spiritualSense || 10;
+    const atkInterval = this.calcNpcAtkInterval(sense);
+    const isFlying = rIdx >= 13; // Trúc Cơ trở lên bay bằng phi kiếm (khớp Player)
+
+    let tierLevel = 1;
+    if (rIdx >= 25) tierLevel = 5;       // Hóa Thần
+    else if (rIdx >= 21) tierLevel = 4;  // Nguyên Anh
+    else if (rIdx >= 17) tierLevel = 3;  // Kim Đan
+    else if (rIdx >= 13) tierLevel = 2;  // Trúc Cơ
+    else tierLevel = 1;                  // Luyện Khí & Phàm Nhân
+
+    const isMortal = rIdx === 0;
+    const elem = isMortal ? 'Vật Lý' : (elemDef?.elem || 'Kiếm');
+    const eKey = isMortal ? 'ly' : (elemDef?.eKey || 'kim');
+    const isSword = isMortal ? true : (elemDef?.isSword ?? true);
+    const isMelee = isMortal ? true : (elemDef?.isMelee ?? false);
+
+    const skillPrefix = isSword ? 'kiem' : eKey;
+    const skillId = `${skillPrefix}_${tierLevel}`;
+    const skillDef = ELEMENTAL_SKILLS.find(s => s.id === skillId) || ELEMENTAL_SKILLS.find(s => s.id === `${skillPrefix}_1`) || ELEMENTAL_SKILLS[0];
+
+    return {
+      realmIdx: rIdx,
+      realmData,
+      realmMajor: realmData.major,
+      realmTier: realmData.tier,
+      stageLabel: realmData.name,
+      hp: realmData.hp,
+      maxHp: realmData.hp,
+      dmg: realmData.dmg,
+      def: realmData.def,
+      manaMax: realmData.manaMax,
+      spiritualSense: sense,
+      atkInterval,
+      isFlying,
+      tierLevel,
+      elem,
+      eKey,
+      isSword,
+      isMelee,
+      isMortal,
+      skillId: skillDef.id,
+      skillName: isMortal ? 'Trảm Kích' : skillDef.name,
+      dmgMul: isMortal ? 1.0 : (skillDef.dmgMul || 1.6),
+      attackRange: isMelee ? 110 : (elemDef?.baseRange || 240)
+    };
+  },
+
   getNpcSpawnConfig(mapId, homeX, elementIdx = -1) {
     const elemCfg = this.getNpcElement(elementIdx);
     const map = (this.currentMap && this.currentMap.id === mapId) ? this.currentMap : (this.getMapById ? this.getMapById(mapId) : null);
     const zoneNumber = this.getMapZoneNumberAtX ? this.getMapZoneNumberAtX(mapId, homeX) : 1;
     const zoneCfg = getNpcZoneConfig(map || mapId, zoneNumber);
 
-    const realmIdx = Math.max(0, Math.min(REALMS.length - 1, zoneCfg.realmIdx ?? 0));
-    const realmData = REALMS[realmIdx] || REALMS[0];
-
-    // Cảnh Giới -> Skill Tier & Trạng thái Bay (Khớp chính xác Player)
-    let tierLevel = 1;
-    let isFlying = false;
-
-    if (realmIdx === 0) {
-      tierLevel = 1;
-      isFlying = false;
-    } else if (realmIdx >= 1 && realmIdx <= 12) {
-      tierLevel = 1;
-      isFlying = false;
-    } else if (realmIdx >= 13 && realmIdx <= 16) {
-      tierLevel = 2;
-      isFlying = true;
-    } else if (realmIdx >= 17 && realmIdx <= 20) {
-      tierLevel = 3;
-      isFlying = true;
-    } else if (realmIdx >= 21 && realmIdx <= 24) {
-      tierLevel = 4;
-      isFlying = true;
-    } else if (realmIdx >= 25) {
-      tierLevel = 5;
-      isFlying = true;
-    }
-
-    const skillPrefix = elemCfg.isSword ? 'kiem' : elemCfg.eKey;
-    const skillId = `${skillPrefix}_${tierLevel}`;
-    const skillDef = ELEMENTAL_SKILLS.find(s => s.id === skillId) || ELEMENTAL_SKILLS.find(s => s.id === `${skillPrefix}_1`) || ELEMENTAL_SKILLS[0];
-
-    // Dùng CHÍNH XÁC chỉ số từ REALMS của Player
-    const maxHp = realmData.hp;
-    const baseDmg = realmData.dmg;
-    const baseDef = realmData.def;
-
-    const titlePrefix = `[${realmData.name} · ${elemCfg.title}]`;
-
+    const stats = this.getNpcConfigFromRealm(zoneCfg.realmIdx ?? 0, elemCfg);
     return {
-      mapId: mapNum,
+      ...stats,
+      mapId,
       zone: zoneCfg.zone,
-      realmIdx,
-      realmMajor: realmData.major,
-      stageLabel: realmData.name,
-      tierLevel,
-      isFlying,
-      masteryName: zoneCfg.masteryName,
-      masteryBonus: zoneCfg.masteryBonus,
-      vfxMul: zoneCfg.vfxMul,
-      masteryColor: zoneCfg.masteryColor,
-      elem: elemCfg.elem,
-      elemTitle: elemCfg.title,
-      elemColor: elemCfg.color,
-      eKey: elemCfg.eKey,
-      isSword: elemCfg.isSword || false,
-      isMelee: elemCfg.isMelee || false,
-      skillId: skillDef.id,
-      skillName: skillDef.name,
-      dmgMul: skillDef.dmgMul || 1.6,
-      atkInterval: skillDef.cd > 0 ? skillDef.cd : 2000,
-      attackRange: elemCfg.baseRange || 240,
-      maxHp,
-      dmg: baseDmg,
-      def: baseDef,
-      manaMax: realmData.manaMax,
-      spiritualSense: realmData.spiritualSense,
-      tint: elemCfg.tint,
-      titlePrefix,
-      titleColor: elemCfg.color
+      masteryName: stats.isMortal ? '' : zoneCfg.masteryName,
+      masteryBonus: stats.isMortal ? 0 : zoneCfg.masteryBonus,
+      vfxMul: stats.isMortal ? 0.8 : zoneCfg.vfxMul,
+      masteryColor: stats.isMortal ? '#f1f5f9' : zoneCfg.masteryColor,
+      titleColor: stats.isMortal ? '#f1f5f9' : (elemCfg.color || '#7dd3fc'),
+      elemTitle: stats.isMortal ? (elemCfg.isSword ? 'Kiếm Sĩ' : 'Võ Giả') : elemCfg.title,
+      tint: 0xffffff,
+      titlePrefix: ''
     };
   },
 
@@ -257,14 +274,58 @@ export const FellowNpcMixin = {
     this.initPartyFollowers();
 
     const curMapId = gameState.currentMapId ?? CANONICAL_MAP_KEYS.THANH_VAN_THON;
-    const map = (this.currentMap && this.currentMap.id === curMapId) ? this.currentMap : (this.getMapById ? this.getMapById(curMapId) : null);
+    const map = this.currentMap || getMapById(curMapId);
     
     // Trong khu an toàn không sinh NPC hoang dã
     if (!map || map.isPeaceZone || curMapId === CANONICAL_MAP_KEYS.THANH_VAN_THON) {
       return;
     }
 
+    const makeNpcAnim = (prefix, tex) => {
+      const defs = [
+        ['idle', 0, 3, 6, -1],
+        ['run', 4, 7, 8, -1],
+        ['attack', 8, 25, 18, 0],
+        ['fly', 26, 39, 10, -1]
+      ];
+      defs.forEach(([action, start, end, rate, rep]) => {
+        const key = `${prefix}_${action}`;
+        if (this.textures.exists(tex)) {
+          if (this.anims.exists(key)) this.anims.remove(key);
+          this.anims.create({
+            key,
+            frames: this.anims.generateFrameNumbers(tex, { start, end }),
+            frameRate: rate,
+            repeat: rep
+          });
+        }
+      });
+    };
+    makeNpcAnim('npc_1', 'npc_1');
+    makeNpcAnim('npc_warrior', 'npc_1');
+    makeNpcAnim('npc_2', 'npc_2');
+    makeNpcAnim('dai_han', 'npc_1');
+    makeNpcAnim('tho_san', 'npc_2');
+
     const totalW = this.worldW || 32000;
+
+    if ((this.worldH || 0) > 1500) {
+      // 2.5D Isometric Map (e.g. Thanh Vân Ngoại Vi 3584x3584)
+      const stepX = 520;
+      const stepY = 520;
+      let idx = 0;
+      for (let x = this.field.left + 240; x <= this.field.right - 240; x += stepX) {
+        for (let y = this.field.top + 240; y <= this.field.bottom - 240; y += stepY) {
+          const jx = Phaser.Math.Clamp(x + Phaser.Math.Between(-60, 60), this.field.left + 80, this.field.right - 80);
+          const jy = Phaser.Math.Clamp(y + Phaser.Math.Between(-60, 60), this.field.top + 80, this.field.bottom - 80);
+          const mType = (idx % 2 === 0) ? 'npc_1' : 'npc_2';
+          this.spawnOneFellowNpc(jx, jy, mType, idx % NPC_ELEMENTS.length);
+          idx++;
+        }
+      }
+      return;
+    }
+
     const spawnXCoords = [];
 
     // Spawn đều đặn dọc map, bắt đầu từ gần vị trí vào cổng (x = 550)
@@ -275,13 +336,7 @@ export const FellowNpcMixin = {
     spawnXCoords.forEach((x, idx) => {
       const y = Phaser.Math.Between(this.field.top + 40, this.field.bottom - 40);
       const cfg = this.getNpcSpawnConfig(curMapId, x, idx % NPC_ELEMENTS.length);
-      let modelType;
-      if (cfg.isFlying) {
-        const flyId = (idx % 20) + 1;
-        modelType = `npc_fly_${flyId}`;
-      } else {
-        modelType = (idx % 2 === 0) ? 'dai_han' : 'tho_san';
-      }
+      const modelType = (idx % 2 === 0) ? 'npc_1' : 'npc_2';
       this.spawnOneFellowNpc(x, y, modelType, idx % NPC_ELEMENTS.length);
     });
   },
@@ -291,27 +346,24 @@ export const FellowNpcMixin = {
     const name = this.getRandomSinoVietName();
     const cfg = this.getNpcSpawnConfig(curMapId, homeX, elementIdx);
     
-    if (!modelType || (cfg.isFlying && !modelType.startsWith('npc_fly_'))) {
-      if (cfg.isFlying) {
-        const flyId = Phaser.Math.Between(1, 20);
-        modelType = `npc_fly_${flyId}`;
-      } else {
-        modelType = (Math.random() < 0.5) ? 'dai_han' : 'tho_san';
-      }
+    if (!modelType || modelType === 'dai_han' || modelType === 'npc_1' || modelType === 'npc_warrior') {
+      modelType = 'npc_1';
+    } else if (modelType === 'tho_san' || modelType === 'npc_2') {
+      modelType = 'npc_2';
+    } else {
+      modelType = 'npc_1';
     }
-
     const initialAnim = cfg.isFlying ? `${modelType}_fly` : `${modelType}_idle`;
-    const initialTexture = cfg.isFlying ? `${modelType}_fly_1` : `${modelType}_idle_1`;
+    const initialTexture = modelType;
 
-    const sprite = this.physics.add.sprite(homeX, homeY, initialTexture)
-      .setScale(0.72)
-      .setTint(cfg.tint)
+    const sprite = this.physics.add.sprite(homeX, homeY, initialTexture, 0)
+      .setScale(0.62)
       .setDepth(Math.floor(homeY) + (cfg.isFlying ? 10 : 0));
     sprite.setCollideWorldBounds(true);
-    sprite.body.setSize(44, 70).setOffset(42, 40);
+    sprite.body.setSize(45, 68).setOffset(74, 90);
     if (this.anims.exists(initialAnim)) sprite.play(initialAnim);
 
-    const shadow = this.add.ellipse(homeX, homeY + (cfg.isFlying ? 22 : 30), cfg.isFlying ? 30 : 36, cfg.isFlying ? 10 : 12, 0x000000, cfg.isFlying ? 0.35 : 0.4).setDepth(Math.floor(homeY) - 1);
+    const shadow = this.add.ellipse(homeX, homeY + (cfg.isFlying ? 20 : 26), cfg.isFlying ? 28 : 32, cfg.isFlying ? 9 : 11, 0x000000, cfg.isFlying ? 0.35 : 0.45).setDepth(Math.floor(homeY) - 1);
     
     // Phi Kiếm ngự dưới chân NPC nếu là cảnh giới Trúc Cơ trở lên
     let flyingSword = null;
@@ -322,13 +374,13 @@ export const FellowNpcMixin = {
         .setTint(cfg.tint);
     }
 
-    const nameTag = this.add.text(homeX, homeY - 48, `${cfg.titlePrefix} ${name}`, {
+    const nameTag = this.add.text(homeX, homeY - 48, name, {
       fontFamily: 'Be Vietnam Pro, sans-serif',
-      fontSize: '8.5px',
+      fontSize: '9px',
       fontStyle: 'bold',
       color: cfg.titleColor || '#7dd3fc',
       stroke: '#000000',
-      strokeThickness: 2
+      strokeThickness: 2.2
     }).setOrigin(0.5).setDepth(Math.floor(homeY) + 3);
 
     const barW = 34;
@@ -336,8 +388,12 @@ export const FellowNpcMixin = {
     const hpBar = this.add.rectangle(homeX - barW / 2, homeY - 37, barW, 3, 0x34d399)
       .setOrigin(0, 0.5).setDepth(Math.floor(homeY) + 2);
 
-    const playerX = this.player ? this.player.x : 350;
-    const isNear = Math.abs(homeX - playerX) <= 950;
+    const is2DMap = (this.worldH || 0) > 1500;
+    const playerX = this.player ? this.player.x : (this.currentMap?.spawn?.x || 1792);
+    const playerY = this.player ? this.player.y : (this.currentMap?.spawn?.y || 1792);
+    const isNear = is2DMap
+      ? (Phaser.Math.Distance.Between(homeX, homeY, playerX, playerY) <= 1200)
+      : (Math.abs(homeX - playerX) <= 950);
     sprite.setVisible(isNear);
     if (sprite.body) sprite.body.enable = isNear;
     shadow.setVisible(isNear);
@@ -376,7 +432,7 @@ export const FellowNpcMixin = {
       skillId: cfg.skillId,
       skillName: cfg.skillName,
       dmgMul: cfg.dmgMul,
-      titlePrefix: cfg.titlePrefix,
+      titlePrefix: '',
       tint: cfg.tint,
       hp: cfg.maxHp,
       maxHp: cfg.maxHp,
@@ -391,6 +447,9 @@ export const FellowNpcMixin = {
       targetEnemy: null,
       isDead: false,
       respawnTime: 0,
+      isRetreating: false,
+      retreatUntil: 0,
+      nextHealTick: 0,
       isFlying: cfg.isFlying,
       flyingSword
     };
@@ -428,21 +487,33 @@ export const FellowNpcMixin = {
     const px = this.player ? this.player.x : 350;
     const py = this.player ? this.player.y : 600;
 
+    const pRealmIdx = Math.max(0, Math.min(REALMS.length - 1, Number(gameState.realmIdx) || 0));
+
     this.partyFollowers = PARTY_MEMBERS_DEF.map((def, idx) => {
       const sx = px + def.offsetX;
       const sy = py + def.offsetY;
+      const mType = def.modelType || 'npc_1';
+      const stats = this.getNpcConfigFromRealm(pRealmIdx, def);
 
-      const sprite = this.physics.add.sprite(sx, sy, `${def.modelType}_idle_1`)
-        .setScale(0.72)
+      const sprite = this.physics.add.sprite(sx, sy, mType, 0)
+        .setScale(0.62)
         .setTint(def.tint)
-        .setDepth(Math.floor(sy));
+        .setDepth(Math.floor(sy) + (stats.isFlying ? 10 : 0));
       sprite.setCollideWorldBounds(true);
-      sprite.body.setSize(44, 70).setOffset(42, 40);
+      sprite.body.setSize(45, 68).setOffset(74, 90);
 
-      const animKey = `${def.modelType}_idle`;
+      const animKey = stats.isFlying ? `${mType}_fly` : `${mType}_idle`;
       if (this.anims.exists(animKey)) sprite.play(animKey);
 
-      const shadow = this.add.ellipse(sx, sy + 30, 36, 12, 0x000000, 0.45).setDepth(Math.floor(sy) - 1);
+      const shadow = this.add.ellipse(sx, sy + (stats.isFlying ? 20 : 26), stats.isFlying ? 28 : 32, stats.isFlying ? 9 : 11, 0x000000, stats.isFlying ? 0.35 : 0.45).setDepth(Math.floor(sy) - 1);
+
+      let flyingSword = null;
+      if (stats.isFlying && this.textures.exists('flying_sword')) {
+        flyingSword = this.add.image(sx, sy + 4, 'flying_sword')
+          .setScale(0.60)
+          .setDepth(Math.floor(sy) + 9)
+          .setTint(def.tint);
+      }
 
       const nameTag = this.add.text(sx, sy - 48, `[Tổ Đội] ${def.title} · ${def.name}`, {
         fontFamily: 'Be Vietnam Pro, sans-serif',
@@ -458,32 +529,23 @@ export const FellowNpcMixin = {
       const hpBar = this.add.rectangle(sx - barW / 2, sy - 37, barW, 3, 0x34d399)
         .setOrigin(0, 0.5).setDepth(Math.floor(sy) + 2);
 
-      const pRealmIdx = Math.max(0, Math.min(REALMS.length - 1, gameState.realmIdx ?? 0));
-      const pRealm = REALMS[pRealmIdx] || REALMS[0];
-      const followerHp = Math.max(100, Math.floor(pRealm.hp * 0.9));
-      const followerDmg = Math.max(5, Math.floor(pRealm.dmg * 0.85));
-      const followerDef = Math.floor((pRealm.def || 0) * 0.85);
-
       return {
+        ...stats,
         sprite,
         shadow,
         nameTag,
         hpBg,
         hpBar,
         barW,
+        flyingSword,
         name: def.name,
-        modelType: def.modelType,
+        modelType: mType,
         tint: def.tint,
         title: def.title,
         offsetX: def.offsetX,
         offsetY: def.offsetY,
-        hp: followerHp,
-        maxHp: followerHp,
-        dmg: followerDmg,
-        def: followerDef,
+        isPartyMember: true,
         speed: 155,
-        attackRange: 75,
-        atkInterval: Phaser.Math.Between(550, 800),
         lastAttack: 0,
         attackUntil: 0,
         targetEnemy: null,
@@ -491,10 +553,33 @@ export const FellowNpcMixin = {
         respawnTime: 0
       };
     });
+    this.__lastPartySyncRealm = pRealmIdx;
   },
 
   updatePartyFollowers(time, delta) {
     if (!this.partyFollowers || this.partyFollowers.length === 0 || !this.player || !this.player.active) return;
+
+    // Tự động đồng bộ cấp độ / cảnh giới của Hiệp Khách Tổ Đội khi Player đột phá
+    const pRealmIdx = Math.max(0, Math.min(REALMS.length - 1, Number(gameState.realmIdx) || 0));
+    if (this.__lastPartySyncRealm !== pRealmIdx) {
+      this.__lastPartySyncRealm = pRealmIdx;
+      for (let i = 0; i < this.partyFollowers.length; i++) {
+        const f = this.partyFollowers[i];
+        if (!f) continue;
+        const def = PARTY_MEMBERS_DEF[i] || {};
+        const newStats = this.getNpcConfigFromRealm(pRealmIdx, def);
+        Object.assign(f, newStats);
+        f.hp = f.maxHp;
+        if (f.hpBar) f.hpBar.width = f.barW;
+        if (f.flyingSword) {
+          f.flyingSword.setVisible(f.isFlying);
+        } else if (f.isFlying && this.textures.exists('flying_sword')) {
+          f.flyingSword = this.add.image(f.sprite.x, f.sprite.y + 4, 'flying_sword').setScale(0.60).setDepth(Math.floor(f.sprite.y) + 9).setTint(f.tint);
+        }
+        this.showFloatingText(f.sprite.x, f.sprite.y - 50, `[${f.name}] Đột Phá ${newStats.stageLabel}!`, '#ffd700', '11px');
+        this.spawnVfx(f.sprite.x, f.sprite.y, 0, 0.65, { owner: 'fellow', tint: f.tint, duration: 300 });
+      }
+    }
 
     const px = this.player.x;
     const py = this.player.y;
@@ -518,7 +603,7 @@ export const FellowNpcMixin = {
       const sx = f.sprite.x;
       const sy = f.sprite.y;
       const pScale = 0.72 * this.perspective(sy);
-      const depth = Math.floor(sy);
+      const depth = Math.floor(sy) + (f.isFlying ? 10 : 0);
 
       if (!Number.isFinite(f.__lastRenderScale) || Math.abs(f.__lastRenderScale - pScale) > 0.002) {
         f.sprite.setScale(pScale);
@@ -530,7 +615,10 @@ export const FellowNpcMixin = {
       }
 
       if (shouldUpdatePartyVisual || f.__forceVisualSync) {
-        f.shadow.setPosition(sx, sy + 30 * pScale).setScale(pScale).setDepth(depth - 1);
+        f.shadow.setPosition(sx, sy + (f.isFlying ? 20 : 30) * pScale).setScale(pScale).setDepth(depth - 1);
+        if (f.flyingSword && f.isFlying) {
+          f.flyingSword.setPosition(sx, sy + 4 * pScale).setScale(0.60 * pScale).setDepth(depth - 1);
+        }
       }
 
       if (shouldUpdatePartyUi || f.__forceVisualSync) {
@@ -562,13 +650,14 @@ export const FellowNpcMixin = {
             f.hpBar.setVisible(true);
           }
           if (f.hpBg) f.hpBg.setVisible(true);
+          if (f.flyingSword && f.isFlying) f.flyingSword.setVisible(true);
           f.sprite.setPosition(px + f.offsetX, py + f.offsetY)
             .setVelocity(0, 0)
             .clearTint()
             .setTint(f.tint)
             .setAlpha(1);
           f.__forceVisualSync = true;
-          f.sprite.play(`${f.modelType}_idle`, true);
+          f.sprite.play(f.isFlying ? `${f.modelType}_fly` : `${f.modelType}_idle`, true);
           this.spawnVfx(f.sprite.x, f.sprite.y, 0, 0.6, { owner: 'fellow', tint: f.tint, duration: 250 });
           this.showFloatingText(f.sprite.x, f.sprite.y - 45, `[Tổ Đội · ${f.name}] Trợ Chiến!`, '#ffd700', '10px');
         }
@@ -627,36 +716,18 @@ export const FellowNpcMixin = {
             const vy = Math.sin(angle) * f.speed + pushVy;
             f.sprite.setVelocity(vx, vy);
             f.sprite.setFlipX(vx < 0);
-            f.sprite.play(`${f.modelType}_run`, true);
+            if (f.sprite.anims && f.sprite.anims.timeScale !== 1) f.sprite.anims.timeScale = 1;
+            const moveAnim = f.isFlying ? `${f.modelType}_fly` : `${f.modelType}_run`;
+            f.sprite.play(moveAnim, true);
           }
         } else {
-          // Vào tầm đánh quái
+          // Vào tầm đánh quái: Thi triển pháp thuật & combo như hệ thống Player
           f.sprite.setVelocity(pushVx * 0.5, pushVy * 0.5);
           f.sprite.setFlipX(target.x < sx);
 
           if (time >= f.lastAttack + f.atkInterval && time >= f.attackUntil) {
             f.lastAttack = time;
-            f.attackUntil = time + 360;
-            f.sprite.play(`${f.modelType}_attack`, true);
-
-            this.time.delayedCall(160, () => {
-              if (target && target.active && !target.isDead && f && !f.isDead) {
-                const isCrit = Math.random() < 0.2;
-                let dmg = f.dmg || 3;
-                if (isCrit) dmg = Math.floor(dmg * 1.85);
-                this.damageEnemy(target, dmg, isCrit, {
-                  type: 'party_npc',
-                  name: f.name,
-                  title: f.title || 'Hiệp Khách',
-                  ref: f
-                });
-                this.spawnVfx(target.x, target.y, 0, 0.45, { owner: 'fellow', tint: f.tint, duration: 180 });
-
-                if (target.isDead || target.hp <= 0) {
-                  f.targetEnemy = null;
-                }
-              }
-            });
+            this.castFellowNpcElementalSkill(f, target);
           }
         }
       } else {
@@ -673,12 +744,16 @@ export const FellowNpcMixin = {
             const vy = Math.sin(angle) * moveSpeed + pushVy;
             f.sprite.setVelocity(vx, vy);
             f.sprite.setFlipX(vx < 0);
-            f.sprite.play(`${f.modelType}_run`, true);
+            if (f.sprite.anims && f.sprite.anims.timeScale !== 1) f.sprite.anims.timeScale = 1;
+            const moveAnim = f.isFlying ? `${f.modelType}_fly` : `${f.modelType}_run`;
+            f.sprite.play(moveAnim, true);
           }
         } else {
           f.sprite.setVelocity(0, 0);
           if (time >= f.attackUntil) {
-            f.sprite.play(`${f.modelType}_idle`, true);
+            if (f.sprite.anims && f.sprite.anims.timeScale !== 1) f.sprite.anims.timeScale = 1;
+            const idleAnim = f.isFlying ? `${f.modelType}_fly` : `${f.modelType}_idle`;
+            f.sprite.play(idleAnim, true);
             // Hồi HP khi đứng yên (1.5% maxHp/s)
             if (f.hp < f.maxHp) {
               f.hp = Math.min(f.maxHp, f.hp + Math.max(1, Math.floor(f.maxHp * 0.015)));
@@ -693,7 +768,7 @@ export const FellowNpcMixin = {
 
   takePartyFollowerDamage(follower, rawDmg = 15) {
     if (!follower || follower.isDead) return;
-    const dmg = Math.max(1, Math.floor(rawDmg));
+    const dmg = Math.max(1, Math.floor(rawDmg * (100 / (100 + (follower.def || 0)))));
     follower.hp = Math.max(0, follower.hp - dmg);
 
     const ratio = Math.max(0, follower.hp / follower.maxHp);
@@ -708,6 +783,7 @@ export const FellowNpcMixin = {
       follower.sprite.setVelocity(0, 0).setAlpha(0.3);
       if (follower.hpBar) follower.hpBar.setVisible(false);
       if (follower.hpBg) follower.hpBg.setVisible(false);
+      if (follower.flyingSword) follower.flyingSword.setVisible(false);
       this.showFloatingText(follower.sprite.x, follower.sprite.y - 45, `[Tổ Đội · ${follower.name}] Tạm Lui!`, '#fca5a5', '10px');
     }
   },
@@ -724,6 +800,7 @@ export const FellowNpcMixin = {
 
     const CULL_RANGE_X = 950;
     const playerX = this.player.x;
+    const playerY = this.player.y;
 
     // Keep sprite/physics movement at frame rate, but throttle attached visuals and AI.
     const FELLOW_AI_TICK_MS = 1000 / 3;
@@ -743,10 +820,14 @@ export const FellowNpcMixin = {
       const npc = this.fellowNpcs[i];
       if (!npc || !npc.sprite) continue;
 
-      const distToPlayerX = Math.abs(npc.sprite.x - playerX);
+      const is2DMap = (this.worldH || 0) > 1500;
+      const distToPlayer = is2DMap
+        ? Phaser.Math.Distance.Between(npc.sprite.x, npc.sprite.y, playerX, playerY)
+        : Math.abs(npc.sprite.x - playerX);
 
-      // 1. Proximity Culling: Ẩn và dừng xử lý khi ở xa (>950px)
-      if (distToPlayerX > CULL_RANGE_X) {
+      // 1. Proximity Culling: Ẩn và dừng xử lý khi ở xa (>1200px)
+      const maxCullRange = is2DMap ? 1200 : CULL_RANGE_X;
+      if (distToPlayer > maxCullRange) {
         if (npc.sprite.visible) {
           npc.sprite.setVisible(false);
           if (npc.sprite.body) {
@@ -778,7 +859,7 @@ export const FellowNpcMixin = {
       // Sprite movement stays per-frame. Attached visuals/UI are rate-limited.
       const sx = npc.sprite.x;
       const sy = npc.sprite.y;
-      const pScale = 0.72 * this.perspective(sy);
+      const pScale = 0.62 * this.perspective(sy);
       const baseDepth = Math.floor(sy);
       const spriteDepth = baseDepth + (npc.isFlying ? 10 : 0);
 
@@ -879,9 +960,59 @@ export const FellowNpcMixin = {
         continue;
       }
 
+      // 2.5. Trạng thái Tạm lui Hồi Phục Máu khi gần chết
+      if (npc.isRetreating) {
+        npc.targetEnemy = null;
+        const nearestThreat = this.findNearestEnemyForNpc(sx, sy, 400);
+        let runVx = 0, runVy = 0;
+
+        if (nearestThreat && nearestThreat.active) {
+          const awayAngle = Phaser.Math.Angle.Between(nearestThreat.x, nearestThreat.y, sx, sy);
+          runVx = Math.cos(awayAngle) * (npc.speed * 1.2) + wildPushVx;
+          runVy = Math.sin(awayAngle) * (npc.speed * 1.2) + wildPushVy;
+        } else {
+          const distToHome = Phaser.Math.Distance.Between(sx, sy, npc.homeX, npc.homeY);
+          if (distToHome > 40) {
+            const homeAngle = Phaser.Math.Angle.Between(sx, sy, npc.homeX, npc.homeY);
+            runVx = Math.cos(homeAngle) * (npc.speed * 0.9) + wildPushVx;
+            runVy = Math.sin(homeAngle) * (npc.speed * 0.9) + wildPushVy;
+          } else {
+            runVx = wildPushVx * 0.3;
+            runVy = wildPushVy * 0.3;
+          }
+        }
+
+        npc.sprite.setVelocity(runVx, runVy);
+        if (Math.abs(runVx) > 2) npc.sprite.setFlipX(runVx < 0);
+        const moving = Math.abs(runVx) > 4 || Math.abs(runVy) > 4;
+        const moveAnim = npc.isFlying ? `${npc.modelType}_fly` : (moving ? `${npc.modelType}_run` : `${npc.modelType}_idle`);
+        if (npc.sprite.anims && npc.sprite.anims.timeScale !== 1) npc.sprite.anims.timeScale = 1;
+        npc.sprite.play(moveAnim, true);
+
+        // Hồi phục sinh lực liên tục
+        if (time >= (npc.nextHealTick || 0)) {
+          npc.nextHealTick = time + 400;
+          const healAmount = Math.max(3, Math.floor(npc.maxHp * 0.08));
+          npc.hp = Math.min(npc.maxHp, npc.hp + healAmount);
+          const ratio = Math.max(0, npc.hp / npc.maxHp);
+          if (npc.hpBar) npc.hpBar.width = ratio * npc.barW;
+          this.spawnVfx(sx, sy - 8, 0, 0.35, { owner: 'fellow', tint: 0x34d399, duration: 200 });
+
+          if (npc.hp >= npc.maxHp * 0.90) {
+            npc.hp = npc.maxHp;
+            if (npc.hpBar) npc.hpBar.width = npc.barW;
+            npc.isRetreating = false;
+            this.showFloatingText(sx, sy - 45, `${npc.name}: Hồi Phục Đầy Đủ, Tái Chiến!`, '#fde047', '10px');
+            this.spawnVfx(sx, sy, 0, 0.5, { owner: 'fellow', tint: 0xfacc15, duration: 250 });
+          }
+        }
+        continue;
+      }
+
       // 3. AI Tự Động Quét Tìm Quái Vật
       let target = npc.targetEnemy;
-      const fellowTargetInvalid = !target || !target.active || target.isDead || Math.abs(target.x - sx) > npc.searchRange;
+      const distToTarget = target ? Phaser.Math.Distance.Between(sx, sy, target.x, target.y) : 99999;
+      const fellowTargetInvalid = !target || !target.active || target.isDead || distToTarget > npc.searchRange;
       if (fellowTargetInvalid) {
         target = null;
         npc.targetEnemy = null;
@@ -927,6 +1058,7 @@ export const FellowNpcMixin = {
             npc.sprite.setVelocity(vx, vy);
             npc.sprite.setFlipX(vx < 0);
             const moveAnim = npc.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_run`;
+            if (npc.sprite.anims && npc.sprite.anims.timeScale !== 1) npc.sprite.anims.timeScale = 1;
             npc.sprite.play(moveAnim, true);
           }
         } else {
@@ -942,6 +1074,7 @@ export const FellowNpcMixin = {
         npc.sprite.setVelocity(wildPushVx * 0.5, wildPushVy * 0.5);
         if (time >= npc.attackUntil) {
           const idleAnim = npc.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_idle`;
+          if (npc.sprite.anims && npc.sprite.anims.timeScale !== 1) npc.sprite.anims.timeScale = 1;
           npc.sprite.play(idleAnim, true);
           // Hồi HP tự động khi không chiến đấu (2% maxHp/s ≈ mỗi frame 60fps ~= 0.033% mọi 16ms)
           if (npc.hp < npc.maxHp) {
@@ -962,16 +1095,51 @@ export const FellowNpcMixin = {
   castFellowNpcElementalSkill(npc, target) {
     if (!npc || npc.isDead || !target || !target.active || target.isDead) return;
 
-    npc.sprite.setFlipX(target.x < npc.sprite.x);
-    npc.sprite.play(`${npc.modelType}_attack`, true);
+    // 0. PHÀM NHÂN: Chỉ đánh thường vật lý bằng kiếm, không dùng pháp thuật hay hiện tên skill
+    if (npc.isMortal || npc.realmIdx === 0) {
+      npc.sprite.setFlipX(target.x < npc.sprite.x);
+      const atkDuration = Math.max(380, Math.min(1800, Math.round((npc.atkInterval || 2000) * 0.55)));
+      npc.attackUntil = this.time.now + atkDuration;
+      npc.sprite.play(`${npc.modelType || 'npc_warrior'}_attack`, true);
+      const baseDuration = (npc.modelType === 'npc_2') ? 1000 : 888;
+      if (npc.sprite.anims) {
+        npc.sprite.anims.timeScale = baseDuration / atkDuration;
+      }
 
+      const hitDelay = Math.round(atkDuration * 0.45);
+      this.time.delayedCall(hitDelay, () => {
+        if (!npc || npc.isDead) return;
+        const curTarget = (target && target.active && !target.isDead) ? target : this.findNearestEnemyForNpc(npc.sprite.x, npc.sprite.y, 160);
+        if (!curTarget) return;
+
+        const isCrit = Math.random() < 0.12;
+        let finalDmg = Math.max(1, Math.floor(npc.dmg * (isCrit ? 1.5 : 1.0)));
+
+        this.damageEnemy(curTarget, finalDmg, isCrit, {
+          type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
+          name: npc.name,
+          title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : npc.name,
+          ref: npc
+        });
+      });
+      return;
+    }
+
+    npc.sprite.setFlipX(target.x < npc.sprite.x);
     const tierLevel = Math.max(1, Math.min(5, npc.tierLevel || 1));
     const vfxMul = npc.vfxMul || 1.0;
     const masteryColor = npc.masteryColor || npc.elemColor || '#7dd3fc';
 
     // Thời gian duy trì thế công kích theo số lượng combo (1 -> 5 chiêu)
     const comboDurations = [0, 420, 680, 950, 1250, 1600];
-    npc.attackUntil = this.time.now + (comboDurations[tierLevel] || 500);
+    const animDuration = comboDurations[tierLevel] || 500;
+    npc.attackUntil = this.time.now + animDuration;
+
+    npc.sprite.play(`${npc.modelType}_attack`, true);
+    const baseDuration = (npc.modelType === 'npc_2') ? 1000 : 888;
+    if (npc.sprite.anims) {
+      npc.sprite.anims.timeScale = baseDuration / animDuration;
+    }
 
     // Tên chuỗi combo theo cảnh giới
     const comboTitles = [
@@ -1080,9 +1248,9 @@ export const FellowNpcMixin = {
         if (isCrit) finalDmg = Math.floor(finalDmg * 1.85);
 
         this.damageEnemy(curTarget, finalDmg, isCrit, {
-          type: 'wild_npc',
+          type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
           name: npc.name,
-          title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+          title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
           ref: npc
         });
 
@@ -1176,9 +1344,9 @@ export const FellowNpcMixin = {
           let finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
 
           this.damageEnemy(curTarget, finalDmg, isCrit, {
-            type: 'wild_npc',
+            type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
             name: npc.name,
-            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
             ref: npc
           });
 
@@ -1229,9 +1397,9 @@ export const FellowNpcMixin = {
           let finalDmg = isCrit ? Math.floor(calculatedDmg * 1.85) : calculatedDmg;
 
           this.damageEnemy(curTarget, finalDmg, isCrit, {
-            type: 'wild_npc',
+            type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
             name: npc.name,
-            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
             ref: npc
           });
 
@@ -1277,9 +1445,9 @@ export const FellowNpcMixin = {
           if (!e || !e.active || e.isDead) return;
           if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 160) {
             this.damageEnemy(e, tickDmg, isCrit && tick === 0, {
-              type: 'wild_npc',
+              type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
               name: npc.name,
-              title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+              title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
               ref: npc
             });
             this.spawnVfx(e.x, e.y - 15, 0, 0.6 * vfxMul, { owner: 'fellow', duration: 180 });
@@ -1329,9 +1497,9 @@ export const FellowNpcMixin = {
         if (!e || !e.active || e.isDead) return;
         if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 180) {
           this.damageEnemy(e, finalDmg, isCrit, {
-            type: 'wild_npc',
+            type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
             name: npc.name,
-            title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+            title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
             ref: npc
           });
         }
@@ -1387,9 +1555,9 @@ export const FellowNpcMixin = {
             if (!e || !e.active || e.isDead) return;
             if (Phaser.Math.Distance.Between(e.x, e.y, tx, ty) <= 240) {
               this.damageEnemy(e, finalDmg, isCrit, {
-                type: 'wild_npc',
+                type: npc.isPartyMember ? 'party_npc' : 'wild_npc',
                 name: npc.name,
-                title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
+                title: npc.isPartyMember ? (npc.title || 'Hiệp Khách') : (npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`),
                 ref: npc
               });
               this.spawnVfx(e.x, e.y - 15, 0, 0.9 * vfxMul, { owner: 'fellow', duration: 240 });
@@ -1432,12 +1600,20 @@ export const FellowNpcMixin = {
 
     if (npc.hp <= 0) {
       this.killFellowNpc(npc);
+    } else if (npc.hp <= npc.maxHp * 0.35 && !npc.isRetreating) {
+      // Khi máu xuống dưới 35% -> Kích hoạt cơ chế tạm lui trị thương hồi phục
+      npc.isRetreating = true;
+      npc.targetEnemy = null;
+      npc.nextHealTick = this.time.now + 300;
+      this.showFloatingText(npc.sprite.x, npc.sprite.y - 45, `${npc.name}: Tạm Lui Hồi Phục!`, '#86efac', '10px');
+      this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.45, { owner: 'fellow', tint: 0x34d399, duration: 250 });
     }
   },
 
   killFellowNpc(npc) {
     if (!npc || npc.isDead) return;
     npc.isDead = true;
+    npc.isRetreating = false;
     npc.targetEnemy = null;
     npc.respawnTime = this.time.now + 6000;
 
@@ -1454,6 +1630,7 @@ export const FellowNpcMixin = {
   respawnFellowNpc(npc) {
     if (!npc || !npc.sprite) return;
     npc.isDead = false;
+    npc.isRetreating = false;
     npc.name = this.getRandomSinoVietName(npc.name);
     
     const curMapId = gameState.currentMapId ?? 0;
@@ -1477,7 +1654,7 @@ export const FellowNpcMixin = {
     npc.skillId = cfg.skillId;
     npc.skillName = cfg.skillName;
     npc.dmgMul = cfg.dmgMul;
-    npc.titlePrefix = cfg.titlePrefix;
+    npc.titlePrefix = '';
     npc.tint = cfg.tint;
     npc.maxHp = cfg.maxHp;
     npc.hp = cfg.maxHp;
@@ -1486,7 +1663,7 @@ export const FellowNpcMixin = {
     npc.attackRange = cfg.attackRange || 240;
     npc.atkInterval = cfg.atkInterval || 2000;
 
-    npc.nameTag.setText(`${cfg.titlePrefix} ${npc.name}`);
+    npc.nameTag.setText(npc.name);
     npc.nameTag.setColor(cfg.titleColor || '#7dd3fc');
 
     if (npc.hpBar) {

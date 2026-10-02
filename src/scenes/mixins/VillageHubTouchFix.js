@@ -16,8 +16,8 @@ export function installVillageHubTouchFix(SceneClass) {
     const didTravel = travelService.travel(CANONICAL_MAP_KEYS.THANH_VAN_NGOAI_VI, {
       scene: this,
       source: TRAVEL_SOURCES.NPC,
-      spawnX: 420,
-      spawnY: 620
+      spawnX: 1792,
+      spawnY: 1792
     });
     if (!didTravel) return false;
 

@@ -13,13 +13,13 @@ export const TRAVEL_ROUTES = Object.freeze([
   Object.freeze({
     id: 'route_thon_to_ngoai_vi', fromMapId: THON, toMapId: NGOAI_VI,
     sourceAnchor: Object.freeze({ x: 270, y: 760 }),
-    targetSpawn: Object.freeze({ x: 420, y: 620 }),
+    targetSpawn: Object.freeze({ x: 1792, y: 1792 }),
     portalVisible: false,
     title: 'THANH VÂN NGOẠI VI', sub: 'RỜI THANH VÂN THÔN'
   }),
   Object.freeze({
     id: 'route_ngoai_vi_to_thon', fromMapId: NGOAI_VI, toMapId: THON,
-    sourceAnchor: Object.freeze({ side: 'left', offset: 250, y: 620 }),
+    sourceAnchor: Object.freeze({ x: 1792, y: 3400 }),
     targetSpawn: Object.freeze({ x: 270, y: 760 }),
     title: 'THANH VÂN THÔN', sub: 'QUAY VỀ THÔN LÀNG AN TOÀN'
   })

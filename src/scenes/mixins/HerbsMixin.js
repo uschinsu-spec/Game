@@ -19,6 +19,25 @@ export const HerbsMixin = {
     const map=this.currentMap||getMapById(gameState.currentMapId);
     if(map?.isPeaceZone||map?.id===CANONICAL_MAP_KEYS.THANH_VAN_THON) return;
     const totalW=this.worldW||32000, herbPoints=[], orePoints=[];
+    if ((this.worldH || 0) > 1500) {
+      const step = 420;
+      let hIdx = 0, oIdx = 0;
+      const herbs=pickPool('herb'), ores=pickPool('ore');
+      for (let x = 350; x < totalW - 350; x += step) {
+        for (let y = this.field.top + 70; y < this.field.bottom - 70; y += step) {
+          const jx = x + Phaser.Math.Between(-70, 70);
+          const jy = y + Phaser.Math.Between(-70, 70);
+          if ((hIdx + oIdx) % 2 === 0) {
+            this.spawnOneHerb(jx, jy, 1, hIdx, herbs[hIdx % herbs.length]);
+            hIdx++;
+          } else {
+            this.spawnMineralNode(jx, jy, 1, oIdx, ores[oIdx % ores.length]);
+            oIdx++;
+          }
+        }
+      }
+      return;
+    }
     const ranges=[[750,4000,900,1],[4200,12000,650,2],[12200,22000,450,3],[22200,totalW-400,300,4]];
     for(const [a,b,step,z] of ranges){
       for(let x=a;x<Math.min(b,totalW-300);x+=step+Phaser.Math.Between(-80,100)) herbPoints.push({x,z});

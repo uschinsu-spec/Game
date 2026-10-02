@@ -45,12 +45,18 @@ export const CombatMixin = {
 
     if (this.player && this.player.active) {
       const atkInterval = this.calcPlayerAtkInterval ? this.calcPlayerAtkInterval() : 380;
-      const animDuration = Math.min(500, Math.max(280, Math.floor(atkInterval * 0.82)));
-      if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
-      else {
+      if (this.playPlayerAttackAnimation) {
+        this.playPlayerAttackAnimation(atkInterval);
+      } else {
+        const animDuration = Math.min(2200, Math.max(280, Math.floor(atkInterval * 0.75)));
         const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
         this.attackUntil = this.time.now + animDuration;
-        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+        const animKey = isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack';
+        this.player.play(animKey, true);
+        if (this.player.anims) {
+          const baseDuration = animKey === 'p_attack' ? 888 : 750;
+          this.player.anims.timeScale = baseDuration / animDuration;
+        }
       }
     }
 
@@ -128,13 +134,18 @@ export const CombatMixin = {
     if (this.player && this.player.active) {
       const isFastSkill = (skill.cd === 0 || skill.id === 'kiem_1' || skill.id === 'kiem_2');
       const animDuration = isFastSkill
-        ? Math.min(420, Math.max(280, Math.floor(atkInterval * 0.75)))
+        ? Math.min(2200, Math.max(280, Math.floor(atkInterval * 0.75)))
         : 450;
       if (this.playPlayerAttackAnimation) this.playPlayerAttackAnimation(animDuration);
       else {
         const isTrucCoOrAbove = (Number(gameState.realmIdx) || 0) >= 13;
         this.attackUntil = this.time.now + animDuration;
-        this.player.play(isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack', true);
+        const animKey = isTrucCoOrAbove ? 'p_fly_attack' : 'p_attack';
+        this.player.play(animKey, true);
+        if (this.player.anims) {
+          const baseDuration = animKey === 'p_attack' ? 888 : 750;
+          this.player.anims.timeScale = baseDuration / animDuration;
+        }
       }
     }
 
