@@ -52,8 +52,8 @@ def dilate(mask):
 
 def remove_checker(cell, palette):
     arr = np.asarray(cell.convert("RGBA")).copy()
-    rgb = arr[:, :, :3].astype(np.int16)
-    dists = [np.sqrt(np.sum((rgb - p) ** 2, axis=2)) for p in palette]
+    rgb = arr[:, :, :3].astype(np.int32)
+    dists = [np.sqrt(np.sum((rgb - p.astype(np.int32)) ** 2, axis=2)) for p in palette]
     dist = np.minimum.reduce(dists)
 
     alpha = arr[:, :, 3].astype(np.float32)
@@ -123,7 +123,7 @@ def build(kind, src, cols, rows, count):
         cell = fit(cell)
         cell.save(
             PLAYER / f"player_{kind}_{idx+1:02d}.webp",
-            "WEBP", lossless=True, quality=100, method=6
+            "WEBP", lossless=True, quality=100, method=4
         )
 
 
