@@ -11,9 +11,9 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-shared-vfx-pool-v5';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-stable-rollback-v1';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-shared-vfx-pool-v5';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-stable-rollback-v1';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-shared-vfx-pool-v5';
@@ -49,11 +49,11 @@ export class MainGameScene extends Phaser.Scene {
     this.load.on('progress', value => bootUi?.progress(value));
     this.load.on('loaderror', () => bootUi?.assetError());
 
-    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.webp', { frameWidth: 192, frameHeight: 192 });
-    this.load.spritesheet('player_run', A + 'characters/player/player_run.webp', { frameWidth: 192, frameHeight: 192 });
-    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.webp', { frameWidth: 192, frameHeight: 192 });
-    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.webp', { frameWidth: 192, frameHeight: 192 });
-    this.load.spritesheet('player_fly_attack', A + 'characters/player/player_fly_attack.webp', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_idle', A + 'characters/player/player_idle.webp?v=20261002-stable-rollback-v1', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_run', A + 'characters/player/player_run.webp?v=20261002-stable-rollback-v1', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_attack', A + 'characters/player/player_attack.webp?v=20261002-stable-rollback-v1', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly', A + 'characters/player/player_fly.webp?v=20261002-stable-rollback-v1', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('player_fly_attack', A + 'characters/player/player_fly_attack.webp?v=20261002-stable-rollback-v1', { frameWidth: 192, frameHeight: 192 });
 
     for (let i = 1; i <= 16; i++) {
       this.load.image(`enemy_${i}_idle_0`, `${A}characters/enemies/ground/enemy_${i}/idle_0.webp`);
