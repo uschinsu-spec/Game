@@ -11,9 +11,9 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261001-player12-smooth-v1';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-auto-scan-3hz-v3';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261001-player12-smooth-v1';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-auto-scan-3hz-v3';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
 import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-ai-tick-3hz-v2';
@@ -223,11 +223,34 @@ export class MainGameScene extends Phaser.Scene {
     const isAttacking = this.time.now < (this.attackUntil || 0);
     if (gameState.autoFight && !this.joy.active && !this.moveTarget && vx === 0 && vy === 0) {
       const mode = gameState.autoMode || 'farm';
+
+      // Player Auto scans for a target at only 3 Hz. Movement and combat response still run every frame.
+      const PLAYER_AUTO_SCAN_MS = 1000 / 3;
+      if (this.__autoPlayerMode !== mode) {
+        this.__autoPlayerMode = mode;
+        this.__autoPlayerTarget = null;
+        this.__nextAutoPlayerScanAt = 0;
+      }
+
+      let target = this.__autoPlayerTarget;
+      if (!target || !target.active || target.isDead || !target.visible) {
+        target = null;
+        this.__autoPlayerTarget = null;
+      }
+
+      if (mode !== 'rush' && time >= Number(this.__nextAutoPlayerScanAt || 0)) {
+        this.__nextAutoPlayerScanAt = time + PLAYER_AUTO_SCAN_MS;
+        target = mode === 'march'
+          ? this.nearestEnemy(480, true)
+          : this.nearestEnemy(3000, false);
+        this.__autoPlayerTarget = target || null;
+      }
+
       if (mode === 'rush') {
+        this.__autoPlayerTarget = null;
         vx = baseSpeed; this.player.setFlipX(false);
       } else if (mode === 'march') {
         vx = baseSpeed * 0.85; this.player.setFlipX(false);
-        const target = this.nearestEnemy(480, true);
         if (target && target.active && target.x >= this.player.x - 50) {
           const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
           let casted = false;
@@ -245,41 +268,42 @@ export class MainGameScene extends Phaser.Scene {
             this.basicAttack();
           }
         }
-      } else if (this.enemies.length > 0) {
-        const target = this.nearestEnemy(3000, false);
-        if (target && target.active) {
-          const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
-          const onScreen = this.isEnemyOnScreen ? this.isEnemyOnScreen(target, 20) : dist <= 420;
-          let casted = false;
-          if (gameState.afkSettings?.autoSkill && onScreen && !isAttacking) {
-            for (const sId of gameState.equippedSkillIds) {
-              if (!sId || this.activeSkillCds[sId] > 0) continue;
-              if (sId === 'basic_attack' && dist > 120) continue;
-              this.player.setFlipX(target.x < this.player.x);
-              this.castSkill(sId);
-              casted = true;
-              break;
-            }
+      } else if (target && target.active) {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y);
+        const onScreen = this.isEnemyOnScreen ? this.isEnemyOnScreen(target, 20) : dist <= 420;
+        let casted = false;
+        if (gameState.afkSettings?.autoSkill && onScreen && !isAttacking) {
+          for (const sId of gameState.equippedSkillIds) {
+            if (!sId || this.activeSkillCds[sId] > 0) continue;
+            if (sId === 'basic_attack' && dist > 120) continue;
+            this.player.setFlipX(target.x < this.player.x);
+            this.castSkill(sId);
+            casted = true;
+            break;
           }
-          if (!casted) {
-            const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
-            const hasReadyRangedSkill = gameState.equippedSkillIds.some(sId => sId && sId !== 'basic_attack' && !(this.activeSkillCds[sId] > 0));
-            const stopDist = hasReadyRangedSkill ? 220 : (hasBasicEquipped ? 85 : 220);
+        }
+        if (!casted) {
+          const hasBasicEquipped = gameState.equippedSkillIds.includes('basic_attack');
+          const hasReadyRangedSkill = gameState.equippedSkillIds.some(sId => sId && sId !== 'basic_attack' && !(this.activeSkillCds[sId] > 0));
+          const stopDist = hasReadyRangedSkill ? 220 : (hasBasicEquipped ? 85 : 220);
 
-            if (dist > stopDist) {
-              if (!isAttacking) {
-                const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-                vx = Math.cos(angle) * baseSpeed;
-                vy = Math.sin(angle) * baseSpeed;
-              }
-            } else {
-              vx = 0; vy = 0;
-              this.player.setFlipX(target.x < this.player.x);
-              if (hasBasicEquipped && dist <= 125 && !isAttacking) this.basicAttack();
+          if (dist > stopDist) {
+            if (!isAttacking) {
+              const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+              vx = Math.cos(angle) * baseSpeed;
+              vy = Math.sin(angle) * baseSpeed;
             }
+          } else {
+            vx = 0; vy = 0;
+            this.player.setFlipX(target.x < this.player.x);
+            if (hasBasicEquipped && dist <= 125 && !isAttacking) this.basicAttack();
           }
         }
       }
+    } else if (!gameState.autoFight) {
+      this.__autoPlayerTarget = null;
+      this.__autoPlayerMode = null;
+      this.__nextAutoPlayerScanAt = 0;
     }
     if (isAttacking) { vx = 0; vy = 0; }
 
