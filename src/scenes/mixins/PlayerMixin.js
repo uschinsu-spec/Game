@@ -256,28 +256,211 @@ export const PlayerMixin = {
   },
 
   createVfxPool() {
-    this.vfxPool = this.add.group({ defaultKey: 'vfx', maxSize: 48 });
-    for (let i = 0; i < 30; i++) {
-      const s = this.add.image(-200, -200, 'vfx', 0).setVisible(false).setActive(false).setDepth(150);
-      this.vfxPool.add(s);
+    const MAX_SHARED_VFX = 96;
+    const PREWARM_SHARED_VFX = 30;
+
+    if (this.sharedVfxPool?.destroy) {
+      try { this.sharedVfxPool.destroy(true); } catch (e) {}
+    }
+
+    this.sharedVfxPool = this.add.group({ maxSize: MAX_SHARED_VFX, runChildUpdate: false });
+    this.vfxPool = this.sharedVfxPool;
+    this.__sharedVfxMax = MAX_SHARED_VFX;
+    this.__sharedFellowVisualMax = 72;
+    this.__virtualVfxPool = this.__virtualVfxPool || [];
+
+    for (let i = 0; i < this.__virtualVfxPool.length; i++) {
+      const v = this.__virtualVfxPool[i];
+      this.tweens?.killTweensOf?.(v);
+      v.active = false;
+      v.visible = false;
+    }
+
+    if (this.textures?.exists?.('vfx')) {
+      for (let i = 0; i < PREWARM_SHARED_VFX; i++) {
+        const s = this.add.sprite(-10000, -10000, 'vfx', 0)
+          .setVisible(false)
+          .setActive(false)
+          .setAlpha(0);
+        s.__sharedVfxPooled = true;
+        s.__sharedVfxOwner = null;
+        this.sharedVfxPool.add(s);
+      }
     }
   },
 
+  createVirtualVfx(owner = 'player', x = 0, y = 0, texture = '', frame = 0) {
+    this.__virtualVfxPool = this.__virtualVfxPool || [];
+    let v = this.__virtualVfxPool.find(item => item && !item.active);
+
+    if (!v) {
+      v = {
+        __sharedVfxVirtual: true,
+        active: false,
+        visible: false,
+        x: 0,
+        y: 0,
+        alpha: 1,
+        angle: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        depth: 0,
+        flipX: false,
+        textureKey: '',
+        frame: 0,
+        setActive(value) { this.active = !!value; return this; },
+        setVisible(value) { this.visible = !!value; return this; },
+        setPosition(nx, ny) { this.x = Number(nx) || 0; this.y = Number(ny) || 0; return this; },
+        setScale(sx, sy = sx) { this.scaleX = Number(sx) || 0; this.scaleY = Number(sy) || 0; return this; },
+        setAlpha(value) { this.alpha = Number(value) || 0; return this; },
+        setAngle(value) { this.angle = Number(value) || 0; return this; },
+        setRotation(value) { this.rotation = Number(value) || 0; return this; },
+        setDepth(value) { this.depth = Number(value) || 0; return this; },
+        setFlipX(value) { this.flipX = !!value; return this; },
+        setOrigin() { return this; },
+        setBlendMode() { return this; },
+        setTint() { return this; },
+        clearTint() { return this; },
+        setTexture(key, frm) { this.textureKey = key || ''; if (frm !== undefined) this.frame = frm; return this; },
+        setFrame(frm) { this.frame = frm; return this; },
+        play() { return this; },
+        stop() { return this; },
+        destroy() { this.active = false; this.visible = false; return this; }
+      };
+      this.__virtualVfxPool.push(v);
+    }
+
+    this.tweens?.killTweensOf?.(v);
+    v.__sharedVfxOwner = owner === 'fellow' ? 'fellow' : 'player';
+    v.__sharedVfxStartedAt = Number(this.time?.now || 0);
+    v.setTexture(texture, frame)
+      .setPosition(x, y)
+      .setScale(1)
+      .setAlpha(1)
+      .setAngle(0)
+      .setRotation(0)
+      .setDepth(0)
+      .setFlipX(false)
+      .setActive(true)
+      .setVisible(false);
+    return v;
+  },
+
+  acquireSharedVfx(owner = 'player', x = 0, y = 0, texture = 'vfx', frame = undefined) {
+    const normalizedOwner = owner === 'fellow' ? 'fellow' : 'player';
+
+    if (!this.textures?.exists?.(texture)) {
+      return this.createVirtualVfx(normalizedOwner, x, y, texture, frame);
+    }
+
+    if (!this.sharedVfxPool?.getChildren) {
+      this.createVfxPool();
+    }
+
+    const children = this.sharedVfxPool?.getChildren?.() || [];
+    const fellowVisualsActive = normalizedOwner === 'fellow'
+      ? children.reduce((count, child) => count + (child?.active && child.__sharedVfxOwner === 'fellow' ? 1 : 0), 0)
+      : 0;
+
+    const fellowVisualAllowed = normalizedOwner !== 'fellow'
+      || fellowVisualsActive < Number(this.__sharedFellowVisualMax || 72);
+
+    let v = fellowVisualAllowed
+      ? children.find(child => child && !child.active)
+      : null;
+
+    if (!v && fellowVisualAllowed && children.length < Number(this.__sharedVfxMax || 96)) {
+      v = this.add.sprite(x, y, texture, frame);
+      v.__sharedVfxPooled = true;
+      this.sharedVfxPool.add(v);
+    }
+
+    if (!v) {
+      return this.createVirtualVfx(normalizedOwner, x, y, texture, frame);
+    }
+
+    this.tweens?.killTweensOf?.(v);
+    v.stop?.();
+    v.clearTint?.();
+    v.setTexture(texture, frame)
+      .setPosition(x, y)
+      .setOrigin(0.5, 0.5)
+      .setScale(1)
+      .setAlpha(1)
+      .setAngle(0)
+      .setRotation(0)
+      .setFlipX(false)
+      .setDepth(0)
+      .setBlendMode(Phaser.BlendModes.NORMAL)
+      .setActive(true)
+      .setVisible(true);
+
+    v.__sharedVfxPooled = true;
+    v.__sharedVfxOwner = normalizedOwner;
+    v.__sharedVfxStartedAt = Number(this.time?.now || 0);
+    return v;
+  },
+
+  acquirePlayerVfx(x, y, texture, frame = undefined) {
+    return this.acquireSharedVfx('player', x, y, texture, frame);
+  },
+
+  acquireFellowVfx(x, y, texture, frame = undefined) {
+    return this.acquireSharedVfx('fellow', x, y, texture, frame);
+  },
+
+  releaseSharedVfx(v) {
+    if (!v) return;
+    this.tweens?.killTweensOf?.(v);
+
+    if (v.__sharedVfxVirtual) {
+      v.active = false;
+      v.visible = false;
+      v.__sharedVfxOwner = null;
+      return;
+    }
+
+    if (!v.__sharedVfxPooled) {
+      if (v.destroy) v.destroy();
+      return;
+    }
+
+    v.stop?.();
+    v.clearTint?.();
+    v.setBlendMode?.(Phaser.BlendModes.NORMAL);
+    v.setAlpha?.(0);
+    v.setVisible?.(false);
+    v.setActive?.(false);
+    v.setAngle?.(0);
+    v.setRotation?.(0);
+    v.setFlipX?.(false);
+    v.__sharedVfxOwner = null;
+  },
+
   spawnVfx(x, y, frame = 0, scale = 1, opts = {}) {
-    const v = this.vfxPool.get(x, y, 'vfx', frame);
+    const owner = opts.owner === 'fellow' ? 'fellow' : 'player';
+    const v = this.acquireSharedVfx(owner, x, y, 'vfx', frame);
     if (!v) return null;
-    const grow = opts.grow || 1, duration = opts.duration || 320, alpha = opts.alpha ?? 0.95;
-    v.clearTint().setActive(true).setVisible(true).setPosition(x, y).setFrame(frame)
+
+    const grow = opts.grow || 1;
+    const duration = opts.duration || 320;
+    const alpha = opts.alpha ?? 0.95;
+
+    v.clearTint?.();
+    v.setActive(true).setVisible(!v.__sharedVfxVirtual).setPosition(x, y).setFrame(frame)
       .setScale(scale).setAlpha(alpha).setAngle(opts.angle || 0).setDepth(opts.depth || y + 2);
     if (opts.tint) v.setTint(opts.tint);
+
     this.tweens.killTweensOf(v);
     this.tweens.add({
       targets: v,
-      scaleX: scale * grow, scaleY: scale * grow,
+      scaleX: scale * grow,
+      scaleY: scale * grow,
       alpha: 0,
       duration,
       ease: opts.ease || 'Cubic.easeOut',
-      onComplete: () => { v.setActive(false).setVisible(false); }
+      onComplete: () => this.releaseSharedVfx(v)
     });
     return v;
   },

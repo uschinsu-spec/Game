@@ -192,7 +192,7 @@ export const CombatMixin = {
       const projKey = (tierLevel === 2 && this.textures.exists(`vfx_${eKey}_2`)) ? `vfx_${eKey}_2` : (this.textures.exists(`vfx_${eKey}_1_0`) ? `vfx_${eKey}_1_0` : (this.textures.exists(`vfx_${eKey}_1`) ? `vfx_${eKey}_1` : 'vfx_kim_1_0'));
       const startX = this.player.x;
       const startY = this.player.y - 15;
-      const proj = this.add.sprite(startX, startY, projKey)
+      const proj = this.acquirePlayerVfx(startX, startY, projKey)
         .setDepth(Math.floor(this.player.y) + 50)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(0.65 * vfxMul);
@@ -214,10 +214,10 @@ export const CombatMixin = {
         duration: dur,
         ease: 'Linear',
         onComplete: () => {
-          proj.destroy();
+          this.releaseSharedVfx(proj);
           const impactKey = this.textures.exists(`vfx_${eKey}_1_7`) ? `vfx_${eKey}_1_7` : (this.textures.exists(`vfx_${eKey}_impact`) ? `vfx_${eKey}_impact` : 'vfx_impact_frame7');
           if (this.textures.exists(impactKey)) {
-            const imp = this.add.sprite(tx, ty - 15, impactKey)
+            const imp = this.acquirePlayerVfx(tx, ty - 15, impactKey)
               .setDepth(Math.floor(ty) + 55)
               .setBlendMode(Phaser.BlendModes.ADD)
               .setScale(0.85 * vfxMul);
@@ -227,7 +227,7 @@ export const CombatMixin = {
               scaleY: 1.4 * vfxMul,
               alpha: 0,
               duration: 220,
-              onComplete: () => imp.destroy()
+              onComplete: () => this.releaseSharedVfx(imp)
             });
           }
           if (target && target.active && this.isEnemyOnScreen(target, 40)) {
@@ -237,7 +237,7 @@ export const CombatMixin = {
       });
     } else if (tierLevel === 3) {
       const arrayKey = this.textures.exists(`vfx_${eKey}_3`) ? `vfx_${eKey}_3` : 'vfx_kim_3_0';
-      const arrayImg = this.add.image(tx, ty, arrayKey)
+      const arrayImg = this.acquirePlayerVfx(tx, ty, arrayKey)
         .setDepth(Math.floor(ty) - 5)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(1.2 * vfxMul)
@@ -251,7 +251,7 @@ export const CombatMixin = {
         duration: 400,
         yoyo: true,
         repeat: 2,
-        onComplete: () => arrayImg.destroy()
+        onComplete: () => this.releaseSharedVfx(arrayImg)
       });
 
       for (let tick = 0; tick < 3; tick++) {
@@ -273,7 +273,7 @@ export const CombatMixin = {
         const sx = tx + Math.cos(angle) * 120;
         const sy = ty + Math.sin(angle) * 80 - 180;
         this.time.delayedCall(i * 45, () => {
-          const missile = this.add.sprite(sx, sy, swarmKey)
+          const missile = this.acquirePlayerVfx(sx, sy, swarmKey)
             .setDepth(Math.floor(ty) + 40)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(0.7 * vfxMul);
@@ -284,7 +284,7 @@ export const CombatMixin = {
             duration: 250,
             ease: 'Cubic.easeIn',
             onComplete: () => {
-              missile.destroy();
+              this.releaseSharedVfx(missile);
               this.spawnVfx(missile.x, missile.y, 0, 0.5 * vfxMul, { duration: 150 });
             }
           });
@@ -301,7 +301,7 @@ export const CombatMixin = {
       });
     } else if (tierLevel === 5) {
       const colossusKey = this.textures.exists(`vfx_${eKey}_5`) ? `vfx_${eKey}_5` : (this.textures.exists('vfx_giant_tru_tien_sword') ? 'vfx_giant_tru_tien_sword' : 'vfx_kim_1_0');
-      const giant = this.add.sprite(tx, ty - 380, colossusKey)
+      const giant = this.acquirePlayerVfx(tx, ty - 380, colossusKey)
         .setDepth(Math.floor(ty) + 80)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(1.2 * vfxMul);
@@ -312,10 +312,10 @@ export const CombatMixin = {
         duration: 350,
         ease: 'Quad.easeIn',
         onComplete: () => {
-          giant.destroy();
+          this.releaseSharedVfx(giant);
           const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
           if (this.textures.exists(shockKey)) {
-            const shock = this.add.image(tx, ty, shockKey)
+            const shock = this.acquirePlayerVfx(tx, ty, shockKey)
               .setDepth(Math.floor(ty) + 40)
               .setBlendMode(Phaser.BlendModes.ADD)
               .setTint(tintHex)
@@ -327,7 +327,7 @@ export const CombatMixin = {
               scaleY: 2.0 * vfxMul,
               alpha: 0,
               duration: 400,
-              onComplete: () => shock.destroy()
+              onComplete: () => this.releaseSharedVfx(shock)
             });
           }
           [...this.enemies].forEach(t => {
@@ -350,7 +350,7 @@ export const CombatMixin = {
 
   spawnSpellVfx(x, y, texKey, scale = 0.7, duration = 650, isSpin = false) {
     if (!this.textures.exists(texKey)) return;
-    const vfx = this.add.image(x, y, texKey)
+    const vfx = this.acquirePlayerVfx(x, y, texKey)
       .setScale(scale * 0.4)
       .setAlpha(1)
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -364,7 +364,7 @@ export const CombatMixin = {
       alpha: 0,
       duration,
       ease: 'Cubic.easeOut',
-      onComplete: () => vfx.destroy()
+      onComplete: () => this.releaseSharedVfx(vfx)
     });
   },
 
@@ -695,7 +695,7 @@ export const CombatMixin = {
         const offsetDist = arcOffsets[i] * Math.min(1.5, vfxMul);
 
         this.time.delayedCall(i * 35, () => {
-          const proj = this.add.sprite(startX, startY, proj1Key)
+          const proj = this.acquirePlayerVfx(startX, startY, proj1Key)
             .setDepth(Math.floor(this.player.y) + 50 + i)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(startScale)
@@ -736,12 +736,12 @@ export const CombatMixin = {
             },
             onComplete: () => {
               const finalRotation = proj.rotation || 0;
-              proj.destroy();
+              this.releaseSharedVfx(proj);
               const finalHitX = (target && target.active) ? target.x : endX;
               const finalHitY = (target && target.active) ? target.y - 15 : endY;
 
               if (impactKey && this.textures.exists(impactKey)) {
-                const impactVfx = this.add.sprite(finalHitX, finalHitY, impactKey)
+                const impactVfx = this.acquirePlayerVfx(finalHitX, finalHitY, impactKey)
                   .setDepth(Math.floor(finalHitY) + 58)
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(targetScale * 0.30)
@@ -764,7 +764,7 @@ export const CombatMixin = {
                       alpha: 0,
                       duration: 160,
                       ease: 'Quad.easeIn',
-                      onComplete: () => impactVfx.destroy()
+                      onComplete: () => this.releaseSharedVfx(impactVfx)
                     });
                   }
                 });
@@ -803,7 +803,7 @@ export const CombatMixin = {
         targetScale = Phaser.Math.Clamp(eScale * 1.25 * vfxMul, 0.55, 2.10);
       }
 
-      const crossProjectile = this.add.sprite(startX, startY, proj2Key)
+      const crossProjectile = this.acquirePlayerVfx(startX, startY, proj2Key)
         .setDepth(Math.floor(this.player.y) + 55)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(startScale)
@@ -836,12 +836,12 @@ export const CombatMixin = {
           }
         },
         onComplete: () => {
-          crossProjectile.destroy();
+          this.releaseSharedVfx(crossProjectile);
           const finalHitX = (target && target.active) ? target.x : endX;
           const finalHitY = (target && target.active) ? target.y - 15 : endY;
           const finalAngle = Phaser.Math.Angle.Between(startX, startY, finalHitX, finalHitY);
 
-          const hitBurst = this.add.sprite(finalHitX, finalHitY, proj2HitKey)
+          const hitBurst = this.acquirePlayerVfx(finalHitX, finalHitY, proj2HitKey)
             .setDepth(Math.floor(finalHitY) + 60)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(targetScale * 1.25)
@@ -856,12 +856,12 @@ export const CombatMixin = {
             alpha: 0,
             duration: 320,
             ease: 'Quad.easeOut',
-            onComplete: () => { if (hitBurst.active) hitBurst.destroy(); }
+            onComplete: () => { if (hitBurst.active) this.releaseSharedVfx(hitBurst); }
           });
 
           if (target && target.active && this.isEnemyOnScreen(target, 20)) {
             if (impactKey && this.textures.exists(impactKey)) {
-              const impactVfx = this.add.sprite(finalHitX, finalHitY, impactKey)
+              const impactVfx = this.acquirePlayerVfx(finalHitX, finalHitY, impactKey)
                 .setDepth(Math.floor(finalHitY) + 58)
                 .setBlendMode(Phaser.BlendModes.ADD)
                 .setScale(targetScale * 0.35)
@@ -883,7 +883,7 @@ export const CombatMixin = {
                     alpha: 0,
                     duration: 160,
                     ease: 'Quad.easeIn',
-                    onComplete: () => impactVfx.destroy()
+                    onComplete: () => this.releaseSharedVfx(impactVfx)
                   });
                 }
               });
@@ -905,7 +905,7 @@ export const CombatMixin = {
       const targetRadiusX = 145;
       const targetRadiusY = 78;
 
-      const groundArray = this.add.image(tx, ty, array3Key)
+      const groundArray = this.acquirePlayerVfx(tx, ty, array3Key)
         .setDepth(Math.floor(ty) - 6)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setOrigin(0.50, 0.50)
@@ -924,7 +924,7 @@ export const CombatMixin = {
             alpha: 0,
             duration: 1200,
             ease: 'Quad.easeOut',
-            onComplete: () => { if (groundArray && groundArray.active) groundArray.destroy(); }
+            onComplete: () => { if (groundArray && groundArray.active) this.releaseSharedVfx(groundArray); }
           });
         }
       });
@@ -940,7 +940,7 @@ export const CombatMixin = {
         const sx = gx;
         const sy = gy - 360;
 
-        const missile = this.add.sprite(sx, sy, swarm4Key)
+        const missile = this.acquirePlayerVfx(sx, sy, swarm4Key)
           .setDepth(Math.floor(gy) + 40)
           .setBlendMode(Phaser.BlendModes.ADD)
           .setOrigin(0.85, 0.50)
@@ -974,7 +974,7 @@ export const CombatMixin = {
                 const eScale = Math.abs(t.scaleX || 0.50);
                 const slashBaseScale = Math.max(0.40, eScale * 1.15);
                 const hitOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-                const slashVfx = this.add.sprite(t.x + Phaser.Math.Between(-8, 8), t.y - hitOffsetY + Phaser.Math.Between(-6, 6), impactKey)
+                const slashVfx = this.acquirePlayerVfx(t.x + Phaser.Math.Between(-8, 8), t.y - hitOffsetY + Phaser.Math.Between(-6, 6), impactKey)
                   .setDepth(Math.floor(t.y) + 60)
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(slashBaseScale * 0.20)
@@ -995,7 +995,7 @@ export const CombatMixin = {
                     alpha: 0,
                     duration: 150,
                     ease: 'Quad.easeIn',
-                    onComplete: () => { if (slashVfx && slashVfx.active) slashVfx.destroy(); }
+                    onComplete: () => { if (slashVfx && slashVfx.active) this.releaseSharedVfx(slashVfx); }
                   })
                 });
               }
@@ -1013,8 +1013,8 @@ export const CombatMixin = {
           duration: 350,
           ease: 'Cubic.easeIn',
           onComplete: () => {
-            if (groundArray && groundArray.active) groundArray.destroy();
-            missiles.forEach(s => { if (s && s.active) s.destroy(); });
+            if (groundArray && groundArray.active) this.releaseSharedVfx(groundArray);
+            missiles.forEach(s => { if (s && s.active) this.releaseSharedVfx(s); });
           }
         });
       });
@@ -1040,7 +1040,7 @@ export const CombatMixin = {
       for (let i = 0; i < swarmCount; i++) {
         this.time.delayedCall(i * 80, () => {
           const initT = getTargetPos();
-          const unit = this.add.sprite(initT.x, initT.y - orbitHeight, swarm4Key)
+          const unit = this.acquirePlayerVfx(initT.x, initT.y - orbitHeight, swarm4Key)
             .setDepth(Math.floor(initT.y) + 55)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setOrigin(0.85, 0.50)
@@ -1094,7 +1094,7 @@ export const CombatMixin = {
                           const eScale = Math.abs(t.scaleX || 0.50);
                           const baseSlashScale = Math.max(0.40, eScale * 1.15);
                           const eOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-                          const slashVfx = this.add.sprite(t.x, t.y - eOffsetY, impactKey)
+                          const slashVfx = this.acquirePlayerVfx(t.x, t.y - eOffsetY, impactKey)
                             .setDepth(Math.floor(t.y) + 70)
                             .setBlendMode(Phaser.BlendModes.ADD)
                             .setScale(baseSlashScale * 0.25)
@@ -1115,7 +1115,7 @@ export const CombatMixin = {
                               alpha: 0,
                               duration: 140,
                               ease: 'Quad.easeIn',
-                              onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
+                              onComplete: () => { if (slashVfx.active) this.releaseSharedVfx(slashVfx); }
                             })
                           });
                         }
@@ -1133,7 +1133,7 @@ export const CombatMixin = {
                       scaleX: 0.1,
                       scaleY: 0.1,
                       duration: 160,
-                      onComplete: () => { if (unit && unit.active) unit.destroy(); }
+                      onComplete: () => { if (unit && unit.active) this.releaseSharedVfx(unit); }
                     });
                   }
                 }
@@ -1184,7 +1184,7 @@ export const CombatMixin = {
       const stormSpread = tierStormSpreads[tierIdx] || 80;
       const startSkyY = strikeY - 560;
 
-      const colossus = this.add.sprite(strikeX, startSkyY, colossus5Key)
+      const colossus = this.acquirePlayerVfx(strikeX, startSkyY, colossus5Key)
         .setDepth(Math.floor(strikeY) + 70)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setOrigin(0.50, 0.94)
@@ -1198,7 +1198,7 @@ export const CombatMixin = {
         duration: 260,
         ease: 'Cubic.easeIn',
         onComplete: () => {
-          const shockwave = this.add.image(strikeX, strikeY, shockwaveKey)
+          const shockwave = this.acquirePlayerVfx(strikeX, strikeY, shockwaveKey)
             .setDepth(Math.floor(strikeY) + 65)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(0.4)
@@ -1212,7 +1212,7 @@ export const CombatMixin = {
             alpha: 0,
             duration: 480,
             ease: 'Cubic.easeOut',
-            onComplete: () => { if (shockwave.active) shockwave.destroy(); }
+            onComplete: () => { if (shockwave.active) this.releaseSharedVfx(shockwave); }
           });
 
           [...this.enemies].forEach(t => {
@@ -1224,7 +1224,7 @@ export const CombatMixin = {
                 const eScale = Math.abs(t.scaleX || 0.50);
                 const slashTargetScale = eScale * 1.65;
                 const hitOffsetY = t.displayHeight ? (t.displayHeight * 0.28) : 20;
-                const slashVfx = this.add.sprite(t.x, t.y - hitOffsetY, impactKey)
+                const slashVfx = this.acquirePlayerVfx(t.x, t.y - hitOffsetY, impactKey)
                   .setDepth(Math.floor(t.y) + 75)
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(slashTargetScale * 0.20)
@@ -1245,7 +1245,7 @@ export const CombatMixin = {
                     alpha: 0,
                     duration: 180,
                     ease: 'Quad.easeIn',
-                    onComplete: () => { if (slashVfx.active) slashVfx.destroy(); }
+                    onComplete: () => { if (slashVfx.active) this.releaseSharedVfx(slashVfx); }
                   })
                 });
               }
@@ -1265,7 +1265,7 @@ export const CombatMixin = {
           const ly = strikeY - Phaser.Math.Between(30, 150 * (colossusScale / 1.35));
           const lScale = Phaser.Math.FloatBetween(0.85, 1.45) * (1.0 + tierIdx * 0.15);
           if (this.textures.exists(stormTexture)) {
-            const bolt = this.add.sprite(lx, ly, stormTexture)
+            const bolt = this.acquirePlayerVfx(lx, ly, stormTexture)
               .setDepth(Math.floor(strikeY) + 72)
               .setBlendMode(Phaser.BlendModes.ADD)
               .setScale(lScale)
@@ -1281,7 +1281,7 @@ export const CombatMixin = {
               scaleY: lScale * 1.15,
               duration: 160,
               ease: 'Quad.easeOut',
-              onComplete: () => { if (bolt && bolt.active) bolt.destroy(); }
+              onComplete: () => { if (bolt && bolt.active) this.releaseSharedVfx(bolt); }
             });
           }
         }
@@ -1296,7 +1296,7 @@ export const CombatMixin = {
             if (d < aoeRadius) {
               this.damageEnemy(t, perTickDmg, (tick % 3 === 0));
               if (this.textures.exists(stormTexture)) {
-                const miniBurst = this.add.sprite(t.x, t.y - 30, stormTexture)
+                const miniBurst = this.acquirePlayerVfx(t.x, t.y - 30, stormTexture)
                   .setDepth(Math.floor(t.y) + 60)
                   .setBlendMode(Phaser.BlendModes.ADD)
                   .setScale(0.55 * (1 + tierIdx * 0.12))
@@ -1307,7 +1307,7 @@ export const CombatMixin = {
                   alpha: 0,
                   scaleY: 0.70,
                   duration: 140,
-                  onComplete: () => { if (miniBurst.active) miniBurst.destroy(); }
+                  onComplete: () => { if (miniBurst.active) this.releaseSharedVfx(miniBurst); }
                 });
               }
             }
@@ -1317,7 +1317,7 @@ export const CombatMixin = {
 
       this.time.delayedCall(DURATION_MS, () => {
         if (stormTimer) stormTimer.remove();
-        stormList.forEach(b => { if (b && b.active) b.destroy(); });
+        stormList.forEach(b => { if (b && b.active) this.releaseSharedVfx(b); });
         if (colossus && colossus.active) {
           this.spawnVfx(strikeX, strikeY, 0, 2.0 * (colossusScale / 1.35), { tint: mainTint, duration: 350 });
           this.tweens.add({
@@ -1326,7 +1326,7 @@ export const CombatMixin = {
             scaleY: colossusScale * 1.3,
             duration: 400,
             ease: 'Quad.easeOut',
-            onComplete: () => { if (colossus && colossus.active) colossus.destroy(); }
+            onComplete: () => { if (colossus && colossus.active) this.releaseSharedVfx(colossus); }
           });
         }
       });

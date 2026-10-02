@@ -569,7 +569,7 @@ export const FellowNpcMixin = {
             .setAlpha(1);
           f.__forceVisualSync = true;
           f.sprite.play(`${f.modelType}_idle`, true);
-          this.spawnVfx(f.sprite.x, f.sprite.y, 0, 0.6, { tint: f.tint, duration: 250 });
+          this.spawnVfx(f.sprite.x, f.sprite.y, 0, 0.6, { owner: 'fellow', tint: f.tint, duration: 250 });
           this.showFloatingText(f.sprite.x, f.sprite.y - 45, `[Tổ Đội · ${f.name}] Trợ Chiến!`, '#ffd700', '10px');
         }
         continue;
@@ -650,7 +650,7 @@ export const FellowNpcMixin = {
                   title: f.title || 'Hiệp Khách',
                   ref: f
                 });
-                this.spawnVfx(target.x, target.y, 0, 0.45, { tint: f.tint, duration: 180 });
+                this.spawnVfx(target.x, target.y, 0, 0.45, { owner: 'fellow', tint: f.tint, duration: 180 });
 
                 if (target.isDead || target.hp <= 0) {
                   f.targetEnemy = null;
@@ -1091,7 +1091,7 @@ export const FellowNpcMixin = {
           : (this.textures.exists(`vfx_${eKey}_1_7`) ? `vfx_${eKey}_1_7` : 'vfx_impact_frame7');
 
         if (this.textures.exists(impactKey)) {
-          const imp = this.add.sprite(curTarget.x, curTarget.y - 15, impactKey)
+          const imp = this.acquireFellowVfx(curTarget.x, curTarget.y - 15, impactKey)
             .setDepth(Math.floor(curTarget.y) + 55)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale((0.75 + hit * 0.15) * vfxMul);
@@ -1101,10 +1101,10 @@ export const FellowNpcMixin = {
             scaleY: (1.2 + hit * 0.2) * vfxMul,
             alpha: 0,
             duration: 200,
-            onComplete: () => imp.destroy()
+            onComplete: () => this.releaseSharedVfx(imp)
           });
         }
-        this.spawnVfx(curTarget.x, curTarget.y - 15, 0, (0.5 + hit * 0.12) * vfxMul, { tint: 0xf43f5e, duration: 180 });
+        this.spawnVfx(curTarget.x, curTarget.y - 15, 0, (0.5 + hit * 0.12) * vfxMul, { owner: 'fellow', tint: 0xf43f5e, duration: 180 });
       });
     }
   },
@@ -1126,7 +1126,7 @@ export const FellowNpcMixin = {
     const startX = npc.sprite.x;
     const startY = npc.sprite.y - 15;
 
-    const proj = this.add.sprite(startX, startY, projKey)
+    const proj = this.acquireFellowVfx(startX, startY, projKey)
       .setDepth(Math.floor(npc.sprite.y) + 50)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setScale(0.65 * vfxMul);
@@ -1148,7 +1148,7 @@ export const FellowNpcMixin = {
       duration: dur,
       ease: 'Linear',
       onComplete: () => {
-        proj.destroy();
+        this.releaseSharedVfx(proj);
 
         const impactKey = this.textures.exists(`vfx_${eKey}_1_7`)
           ? `vfx_${eKey}_1_7`
@@ -1157,7 +1157,7 @@ export const FellowNpcMixin = {
             : 'vfx_impact_frame7');
 
         if (this.textures.exists(impactKey)) {
-          const imp = this.add.sprite(tx, ty - 15, impactKey)
+          const imp = this.acquireFellowVfx(tx, ty - 15, impactKey)
             .setDepth(Math.floor(ty) + 55)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setScale(0.85 * vfxMul);
@@ -1167,7 +1167,7 @@ export const FellowNpcMixin = {
             scaleY: 1.3 * vfxMul,
             alpha: 0,
             duration: 200,
-            onComplete: () => imp.destroy()
+            onComplete: () => this.releaseSharedVfx(imp)
           });
         }
 
@@ -1183,7 +1183,7 @@ export const FellowNpcMixin = {
           });
 
           const tintColor = Phaser.Display.Color.HexStringToColor(npc.elemColor || '#ffd700').color;
-          this.spawnVfx(tx, ty - 15, 0, 0.5 * vfxMul, { tint: tintColor, duration: 180 });
+          this.spawnVfx(tx, ty - 15, 0, 0.5 * vfxMul, { owner: 'fellow', tint: tintColor, duration: 180 });
         }
       }
     });
@@ -1204,7 +1204,7 @@ export const FellowNpcMixin = {
     const startX = npc.sprite.x;
     const startY = npc.sprite.y - 18;
 
-    const proj = this.add.sprite(startX, startY, projKey)
+    const proj = this.acquireFellowVfx(startX, startY, projKey)
       .setDepth(Math.floor(npc.sprite.y) + 52)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setScale(0.85 * vfxMul);
@@ -1222,7 +1222,7 @@ export const FellowNpcMixin = {
       duration: dur,
       ease: 'Quad.easeIn',
       onComplete: () => {
-        proj.destroy();
+        this.releaseSharedVfx(proj);
 
         if (curTarget && curTarget.active && !curTarget.isDead) {
           const isCrit = Math.random() < 0.22;
@@ -1236,7 +1236,7 @@ export const FellowNpcMixin = {
           });
 
           const tintColor = Phaser.Display.Color.HexStringToColor(npc.elemColor || '#ffd700').color;
-          this.spawnVfx(tx, ty - 15, 0, 0.7 * vfxMul, { tint: tintColor, duration: 200 });
+          this.spawnVfx(tx, ty - 15, 0, 0.7 * vfxMul, { owner: 'fellow', tint: tintColor, duration: 200 });
         }
       }
     });
@@ -1251,7 +1251,7 @@ export const FellowNpcMixin = {
     const eKey = npc.eKey || 'kim';
 
     const arrayKey = this.textures.exists(`vfx_${eKey}_3`) ? `vfx_${eKey}_3` : 'vfx_kim_3_0';
-    const arrayImg = this.add.image(tx, ty, arrayKey)
+    const arrayImg = this.acquireFellowVfx(tx, ty, arrayKey)
       .setDepth(Math.floor(ty) - 5)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setScale(1.2 * vfxMul)
@@ -1265,7 +1265,7 @@ export const FellowNpcMixin = {
       duration: 380,
       yoyo: true,
       repeat: 2,
-      onComplete: () => arrayImg.destroy()
+      onComplete: () => this.releaseSharedVfx(arrayImg)
     });
 
     for (let tick = 0; tick < 3; tick++) {
@@ -1282,7 +1282,7 @@ export const FellowNpcMixin = {
               title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
               ref: npc
             });
-            this.spawnVfx(e.x, e.y - 15, 0, 0.6 * vfxMul, { duration: 180 });
+            this.spawnVfx(e.x, e.y - 15, 0, 0.6 * vfxMul, { owner: 'fellow', duration: 180 });
           }
         });
       });
@@ -1303,7 +1303,7 @@ export const FellowNpcMixin = {
       const sx = tx + Math.cos(angle) * 120;
       const sy = ty + Math.sin(angle) * 75 - 170;
       this.time.delayedCall(i * 45, () => {
-        const missile = this.add.sprite(sx, sy, swarmKey)
+        const missile = this.acquireFellowVfx(sx, sy, swarmKey)
           .setDepth(Math.floor(ty) + 40)
           .setBlendMode(Phaser.BlendModes.ADD)
           .setScale(0.75 * vfxMul);
@@ -1314,8 +1314,8 @@ export const FellowNpcMixin = {
           duration: 240,
           ease: 'Cubic.easeIn',
           onComplete: () => {
-            missile.destroy();
-            this.spawnVfx(missile.x, missile.y, 0, 0.5 * vfxMul, { duration: 150 });
+            this.releaseSharedVfx(missile);
+            this.spawnVfx(missile.x, missile.y, 0, 0.5 * vfxMul, { owner: 'fellow', duration: 150 });
           }
         });
       });
@@ -1348,7 +1348,7 @@ export const FellowNpcMixin = {
     const eKey = npc.eKey || 'kim';
 
     const colossusKey = this.textures.exists(`vfx_${eKey}_5`) ? `vfx_${eKey}_5` : (this.textures.exists('vfx_giant_tru_tien_sword') ? 'vfx_giant_tru_tien_sword' : 'vfx_kim_1_0');
-    const giant = this.add.sprite(tx, ty - 350, colossusKey)
+    const giant = this.acquireFellowVfx(tx, ty - 350, colossusKey)
       .setDepth(Math.floor(ty) + 80)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setScale(1.25 * vfxMul);
@@ -1359,11 +1359,11 @@ export const FellowNpcMixin = {
       duration: 340,
       ease: 'Quad.easeIn',
       onComplete: () => {
-        giant.destroy();
+        this.releaseSharedVfx(giant);
 
         const shockKey = this.textures.exists(`vfx_${eKey}_shockwave`) ? `vfx_${eKey}_shockwave` : 'vfx_tru_tien_shockwave';
         if (this.textures.exists(shockKey)) {
-          const shock = this.add.image(tx, ty, shockKey)
+          const shock = this.acquireFellowVfx(tx, ty, shockKey)
             .setDepth(Math.floor(ty) + 40)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setTint(npc.tint || 0x38bdf8)
@@ -1376,7 +1376,7 @@ export const FellowNpcMixin = {
             alpha: 0,
             duration: 400,
             ease: 'Cubic.easeOut',
-            onComplete: () => { if (shock.active) shock.destroy(); }
+            onComplete: () => { if (shock.active) this.releaseSharedVfx(shock); }
           });
         }
 
@@ -1392,7 +1392,7 @@ export const FellowNpcMixin = {
                 title: npc.titlePrefix || `${npc.stageLabel} ${npc.elemTitle}`,
                 ref: npc
               });
-              this.spawnVfx(e.x, e.y - 15, 0, 0.9 * vfxMul, { duration: 240 });
+              this.spawnVfx(e.x, e.y - 15, 0, 0.9 * vfxMul, { owner: 'fellow', duration: 240 });
             }
           });
         }
@@ -1448,7 +1448,7 @@ export const FellowNpcMixin = {
     if (npc.flyingSword) npc.flyingSword.setVisible(false);
 
     this.showFloatingText(npc.sprite.x, npc.sprite.y - 45, `[${npc.name}] Bại Trận!`, '#fca5a5', '11px');
-    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.5, { tint: 0x94a3b8, duration: 250 });
+    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.5, { owner: 'fellow', tint: 0x94a3b8, duration: 250 });
   },
 
   respawnFellowNpc(npc) {
@@ -1516,7 +1516,7 @@ export const FellowNpcMixin = {
     }
     const respawnAnim = cfg.isFlying ? `${npc.modelType}_fly` : `${npc.modelType}_idle`;
     npc.sprite.play(respawnAnim, true);
-    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.6, { tint: cfg.tint || 0x38bdf8, duration: 300 });
+    this.spawnVfx(npc.sprite.x, npc.sprite.y, 0, 0.6, { owner: 'fellow', tint: cfg.tint || 0x38bdf8, duration: 300 });
     this.showFloatingText(npc.sprite.x, npc.sprite.y - 50, `[${npc.name}] Tái Sinh!`, cfg.titleColor || '#67e8f9', '11px');
   }
 };

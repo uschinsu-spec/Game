@@ -11,12 +11,12 @@ import { ELEMENTAL_SKILLS } from '../config/skillsData.js?v=20260928-skill-maste
 import { W, H } from './constants.js';
 
 import { HudMixin } from './mixins/HudMixin.js?v=20260928-touch-controls-unified-v1';
-import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-player-auto-scan-3hz-v3';
+import { CombatMixin } from './mixins/CombatMixin.js?v=20261002-shared-vfx-pool-v5';
 import { EnemyMixin } from './mixins/EnemyMixin.js?v=20261001-item-icons-v4';
-import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-player-auto-scan-3hz-v3';
+import { PlayerMixin } from './mixins/PlayerMixin.js?v=20261002-shared-vfx-pool-v5';
 import { ModalMixin } from './mixins/ModalMixin.js?v=20260928-modal-manager-unified-v1';
 import { NpcMixin } from './mixins/NpcMixin.js?v=20261001-hub-ui-v4';
-import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-entity-ui-throttle-v4';
+import { FellowNpcMixin } from './mixins/FellowNpcMixin.js?v=20261002-shared-vfx-pool-v5';
 import { HerbsMixin } from './mixins/HerbsMixin.js?v=20261001-item-icons-v4';
 import { exportSaveCode } from '../state/saveSystem.js?v=20261001-item-icons-v4';
 
