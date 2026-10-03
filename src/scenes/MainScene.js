@@ -285,7 +285,9 @@ export class MainGameScene extends Phaser.Scene {
       this.__autoPlayerMode = null;
       this.__nextAutoPlayerScanAt = 0;
     }
-    if (isAttacking) { vx = 0; vy = 0; }
+    // Attack animation must not lock player movement.
+    // Keep attackUntil only for attack cadence/animation gating; manual joystick,
+    // keyboard and tap-to-move input are allowed to move the player immediately.
 
     // Smooth acceleration/deceleration so 12-frame locomotion does not snap between states.
     const currentVx = Number(this.player.body.velocity.x) || 0;
