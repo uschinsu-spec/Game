@@ -5,9 +5,10 @@ export {Engine, REALMS, CONG_PHAP_LIST, CONG_PHAP_GRADES, SKILLS, SKILL_MASTERY_
 export function enemyStats(kind, realmIdx) {
   const stage=[0,1,13,17,21,25].filter(i=>i<=realmIdx).at(-1);
   const base=REALMS[stage], factor={wolf:1,deer:.5}[kind];
-  return {hp:Math.round(base.hp*.85*factor),def:Math.round(base.def*.45),
-    attack:kind==='deer'?0:Math.max(5,Math.round(base.hp*.065*factor)),
-    exp:Math.max(10,Math.round(base.expReq*.12*factor)),gold:Math.round((18+stage*12)*factor)};
+  const progression=1+Math.max(0,realmIdx-stage)*.24;
+  return {hp:Math.round(base.hp*.85*factor*progression),def:Math.round(base.def*.45*progression),
+    attack:kind==='deer'?0:Math.max(5,Math.round(base.hp*.065*factor*progression)),
+    gold:Math.round((18+stage*12)*factor*progression)};
 }
 export function syncStats(p, refill=false) {
   p.maxHp=Engine.calcMaxHp(p);p.maxMp=Engine.calcMaxMp(p);
@@ -40,3 +41,19 @@ export function trainSkill(p,id) {
 export function availableSkills(p) {return SKILLS.filter(s=>s.tier>0&&s.minRealm<=p.realmIdx)}
 export function manualCost(cp) {return {'Hoàng Giai':80,'Huyền Giai':600,'Địa Giai':2400,'Thiên Giai':8000}[cp.grade]}
 export function pillCost(p) {return {herbs:20+Math.max(0,p.realmIdx-12)*5,gold:300+Math.max(0,p.realmIdx-12)*150}}
+
+/** One cultivation pill family per major realm. Breakthrough pills remain distinct. */
+export const CULTIVATION_PILLS = Object.freeze([
+  {id:'tu_vi_pham',name:'Phàm Nguyên Đan',minRealm:0,maxRealm:0,herbs:2,gold:15,expPct:.12},
+  {id:'tu_vi_luyen_khi',name:'Luyện Khí Tụ Linh Đan',minRealm:1,maxRealm:12,herbs:3,gold:40,expPct:.12},
+  {id:'tu_vi_truc_co',name:'Trúc Cơ Dưỡng Nguyên Đan',minRealm:13,maxRealm:16,herbs:4,gold:180,expPct:.12},
+  {id:'tu_vi_kim_dan',name:'Kim Đan Ngưng Nguyên Đan',minRealm:17,maxRealm:20,herbs:5,gold:600,expPct:.12},
+  {id:'tu_vi_nguyen_anh',name:'Nguyên Anh Hóa Linh Đan',minRealm:21,maxRealm:24,herbs:7,gold:2200,expPct:.12},
+  {id:'tu_vi_hoa_than',name:'Hóa Thần Ngộ Đạo Đan',minRealm:25,maxRealm:28,herbs:9,gold:7000,expPct:.12}
+]);
+export function cultivationPillForRealm(realmIdx){
+  return CULTIVATION_PILLS.find(p=>realmIdx>=p.minRealm&&realmIdx<=p.maxRealm);
+}
+export function cultivationPillExp(char){
+  return Math.max(1, Math.ceil(Engine.getRealm(char).expReq * cultivationPillForRealm(char.realmIdx).expPct));
+}

@@ -1,7 +1,7 @@
 import {PLAYER_SPAWN,clampIntoWorld,isWalkable} from '../world.js';
 import {floorNumber} from '../floors.js';
-import {syncStats,npcRealmForFloor,npcMasteryCap,npcComboSkills} from '../cultivation.js';
-import {distance,rand,GAMEPLAY,NPC_TEMPLATES} from '../core/runtime.js';
+import {Engine,syncStats,npcRealmForFloor,npcMasteryCap,npcComboSkills} from '../cultivation.js';
+import {distance,rand,NPC_TEMPLATES} from '../core/runtime.js';
 
 export const NpcAiSystem = {
   ensureNPCs(){
@@ -21,7 +21,7 @@ export const NpcAiSystem = {
       if(p.dead){
         p.respawn-=dt;
         if(p.respawn<=0){p.dead=false;p.x=p.homeX;p.y=p.homeY;syncStats(p,true);p.hurt=0;p.aiTarget=null;p.castTarget=null;p.patrol=null;p.buffTime=0;
-          p.attackAnim=0;p.skillAnim=0;p.skillCooldowns={};p.comboIndex=0;p.cooldowns={attack:0,skill:0,heal:0}}
+          p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;p.skillCooldowns={};p.comboIndex=0;p.cooldowns={attack:0,skill:0,heal:0}}
         continue;
       }
       this.tickCharacter(p,dt);
@@ -73,7 +73,7 @@ export const NpcAiSystem = {
     for(let offset=0;offset<deck.length;offset++){
       const index=(p.comboIndex+offset)%deck.length,sk=deck[index];
       const range=this.skillRange(sk);
-      if((p.skillCooldowns[sk.id]||0)>0||p.mp<GAMEPLAY.skillCost)continue;
+      if((p.skillCooldowns[sk.id]||0)>0||p.mp<Engine.calcSkillMpCost(p,sk))continue;
       if(sk.type==='heal'&&p.hp>p.maxHp*.75)continue;
       if(sk.type==='buff'&&p.buffTime>0)continue;
       if(sk.type!=='buff'&&sk.type!=='heal'&&distance(p,target)>=range)continue;

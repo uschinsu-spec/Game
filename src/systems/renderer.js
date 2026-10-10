@@ -60,10 +60,10 @@ export const RendererSystem = {
     let animOffset=0,col=0;
     if(p.skillAnim>0){
       animOffset=3;
-      col=clamp(Math.floor(p.skillAge/.52*PLAYER_FRAMES),0,PLAYER_FRAMES-1);
+      col=clamp(Math.floor(p.skillAge/(p.skillDuration||.52)*PLAYER_FRAMES),0,PLAYER_FRAMES-1);
     }else if(p.attackAnim>0){
       animOffset=2;
-      col=clamp(Math.floor(p.attackAge/.38*PLAYER_FRAMES),0,PLAYER_FRAMES-1);
+      col=clamp(Math.floor(p.attackAge/(p.attackDuration||.38)*PLAYER_FRAMES),0,PLAYER_FRAMES-1);
     }else if(p.walk){
       animOffset=1;
       col=Math.floor(p.walkAge)%PLAYER_FRAMES;
@@ -147,7 +147,7 @@ export const RendererSystem = {
       const progress=1-f.life/f.max,alpha=clamp(f.life/f.max,0,1);
       c.save();c.globalAlpha=alpha;
       if(f.type==='skillProjectile'){
-        const col=clamp(Math.floor(f.age/f.max*SKILL_VFX.columns),0,SKILL_VFX.columns-1);
+        const col=Math.floor(f.age*(f.vfxFps||16))%SKILL_VFX.columns;
         c.globalAlpha=1;c.translate(f.x,f.y);c.rotate(f.angle);
         const frame=skillVfxFrame(f.row,col);
         c.drawImage(this.images[SKILL_VFX.asset],frame.x,frame.y,

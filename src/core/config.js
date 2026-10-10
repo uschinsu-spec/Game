@@ -9,7 +9,7 @@ export const PLAYER_HEIGHTS=[[105, 105, 105, 105, 105, 105, 105, 105, 105, 105],
 
 export const SAVE_KEY='van-moc-sam-lam-save-v1';
 export const TYPES=['player','NPC1','NPC2','wolf','deer',SKILL_VFX.asset,'frame_7'];
-export const GAMEPLAY=Object.freeze({skillCost:1,characterSpeed:164,mapCacheLimit:3,maxFrameDelta:.035,saveInterval:12,minimapInterval:.3});
+export const GAMEPLAY=Object.freeze({characterSpeed:164,mapCacheLimit:3,maxFrameDelta:.035,saveInterval:12,minimapInterval:.3});
 export const NPC_TEMPLATES=Object.freeze([
   Object.freeze({sprite:'NPC1',name:'Xích Phong',skillElement:'Kim'}),
   Object.freeze({sprite:'NPC2',name:'Bạch Vân',skillElement:'Hỏa'}),

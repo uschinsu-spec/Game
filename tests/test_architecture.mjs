@@ -8,7 +8,7 @@ class Host {existing(){}}
 assert.throws(()=>installSystems(Host,[{existing(){}}]),/Duplicate/);
 assert.throws(()=>installSystems(Host,[{invalid:2}]),/Invalid/);
 installSystems(Host,[{feature(){return 42}}]);assert.equal(new Host().feature(),42);
-assert.equal(GAMEPLAY.skillCost,1);
+assert.ok(GAMEPLAY.characterSpeed>0);
 for(const npc of NPC_TEMPLATES)assert.ok(TYPES.includes(npc.sprite));
 
 // Exercise real renderer methods to detect missing imports after system extraction.

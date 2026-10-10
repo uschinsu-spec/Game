@@ -1,4 +1,4 @@
-import {Engine,CONG_PHAP_LIST,CONG_PHAP_GRADES,syncStats,enemyStats,manualCost,pillCost} from '../cultivation.js';
+import {Engine,CONG_PHAP_LIST,CONG_PHAP_GRADES,syncStats,enemyStats,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from '../cultivation.js';
 
 export const ProgressionSystem = {
   refreshEnemies(){
@@ -21,6 +21,24 @@ export const ProgressionSystem = {
     const p=this.player,r=Engine.getRealm(p);if(!r.bottleneck)return;
     const cost=pillCost(p);if(p.herbs<cost.herbs||p.gold<cost.gold){this.toast('Chưa đủ linh thảo hoặc linh thạch để luyện đan.');return}
     p.herbs-=cost.herbs;p.gold-=cost.gold;p.pills[r.pillNeeded]=(p.pills[r.pillNeeded]||0)+1;this.save();this.toast('Luyện thành '+r.pillNeeded);
+  },
+  craftCultivationPill(){
+    const p=this.player,pill=cultivationPillForRealm(p.realmIdx);
+    if(p.dead)return false;
+    if(p.herbs<pill.herbs||p.gold<pill.gold){this.toast('Chưa đủ nguyên liệu luyện '+pill.name);return false}
+    p.herbs-=pill.herbs;p.gold-=pill.gold;p.pills[pill.id]=(p.pills[pill.id]||0)+1;
+    this.toast('Luyện thành '+pill.name);this.save();return true;
+  },
+  useCultivationPill(){
+    const p=this.player,pill=cultivationPillForRealm(p.realmIdx);
+    if(p.dead||(p.pills[pill.id]||0)<1)return false;
+    if(p.realmIdx>=28&&p.exp>=Engine.getRealm(p).expReq){this.toast('Tu vi đã đạt cực hạn');return false}
+    p.pills[pill.id]--;
+    const wasReady=p.exp>=Engine.getRealm(p).expReq;
+    const gained=cultivationPillExp(p);
+    Engine.addExp(p,gained);
+    this.toast('Dùng '+pill.name+' · +'+gained.toLocaleString('vi-VN')+' Tu Vi'+(!wasReady&&p.exp>=Engine.getRealm(p).expReq?' · Có thể đột phá!':''));
+    this.save();return true;
   },
   stopMeditation(){this.player.isMeditating=false;this.player.meditationAge=0},
   meditate(){

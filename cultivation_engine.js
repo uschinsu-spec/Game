@@ -166,7 +166,7 @@ export class CultivationEngine {
       exp: options.exp || 0,
       spiritualSenseBonus: options.spiritualSenseBonus || 0,
       activeCongPhapId: options.activeCongPhapId || 'cp_dan_khi',
-      congPhapMastery: options.congPhapMastery || 0.35, // 0.0 -> 1.0
+      congPhapMastery: options.congPhapMastery ?? 0.35, // 0.0 -> 1.0
       equippedGear: options.equippedGear || {}, // { hp: 0, dmg: 0, def: 0, critRate: 0, critDamage: 0, attackSpeed: 0, elementDamage: 0 }
       skillMastery: options.skillMastery || {}, // skillId -> tierIdx (0..3)
       isMeditating: false,
@@ -213,20 +213,20 @@ export class CultivationEngine {
     const cap = baseSense; // Cap bonus vĩnh viễn tối đa = 100% base
     const permBonus = Math.min(Math.max(0, Number(char.spiritualSenseBonus) || 0), cap);
     const gearSense = Math.floor(Number(gear.spiritualSense) || 0);
-    return baseSense + permBonus + gearSense;
+    return Math.max(1, baseSense + permBonus + gearSense);
   }
 
   /**
-   * Tỷ lệ bạo kích (Crit Rate: 0.0 -> 0.95)
+   * Tỷ lệ bạo kích (Crit Rate: 0.0 -> 0.75)
    */
   static calcCritRate(char) {
     const sense = this.calcSpiritualSense(char);
     const gear = char.equippedGear || {};
-    const baseCrit = 0.15; // 15% nền
-    const senseCrit = sense * 0.005; // Thần thức tăng bạo kích
+    // Diminishing returns: high realms continue to gain crit without hitting the cap at Trúc Cơ.
+    const senseCrit = 0.12 + 0.42 * Math.log1p(Math.max(0, sense) / 20) / Math.log1p(6800 / 20);
     const gearCrit = (Number(gear.critRate) || 0) / 100;
-    const cp=this.getCongPhap(char);
-    return Math.min(0.95, baseCrit + senseCrit + gearCrit + (Number(cp.bonusCritPct)||0)/100);
+    const cp = this.getCongPhap(char);
+    return Math.max(0, Math.min(0.75, senseCrit + gearCrit + (Number(cp.bonusCritPct) || 0) / 100));
   }
 
   /**
@@ -246,14 +246,16 @@ export class CultivationEngine {
     const BASE_SENSE = 20, PEAK_SENSE = 5700;
     const BASE_INT = 650, PEAK_INT = 320, MIN_INT = 250, MAX_INT = 800;
 
+    let interval;
     if (sense <= BASE_SENSE) {
-      return Math.max(BASE_INT, Math.min(MAX_INT, Math.round(BASE_INT * (BASE_SENSE / sense))));
+      interval = BASE_INT * (BASE_SENSE / sense);
+    } else {
+      const progress = Math.log(sense / BASE_SENSE) / Math.log(PEAK_SENSE / BASE_SENSE);
+      interval = BASE_INT - (BASE_INT - PEAK_INT) * progress;
     }
-    const progress = Math.log(sense / BASE_SENSE) / Math.log(PEAK_SENSE / BASE_SENSE);
-    let interval = Math.round(BASE_INT - (BASE_INT - PEAK_INT) * progress);
-    const gear = char.equippedGear || {};
-    if (gear.attackSpeed) interval = Math.round(interval / (1 + Number(gear.attackSpeed) / 100));
-    return Math.max(MIN_INT, Math.min(MAX_INT, interval));
+    const bonus = Number(char.equippedGear?.attackSpeed) || 0;
+    interval /= Math.max(0.2, 1 + bonus / 100);
+    return Math.max(MIN_INT, Math.min(MAX_INT, Math.round(interval)));
   }
 
   /**
@@ -277,7 +279,9 @@ export class CultivationEngine {
       const gearElemPct = Number(gear.elementDamage) || 0;
       return Math.max(1, Math.floor(baseDmg * (1 + (masteryPct + cpBonusPct) / 100) * (1 + gearElemPct / 100)));
     }
-    return Math.max(1, Math.floor(baseDmg));
+    // Specialized manuals still contribute a modest martial foundation to off-element hits.
+    const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0));
+    return Math.max(1, Math.floor(baseDmg * (1 + (15 + mastery * 40) / 100)));
   }
 
   /**
@@ -293,16 +297,29 @@ export class CultivationEngine {
     const cpElem = cp?.elem === 'Kiếm' ? 'Kim' : cp?.elem;
     const targetElem = elem === 'Kiếm' ? 'Kim' : elem;
 
-    if (cp && (cpElem === targetElem || cpElem === 'Toàn Hệ')) {
-      const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0.35));
-      const masteryPct = 25 + Math.round(mastery * 95); // 25% -> 120%
-      const cpBonusPct = Number(cp.bonusDefPct) || 0;
-      return Math.max(0, Math.floor(baseDef * (1 + (masteryPct + cpBonusPct) / 100)));
-    }
-    return Math.max(0, Math.floor(baseDef));
+    const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0));
+    const globalDefense = 1 + (Number(cp?.bonusDefPct) || 0) / 100 + mastery * 0.35;
+    const matching = cp && (cpElem === targetElem || cpElem === 'Toàn Hệ');
+    const affinityDefense = matching ? 1 + 0.25 + mastery * 0.60 : 1;
+    return Math.max(0, Math.floor(baseDef * globalDefense * affinityDefense));
   }
 
   // --- GIAO TRANH & SÁT THƯƠNG ---
+
+  /** MP cost is a share of the actor's maximum MP, not a flat point at every realm. */
+  static calcSkillMpCost(char, skill) {
+    const tier = Math.max(0, Math.min(5, skill?.tier || 0));
+    const shares = [0, 0.05, 0.08, 0.12, 0.18, 0.25];
+    return tier ? Math.max(1, Math.ceil(this.calcMaxMp(char) * shares[tier])) : 0;
+  }
+
+  static calcMeditationRate(char) {
+    const manual = this.getCongPhap(char);
+    const realm = this.getRealm(char);
+    const base = manual.speed * 3;
+    const realmScaling = realm.expReq / (2400 + realm.id * 100) * Math.sqrt(manual.speed / 2);
+    return Math.max(base, Math.ceil(realmScaling));
+  }
 
   /**
    * Tính sát thương của một chiêu thức
@@ -357,10 +374,12 @@ export class CultivationEngine {
    */
   static meditateTick(char, deltaSeconds = 1) {
     if (!char.isMeditating) return 0;
-    const cp = this.getCongPhap(char);
-    const speed = (cp?.speed || 2) * 3; // Tĩnh tọa nhân 3 tốc độ
+    const speed = this.calcMeditationRate(char); // Tu vi chỉ từ tĩnh tọa hoặc đan tu vi
     const expGain = Math.floor(speed * deltaSeconds);
     char.exp = (char.exp || 0) + expGain;
+    // Only actual meditation improves manual proficiency; fighting never does.
+    const mastery = Number.isFinite(char.congPhapMastery) ? char.congPhapMastery : .35;
+    char.congPhapMastery = Math.min(1, Math.max(0,mastery) + Math.max(0,deltaSeconds) / 18000);
     return expGain;
   }
 

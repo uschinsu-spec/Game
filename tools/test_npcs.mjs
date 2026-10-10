@@ -45,14 +45,14 @@ const enemy=g.state.enemies[0];
 Object.assign(npc,{x:1000,y:600});Object.assign(enemy,{x:1060,y:600,hp:100000,maxHp:100000});
 npc.aiTarget=enemy;const playerGold=g.player.gold,playerExp=g.player.exp;
 npc.realmIdx=0;
-g.attack(npc);assert.equal(npc.attackAnim,.38);assert.equal(g.player.attackAnim,0);
-const hp=enemy.hp;g.tickCharacter(npc,.12);assert.ok(enemy.hp<hp);
+g.attack(npc);assert.ok(npc.attackAnim>0);assert.equal(g.player.attackAnim,0);
+const hp=enemy.hp;g.tickCharacter(npc,npc.attackHitTime+.01);assert.ok(enemy.hp<hp);
 const after=enemy.hp;g.tickCharacter(npc,.02);assert.equal(enemy.hp,after);
 assert.equal(g.player.gold,playerGold);assert.equal(g.player.exp,playerExp);
 
 // MP, skill mastery and healing belong to the acting NPC.
 npc.realmIdx=1;
-npc.cooldowns.skill=0;const mp=npc.mp;g.skill(npc);
+g.tickCharacter(npc,1);npc.cooldowns.skill=0;const mp=npc.mp;g.skill(npc);
 assert.ok(npc.mp<mp);assert.equal(g.player.skillAnim,0);
 npc.hp=1;npc.mp=npc.maxMp;g.heal(npc);assert.ok(npc.hp>1);
 assert.equal(g.player.cooldowns.heal,0);
