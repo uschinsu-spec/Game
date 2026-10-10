@@ -32,7 +32,8 @@ export function makeWorld(mapId='map') {
   const floor=floorNumber(mapId),kind=floor===1?'deer':'wolf';
   const rank=beastRankForFloor(floor),stage=beastStageForFloor(floor);
   const enemies = ENEMY_PLACES.map(([x,y],i)=>makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i,rank,stage));
-  return {enemies,drops:[],effects:[],texts:[]};
+  const deposits=Array.from({length:14},(_,i)=>({id:i,kind:i%2?'herb':'ore',x:WORLD.width*(.17+((i*7)%11)*.06),y:WORLD.height*(.19+((i*5)%9)*.075),readyAt:0})).filter(n=>isWalkable(n.x,n.y,mapId));
+  return {enemies,deposits,drops:[],effects:[],texts:[]};
 }
 
 export function makeEnemy(kind,x,y,id,beastRank=kind==='wolf'?1:0,beastStage=kind==='wolf'?0:-1) {
