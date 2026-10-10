@@ -4,8 +4,9 @@ import {makeWorld} from '../src/world.js';
 import {SAVE_KEY} from '../src/core/config.js';
 import {Engine} from '../src/cultivation.js';
 import {
-  BEAST_MATERIALS,CORE_QUALITIES,BEAST_CORE_DROP_CHANCE,beastRankForFloor,
-  lootInfo,rollCoreQuality,generateBeastLoot,sellCommonMaterials
+  BEAST_MATERIALS,CORE_QUALITIES,BEAST_STAGES,BEAST_CORE_DROP_CHANCE,beastRankForFloor,
+  beastStageForFloor,beastCoreDropChance,beastCoreQuality,beastTitle,
+  lootInfo,generateBeastLoot,sellCommonMaterials
 } from '../src/core/beast-loot.js';
 
 const store=new Map();
@@ -29,13 +30,34 @@ assert.equal(makeWorld('map2').enemies[0].beastRank,1);
 assert.equal(makeWorld('map14').enemies[0].beastRank,2);
 assert.equal(makeWorld('map99').enemies[0].beastRank,9);
 
-assert.equal(CORE_QUALITIES.length,4);
-assert.ok(Math.abs(CORE_QUALITIES.reduce((s,q)=>s+q.weight,0)-1)<1e-12);
-assert.equal(BEAST_CORE_DROP_CHANCE,.35);
-for(const [roll,quality] of [[0,'ha'],[.69999,'ha'],[.70,'trung'],[.89999,'trung'],[.90,'thuong'],[.97999,'thuong'],[.98,'cuc'],[.99999,'cuc']]){
-  assert.equal(rollCoreQuality(()=>roll).id,quality,'Core grade roll '+roll);
+// Substages are mapped to 3 floors per grade, including the boundary floors.
+assert.equal(beastStageForFloor(1),-1);
+assert.equal(beastStageForFloor(2),0);
+assert.equal(beastStageForFloor(4),0);
+assert.equal(beastStageForFloor(5),1);
+assert.equal(beastStageForFloor(7),1);
+assert.equal(beastStageForFloor(8),2);
+assert.equal(beastStageForFloor(10),2);
+assert.equal(beastStageForFloor(11),3);
+assert.equal(beastStageForFloor(13),3);
+assert.equal(beastStageForFloor(14),0);
+assert.equal(beastStageForFloor(25),3);
+assert.equal(beastStageForFloor(26),0);
+assert.equal(beastStageForFloor(98),0);
+assert.equal(beastStageForFloor(99),0);
+for(let floor=2;floor<=99;floor++){
+  const beast=makeWorld(floor===1?'map':'map'+floor).enemies[0];
+  assert.equal(beast.beastRank,beastRankForFloor(floor));
+  assert.equal(beast.beastStage,beastStageForFloor(floor));
 }
-for(const [id,info] of Object.entries(BEAST_MATERIALS)) {
+assert.equal(CORE_QUALITIES.length,4);
+assert.equal(BEAST_STAGES.length,4);
+assert.equal(BEAST_CORE_DROP_CHANCE,.20);
+assert.deepEqual(BEAST_STAGES.map(s=>s.quality),['ha','trung','thuong','cuc']);
+assert.deepEqual(BEAST_STAGES.map(s=>s.coreChance),[.20,.35,.50,.70]);
+assert.equal(beastTitle({beastRank:1,beastStage:3},'Yêu Lang'),'Yêu Lang · Nhất Phẩm Đỉnh Phong');
+assert.equal(beastTitle({beastRank:0},'Linh Lộc'),'Linh Lộc · Phàm Thú');
+for(const [id,info] of Object.entries(BEAST_MATERIALS)){
   assert.equal(lootInfo(id),info);
   assert.ok(info.sellPrice>0);
 }
@@ -45,22 +67,42 @@ assert.equal(lootInfo('noi_dan_10_ha'),null);
 assert.equal(lootInfo('noi_dan_1_khong'),null);
 assert.equal(lootInfo('noi_dan_9_cuc').name,'Nội Đan 9 Phẩm · Cực Phẩm');
 
-// Material-only deer, never a coin or core even if all random rolls succeed.
-const deerLoot=generateBeastLoot({kind:'deer',beastRank:0},()=>0);
+// Deer (Phàm Thú) drops no core even when all random draws succeed.
+const deerLoot=generateBeastLoot({kind:'deer',beastRank:0,beastStage:-1},()=>0);
 assert.deepEqual(deerLoot.map(x=>x.itemId),['da_thu','long_thu','huyet_thu']);
 for(const drop of deerLoot)assert.equal(drop.quantity,1);
 assert.ok(deerLoot.every(x=>!('gold' in x)&&!('exp' in x)));
+assert.equal(beastCoreDropChance({beastRank:0,beastStage:-1}),0);
 
-// For rank-1+, a successful core roll has exactly one grade; rare quality independent.
-for(const [roll,grade] of [[.10,'ha'],[.75,'trung'],[.94,'thuong'],[.999,'cuc']]){
-  const rng=[.8,.8,.02,roll]; // no extra fur/blood; guaranteed core roll
-  const items=generateBeastLoot({kind:'wolf',beastRank:1},()=>rng.shift());
-  assert.deepEqual(items.map(x=>x.itemId),['da_thu','noi_dan_1_'+grade]);
+// Quality is guaranteed by substage whenever a core drops. Chance scales up both
+// across substages and across major ranks.
+for(const rank of [1,2,5,9]){
+  for(let stage=0;stage<4;stage++){
+    const enemy={kind:'wolf',beastRank:rank,beastStage:stage};
+    const chance=beastCoreDropChance(enemy);
+    const expected=Math.min(.9,BEAST_STAGES[stage].coreChance+(rank-1)*.02);
+    assert.ok(Math.abs(chance-expected)<1e-12);
+    assert.equal(beastCoreQuality(enemy).id,BEAST_STAGES[stage].quality);
+    const hit=[.99,.99,chance-.000001];
+    const loot=generateBeastLoot(enemy,()=>hit.shift());
+    assert.deepEqual(loot.map(x=>x.itemId),['da_thu',
+      'noi_dan_'+rank+'_'+BEAST_STAGES[stage].quality]);
+    const miss=[.99,.99,chance];
+    assert.deepEqual(generateBeastLoot(enemy,()=>miss.shift()).map(x=>x.itemId),
+      ['da_thu'],'Core roll at chance boundary must fail');
+    if(stage>0){
+      assert.ok(beastCoreDropChance(enemy)>
+        beastCoreDropChance({...enemy,beastStage:stage-1}));
+    }
+    if(rank>1)assert.ok(chance>beastCoreDropChance({...enemy,beastRank:rank-1}));
+  }
 }
-const noCore=generateBeastLoot({kind:'wolf',beastRank:9},()=>.999);
-assert.deepEqual(noCore.map(x=>x.itemId),['da_thu']);
-const highest=generateBeastLoot({kind:'wolf',beastRank:9},()=>0);
-assert.equal(highest.at(-1).itemId,'noi_dan_9_ha');
+assert.equal(beastCoreDropChance({beastRank:1,beastStage:3}),.70);
+assert.equal(beastCoreDropChance({beastRank:9,beastStage:3}),.86);
+const peak={kind:'wolf',beastRank:1,beastStage:3};
+const peakLoot=generateBeastLoot(peak,()=>0);
+assert.equal(peakLoot.at(-1).itemId,'noi_dan_1_cuc');
+assert.ok(!peakLoot.some(x=>x.itemId==='noi_dan_1_ha'));
 
 // Actual kills only create beast parts; no gold, no EXP, no herb.
 const g=game(),p=g.player;
@@ -121,4 +163,4 @@ const npcg=game(),npc=npcg.state.npcs[0],prey=npcg.state.enemies[0];
 npcg.damageEnemy(prey,prey.hp+1,false,npc);
 assert.ok(npcg.state.drops.length>0);
 assert.ok(npcg.state.drops.every(d=>d.owner===npc.id&&!('gold' in d)));
-console.log('PASS: beast ranks 0-9, four core qualities, drop tables, no money/EXP, stacking, selling and save-v5 compatibility');
+console.log('PASS: substage-ranked core quality, escalating chances, no money/EXP, materials, stacking and save-v5 compatibility');
