@@ -2,7 +2,7 @@ import {WORLD,SPECIES,portalsFor} from '../world.js';
 import {floorNumber} from '../floors.js';
 import {SKILL_VFX,skillVfxFrame} from '../skill-vfx.js';
 import {Engine} from '../cultivation.js';
-import {lootInfo} from '../core/beast-loot.js';
+import {lootInfo,beastTitle} from '../core/beast-loot.js';
 import {FRAME,PLAYER_FRAME_WIDTH,PLAYER_FRAME_HEIGHT,PLAYER_SCALE,PLAYER_FRAMES,PLAYER_COLUMNS,NPC_RENDER,PLAYER_FEET,PLAYER_HEIGHTS,clamp,easing} from '../core/runtime.js';
 
 export const RendererSystem = {
@@ -102,7 +102,14 @@ export const RendererSystem = {
     this.drawSprite(this.images[e.kind],row,col,e.x,e.y,w,h,foot,FRAME,e.face<0);c.globalAlpha=1;
     const targeted=this.target?.kind==='enemy'&&this.target.id===e.id;
     if(targeted){c.strokeStyle='#ffef9a';c.lineWidth=1.6;c.beginPath();c.ellipse(e.x,e.y-1,27,9,0,0,7);c.stroke()}
-    this.drawHealth(e.x,e.y-h*.88,44,e.hp/e.maxHp,'#ee474c');
+    const hpY=e.y-h*.88;
+    this.drawHealth(e.x,hpY,44,e.hp/e.maxHp,'#ee474c');
+    if(targeted){
+      c.save();c.textAlign='center';c.textBaseline='bottom';c.font='bold 10px system-ui';
+      c.fillStyle='#ffe4ac';c.shadowColor='#08151b';c.shadowBlur=4;
+      c.fillText(beastTitle(e,spec.name),e.x,hpY-6);
+      c.restore();
+    }
   },
   drawHealth(x,y,width,ratio,color){
     const c=this.ctx;c.fillStyle='#0d1917d9';c.fillRect(x-width/2-1,y-1,width+2,7);
