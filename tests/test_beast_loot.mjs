@@ -53,7 +53,7 @@ assert.ok(deerLoot.every(x=>!('gold' in x)&&!('exp' in x)));
 
 // For rank-1+, a successful core roll has exactly one grade; rare quality independent.
 for(const [roll,grade] of [[.10,'ha'],[.75,'trung'],[.94,'thuong'],[.999,'cuc']]){
-  const rng=[.5,.5,.02,roll]; // no extra fur/blood; guaranteed core roll
+  const rng=[.8,.8,.02,roll]; // no extra fur/blood; guaranteed core roll
   const items=generateBeastLoot({kind:'wolf',beastRank:1},()=>rng.shift());
   assert.deepEqual(items.map(x=>x.itemId),['da_thu','noi_dan_1_'+grade]);
 }
