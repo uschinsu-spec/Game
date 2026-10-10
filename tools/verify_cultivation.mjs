@@ -12,12 +12,13 @@ assert.equal(p.maxHp,Engine.calcMaxHp(p));assert.equal(p.realmIdx,0);assert.equa
 Engine.addExp(g.player,75);assert.equal(p.realmIdx,0,'XP must not auto-level');g.breakthrough();assert.equal(p.realmIdx,1);assert.equal(p.exp,25);assert.equal(p.mp,Engine.calcMaxMp(p));
 assert.equal(g.state.enemies[0].maxHp,enemyStats('deer',1).hp);
 p.realmIdx=12;p.exp=REALMS[12].expReq;syncStats(p,true);g.breakthrough();assert.equal(p.realmIdx,12,'Pill is required');
-p.herbs=100;p.gold=1000;g.craftPill();assert.equal(p.pills[REALMS[12].pillNeeded],1);g.breakthrough();assert.equal(p.realmIdx,13);assert.equal(p.pills[REALMS[12].pillNeeded],0);
+p.gold=1000;g.craftPill();assert.equal(p.pills[REALMS[12].pillNeeded],1);g.breakthrough();assert.equal(p.realmIdx,13);assert.equal(p.pills[REALMS[12].pillNeeded],0);
 p.realmIdx=16;p.exp=REALMS[16].expReq;p.pills[REALMS[16].pillNeeded]=1;g.breakthrough();assert.equal(p.realmIdx,16,'Manual cap blocks breakthrough');
 p.gold=10000;g.learnManual('cp_loi_huyen');g.breakthrough();assert.equal(p.realmIdx,17);
 g.save();const restored=game();restored.restore();assert.equal(restored.player.realmIdx,17);assert.equal(restored.player.activeCongPhapId,'cp_loi_huyen');assert.equal(restored.player.maxHp,Engine.calcMaxHp(restored.player));
 store.set('van-moc-sam-lam-save-v1',JSON.stringify({version:1,level:5,maxHp:999999,maxMp:99999,expNext:1,exp:20,gold:123,herbs:8,kills:6}));
 restored.restore();assert.equal(restored.player.realmIdx,4);assert.equal(restored.player.gold,123);assert.equal(restored.player.maxHp,Engine.calcMaxHp(restored.player));assert.notEqual(restored.player.maxHp,999999);
+assert.ok(!('herbs' in restored.player));assert.ok(!('kills' in restored.player));
 const m=game();m.state.enemies=[];m.meditate();for(let i=0;i<120;i++)m.step(1/60);assert.equal(m.player.exp,12,'Meditation works at frame delta');m.input.vector=()=>({active:true,x:1,y:0});m.step(.02);assert.equal(m.player.isMeditating,false);
 const combat=game();combat.player.realmIdx=28;combat.player.activeCongPhapId='cp_thien_giai';syncStats(combat.player,true);
 for(const sk of SKILLS.filter(s=>s.tier>0)){
