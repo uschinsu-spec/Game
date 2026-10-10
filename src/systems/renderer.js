@@ -2,6 +2,7 @@ import {WORLD,SPECIES,portalsFor} from '../world.js';
 import {floorNumber} from '../floors.js';
 import {SKILL_VFX,skillVfxFrame} from '../skill-vfx.js';
 import {Engine} from '../cultivation.js';
+import {lootInfo} from '../core/beast-loot.js';
 import {FRAME,PLAYER_FRAME_WIDTH,PLAYER_FRAME_HEIGHT,PLAYER_SCALE,PLAYER_FRAMES,PLAYER_COLUMNS,NPC_RENDER,PLAYER_FEET,PLAYER_HEIGHTS,clamp,easing} from '../core/runtime.js';
 
 export const RendererSystem = {
@@ -108,10 +109,18 @@ export const RendererSystem = {
     c.fillStyle=color;c.fillRect(x-width/2,y,width*clamp(ratio,0,1),5);
   },
   drawDrops(){
-    const c=this.ctx;for(const d of this.state.drops){
-      c.save();c.translate(d.x,d.y-12+Math.sin(d.spin)*3);c.shadowColor='#ffda54';c.shadowBlur=9;
-      c.fillStyle='#ffd366';c.strokeStyle='#9b6422';c.lineWidth=2;c.beginPath();c.arc(0,0,7,0,7);c.fill();c.stroke();
-      c.fillStyle='#96631f';c.font='bold 9px sans-serif';c.textAlign='center';c.fillText('✦',0,3);c.restore();
+    const c=this.ctx;
+    for(const d of this.state.drops){
+      const item=lootInfo(d.itemId);
+      if(!item)continue;
+      c.save();c.translate(d.x,d.y-12+Math.sin(d.spin)*3);
+      c.shadowColor=item.color;c.shadowBlur=12;
+      c.fillStyle=item.color;c.strokeStyle='#24312b';c.lineWidth=2;
+      c.beginPath();c.arc(0,0,item.beastRank?10:8,0,Math.PI*2);c.fill();c.stroke();
+      c.shadowBlur=0;c.fillStyle='#12252b';c.font='bold 12px sans-serif';
+      c.textAlign='center';c.textBaseline='middle';c.fillText(item.icon,0,1);
+      if(item.beastRank){c.fillStyle='#fff5d3';c.font='bold 9px sans-serif';c.fillText(item.beastRank,0,14)}
+      c.restore();
     }
   },
   drawTap(){
