@@ -63,24 +63,13 @@ export const WorldUpdateSystem = {
       }
     }
   },
-  stepHerbs(dt){
-    for(const h of this.state.herbs){
-      if(!h.available){h.respawn-=dt;if(h.respawn<=0)h.available=true;continue}
-      h.phase+=dt*3;
-      const p=[this.player,...this.state.npcs].find(p=>!p.dead&&distance(h,p)<27);
-      if(p){h.available=false;h.respawn=25;p.herbs++;this.floatText(h.x,h.y-35,'+ Linh thảo','#a7ffad');
-        if(p===this.player&&p.herbs===5)this.ui.toast('Đã thu thập 5 Linh Thảo!')}
-    }
-  },
   stepDrops(dt){
     this.state.drops=this.state.drops.filter(d=>{
       d.life-=dt;d.spin+=dt*3;if(d.life<=0)return false;
       const p=d.owner?this.state.npcs.find(p=>p.id===d.owner):this.player;
       if(!p||p.dead)return true;
-      if(distance(d,p)<38){if(d.gold)p.gold+=d.gold;
-        if(d.herb){p.herbs++;this.floatText(p.x,p.y-48,'+ Linh thảo','#b2ffa9')}
-        return false;
-      }return true;
+      if(distance(d,p)<38){if(d.gold)p.gold+=d.gold;return false}
+      return true;
     });
   },
   floatText(x,y,text,color){this.state.texts.push({x,y,text,color,life:.95,max:.95,offset:rand(-10,10)})},
