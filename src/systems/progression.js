@@ -1,7 +1,45 @@
+import {resourceId,resourceInfo,addResource,consumeResources,floorResourceRank} from '../core/profession-items.js';
+import {floorNumber} from '../floors.js';
 import {Engine,CONG_PHAP_LIST,CONG_PHAP_GRADES,syncStats,enemyStats,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from '../cultivation.js';
 import {sellCommonMaterials} from '../core/beast-loot.js';
 
 export const ProgressionSystem = {
+  gatherProfessionResource(kind) {
+    if (this.player.dead || !['ore','herb'].includes(kind)) return false;
+    const nearest=(this.state.deposits||[]).filter(n=>n.kind===kind&&n.readyAt<=this.gameTime)
+      .sort((a,b)=>Math.hypot(a.x-this.player.x,a.y-this.player.y)-Math.hypot(b.x-this.player.x,b.y-this.player.y))[0];
+    if (!nearest || Math.hypot(nearest.x-this.player.x,nearest.y-this.player.y)>90) {
+      this.toast('Hãy đến gần điểm thu thập');return false;
+    }
+    const rank=floorResourceRank(floorNumber(this.mapId));
+    const roll=Math.random();const quality=rank===0?0:roll<.55?0:roll<.8?1:roll<.95?2:3;
+    const id=resourceId(kind,rank,quality);
+    addResource(this.player,id);nearest.readyAt=this.gameTime+45;
+    this.toast('Thu được '+resourceInfo(id).name);this.save();return true;
+  },
+  craftProfessionItem(kind,rank,quality=0){
+    if(this.player.dead||!['elixir','talisman'].includes(kind)||!Number.isInteger(rank)||rank<0||rank>floorResourceRank(floorNumber(this.mapId))||!Number.isInteger(quality)||quality<0||quality>3||(rank===0&&quality!==0))return false;
+    const recipe=kind==='elixir'
+      ?[[resourceId('herb',rank,quality),2],[resourceId('ore',rank,quality),1]]
+      :[[resourceId('ore',rank,quality),2],[resourceId('herb',rank,quality),1]];
+    if(!consumeResources(this.player,recipe)){this.toast('Thiếu nguyên liệu cùng phẩm cấp');return false}
+    const id=resourceId(kind,rank,quality);addResource(this.player,id);
+    this.toast('Chế tạo '+resourceInfo(id).name);this.save();return true;
+  },
+  useProfessionItem(id){
+    const item=resourceInfo(id),p=this.player;
+    if(p.dead||!item||!['elixir','talisman'].includes(item.kind)||(p.professionItems?.[id]||0)<1)return false;
+    if(item.kind==='elixir'){
+      if(p.hp>=p.maxHp&&p.mp>=p.maxMp){this.toast('HP và MP đã đầy');return false}
+      p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(.2+.08*item.rank+.03*item.quality));
+      p.mp=Math.min(p.maxMp,p.mp+p.maxMp*(.15+.07*item.rank+.03*item.quality));
+    }else{
+      p.professionShield=Math.min(.65,.16+.07*item.rank+.03*item.quality);
+      p.buffTime=10+item.rank*3+item.quality*2;p.buffId='profession_shield';
+    }
+    p.professionItems[id]--;this.toast('Đã sử dụng '+item.name);this.save();return true;
+  },
+
   refreshEnemies(){
     for(const e of this.state.enemies){Object.assign(e,enemyStats(e.kind,this.player.realmIdx));e.maxHp=e.hp;e.stun=0;e.slow=0}
   },
