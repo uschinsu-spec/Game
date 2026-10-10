@@ -107,7 +107,7 @@ export const CombatSystem = {
     const range=this.skillRange(sk),target=this.combatTarget(range,p);
     if(sk.type!=='buff'&&sk.type!=='heal'&&!target){notify('Không có mục tiêu trong tầm thi triển');return}
     if(p.isNPC)p.skillMastery[sk.id]=Math.min(p.skillMastery[sk.id]||0,Math.max(0,npcMasteryCap(p,sk.id)));
-    p.isMeditating=false;this.faceEnemy(target,p);p.cooldowns.skill=p.isNPC?.65:sk.cd;
+    p.isMeditating=false;this.faceEnemy(target,p);p.cooldowns.skill=p.isNPC ? .65 : sk.cd;
     if(p.isNPC)p.skillCooldowns[sk.id]=sk.cd;
     p.mp-=cost;
     const tempo=combatTempo(p,sk.id);
