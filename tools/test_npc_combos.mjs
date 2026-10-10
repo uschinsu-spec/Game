@@ -7,7 +7,7 @@ function game(floor=2){
   const g=Object.assign(Object.create(Game.prototype),{mapId:'map'+floor,state:makeWorld('map'+floor),toast(){},ui:{toast(){}}});
   g.player=g.makePlayer();g.player.realmIdx=28;g.ensureNPCs();g.refreshEnemies();return g;
 }
-assert.equal(npcRealmForFloor(1),0);assert.equal(npcRealmForFloor(2),1);
+assert.equal(npcRealmForFloor(1),0);assert.equal(npcRealmForFloor(2),0);
 const g=game(),p=g.state.npcs[0];
 assert.equal(p.skillElement,'Kim');assert.equal(g.state.npcs[1].skillElement,'Hỏa');
 for(const element of new Set(SKILLS.filter(s=>s.tier>0).map(s=>s.elem))){
@@ -15,7 +15,8 @@ for(const element of new Set(SKILLS.filter(s=>s.tier>0).map(s=>s.elem))){
   assert.equal(npcComboSkills(actor).length,5);
   assert.ok(npcComboSkills(actor).every(sk=>sk.elem===element));
 }
-assert.equal(p.realmIdx,1,'Floor 2 realm does not scale to the human player');
+assert.equal(p.realmIdx,0,'Floor 2 NPC remains mortal');
+assert.equal(npcComboSkills(p).length,0);
 assert.ok(npcComboSkills(p).every(sk=>sk.tier===1));
 for(let realm=1;realm<=28;realm++){
   p.realmIdx=realm;

@@ -17,7 +17,7 @@
 // 1. DỮ LIỆU CẢNH GIỚI (29 BẬC: PHÀM NHÂN -> LUYỆN KHÍ -> HÓA THẦN ĐỈNH PHONG)
 // ============================================================================
 export const REALMS = [
-  { id: 0,  name: 'Phàm Nhân',         major: 'Phàm Nhân', tier: 'Chưa Tu Luyện', expReq: 50,       hp: 100,         manaMax: 100,        spiritualSense: 10,   dmg: 1,       def: 0 },
+  { id: 0,  name: 'Phàm Nhân',         major: 'Phàm Nhân', tier: 'Chưa Tu Luyện', expReq: 50,       hp: 100,         manaMax: 100,        spiritualSense: 10,   dmg: 5,       def: 0 },
   
   // Luyện Khí (12 Tầng)
   { id: 1,  name: 'Luyện Khí Tầng 1',  major: 'Luyện Khí', tier: 'Tầng 1',       expReq: 150,      hp: 300,         manaMax: 200,        spiritualSense: 20,   dmg: 25,      def: 8 },
@@ -165,11 +165,13 @@ export class CultivationEngine {
       realmIdx: options.realmIdx || 0,
       exp: options.exp || 0,
       spiritualSenseBonus: options.spiritualSenseBonus || 0,
-      activeCongPhapId: options.activeCongPhapId || 'cp_dan_khi',
-      congPhapMastery: options.congPhapMastery ?? 0.35, // 0.0 -> 1.0
+      activeCongPhapId: options.activeCongPhapId || null,
+      congPhapMastery: options.congPhapMastery ?? (options.activeCongPhapId ? 0.35 : 0), // 0.0 -> 1.0
       equippedGear: options.equippedGear || {}, // { hp: 0, dmg: 0, def: 0, critRate: 0, critDamage: 0, attackSpeed: 0, elementDamage: 0 }
       skillMastery: options.skillMastery || {}, // skillId -> tierIdx (0..3)
       isMeditating: false,
+      maxHp: 100,
+      maxMp: 100,
       hp: 100,
       mp: 100
     };
@@ -183,7 +185,7 @@ export class CultivationEngine {
   }
 
   static getCongPhap(char) {
-    return CONG_PHAP_LIST.find(cp => cp.id === char.activeCongPhapId) || CONG_PHAP_LIST[0];
+    return CONG_PHAP_LIST.find(cp => cp.id === char.activeCongPhapId) || null;
   }
 
   static calcMaxHp(char) {
@@ -226,7 +228,7 @@ export class CultivationEngine {
     const senseCrit = 0.12 + 0.42 * Math.log1p(Math.max(0, sense) / 20) / Math.log1p(6800 / 20);
     const gearCrit = (Number(gear.critRate) || 0) / 100;
     const cp = this.getCongPhap(char);
-    return Math.max(0, Math.min(0.75, senseCrit + gearCrit + (Number(cp.bonusCritPct) || 0) / 100));
+    return Math.max(0, Math.min(0.75, senseCrit + gearCrit + (Number(cp?.bonusCritPct) || 0) / 100));
   }
 
   /**
@@ -268,20 +270,22 @@ export class CultivationEngine {
     let baseDmg = realm.dmg + (Number(gear.dmg) || 0);
     if (gear.dmgPct) baseDmg *= (1 + Number(gear.dmgPct) / 100);
 
+    if (!cp) return Math.max(1, Math.ceil(baseDmg));
+
     // Nếu công pháp trùng hệ hoặc toàn hệ: nhận buff khuếch đại cực mạnh
     const cpElem = cp?.elem === 'Kiếm' ? 'Kim' : cp?.elem;
     const targetElem = elem === 'Kiếm' ? 'Kim' : elem;
 
     if (cp && (cpElem === targetElem || cpElem === 'Toàn Hệ')) {
-      const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0.35));
+      const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0));
       const masteryPct = 35 + Math.round(mastery * 145); // 35% -> 180%
       const cpBonusPct = Number(cp.bonusDmgPct) || 0;
       const gearElemPct = Number(gear.elementDamage) || 0;
-      return Math.max(1, Math.floor(baseDmg * (1 + (masteryPct + cpBonusPct) / 100) * (1 + gearElemPct / 100)));
+      return Math.max(1, Math.ceil(baseDmg * (1 + (masteryPct + cpBonusPct) / 100) * (1 + gearElemPct / 100)));
     }
     // Specialized manuals still contribute a modest martial foundation to off-element hits.
     const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0));
-    return Math.max(1, Math.floor(baseDmg * (1 + (15 + mastery * 40) / 100)));
+    return Math.max(1, Math.ceil(baseDmg * (1 + (15 + mastery * 40) / 100)));
   }
 
   /**
@@ -298,6 +302,7 @@ export class CultivationEngine {
     const targetElem = elem === 'Kiếm' ? 'Kim' : elem;
 
     const mastery = Math.max(0, Math.min(1, Number(char.congPhapMastery) || 0));
+    if (!cp) return Math.max(0, Math.floor(baseDef));
     const globalDefense = 1 + (Number(cp?.bonusDefPct) || 0) / 100 + mastery * 0.35;
     const matching = cp && (cpElem === targetElem || cpElem === 'Toàn Hệ');
     const affinityDefense = matching ? 1 + 0.25 + mastery * 0.60 : 1;
@@ -315,6 +320,7 @@ export class CultivationEngine {
 
   static calcMeditationRate(char) {
     const manual = this.getCongPhap(char);
+    if (!manual) return 0;
     const realm = this.getRealm(char);
     const base = manual.speed * 3;
     const realmScaling = realm.expReq / (2400 + realm.id * 100) * Math.sqrt(manual.speed / 2);
@@ -329,7 +335,7 @@ export class CultivationEngine {
     const elemDmg = this.calcElementalDamage(char, skill.elem);
     const tierIdx = char.skillMastery?.[skillId] || 0;
     const masteryTier = SKILL_MASTERY_TIERS[tierIdx] || SKILL_MASTERY_TIERS[0];
-    const damage = Math.max(1, Math.floor(elemDmg * (skill.dmgMul || 1.0) * (1 + masteryTier.dmgBonus)));
+    const damage = Math.max(1, Math.ceil(elemDmg * (skill.dmgMul || 1.0) * (1 + masteryTier.dmgBonus)));
     return { skill, damage, masteryTier };
   }
 
@@ -343,7 +349,7 @@ export class CultivationEngine {
     const critRate = this.calcCritRate(attacker);
     const isCrit = (attacker.buffTime>0&&attacker.buffId==='ly_4') || Math.random() < critRate;
     const critMul = isCrit ? this.calcCritDamageMultiplier(attacker) : 1.0;
-    const finalRawDmg = Math.floor(rawSkillDmg * critMul);
+    const finalRawDmg = Math.ceil(rawSkillDmg * critMul);
 
     // Tính Phòng Ngự của Defender theo đúng Hệ của Skill
     const def = typeof defender.calcElementalDefense === 'function'
@@ -373,12 +379,12 @@ export class CultivationEngine {
    * Tĩnh tọa hấp thụ tu vi mỗi giây (Meditation Tick)
    */
   static meditateTick(char, deltaSeconds = 1) {
-    if (!char.isMeditating) return 0;
+    if (!char.isMeditating || !this.getCongPhap(char)) return 0;
     const speed = this.calcMeditationRate(char); // Tu vi chỉ từ tĩnh tọa hoặc đan tu vi
     const expGain = Math.floor(speed * deltaSeconds);
     char.exp = (char.exp || 0) + expGain;
     // Only actual meditation improves manual proficiency; fighting never does.
-    const mastery = Number.isFinite(char.congPhapMastery) ? char.congPhapMastery : .35;
+    const mastery = Number.isFinite(char.congPhapMastery) ? char.congPhapMastery : 0;
     char.congPhapMastery = Math.min(1, Math.max(0,mastery) + Math.max(0,deltaSeconds) / 18000);
     return expGain;
   }

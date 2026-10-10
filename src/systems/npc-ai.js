@@ -5,7 +5,13 @@ import {distance,rand,NPC_TEMPLATES} from '../core/runtime.js';
 
 export const NpcAiSystem = {
   ensureNPCs(){
-    if(this.state.npcs)return;
+    if(floorNumber(this.mapId)===1){this.state.npcs=[];return}
+    if(this.state.npcs){
+      if(floorNumber(this.mapId)===2)for(const p of this.state.npcs){
+        if(p.realmIdx!==0){p.realmIdx=0;p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;p.buffTime=0;p.buffId=null;p.skillCooldowns={};p.cooldowns={attack:0,skill:0,heal:0};syncStats(p,true)}
+      }
+      return;
+    }
     this.state.npcs=NPC_TEMPLATES.map(({sprite,name,skillElement},i)=>{
       const p=this.makePlayer();
       Object.assign(p,{id:`${this.mapId}-${sprite}`,name,sprite,

@@ -53,6 +53,6 @@ globalThis.Image=class{set src(value){this.url=value;loads++;queueMicrotask(()=>
 const cache=Object.assign(Object.create(Game.prototype),{mapImages:new Map()});
 const image=await cache.loadFloorImage('map');assert.equal(await cache.loadFloorImage('map'),image);assert.equal(loads,1);
 await cache.loadFloorImage('map2');await cache.loadFloorImage('map3');await cache.loadFloorImage('map4');
-assert.equal(cache.mapImages.size,3);assert.equal(cache.mapImages.has('map'),false);
+assert.equal(cache.mapImages.size,3);assert.equal(cache.mapImages.has(floorAsset('map')),false);
 const count=loads;await cache.loadFloorImage('map25');assert.equal(loads,count,'Cyclic art should reuse cache');
 console.log('PASS: bounded LRU image cache and shared art reuse');

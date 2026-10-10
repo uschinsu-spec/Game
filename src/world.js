@@ -1,3 +1,5 @@
+import ENEMY_DATA from './data/enemies.json' with {type:'json'};
+import {ENEMY_SPECIES,enemyKindForFloor} from './core/enemy-master.js';
 /** World metadata and spawn points (coordinates expressed as pixels in map_original.png). */
 import {enemyStats} from './cultivation.js';
 import {FLOOR_COUNT,floorNumber,floorId} from './floors.js';
@@ -15,10 +17,7 @@ export function portalsFor(id){
   return portals;
 }
 
-export const SPECIES = Object.freeze({
-  wolf:   {name:'Yêu Lang',speed:67,aggro:205,radius:23,size:[86,73]},
-  deer:   {name:'Linh Lộc',speed:84,aggro:0,radius:19,size:[82,86]},
-});
+export const SPECIES = ENEMY_SPECIES;
 
 const ENEMY_PLACES = [
   [485,500],[555,490],[588,605],[510,680],
@@ -29,14 +28,18 @@ const ENEMY_PLACES = [
 ];
 
 export function makeWorld(mapId='map') {
-  const floor=floorNumber(mapId),kind=floor===1?'deer':'wolf';
+  const floor=floorNumber(mapId),kind=enemyKindForFloor(floor);
   const rank=beastRankForFloor(floor),stage=beastStageForFloor(floor);
-  const enemies = ENEMY_PLACES.map(([x,y],i)=>makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i,rank,stage));
-  return {enemies,drops:[],effects:[],texts:[]};
+  const override=ENEMY_DATA.beastFloorOverrides?.[floor];
+  const enemies = ENEMY_PLACES.slice(0,override?.spawnCount??ENEMY_PLACES.length).map(([x,y],i)=>({
+    ...makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i,rank,stage),respawnSeconds:override?.respawnSeconds
+  }));
+  const deposits=Array.from({length:12},(_,i)=>({id:i,kind:i%2?'herb':'ore',x:WORLD.width*(.16+((i*7+3)%11)*.06),y:WORLD.height*(.17+((i*5+2)%9)*.075),readyAt:0})).filter(n=>isWalkable(n.x,n.y,mapId));
+  return {enemies,deposits,drops:[],effects:[],texts:[]};
 }
 
 export function makeEnemy(kind,x,y,id,beastRank=kind==='wolf'?1:0,beastStage=kind==='wolf'?0:-1) {
-  const stats=enemyStats(kind,0);
+  const stats=enemyStats(kind,beastRank,beastStage);
   return {id,kind,beastRank,beastStage,x,y,homeX:x,homeY:y,...stats,maxHp:stats.hp,face: id%2===0?-1:1,
     moveAge:id*.17,walk:false,attackCD:0,attackAnim:0,attackAge:0,attackHit:false,flinch:0,dead:false,respawn:0,wander:1.5+(id%4)*.6,
     vx:0,vy:0};
@@ -61,3 +64,7 @@ export function isWalkable(x,y,mapId='map') {
   if(my>480 && my<810 && mx>830)return false;
   return true;
 }
+
+// Story NPC coordinates use the same map units displayed on the HUD.
+export const VILLAGE_ELDER=Object.freeze({id:'village-elder',name:'Trưởng Thôn',asset:'NPC/npc_truong_thon',x:288*MAP_SCALE,y:144*MAP_SCALE,width:100,height:100});
+export function storyNPCsFor(mapId){return floorNumber(mapId)===1?[VILLAGE_ELDER]:[]}

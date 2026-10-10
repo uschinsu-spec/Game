@@ -1,8 +1,9 @@
+import {RECOVERY_PILLS,recoveryInfo} from '../core/recovery-pills.js';
 import {skillVfxRow,skillColor} from '../skill-vfx.js';
 import {Engine,SKILLS,trainSkill,npcMasteryCap} from '../cultivation.js';
 import {clamp,distance,rand} from '../core/runtime.js';
 import {combatTempo} from '../core/combat-tempo.js';
-import {WORLD} from '../world.js';
+import {WORLD,SPECIES} from '../world.js';
 import {generateBeastLoot} from '../core/beast-loot.js';
 
 export const CombatSystem = {
@@ -38,9 +39,11 @@ export const CombatSystem = {
     let hits=0;
     for(const e of this.state.enemies){if(e.dead)continue;
       const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);
-      if(d<108&&Math.abs(dy)<80&&dx*p.face>-24){this.hitEnemy(e,'basic_attack',p);hits++}
+      if(d<108&&Math.abs(dy)<80&&dx*p.face>-24){
+        this.hitEnemy(e,'basic_attack',p);hits++;
+        this.state.effects.push({type:'slash',x:e.x,y:e.y-SPECIES[e.kind].size[1]*.48,face:p.face,life:.3,max:.3});
+      }
     }
-    this.state.effects.push({type:'slash',x:p.x+p.face*45,y:p.y-17,face:p.face,life:.3,max:.3});
     if(hits)trainSkill(p,'basic_attack');
     if(!hits)this.state.effects.push({type:'spark',x:p.x+p.face*75,y:p.y-12,life:.2,max:.2});
   },
@@ -123,7 +126,27 @@ export const CombatSystem = {
     trainSkill(p,sk.id);
     return true;
   },
+  useRecoveryPill(kind,p=this.player,itemId=this.ui?.pillSlots?.[kind]){
+    const pill=RECOVERY_PILLS[kind];
+    if(!pill||p.dead||(p.cooldowns[pill.cooldown]||0)>0)return false;
+    const assigned=recoveryInfo(kind,itemId);
+    if(!assigned){this.toast('Hãy giữ ô để chọn đan dược trong túi đồ');return false}
+    if(assigned.source==='professionItems'){
+      if((p.professionItems?.[assigned.id]||0)<1)return false;
+      if(!this.useProfessionItem(assigned.id))return false;
+      p.cooldowns[pill.cooldown]=12;this.ui?.refreshRecoveryPills();return true;
+    }
+    const maxVal=p[pill.max]??(pill.max==='maxHp'?Engine.calcMaxHp(p):Engine.calcMaxMp(p));
+    if(p[pill.stat]>=maxVal){this.toast(kind==='hp'?'Sinh lực đã đầy':'Linh lực đã đầy');return false}
+    if(!(p.pills?.[pill.id]>0)){this.toast('Hết '+pill.name+' · Luyện thêm trong Túi Đồ');return false}
+    p.pills[pill.id]--;p[pill.stat]=Math.min(maxVal,p[pill.stat]+Math.max(1,Math.floor(maxVal*pill.ratio)));
+    p.cooldowns[pill.cooldown]=12;
+    this.state.effects.push({type:'heal',x:p.x,y:p.y-16,life:.8,max:.8});
+    this.floatText(p.x,p.y-64,kind==='hp'?'+ HỒI HP':'+ HỒI MP',kind==='hp'?'#91ffc9':'#83ceff');
+    this.save();this.ui?.refreshRecoveryPills();return true;
+  },
   heal(p=this.player){
+    if(!p.isNPC)return this.useRecoveryPill('hp',p);
     const cost=Math.ceil(p.maxMp*.12);if(p.cooldowns.heal>0||p.dead)return;if(p.mp<cost){if(p===this.player)this.ui.toast('Không đủ linh lực để hồi máu');return}
     if(p.hp>=p.maxHp-3){if(p===this.player)this.ui.toast('Sinh lực đã đầy');return}
     p.mp-=cost;p.cooldowns.heal=12;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.32);
@@ -131,18 +154,26 @@ export const CombatSystem = {
     this.floatText(p.x,p.y-64,'+ HỒI MÁU','#91ffc9');
   },
   damageEnemy(e,amount,crit=false,actor=this.player,skillImpact=false){
-    if(e.dead)return;e.hp=Math.max(0,e.hp-Math.round(amount));e.flinch=.16;
-    this.floatText(e.x,e.y-57,(crit?'BẠO KÍCH ':'-')+Math.round(amount),crit?'#fff09b':'#ffb35a');
+    if(e.dead)return;
+    const damage=Math.min(e.hp,Math.max(0,Math.ceil(amount)));
+    e.damageContributors??=new Map();
+    e.damageContributors.set(actor,(e.damageContributors.get(actor)||0)+damage);
+    e.hp=Math.max(0,e.hp-damage);e.flinch=.16;
+    this.floatText(e.x,e.y-57,(crit?'BẠO KÍCH ':'-')+Math.ceil(amount),crit?'#fff09b':'#ffb35a');
     if(!skillImpact)this.state.effects.push({type:'impact',x:e.x,y:e.y-21,life:.21,max:.21});
     if(e.hp<=0)this.kill(e,actor);
   },
   kill(e,p=this.player){
-    e.dead=true;e.attackAnim=0;e.attackAge=0;e.respawn=12+Math.random()*8;
+    e.dead=true;e.attackAnim=0;e.attackAge=0;e.respawn=e.respawnSeconds??(12+Math.random()*8);
     // Enemies drop ONLY hide/fur/blood and possibly a graded inner core; no currency or EXP.
-    const owner=p===this.player?null:p.id;
+    let winner=p,best=-1;
+    for(const [actor,damage] of e.damageContributors||[]){if(damage>best){winner=actor;best=damage}}
+    const owner=winner===this.player?null:winner.id;
+    e.damageContributors=null;
+    let row=0;
     for(const loot of generateBeastLoot(e)){
-      this.state.drops.push({x:e.x+rand(-15,15),y:e.y+rand(-10,10),
-        itemId:loot.itemId,quantity:loot.quantity,owner,life:24,spin:Math.random()*6});
+      this.state.drops.push({x:e.x,y:e.y-30*row++,
+        itemId:loot.itemId,quantity:loot.quantity,owner,age:0,life:24,spin:Math.random()*6});
     }
   }
 };

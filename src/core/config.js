@@ -1,3 +1,4 @@
+import {ENEMY_SPECIES} from './enemy-master.js';
 import {SKILL_VFX} from '../skill-vfx.js';
 export const FRAME=176;
 export const PLAYER_FRAME_WIDTH=192,PLAYER_FRAME_HEIGHT=108,PLAYER_SCALE=.75;
@@ -8,7 +9,7 @@ export const PLAYER_FEET=[[126, 126, 126, 126, 126, 126, 126, 126, 126, 126], [1
 export const PLAYER_HEIGHTS=[[105, 105, 105, 105, 105, 105, 105, 105, 105, 105], [105, 103, 100, 100, 102, 99, 102, 102, 103, 100], [101, 103, 113, 115, 118, 112, 99, 98, 98, 100], [115, 115, 115, 102, 102, 102, 102, 103, 104, 106]];
 
 export const SAVE_KEY='van-moc-sam-lam-save-v1';
-export const TYPES=['player','NPC1','NPC2','wolf','deer',SKILL_VFX.asset,'frame_7'];
+export const TYPES=['player','NPC1','NPC2',...new Set(Object.values(ENEMY_SPECIES).map(e=>e.sprite)),SKILL_VFX.asset,'frame_7','basic_attack_slash','NPC/npc_truong_thon'];
 export const GAMEPLAY=Object.freeze({characterSpeed:164,mapCacheLimit:3,maxFrameDelta:.035,saveInterval:12,minimapInterval:.3});
 export const NPC_TEMPLATES=Object.freeze([
   Object.freeze({sprite:'NPC1',name:'Xích Phong',skillElement:'Kim'}),

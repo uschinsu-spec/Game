@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';import {pathToFileURL} from 'node:url';
+const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);const browser=await chromium.launch({headless:true,channel:'msedge'});
+try{for(const mobile of [false,true]){
+ const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1672,height:941},isMobile:mobile,hasTouch:mobile}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto((process.env.GAME_URL||'http://127.0.0.1:8123/')+'?debug');await page.waitForFunction(()=>window.__GAME_DEBUG__,null,{polling:100});
+ assert.deepEqual(await page.evaluate(()=>window.__GAME_DEBUG__.ui.pillSlots),{hp:null,mp:null});assert.equal(await page.locator('#heal-btn img').isVisible(),false);assert.equal(await page.locator('#mana-btn img').isVisible(),false);
+ assert.deepEqual(await page.evaluate(()=>{const p=window.__GAME_DEBUG__.player;return [p.pills.hoi_huyet,p.pills.hoi_linh]}),[0,0]);
+ const hold=async(id)=>{const r=await page.locator(id).boundingBox();await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.mouse.down();await page.locator('#overlay').waitFor({state:'visible'});await page.mouse.up()};
+ await hold('#heal-btn');assert.equal(await page.locator('[data-item-id]').count(),0);await page.locator('#resume-btn').click();
+ await page.evaluate(async()=>{const g=window.__GAME_DEBUG__,{syncStats}=await import('/src/cultivation.js');g.player.realmIdx=1;syncStats(g.player,true);g.player.pills.hoi_huyet=2;g.player.pills.hoi_linh=0;g.player.professionItems={elixir_0_0:2,ore_0_0:5};g.ui.refreshSkillSlots();g.ui.refreshRecoveryPills();g.step=()=>{};g.player.hp=10;g.player.mp=10;g.save()});
+ await hold('#heal-btn');assert.equal(await page.locator('[data-item-id="hoi_linh"]').count(),0);assert.equal(await page.locator('[data-item-id="ore_0_0"]').count(),0);assert.equal(await page.locator('[data-item-id="elixir_0_0"]').count(),1);
+ await page.locator('[data-item-id="hoi_huyet"]').click();assert.equal(await page.locator('#heal-btn img').isVisible(),true);await page.locator('#heal-btn').click();assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.player.pills.hoi_huyet),1);
+ await hold('#mana-btn');assert.equal(await page.locator('[data-item-id="hoi_huyet"]').count(),0);await page.locator('[data-item-id="elixir_0_0"]').click();await page.locator('#mana-btn').click();assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.player.professionItems.elixir_0_0),1);
+ const mp=await page.evaluate(()=>window.__GAME_DEBUG__.player.mp);await hold('#attack-btn');assert.equal(await page.locator('[data-skill-id="basic_attack"]').count(),1);assert.equal(await page.locator('[data-skill-id="kiem_2"]').count(),0);assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.player.mp),mp);
+ await page.locator('[data-skill-id="kiem_1"]').click();assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.ui.attackSlot),'kiem_1');
+ await page.evaluate(()=>{const g=window.__GAME_DEBUG__;g.player.cooldowns.skill=0;g.player.skillAnim=0;g.player.attackAnim=0;g.player.mp=g.player.maxMp;g.player.x=1000;g.player.y=600;const e=g.state.enemies[0];Object.assign(e,{x:1060,y:600,hp:1e9,dead:false});g.state.enemies=[e]});await page.locator('#attack-btn').click();assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.player.pendingSkill?.sk.id),'kiem_1');
+ await page.reload();await page.waitForFunction(()=>window.__GAME_DEBUG__,null,{polling:100});assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.ui.attackSlot),'kiem_1');assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.ui.pillSlots.hp),'hoi_huyet');
+ await hold('#attack-btn');await page.locator('[data-skill-id="basic_attack"]').click();assert.equal(await page.evaluate(()=>window.__GAME_DEBUG__.ui.attackSlot),'basic_attack');
+ await hold('#heal-btn');await page.locator('.clear-skill').click();assert.equal(await page.locator('#heal-btn img').isVisible(),false);
+ assert.deepEqual(errors,[]);console.log('PASS '+(mobile?'mobile':'desktop')+': empty/no free pills, inventory-only hold selection, consume chosen elixir, configurable attack tap/hold, persistence and clear');await context.close();
+}}finally{await browser.close()}

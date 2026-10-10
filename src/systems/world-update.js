@@ -3,12 +3,31 @@ import {Engine} from '../cultivation.js';
 import {distance,rand} from '../core/runtime.js';
 import {lootInfo} from '../core/beast-loot.js';
 
+// Small ground footprints allow sprite edges to overlap while keeping bodies apart.
+export function separateEnemies(game,dt){
+  const enemies=game.state.enemies.filter(e=>!e.dead);
+  const maxPush=90*dt;
+  for(let pass=0;pass<3;pass++)for(let i=0;i<enemies.length;i++)for(let j=i+1;j<enemies.length;j++){
+    const a=enemies[i],b=enemies[j];
+    const spacing=(SPECIES[a.kind]?.separationRadius??22)+(SPECIES[b.kind]?.separationRadius??22);
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
+    if(d>=spacing)continue;
+    // A stable direction also separates enemies spawned at exactly the same point.
+    const angle=(i*2.399963229728653+j*.61803398875);
+    const nx=d>1e-6?dx/d:Math.cos(angle),ny=d>1e-6?dy/d:Math.sin(angle);
+    const push=Math.min((spacing-d)*.5,maxPush);
+    game.moveEntity(a,-nx*push,-ny*push);
+    game.moveEntity(b,nx*push,ny*push);
+  }
+}
+
 export const WorldUpdateSystem = {
   stepEnemies(dt){
     const actors=[this.player,...this.state.npcs].filter(p=>!p.dead);
     for(const e of this.state.enemies){
-      if(e.dead){e.respawn-=dt;if(e.respawn<=0){e.dead=false;e.hp=e.maxHp;e.x=e.homeX;e.y=e.homeY}continue}
+      if(e.dead){e.respawn-=dt;if(e.respawn<=0){e.dead=false;e.damageContributors=null;e.hp=e.maxHp;e.x=e.homeX;e.y=e.homeY}continue}
       const nearest=actors.reduce((best,p)=>p.dead?best:!best||distance(e,p)<distance(e,best)?p:best,null);
+      if(e.attackAnim>0&&(!e.victim||e.victim.dead)){e.attackAnim=0;e.attackAge=0;e.victim=null}
       const p=e.attackAnim>0?e.victim:nearest;
       if(!p){e.attackAnim=0;e.walk=false;continue}
       const spec=SPECIES[e.kind],d=distance(p,e);
@@ -21,7 +40,7 @@ export const WorldUpdateSystem = {
           e.attackHit=true;
           if(d<58&&!p.dead&&p.hurt<=.12&&e.attack>0){
             p.isMeditating=false;
-            const amount=p.buffTime>0&&p.buffId==='tho_5'?0:Math.max(1,e.attack-Engine.calcElementalDefense(p,'Vật Lý'));
+            const raw=p.buffTime>0&&p.buffId==='tho_5'?0:Math.max(1,Math.ceil(e.attack-Engine.calcElementalDefense(p,'Vật Lý')));const amount=p.buffTime>0&&p.buffId==='profession_shield'?Math.max(1,Math.ceil(raw*.7)):raw;
             if(p.buffTime>0&&p.buffId==='tho_5')this.damageEnemy(e,e.attack,false,p);
             p.hp=Math.max(0,p.hp-amount);p.hurt=.25;
             this.floatText(p.x,p.y-70,'-'+amount,'#ff7772');
@@ -42,8 +61,8 @@ export const WorldUpdateSystem = {
           e.returning=false;
         }
       }
-      if(e.kind!=='deer'&&d<spec.aggro&&d>37){dx=(p.x-e.x)/d;dy=(p.y-e.y)/d}
-      else if(e.kind==='deer'?e.returning:(d>spec.aggro+140&&distance(e,{x:e.homeX,y:e.homeY})>25)){
+      if(e.kind!=='deer'&&(spec.seekActors||d<spec.aggro)&&d>37){dx=(p.x-e.x)/d;dy=(p.y-e.y)/d}
+      else if(e.kind==='deer'?e.returning:(!spec.seekActors&&d>spec.aggro+140&&distance(e,{x:e.homeX,y:e.homeY})>25)){
         const homeD=Math.hypot(e.homeX-e.x,e.homeY-e.y);dx=(e.homeX-e.x)/homeD;dy=(e.homeY-e.y)/homeD;
       }else {
         if(e.wander<=0){e.wander=2+Math.random()*2.5;e.vx=rand(-.8,.8);e.vy=rand(-.7,.7)}
@@ -63,14 +82,15 @@ export const WorldUpdateSystem = {
         if(p.x!==e.x)e.face=p.x>e.x?1:-1;
       }
     }
+    separateEnemies(this,dt);
   },
   stepDrops(dt){
     let pickedByPlayer=false;
     this.state.drops=this.state.drops.filter(d=>{
-      d.life-=dt;d.spin+=dt*3;if(d.life<=0)return false;
+      d.age=(d.age||0)+dt;d.spin+=dt*3;
+      if(d.age<2)return true;
       const p=d.owner?this.state.npcs.find(p=>p.id===d.owner):this.player;
-      if(!p||p.dead)return true;
-      if(distance(d,p)>=38)return true;
+      if(!p)return true;
       const item=lootInfo(d.itemId),quantity=Math.max(0,Math.floor(d.quantity||0));
       if(item&&quantity){
         p.materials??={};

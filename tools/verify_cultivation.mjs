@@ -10,7 +10,7 @@ function game(){const g=Object.assign(Object.create(Game.prototype),{mapId:'map'
 const g=game(),p=g.player;
 assert.equal(p.maxHp,Engine.calcMaxHp(p));assert.equal(p.realmIdx,0);assert.equal(p.level,undefined);
 Engine.addExp(g.player,75);assert.equal(p.realmIdx,0,'XP must not auto-level');g.breakthrough();assert.equal(p.realmIdx,1);assert.equal(p.exp,25);assert.equal(p.mp,Engine.calcMaxMp(p));
-assert.equal(g.state.enemies[0].maxHp,enemyStats('deer',1).hp);
+assert.equal(g.state.enemies[0].maxHp,enemyStats('deer',0,-1).hp);
 p.realmIdx=12;p.exp=REALMS[12].expReq;syncStats(p,true);g.breakthrough();assert.equal(p.realmIdx,12,'Pill is required');
 p.gold=1000;g.craftPill();assert.equal(p.pills[REALMS[12].pillNeeded],1);g.breakthrough();assert.equal(p.realmIdx,13);assert.equal(p.pills[REALMS[12].pillNeeded],0);
 p.realmIdx=16;p.exp=REALMS[16].expReq;p.pills[REALMS[16].pillNeeded]=1;g.breakthrough();assert.equal(p.realmIdx,16,'Manual cap blocks breakthrough');
@@ -22,7 +22,7 @@ assert.ok(!('herbs' in restored.player));assert.ok(!('kills' in restored.player)
 const m=game();m.state.enemies=[];m.meditate();for(let i=0;i<120;i++)m.step(1/60);assert.equal(m.player.exp,12,'Meditation works at frame delta');m.input.vector=()=>({active:true,x:1,y:0});m.step(.02);assert.equal(m.player.isMeditating,false);
 const combat=game();combat.player.realmIdx=28;combat.player.activeCongPhapId='cp_thien_giai';syncStats(combat.player,true);
 for(const sk of SKILLS.filter(s=>s.tier>0)){
-  const enemy={...enemyStats('wolf',28),id:100,kind:'wolf',x:combat.player.x+20,y:combat.player.y,maxHp:1e12,hp:1e12,dead:false};
+  const enemy={...enemyStats('wolf',5,3),id:100,kind:'wolf',x:combat.player.x+20,y:combat.player.y,maxHp:1e12,hp:1e12,dead:false};
   combat.state.enemies=[enemy];combat.player.selectedSkillId=sk.id;combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;combat.skill();
   assert.ok(combat.player.cooldowns.skill>0,sk.id+' casts');
   combat.tickCharacter(combat.player,combat.player.skillDuration);
@@ -36,7 +36,7 @@ combat.player.hp=10;
 const result=Engine.resolveCombat(combat.player,{def:0},'moc_4');
 assert.equal(combat.player.hp,10);assert.equal(result.healAmount,Math.floor(combat.player.maxHp*.25));
 combat.player.selectedSkillId='moc_4';combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;
-combat.state.enemies=Array.from({length:3},(_,id)=>({...enemyStats('wolf',28),id,kind:'wolf',x:combat.player.x+20+id*10,y:combat.player.y,hp:1e12,maxHp:1e12,dead:false}));
+combat.state.enemies=Array.from({length:3},(_,id)=>({...enemyStats('wolf',5,3),id,kind:'wolf',x:combat.player.x+20+id*10,y:combat.player.y,hp:1e12,maxHp:1e12,dead:false}));
 combat.skill();combat.releaseSkill(combat.player);combat.player.skillAnim=0;assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.25),'AOE heals once, not per target');
 // Healing AOE works without an enemy and damages every enemy in its radius.
 combat.player.hp=10;combat.player.selectedSkillId='moc_5';combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;

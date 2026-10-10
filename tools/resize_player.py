@@ -5,7 +5,7 @@ Idempotent: already resized sheets are left untouched.
 from pathlib import Path
 from PIL import Image
 
-path = Path(__file__).resolve().parents[1] / 'assets/webp/player.webp'
+path = Path(__file__).resolve().parents[1] / 'assets/webp/PLAYER/player.webp'
 with Image.open(path) as source:
     if source.size == (1920, 432):
         print('Player is already 1920x432; no change.')

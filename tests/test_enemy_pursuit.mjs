@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {WorldUpdateSystem} from '../src/systems/world-update.js';
+import {makeEnemy} from '../src/world.js';
+const player={x:1800,y:700,dead:false},npc={x:1200,y:300,dead:false};
+const e=makeEnemy('wolf',100,300,0,0,-1);
+const g={player,state:{npcs:[npc],enemies:[e]},moveEntity(e,dx,dy){e.x+=dx;e.y+=dy}};
+WorldUpdateSystem.stepEnemies.call(g,.1);
+assert.ok(e.walk);assert.ok(e.x>100);assert.equal(e.y,300,'pursue nearest NPC even beyond aggro radius');
+npc.dead=true;const oldY=e.y;
+WorldUpdateSystem.stepEnemies.call(g,.1);assert.ok(e.y>oldY,'retarget living player');
+e.attackAnim=.5;e.victim=npc;
+WorldUpdateSystem.stepEnemies.call(g,.1);assert.equal(e.victim,null);assert.ok(e.walk,'cancel attack on dead victim and pursue');
+player.dead=true;const oldX=e.x;
+WorldUpdateSystem.stepEnemies.call(g,.1);assert.equal(e.walk,false);assert.equal(e.x,oldX);
+player.dead=false;player.x=e.x+20;player.y=e.y;
+WorldUpdateSystem.stepEnemies.call(g,.1);assert.ok(e.attackAnim>0);assert.equal(e.victim,player);
+console.log('PASS: distant enemy pursues nearest living NPC/player, retargets dead victims, attacks in range');

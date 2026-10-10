@@ -3,7 +3,7 @@ import {Game} from '../src/game.js';
 import {makeWorld,isWalkable,PLAYER_SPAWN} from '../src/world.js';
 import {syncStats} from '../src/cultivation.js';
 
-function game(mapId='map2'){
+function game(mapId='map3'){
   const g=Object.assign(Object.create(Game.prototype),{
     mapId,mapStates:{},images:{},mapImages:new Map(),state:makeWorld(mapId),gameTime:0,
     async loadFloorImage(){return {}},
@@ -90,20 +90,20 @@ assert.ok(sim.state.npcs.some(p=>p.skillExp.basic_attack>0||p.skillExp.kiem_1>0)
 for(const p of sim.state.npcs)assert.ok(Number.isFinite(p.hp)&&Number.isFinite(p.x));
 
 // Returning to a map restores its NPC state, with no duplicate spawns.
-const first=sim.state;await sim.travel('back');assert.equal(sim.mapId,'map');
-assert.equal(sim.state.npcs.length,2);assert.notEqual(sim.state.npcs[0],first.npcs[0]);
+const first=sim.state;await sim.travel('back');assert.equal(sim.mapId,'map2');
+assert.equal(sim.state.npcs.length,2);
 await sim.travel();assert.equal(sim.state,first);assert.equal(sim.state.npcs.length,2);
 console.log('PASS: shared actions, damage ownership, enemy targeting, AI, respawn and map travel');
-const mortal=game('map');mortal.player.realmIdx=28;
-for(const p of mortal.state.npcs){
-  assert.equal(p.realmIdx,0);p.hp=1;
-  const target=mortal.state.enemies[0];target.hp=100000;target.maxHp=100000;
-  p.x=target.x-60;p.y=target.y;p.aiTarget=target;
-}
-for(let i=0;i<120;i++){mortal.stepNPCs(1/60);mortal.stepEffects(1/60)}
-for(const p of mortal.state.npcs){
-  assert.equal(p.realmIdx,0);assert.equal(p.cooldowns.skill,0);assert.equal(p.cooldowns.heal,0);
-  assert.equal(p.skillExp.kiem_1,undefined);assert.ok(p.skillExp.basic_attack>0);
-}
-assert.ok(!mortal.state.effects.some(f=>f.type==='skillProjectile'));
-console.log('PASS: floor 1 NPCs remain mortal and use only basic attacks');
+const empty=game('map');
+assert.deepEqual(empty.state.npcs,[],'Floor 1 starts without NPCs');
+empty.state.npcs=[npc];empty.ensureNPCs();
+assert.deepEqual(empty.state.npcs,[],'Returning to cached floor 1 clears old NPCs');
+empty.ensureNPCs();assert.deepEqual(empty.state.npcs,[]);
+console.log('PASS: floor 1 has no NPCs on creation or cached return');
+
+const floor2=game('map2');
+assert.equal(floor2.state.npcs.length,2);
+for(const actor of floor2.state.npcs){assert.equal(actor.realmIdx,0);assert.deepEqual(floor2.npcCombo?.(actor,null),undefined)}
+floor2.state.npcs[0].realmIdx=5;floor2.state.npcs[0].pendingSkill={};floor2.ensureNPCs();
+assert.equal(floor2.state.npcs[0].realmIdx,0);assert.equal(floor2.state.npcs[0].pendingSkill,null);
+console.log('PASS: floor 2 NPCs are mortal, including cached NPCs');

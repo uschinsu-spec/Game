@@ -4,6 +4,7 @@ No arguments: validate only. Import example:
 python tools/build_assets.py --name player --source new_player.png --replace
 """
 import argparse
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -11,13 +12,37 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 WEBP = ROOT / 'assets' / 'webp'
+ENEMY_DATA = json.loads((ROOT / 'src/data/enemies.json').read_text(encoding='utf-8'))
+ASSET_PATHS = {
+    **{id: entry['path'] for id, entry in ENEMY_DATA['enemies'].items()},
+    "map": "MAP/map",
+    "map2": "MAP/map2",
+    "player": "PLAYER/player",
+    "NPC1": "NPC/NPC1",
+    "NPC2": "NPC/NPC2",
+    "NPC3": "NPC/NPC3",
+    "NPC4": "NPC/NPC4",
+    "NPC5": "NPC/NPC5",
+    "NPC6": "NPC/NPC6",
+    "NPC7": "NPC/NPC7",
+    "NPC8": "NPC/NPC8",
+    "frame_7": "VFX/frame_7",
+    "basic_attack_slash": "VFX/basic_attack_slash",
+    "luyen_khi_9he_7frame": "VFX/luyen_khi_9he_7frame",
+    "avatar": "UI/avatar"
+}
 # (native output size, columns, rows); art is scaled per cell without recropping.
 LAYOUTS = {
+    **{id: ((entry['columns']*ENEMY_DATA['animation']['frameSize'], ENEMY_DATA['animation']['rows']*ENEMY_DATA['animation']['frameSize']), entry['columns'], ENEMY_DATA['animation']['rows']) for id, entry in ENEMY_DATA['enemies'].items()},
     'player': ((1920, 432), 10, 4),
     'NPC1': ((1920, 432), 10, 4),
     'NPC2': ((1920, 432), 10, 4),
-    'wolf': ((1408, 352), 8, 2),
-    'deer': ((1408, 352), 8, 2),
+    'NPC3': ((1920, 432), 10, 4),
+    'NPC4': ((1920, 432), 10, 4),
+    'NPC5': ((1920, 432), 10, 4),
+    'NPC6': ((1920, 432), 10, 4),
+    'NPC7': ((1920, 216), 10, 2),
+    'NPC8': ((1920, 216), 10, 2),
     'map': ((1672, 941), 1, 1),
     'map2': ((1672, 941), 1, 1),
     'avatar': ((128, 128), 1, 1),
@@ -36,7 +61,7 @@ def main():
         return subprocess.call([sys.executable, str(ROOT / 'tools' / 'verify_assets.py')])
     if not args.name or not args.source:
         parser.error('Provide both --name and --source')
-    target = (args.output or WEBP / (args.name + '.webp')).resolve()
+    target = (args.output or WEBP / (ASSET_PATHS[args.name] + '.webp')).resolve()
     source = args.source.resolve()
     if source == target:
         parser.error('Source and output must be different files')

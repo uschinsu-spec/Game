@@ -1,5 +1,6 @@
 """Validation of all WebP game assets and GitHub Pages entrypoints."""
 from pathlib import Path
+import json
 try:
     from PIL import Image
 except ImportError:
@@ -7,17 +8,27 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 webp_files = {
-    'map.webp': (1672, 941),
-    'map2.webp': (1672, 941),
-    'player.webp': (1920, 432),
-    'NPC1.webp': (1920, 432),
-    'NPC2.webp': (1920, 432),
-    'luyen_khi_9he_7frame.webp': (1774, 887),
-    'frame_7.webp': (140, 140),
-    'wolf.webp': (1408, 352),
-    'deer.webp': (1408, 352),
-    'avatar.webp': (128, 128),
+    'VFX/basic_attack_slash.webp': (256, 256),
+    'NPC/npc_truong_thon.webp': (448, 448),
+    'MAP/map.webp': (1672, 941),
+    'MAP/map2.webp': (1672, 941),
+    'PLAYER/player.webp': (1920, 432),
+    'NPC/NPC1.webp': (1920, 432),
+    'NPC/NPC2.webp': (1920, 432),
+    'NPC/NPC3.webp': (1920, 432),
+    'NPC/NPC4.webp': (1920, 432),
+    'NPC/NPC5.webp': (1920, 432),
+    'NPC/NPC6.webp': (1920, 432),
+    'NPC/NPC7.webp': (1920, 216),
+    'NPC/NPC8.webp': (1920, 216),
+    'VFX/luyen_khi_9he_7frame.webp': (1774, 887),
+    'VFX/frame_7.webp': (140, 140),
+    'UI/avatar.webp': (128, 128),
 }
+enemy_data = json.loads((ROOT/'src/data/enemies.json').read_text(encoding='utf-8'))
+for enemy in enemy_data['enemies'].values():
+    webp_files[enemy['path']+'.webp'] = (enemy['columns']*enemy_data['animation']['frameSize'], enemy_data['animation']['rows']*enemy_data['animation']['frameSize'])
+
 for asset in sorted((ROOT / 'assets' / 'webp' / 'MAP').glob('*.webp')):
     webp_files['MAP/' + asset.name] = (1672, 941)
 

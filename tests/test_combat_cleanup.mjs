@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {Game} from '../src/game.js';
+import {Engine} from '../src/cultivation.js';
+import {CombatSystem} from '../src/systems/combat.js';
+import {ProgressionSystem} from '../src/systems/progression.js';
+import {rankForFloor} from '../src/core/profession-items.js';
+import {beastRankForFloor} from '../src/core/beast-loot.js';
+for(let floor=1;floor<=99;floor++)assert.equal(beastRankForFloor(floor),floor===2?0:rankForFloor(floor));
+const player=Engine.createCharacter('test');
+Object.assign(player,{x:500,y:500,hp:1,mp:1,maxHp:100,maxMp:100,pills:{hoi_huyet:2,hoi_linh:2,tu_vi_pham:1,tu_vi_luyen_khi:1},professionItems:{elixir_0_0:1},cooldowns:{}});
+const g={player,state:{effects:[]},ui:{pillSlots:{hp:null,mp:null},refreshRecoveryPills(){}},toast(){},save(){},floatText(){},useProfessionItem:ProgressionSystem.useProfessionItem};
+assert.equal(CombatSystem.useRecoveryPill.call(g,'hp',player,'hoi_huyet'),true);
+assert.equal(player.pills.hoi_huyet,1);assert.equal(player.hp,33);assert.equal(g.ui.pillSlots.hp,null);
+assert.equal(CombatSystem.useRecoveryPill.call(g,'hp',player,'hoi_huyet'),false);
+assert.equal(player.pills.hoi_huyet,1);
+assert.equal(CombatSystem.useRecoveryPill.call(g,'mp',player,'hoi_linh'),true);
+assert.equal(player.pills.hoi_linh,1);assert.equal(player.mp,33);
+player.cooldowns={};assert.equal(CombatSystem.useRecoveryPill.call(g,'hp',player,'elixir_0_0'),true);
+assert.equal(player.professionItems.elixir_0_0,0);assert.equal(player.cooldowns.heal,12);
+player.realmIdx=1;
+assert.equal(ProgressionSystem.useCultivationPill.call(g,'tu_vi_pham'),true);
+assert.equal(player.pills.tu_vi_pham,0);assert.equal(player.pills.tu_vi_luyen_khi,1);
+assert.equal(ProgressionSystem.useCultivationPill.call(g,'unknown'),false);
+function stepCase({target=null,auto=true,skill=false,active=false,far=false}={}){
+ let attempts=0,attacks=0;
+ const enemy={id:'e',x:far?700:550,y:500,dead:false};
+ const test={player:{...player,dead:false,isMeditating:false,cooldowns:{attack:0},attackAnim:0,skillAnim:0},transitioning:false,mapId:'map',portalCooldown:1,gameTime:10,lastManual:0,auto,target,state:{enemies:[enemy]},input:{vector:()=>({active,x:1,y:0})},tickCharacter(){},findNearest:()=>enemy,faceEnemy(){},tryAutoSkill(){attempts++;return skill},attack(){attacks++},moveCharacter(){},stepNPCs(){},stepEnemies(){},stepDrops(){},stepEffects(){},saveAge:0};
+ Game.prototype.step.call(test,.016);return {attempts,attacks};
+}
+assert.deepEqual(stepCase(),{attempts:1,attacks:1});
+assert.deepEqual(stepCase({target:{kind:'enemy',id:'e'},skill:true}),{attempts:1,attacks:0});
+assert.deepEqual(stepCase({far:true}),{attempts:1,attacks:0});
+assert.deepEqual(stepCase({active:true}),{attempts:0,attacks:0});
+assert.deepEqual(stepCase({target:{kind:'enemy',id:'e'},auto:false}),{attempts:0,attacks:1});
+console.log('PASS: single auto decision, manual combat, 99 floor ranks, explicit recovery and older cultivation pills');

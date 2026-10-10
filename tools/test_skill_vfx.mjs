@@ -16,7 +16,7 @@ for(let row=0;row<9;row++)for(let col=0;col<12;col++){
 assert.equal(skillVfxRow({id:'kiem_1',elem:'Kim'}),0);
 assert.equal(skillVfxRow({id:'metal',elem:'Kim'}),3);
 function game(){
-  const g=Object.assign(Object.create(Game.prototype),{mapId:'map2',state:makeWorld('map2'),toast(){},ui:{toast(){}}});
+  const g=Object.assign(Object.create(Game.prototype),{mapId:'map3',state:makeWorld('map3'),toast(){},ui:{toast(){}}});
   g.player=g.makePlayer();g.player.realmIdx=1;syncStats(g.player,true);g.ensureNPCs();g.refreshEnemies();return g;
 }
 for(const sk of SKILLS.filter(sk=>sk.tier===1)){

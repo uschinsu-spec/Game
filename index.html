@@ -3,70 +3,87 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no" />
-  <meta name="theme-color" content="#101c1a" />
-  <meta name="description" content="Vạn Mộc Sâm Lâm: game tu tiên 2D top-down nhẹ, chơi trực tiếp trong trình duyệt điện thoại và máy tính." />
+  <meta name="theme-color" content="#181810" />
+  <meta name="description" content="Vạn Mộc Sâm Lâm · Hành trình tu tiên giữa đại ngàn." />
   <title>Vạn Mộc Sâm Lâm · Tu Tiên 2D</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="preload" href="./assets/webp/map.webp" as="image" />
+  <link rel="preload" href="./assets/webp/MAP/map.webp" as="image" />
+  <link rel="preload" href="./assets/webp/UI/action-bar-frame.webp" as="image" />
   <link rel="stylesheet" href="./src/style.css" />
+  <link rel="stylesheet" href="./src/wuxia-ui.css?v=9" />
 </head>
 <body>
   <div id="game-shell">
     <canvas id="game" aria-label="Bản đồ Vạn Mộc Sâm Lâm. Dùng WASD hoặc joystick để di chuyển."></canvas>
-    <div class="shade-top" aria-hidden="true"></div>
-    <div class="shade-bottom" aria-hidden="true"></div>
-
+    <div class="shade-top" aria-hidden="true"></div><div class="shade-bottom" aria-hidden="true"></div>
     <header class="hud" aria-label="Thông tin nhân vật">
-      <div class="avatar"><img src="./assets/webp/avatar.webp" alt="Ảnh nhân vật"/><span id="level" class="level">Chưa Tu Luyện</span></div>
+      <div class="avatar"><img src="./assets/webp/UI/avatar.webp" alt="Chân dung Thanh Phong" /><span id="level" class="level">Phàm Nhân</span></div>
       <div class="vitals">
-        <div class="hero-name">Thanh Phong <span id="realm-name">· Phàm Nhân</span></div>
-        <div class="meter hp"><span id="hp-fill"></span><b id="hp-text">105 / 105</b></div>
-        <div class="meter mp"><span id="mp-fill"></span><b id="mp-text">100 / 100</b></div>
-        <div class="meter exp"><span id="exp-fill"></span><b id="exp-text">Tu vi 0 / 50</b></div>
+        <div class="hero-name">Thanh Phong <span class="peace-state" title="Tu sĩ cùng phe">Hòa bình</span></div>
+        <div class="meter hp" role="meter" aria-label="Sinh lực"><span id="hp-fill"></span><b id="hp-text">105 / 105</b></div>
+        <div class="meter mp" role="meter" aria-label="Linh lực"><span id="mp-fill"></span><b id="mp-text">100 / 100</b></div>
+        <div class="realm-line"><img class="game-icon" src="./assets/icons/ui/wuxia_realm.webp" alt="" aria-hidden="true" draggable="false" /><span>Tu vi <b id="realm-name">Phàm Nhân</b></span></div>
+        <div class="currency"><img class="game-icon" src="./assets/icons/currencies/spirit_stone_low.webp" alt="" aria-hidden="true" draggable="false" /><b id="gold">0</b><span>Linh thạch</span></div>
       </div>
-      <div class="currency"><span>🪙 <b id="gold">0</b></span></div>
     </header>
-
     <aside class="mapbox" aria-label="Bản đồ thu nhỏ">
+      <div class="map-title"><span>Vạn Mộc Sâm Lâm</span><span id="coords" class="map-coords">(0, 0)</span></div>
       <canvas id="minimap" width="224" height="224"></canvas>
-      <div class="map-name">Vạn Mộc Sâm Lâm</div>
-      <div class="map-coords" id="coords">(420, 555)</div>
+      <div class="map-caption"><span class="map-name">Tầng 1 / 99</span><span class="map-key" aria-hidden="true">M</span></div>
     </aside>
-
-    <div class="right-tools">
-      <button id="menu-btn" class="tool" aria-label="Mở menu">☰</button>
-      <button id="bag-btn" class="tool" aria-label="Xem hành trang">♧</button>
-      <button id="cultivation-btn" class="tool" aria-label="Mở bảng Tu luyện">☯</button>
-      <button id="auto-btn" class="tool auto" aria-label="Bật hoặc tắt tự động đánh quái"><span>◎</span><small id="auto-text">Tự đánh</small></button>
-    </div>
-
-    <div id="notice" class="notice" role="status" aria-live="polite"></div>
-    <div id="float-msg" class="float-msg" aria-live="polite"></div>
-
-    <div id="joystick" class="joystick" aria-label="Điều khiển hướng di chuyển">
-      <div class="joy-guides">▲ <span>◀</span><span>▶</span> ▼</div>
-      <div id="joy-knob" class="joy-knob"></div>
-    </div>
-
-    <div class="action-pad">
-      <button class="action skill skill-1" id="skill-btn" data-action="skill" aria-label="Kiếm khí, phím Q"><span class="glyph">✧</span><span class="button-label">Kiếm khí</span><span class="cooldown" id="skill-cd"></span></button>
-      <button class="action skill skill-3" id="heal-btn" data-action="heal" aria-label="Hồi máu, phím F"><span class="glyph">✚</span><span class="button-label">Hồi máu</span><span class="cooldown" id="heal-cd"></span></button>
-      <button class="action basic" id="attack-btn" data-action="attack" aria-label="Đánh thường, phím Space"><span class="glyph">⚔</span><span class="button-label">Tấn công</span></button>
-    </div>
-
-
+    <button id="auto-btn" class="action auto map-auto" aria-label="Bật hoặc tắt tự động đánh quái" aria-pressed="false"><img class="glyph game-icon" src="./assets/icons/ui/wuxia_auto.webp" alt="" aria-hidden="true" draggable="false" /><small id="auto-text" class="button-label">Tự đánh</small><kbd>Auto</kbd></button>
+    <div id="notice" class="notice" role="status" aria-live="polite"></div><div id="float-msg" class="float-msg" aria-live="polite"></div>
+    <div id="joystick" class="joystick" aria-label="Điều khiển hướng di chuyển"><div class="joy-guides">▲ <span>◀</span><span>▶</span> ▼</div><div id="joy-knob" class="joy-knob"></div></div>
+    <footer id="command-dock" class="command-dock" aria-label="Kỹ năng và chức năng">
+      <div class="dock-content">
+        <div class="action-pad" aria-label="Thanh kỹ năng">
+          <button class="action basic" id="attack-btn" data-action="attack" aria-label="Đánh thường, phím Space hoặc J"><img class="glyph game-icon" src="./assets/icons/skills/unique/basic_attack.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Tấn công</span><kbd>Space</kbd><span class="cooldown"></span></button>
+          <button class="action skill" id="skill-btn" data-action="skill" aria-label="Thần thông, phím Q"><img class="glyph game-icon" src="./assets/icons/skills/unique/kiem_1.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Kiếm khí</span><kbd>Q</kbd><span class="cooldown" id="skill-cd"></span></button>
+          <button id="quick-skill-2" class="action quick-skill locked" data-action="quick2" aria-label="Thần thông bậc 2, chưa mở" disabled><img class="glyph game-icon" src="./assets/icons/skills/unique/kiem_2.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Chưa mở</span><kbd>1</kbd><span class="cooldown"></span></button>
+          <button id="quick-skill-3" class="action quick-skill locked" data-action="quick3" aria-label="Thần thông bậc 3, chưa mở" disabled><img class="glyph game-icon" src="./assets/icons/skills/unique/kiem_3.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Chưa mở</span><kbd>2</kbd><span class="cooldown"></span></button>
+          <button id="quick-skill-4" class="action quick-skill locked" data-action="quick4" aria-label="Thần thông bậc 4, chưa mở" disabled><img class="glyph game-icon" src="./assets/icons/skills/unique/kiem_4.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Chưa mở</span><kbd>3</kbd><span class="cooldown"></span></button>
+          <button id="quick-skill-5" class="action quick-skill locked" data-action="quick5" aria-label="Thần thông bậc 5, chưa mở" disabled><img class="glyph game-icon" src="./assets/icons/skills/unique/kiem_5.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Chưa mở</span><kbd>4</kbd><span class="cooldown"></span></button>
+          <button class="action heal" id="heal-btn" data-action="heal" aria-label="Dùng Hồi Huyết Đan phục hồi HP" title="Hồi Huyết Đan · Phục hồi 32% HP"><img class="glyph game-icon" src="./assets/icons/pills/pill_hp.webp" alt="" aria-hidden="true" draggable="false" /><span class="button-label">Hồi Huyết Đan</span><kbd>F</kbd><span class="pill-count" id="hp-pill-count" hidden>0</span><span class="cooldown" id="heal-cd"></span></button>
+          <button class="action mana" id="mana-btn" data-action="mana" aria-label="Dùng Hồi Linh Đan phục hồi MP" title="Hồi Linh Đan · Phục hồi 32% MP"><img class="glyph game-icon" src="./assets/icons/pills/pill_mp.webp" alt="" aria-hidden="true" draggable="false" /><span class="pill-count" id="mp-pill-count" hidden>0</span><span class="cooldown" id="mana-cd"></span></button>
+        </div>
+        </div>
+      <nav class="right-tools" aria-label="Chức năng nhân vật">
+          <button id="character-btn" class="tool" aria-label="Thông tin nhân vật"><img class="game-icon character-icon" src="./assets/icons/ui/wuxia_character.webp" alt="" aria-hidden="true" /><span>Nhân vật</span></button>
+          <button id="bag-btn" class="tool" aria-label="Xem hành trang"><img class="game-icon" src="./assets/icons/ui/wuxia_bag.webp" alt="" aria-hidden="true" draggable="false" /><span>Túi đồ</span></button>
+          <button id="cultivation-btn" class="tool" aria-label="Kỹ năng và tu luyện"><img class="game-icon" src="./assets/icons/ui/wuxia_skills.webp" alt="" aria-hidden="true" draggable="false" /><span>Kỹ Năng</span></button>
+          <button id="menu-btn" class="tool" aria-label="Mở menu"><span class="menu-symbol" aria-hidden="true">☰</span><span>Menu</span></button>
+          <button id="settings-btn" class="tool" aria-label="Cài đặt giao diện"><img class="game-icon" src="./assets/icons/ui/wuxia_settings.webp" alt="" aria-hidden="true" draggable="false" /><span>Cài đặt</span></button>
+        </nav>
+      <div class="meter exp" role="meter" aria-label="Tiến độ tu vi"><span id="exp-fill"></span><b id="exp-text">Tu vi 0 / 50</b></div>
+    </footer>
+    <button id="dock-toggle" class="dock-toggle" aria-label="Ẩn thanh UI phía dưới" aria-controls="command-dock" aria-expanded="true" title="Ẩn thanh UI phía dưới">⌄</button>
     <div id="overlay" class="overlay" hidden>
-      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        <div class="dialog-emblem">☯</div>
-        <h1 id="dialog-title">Vạn Mộc Sâm Lâm</h1>
-        <p id="dialog-text">Phiêu lưu tu tiên, chiến đấu và tu luyện đột phá cảnh giới.</p>
-        <div id="dialog-details" class="dialog-details"></div>
-        <div id="cultivation-controls" hidden></div>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1">
+        <button id="dialog-close-btn" class="dialog-close-btn" aria-label="Đóng bảng"><img src="./assets/webp/UI/wuxia_close_btn.webp" alt="✕" draggable="false" /></button>
+        <div class="dialog-header-banner">
+          <img class="header-banner-bg" src="./assets/webp/UI/wuxia_title_banner.webp" alt="" aria-hidden="true" draggable="false" />
+          <h1 id="dialog-title">Vạn Mộc Sâm Lâm</h1>
+          <p id="dialog-text" class="dialog-subtitle"></p>
+        </div>
+        <nav id="dialog-nav-tabs" class="dialog-nav-tabs" aria-label="Chuyển đổi giao diện" hidden>
+          <button class="nav-tab" data-tab="character"><span>Nhân Vật</span></button>
+          <button class="nav-tab" data-tab="bag"><span>Túi Đồ</span></button>
+          <button class="nav-tab" data-tab="cultivation"><span>Kỹ Năng</span></button>
+          <button class="nav-tab" data-tab="menu"><span>Hệ Thống</span></button>
+          <button class="nav-tab" data-tab="settings"><span>Cài Đặt</span></button>
+        </nav>
+        <div class="dialog-body-container">
+          <div id="dialog-details" class="dialog-details"></div>
+          <div id="cultivation-controls" hidden></div>
+        </div>
         <div class="dialog-actions"><button id="resume-btn" class="primary">Tiếp tục</button><button id="reset-btn" class="secondary">Chơi lại</button></div>
       </div>
     </div>
-    <div id="loading" class="loading"><div class="loading-logo">☯</div><strong>VẠN MỘC SÂM LÂM</strong><span id="loading-text">Đang tải bản đồ...</span></div>
+    <div id="loading" class="loading"><div class="loading-logo">☯</div><strong>VẠN MỘC SÂM LÂM</strong><span id="loading-text">Đang mở lối vào đại ngàn...</span></div>
   </div>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
+
+
+

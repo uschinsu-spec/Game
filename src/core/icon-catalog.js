@@ -1,0 +1,3 @@
+export const EQUIPMENT_ICONS=Object.freeze({"armor":"equipment/armor","gloves":"equipment/gloves","weapon":"equipment/weapon","pants":"equipment/pants","necklace":"equipment/necklace","belt":"equipment/belt","ring":"equipment/ring","jade":"equipment/jade"});
+export const PROFESSION_ICONS=Object.freeze({ore:'professions/ore',herb:'professions/herb',elixir:'professions/elixir',talisman:'professions/talisman'});
+export const MANUAL_ICONS=Object.freeze({'Hoàng Giai':'manuals/manual_hoang','Huyền Giai':'manuals/manual_huyen','Địa Giai':'manuals/manual_dia','Thiên Giai':'manuals/manual_thien','Thần Giai':'manuals/manual_than'});

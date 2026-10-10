@@ -1,0 +1,1156 @@
+{
+  "guide": {
+    "purpose": "Danh mục quản lý tập trung toàn bộ 65 enemy; game đọc trực tiếp file này.",
+    "path": "Đường dẫn tương đối trong assets/webp, không có đuôi .webp.",
+    "names": "Yêu thú N là tên tạm cho mẫu dự trữ; có thể đổi tên tại đây.",
+    "active": "kindSprites và floorRules xác định loại đang xuất hiện. Enemy chưa gán ở đây là mẫu dự trữ.",
+    "stats": "HP/ATK/DEF lấy từ combatLevels theo beastRank/beastStage, cùng cấp dùng cho tên và nội đan. Không phụ thuộc tu vi player. groups.DEER.combat giữ Linh Lộc 50% HP và không tấn công.",
+    "animation": "GROUND: Run ở hàng 0; WINGED: Fly ở hàng 0; Attack ở hàng 1; Idle là ô đầu hàng 0.",
+    "coordinates": "Các chỉ số hàng/cột bắt đầu từ 0. hoverHeight là độ cao hình so với bóng trên mặt đất, tính bằng px.",
+    "groups": "Quy tắc Run/Fly/Attack/Idle và bóng theo nhóm nằm trong groups; có thể ghi đè riêng từng enemy bằng cùng tên trường.",
+    "combatLevels": "21 cấp chiến đấu cố định. HP/DEF bằng 112% nền player đối chiếu tại playerRealmIdx, giữ tối đa 2 chữ số thập phân; ATK bằng 112% và làm tròn lên số nguyên. Nhất Phẩm đối chiếu Luyện Khí 3/6/9/12, Nhị–Ngũ Phẩm đối chiếu từng kỳ Trúc Cơ–Hóa Thần. DEF nền 0 giữ 0. Linh Lộc giữ 43 HP và 0 ATK bằng groups.DEER.combat."
+  },
+  "animation": {
+    "frameSize": 176,
+    "rows": 2,
+    "movementRow": 0,
+    "attackRow": 1,
+    "idleRow": 0,
+    "idleColumn": 0,
+    "attackDuration": 0.6
+  },
+  "groups": {
+    "DEER": {
+      "movement": "run",
+      "movementRow": 0,
+      "attackRow": 1,
+      "idleRow": 0,
+      "idleColumn": 0,
+      "hoverHeight": 0,
+      "shadowWidthRatio": 0.57,
+      "shadowHeight": 12,
+      "shadowOpacity": 1,
+      "combat": {
+        "hpMultiplier": 0.5,
+        "attackMultiplier": 0,
+        "hpOverride": 43
+      },
+      "separationRadius": 22
+    },
+    "GROUND": {
+      "movement": "run",
+      "movementRow": 0,
+      "attackRow": 1,
+      "idleRow": 0,
+      "idleColumn": 0,
+      "hoverHeight": 0,
+      "shadowWidthRatio": 0.57,
+      "shadowHeight": 12,
+      "shadowOpacity": 1,
+      "seekActors": true,
+      "separationRadius": 22
+    },
+    "WINGED": {
+      "movement": "fly",
+      "movementRow": 0,
+      "attackRow": 1,
+      "idleRow": 0,
+      "idleColumn": 0,
+      "hoverHeight": 26,
+      "shadowWidthRatio": 0.44,
+      "shadowHeight": 8,
+      "shadowOpacity": 0.65,
+      "seekActors": true,
+      "separationRadius": 22
+    }
+  },
+  "kindSprites": {
+    "wolf": "enemy2",
+    "deer": "deer"
+  },
+  "floorRules": [
+    {
+      "from": 1,
+      "to": 1,
+      "kind": "deer"
+    },
+    {
+      "from": 2,
+      "to": null,
+      "kind": "wolf"
+    }
+  ],
+  "enemies": {
+    "deer": {
+      "name": "Linh Lộc",
+      "category": "DEER",
+      "path": "ENEMIES/DEER/deer",
+      "columns": 8,
+      "size": [
+        82,
+        86
+      ],
+      "speed": 84,
+      "aggro": 0,
+      "radius": 19
+    },
+    "enemy1": {
+      "name": "Yêu thú 1",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy1",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy2": {
+      "name": "Yêu Lang",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy2",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy3": {
+      "name": "Yêu thú 3",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy3",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy4": {
+      "name": "Yêu thú 4",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy4",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy5": {
+      "name": "Yêu thú 5",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy5",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy6": {
+      "name": "Yêu thú 6",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy6",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy7": {
+      "name": "Yêu thú 7",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy7",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy8": {
+      "name": "Yêu thú 8",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy8",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy9": {
+      "name": "Yêu thú 9",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy9",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy10": {
+      "name": "Yêu thú 10",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy10",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy11": {
+      "name": "Yêu thú 11",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy11",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy12": {
+      "name": "Yêu thú 12",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy12",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy13": {
+      "name": "Yêu thú 13",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy13",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy14": {
+      "name": "Yêu thú 14",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy14",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy15": {
+      "name": "Yêu thú 15",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy15",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy16": {
+      "name": "Yêu thú 16",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy16",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy17": {
+      "name": "Yêu thú 17",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy17",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy18": {
+      "name": "Yêu thú 18",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy18",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy19": {
+      "name": "Yêu thú 19",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy19",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy20": {
+      "name": "Yêu thú 20",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy20",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy21": {
+      "name": "Yêu thú 21",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy21",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy22": {
+      "name": "Yêu thú 22",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy22",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy23": {
+      "name": "Yêu thú 23",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy23",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy24": {
+      "name": "Yêu thú 24",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy24",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy25": {
+      "name": "Yêu thú 25",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy25",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy26": {
+      "name": "Yêu thú 26",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy26",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy27": {
+      "name": "Yêu thú 27",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy27",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy28": {
+      "name": "Yêu thú 28",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy28",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy29": {
+      "name": "Yêu thú 29",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy29",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy30": {
+      "name": "Yêu thú 30",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy30",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy31": {
+      "name": "Yêu thú 31",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy31",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy32": {
+      "name": "Yêu thú 32",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy32",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy33": {
+      "name": "Yêu thú 33",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy33",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy34": {
+      "name": "Yêu thú 34",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy34",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy35": {
+      "name": "Yêu thú 35",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy35",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy36": {
+      "name": "Yêu thú 36",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy36",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy37": {
+      "name": "Yêu thú 37",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy37",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy38": {
+      "name": "Yêu thú 38",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy38",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy39": {
+      "name": "Yêu thú 39",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy39",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy40": {
+      "name": "Yêu thú 40",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy40",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy41": {
+      "name": "Yêu thú 41",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy41",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy42": {
+      "name": "Yêu thú 42",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy42",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy43": {
+      "name": "Yêu thú 43",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy43",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy44": {
+      "name": "Yêu thú 44",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy44",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy45": {
+      "name": "Yêu thú 45",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy45",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy46": {
+      "name": "Yêu thú 46",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy46",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy47": {
+      "name": "Yêu thú 47",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy47",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy48": {
+      "name": "Yêu thú 48",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy48",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy49": {
+      "name": "Yêu thú 49",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy49",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy50": {
+      "name": "Yêu thú 50",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy50",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy51": {
+      "name": "Yêu thú 51",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy51",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy52": {
+      "name": "Yêu thú 52",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy52",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy53": {
+      "name": "Yêu thú 53",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy53",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy54": {
+      "name": "Yêu thú 54",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy54",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy55": {
+      "name": "Yêu thú 55",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy55",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy56": {
+      "name": "Yêu thú 56",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy56",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy57": {
+      "name": "Yêu thú 57",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy57",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy58": {
+      "name": "Yêu thú 58",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy58",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy59": {
+      "name": "Yêu thú 59",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy59",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy60": {
+      "name": "Yêu thú 60",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy60",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy61": {
+      "name": "Yêu thú 61",
+      "category": "GROUND",
+      "path": "ENEMIES/GROUND/enemy61",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy62": {
+      "name": "Yêu thú 62",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy62",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy63": {
+      "name": "Yêu thú 63",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy63",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    },
+    "enemy64": {
+      "name": "Yêu thú 64",
+      "category": "WINGED",
+      "path": "ENEMIES/WINGED/enemy64",
+      "columns": 10,
+      "size": [
+        86,
+        73
+      ],
+      "speed": 67,
+      "aggro": 205,
+      "radius": 23
+    }
+  },
+  "combatLevels": [
+    {
+      "rank": 0,
+      "stage": -1,
+      "name": "Phàm Thú",
+      "hp": 112,
+      "def": 0,
+      "attack": 6,
+      "playerRealmIdx": 0,
+      "playerRealmName": "Phàm Nhân"
+    },
+    {
+      "rank": 1,
+      "stage": 0,
+      "name": "Nhất Phẩm Sơ Kỳ",
+      "hp": 582.4,
+      "def": 14.56,
+      "attack": 45,
+      "playerRealmIdx": 3,
+      "playerRealmName": "Luyện Khí Tầng 3"
+    },
+    {
+      "rank": 1,
+      "stage": 1,
+      "name": "Nhất Phẩm Trung Kỳ",
+      "hp": 1288,
+      "def": 31.36,
+      "attack": 86,
+      "playerRealmIdx": 6,
+      "playerRealmName": "Luyện Khí Tầng 6"
+    },
+    {
+      "rank": 1,
+      "stage": 2,
+      "name": "Nhất Phẩm Hậu Kỳ",
+      "hp": 2688,
+      "def": 59.36,
+      "attack": 153,
+      "playerRealmIdx": 9,
+      "playerRealmName": "Luyện Khí Tầng 9"
+    },
+    {
+      "rank": 1,
+      "stage": 3,
+      "name": "Nhất Phẩm Đỉnh Phong",
+      "hp": 5040,
+      "def": 100.8,
+      "attack": 258,
+      "playerRealmIdx": 12,
+      "playerRealmName": "Luyện Khí Tầng 12"
+    },
+    {
+      "rank": 2,
+      "stage": 0,
+      "name": "Nhị Phẩm Sơ Kỳ",
+      "hp": 16800,
+      "def": 313.6,
+      "attack": 784,
+      "playerRealmIdx": 13,
+      "playerRealmName": "Trúc Cơ Sơ Kỳ"
+    },
+    {
+      "rank": 2,
+      "stage": 1,
+      "name": "Nhị Phẩm Trung Kỳ",
+      "hp": 26880,
+      "def": 448,
+      "attack": 1120,
+      "playerRealmIdx": 14,
+      "playerRealmName": "Trúc Cơ Trung Kỳ"
+    },
+    {
+      "rank": 2,
+      "stage": 2,
+      "name": "Nhị Phẩm Hậu Kỳ",
+      "hp": 42560,
+      "def": 649.6,
+      "attack": 1624,
+      "playerRealmIdx": 15,
+      "playerRealmName": "Trúc Cơ Hậu Kỳ"
+    },
+    {
+      "rank": 2,
+      "stage": 3,
+      "name": "Nhị Phẩm Đỉnh Phong",
+      "hp": 67200,
+      "def": 952,
+      "attack": 2352,
+      "playerRealmIdx": 16,
+      "playerRealmName": "Trúc Cơ Đỉnh Phong"
+    },
+    {
+      "rank": 3,
+      "stage": 0,
+      "name": "Tam Phẩm Sơ Kỳ",
+      "hp": 280000,
+      "def": 3584,
+      "attack": 8960,
+      "playerRealmIdx": 17,
+      "playerRealmName": "Kim Đan Sơ Kỳ"
+    },
+    {
+      "rank": 3,
+      "stage": 1,
+      "name": "Tam Phẩm Trung Kỳ",
+      "hp": 448000,
+      "def": 5376,
+      "attack": 13440,
+      "playerRealmIdx": 18,
+      "playerRealmName": "Kim Đan Trung Kỳ"
+    },
+    {
+      "rank": 3,
+      "stage": 2,
+      "name": "Tam Phẩm Hậu Kỳ",
+      "hp": 728000,
+      "def": 8064,
+      "attack": 20160,
+      "playerRealmIdx": 19,
+      "playerRealmName": "Kim Đan Hậu Kỳ"
+    },
+    {
+      "rank": 3,
+      "stage": 3,
+      "name": "Tam Phẩm Đỉnh Phong",
+      "hp": 1120000,
+      "def": 12320,
+      "attack": 30240,
+      "playerRealmIdx": 20,
+      "playerRealmName": "Kim Đan Đỉnh Phong"
+    },
+    {
+      "rank": 4,
+      "stage": 0,
+      "name": "Tứ Phẩm Sơ Kỳ",
+      "hp": 5600000,
+      "def": 53760,
+      "attack": 134400,
+      "playerRealmIdx": 21,
+      "playerRealmName": "Nguyên Anh Sơ Kỳ"
+    },
+    {
+      "rank": 4,
+      "stage": 1,
+      "name": "Tứ Phẩm Trung Kỳ",
+      "hp": 8960000,
+      "def": 80640,
+      "attack": 201600,
+      "playerRealmIdx": 22,
+      "playerRealmName": "Nguyên Anh Trung Kỳ"
+    },
+    {
+      "rank": 4,
+      "stage": 2,
+      "name": "Tứ Phẩm Hậu Kỳ",
+      "hp": 14560000,
+      "def": 123200,
+      "attack": 313600,
+      "playerRealmIdx": 23,
+      "playerRealmName": "Nguyên Anh Hậu Kỳ"
+    },
+    {
+      "rank": 4,
+      "stage": 3,
+      "name": "Tứ Phẩm Đỉnh Phong",
+      "hp": 22400000,
+      "def": 184800,
+      "attack": 470400,
+      "playerRealmIdx": 24,
+      "playerRealmName": "Nguyên Anh Đỉnh Phong"
+    },
+    {
+      "rank": 5,
+      "stage": 0,
+      "name": "Ngũ Phẩm Sơ Kỳ",
+      "hp": 134400000,
+      "def": 840000,
+      "attack": 2240000,
+      "playerRealmIdx": 25,
+      "playerRealmName": "Hóa Thần Sơ Kỳ"
+    },
+    {
+      "rank": 5,
+      "stage": 1,
+      "name": "Ngũ Phẩm Trung Kỳ",
+      "hp": 224000000,
+      "def": 1232000,
+      "attack": 3360000,
+      "playerRealmIdx": 26,
+      "playerRealmName": "Hóa Thần Trung Kỳ"
+    },
+    {
+      "rank": 5,
+      "stage": 2,
+      "name": "Ngũ Phẩm Hậu Kỳ",
+      "hp": 369600000,
+      "def": 1848000,
+      "attack": 5152000,
+      "playerRealmIdx": 27,
+      "playerRealmName": "Hóa Thần Hậu Kỳ"
+    },
+    {
+      "rank": 5,
+      "stage": 3,
+      "name": "Ngũ Phẩm Đỉnh Phong",
+      "hp": 560000000,
+      "def": 2800000,
+      "attack": 7840000,
+      "playerRealmIdx": 28,
+      "playerRealmName": "Hóa Thần Đỉnh Phong"
+    }
+  ],
+  "combatBalance": {
+    "multiplier": 1.12,
+    "rounding": "two_decimal_places",
+    "zeroDefenseStaysZero": true,
+    "damageRounding": "ceil"
+  },
+  "beastFloorOverrides": {
+    "2": {
+      "rank": 0,
+      "stage": -1,
+      "spawnCount": 3,
+      "respawnSeconds": 5
+    }
+  }
+}

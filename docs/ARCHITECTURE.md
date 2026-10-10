@@ -29,8 +29,13 @@ GAME/
     skill-vfx.js              Hàng hệ, vùng cắt frame và màu VFX
     input.js                  Bàn phím, chuột, joystick cảm ứng
     ui.js / style.css         HUD, menu và giao diện
-  assets/webp/                 Giữ đường dẫn tài nguyên hiện có
+  assets/webp/                 Ảnh phân nhóm; core/assets.js ánh xạ ID sprite
   assets/webp/MAP/             Bản đồ các tầng
+  assets/webp/PLAYER/          Sprite nhân vật chính
+  assets/webp/NPC/             Tu sĩ và NPC chức năng
+  assets/webp/ENEMIES/         DEER, WINGED, GROUND
+  assets/webp/VFX/             Vệt chém và hiệu ứng thần thông
+  assets/webp/UI/              Avatar giao diện
   tests/                      Bộ chạy chung và kiểm tra cấu trúc
   tools/                      Công cụ asset và các bài kiểm tra hành vi cũ
   docs/                       Tài liệu kỹ thuật

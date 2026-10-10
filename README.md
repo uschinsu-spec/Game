@@ -37,7 +37,7 @@ chọn branch và thư mục gốc trong Settings → Pages.
 - Cửa góc 5 giờ đi lên tầng tiếp theo, xuất hiện cạnh cửa góc 11 giờ của tầng đó. Cửa góc 11 giờ quay lại tầng trước. Tầng 1 không có cửa lùi, tầng 99 không có cửa đi tiếp.
 - Tầng 3 dùng `MAP/map3.webp`. Các tầng sau dùng lần lượt ảnh trong `assets/webp/MAP`, theo cấu hình `src/floors.js`; 21 ảnh được lặp vòng để đủ tầng 3–99.
 - Ảnh được tải khi vào tầng, giữ tối đa 3 ảnh bản đồ trong bộ nhớ đệm. Nếu tải lỗi, nhân vật ở nguyên tầng hiện tại và có thể thử lại.
-- Mỗi map có hai tu sĩ cùng phe: Xích Phong (`NPC1.webp`) và Bạch Vân (`NPC2.webp`).
+- Từ tầng 2 có hai tu sĩ cùng phe; tầng 2 chỉ ở cảnh giới Phàm Nhân. Tầng 1 có NPC hướng dẫn Trưởng Thôn. Các tu sĩ: Xích Phong (`NPC1.webp`) và Bạch Vân (`NPC2.webp`).
 - NPC tầng 1 là Phàm Nhân, chỉ di chuyển và đánh thường. Tầng 2 bắt đầu Luyện Khí Tầng 1.
 - Cảnh giới NPC tăng theo bậc: tầng 3 là Luyện Khí Tầng 2, tầng 14 là Trúc Cơ Sơ Kỳ; từ tầng 29 giữ Hóa Thần Đỉnh Phong. Không phụ thuộc cảnh giới Player.
 - Từ Luyện Khí, NPC chỉ dùng thần thông khi tấn công, không đánh thường kể cả khi thiếu MP hoặc chờ hồi chiêu. AI luân phiên các chiêu được mở, ưu tiên bậc hiện tại rồi bậc thấp hơn; mỗi chiêu có hồi chiêu riêng và cách lần thi triển tối thiểu 0,65 giây.
@@ -46,16 +46,16 @@ chọn branch và thư mục gốc trong Settings → Pages.
 - Player và NPC dùng chung di chuyển, animation và hành động trong `src/systems/characters.js` và `src/systems/combat.js`.
 - NPC hồi sinh sau 12 giây. Chiến lợi phẩm nguyên liệu của NPC được tính riêng; hạ quái không cộng EXP cho NPC.
 - Trạng thái từng map được giữ khi truyền tống trong phiên chơi. Tải lại trang tạo lại quái và NPC.
-- Asset dự trữ `bandit.webp` và `assets/webp/map3.webp` ở ngoài thư mục MAP không được tải vào game.
+- Asset dự trữ `assets/webp/ENEMIES/bandit.webp` không được tải vào game.
 
 ## Chiến lợi phẩm Yêu Thú
 
-- Tầng 1: Linh Lộc phàm thú, không có Nội Đan. Từ tầng 2 là yêu thú Nhất Phẩm; mỗi 12 tầng tăng một phẩm, cao nhất Cửu Phẩm ở tầng 98–99.
+- Tầng 1: Linh Lộc phàm thú, không có Nội Đan. Tầng 2–13: Nhất Phẩm; 14–25: Nhị Phẩm; 26–37: Tam Phẩm; 38–49: Tứ Phẩm; **50–99: Ngũ Phẩm (tối đa)**. Từ tầng 59 trở lên yêu thú luôn đạt Ngũ Phẩm Đỉnh Phong; không xuất hiện Lục–Cửu Phẩm.
 - Mỗi quái rơi Da Thú; Lông Thú có xác suất 72%, Huyết Thú 42%. Không bao giờ rơi tiền, Linh Thạch hoặc EXP.
 - Mỗi đại phẩm chia thành bốn tiểu cảnh giới, mỗi cảnh giới tương ứng ba tầng: **Sơ Kỳ → Nội Đan Hạ Phẩm (50% cơ hội rơi)**, **Trung Kỳ → Trung Phẩm (30%)**, **Hậu Kỳ → Thượng Phẩm (15%)**, **Đỉnh Phong → Cực Phẩm (5%)**. Ví dụ tầng 11–13: Yêu Lang Nhất Phẩm Đỉnh Phong, khi rơi Nội Đan luôn là **Nội Đan 1 Phẩm · Cực Phẩm**.
-- **Yêu thú càng cao cấp thì Nội Đan càng hiếm**: mỗi đại phẩm cao hơn có tỷ lệ chỉ bằng **85% của đại phẩm trước** ở cùng tiểu cảnh giới (ví dụ Nhị Phẩm Sơ Kỳ 42,5%; Cửu Phẩm Đỉnh Phong khoảng 1,36%). Phẩm chất Nội Đan **không quay ngẫu nhiên** sau khi rơi mà phụ thuộc tiểu cảnh giới của yêu thú.
+- **Yêu thú càng cao cấp thì Nội Đan càng hiếm**: mỗi đại phẩm cao hơn có tỷ lệ chỉ bằng **85% của đại phẩm trước** ở cùng tiểu cảnh giới (ví dụ Nhị Phẩm Sơ Kỳ 42,5%; Ngũ Phẩm Đỉnh Phong khoảng 2,61%). Phẩm chất Nội Đan **không quay ngẫu nhiên** sau khi rơi mà phụ thuộc tiểu cảnh giới của yêu thú.
 - Nhấn chọn quái để xem phẩm cấp và tiểu cảnh giới trên đầu quái.
-- Vật phẩm nhặt tự động khi tiến đến gần, được cộng dồn trong **Hành trang** và lưu qua các lần đăng nhập. Nội Đan phân biệt cả phẩm cấp yêu thú (1–9) lẫn phẩm chất (Hạ/Trung/Thượng/Cực).
+- Vật phẩm nhặt tự động khi tiến đến gần, được cộng dồn trong **Hành trang** và lưu qua các lần đăng nhập. Nội Đan phân biệt cả phẩm cấp yêu thú (**1–5**) lẫn phẩm chất (Hạ/Trung/Thượng/Cực). Nếu save cũ chứa Nội Đan 6–9 Phẩm, khi tải sẽ tự quy đổi thành Nội Đan 5 Phẩm tương ứng cùng phẩm chất, giữ số lượng.
 - Hành trang có nút **Bán Da/Lông/Huyết** để đổi nguyên liệu thường lấy Linh Thạch phục vụ học công pháp và luyện đan; **không tự bán Nội Đan**.
 
 ## Tu luyện và kỹ năng
@@ -89,10 +89,10 @@ là các vùng đơn giản trong `src/world.js`, chưa phải tilemap chính x�
 
 | Tệp | Kích thước | Bố cục |
 | --- | --- | --- |
-| map.webp / map2.webp | 1672×941 | Bản đồ ngang |
-| player.webp / NPC1.webp / NPC2.webp | 1920×432 | 4 hàng × 10 cột; ô 192×108 |
-| wolf.webp / deer.webp | 1408×352 | 2 hàng × 8 cột; ô 176×176 |
-| avatar.webp | 128×128 | Avatar |
+| MAP/map.webp / MAP/map2.webp | 1672×941 | Bản đồ ngang |
+| PLAYER/player.webp / NPC/NPC1.webp / NPC/NPC2.webp | 1920×432 | 4 hàng × 10 cột; ô 192×108 |
+| ENEMIES/wolf.webp / ENEMIES/deer.webp | 1408×352 | 2 hàng × 8 cột; ô 176×176 |
+| UI/avatar.webp | 128×128 | Avatar |
 
 Player/NPC: hàng 1 idle, 2 run, 3 attack, 4 skill. Hướng trái lật ngang.
 NPC được điều chỉnh theo chiều cao nhân vật thực tế để tương đương Player.

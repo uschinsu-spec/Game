@@ -1,5 +1,5 @@
 const KEY_DIRS = {ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0],ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1]};
-const KEY_ACTIONS={Space:'attack',KeyJ:'attack',KeyQ:'skill',KeyF:'heal'};
+const KEY_ACTIONS={Space:'attack',KeyJ:'attack',KeyQ:'skill',KeyF:'heal',Digit1:'quick2',Digit2:'quick3',Digit3:'quick4',Digit4:'quick5'};
 
 export class Input {
   constructor(joystick,knob,onAction,onTap) {
@@ -44,7 +44,7 @@ export class Input {
       if(tap)this.onTap(e.clientX,e.clientY);
     });
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
-    for(const button of document.querySelectorAll('[data-action]')) {
+    for(const button of document.querySelectorAll('[data-action]:not([data-skill-slot])')) {
       button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.onAction(button.dataset.action)});
     }
   }

@@ -30,5 +30,5 @@ export function floorNumber(id='map'){
 export function floorId(n){const floor=floorNumber(n);return floor===1?'map':`map${floor}`}
 export function floorAsset(id){
   const n=floorNumber(id);
-  return n===1?'map':n===2?'map2':EXTRA_MAP_ASSETS[(n-3)%EXTRA_MAP_ASSETS.length];
+  return n===1?'MAP/map':n===2?'MAP/map2':EXTRA_MAP_ASSETS[(n-3)%EXTRA_MAP_ASSETS.length];
 }

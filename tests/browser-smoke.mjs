@@ -13,17 +13,18 @@ try{
     page.on('pageerror',e=>errors.push(e.message));
     page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`)});
     await page.goto(`${process.env.GAME_URL||'http://127.0.0.1:8000/'}?debug`);
-    await page.waitForFunction(()=>window.__GAME_DEBUG__);
+    await page.waitForFunction(()=>window.__GAME_DEBUG__,null,{polling:100});
     await page.evaluate(async()=>{
       const g=window.__GAME_DEBUG__;g.paused=true;
       if(document.getElementById('dash-btn'))throw Error('Unexpected DASH button');
       const first=g.mapId;
       if(!await g.travel())throw Error('Forward travel failed');
-      const {syncStats}=await import('/src/cultivation.js');
+      const {syncStats,Engine,SKILLS}=await import('/src/cultivation.js');
       g.player.realmIdx=1;syncStats(g.player,true);g.player.x=1000;g.player.y=600;
       const e=g.state.enemies[0];Object.assign(e,{x:1240,y:600,hp:1e9,maxHp:1e9,dead:false});
-      g.state.enemies=[e];g.player.mp=1;g.player.selectedSkillId='kiem_1';
+      g.state.enemies=[e];g.player.selectedSkillId='kiem_1';g.player.mp=Engine.calcSkillMpCost(g.player,SKILLS.find(s=>s.id==='kiem_1'));
       if(!g.skill()||g.player.mp!==0)throw Error('Skill failed');
+      g.tickCharacter(g.player,g.player.skillReleaseAge+.001);
       g.stepEffects(.15);g.render();g.drawMinimap();g.ui.update(performance.now()+1000);
       g.stepEffects(1);g.render();
       if(!g.state.effects.some(f=>f.type==='skillImpact'))throw Error('Impact missing');

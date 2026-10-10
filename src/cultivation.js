@@ -1,20 +1,30 @@
+import ENEMY_DATA from './data/enemies.json' with {type:'json'};
 import {CultivationEngine as Engine, REALMS, CONG_PHAP_LIST, CONG_PHAP_GRADES, SKILLS, SKILL_MASTERY_TIERS} from '../cultivation_engine.js';
 export {Engine, REALMS, CONG_PHAP_LIST, CONG_PHAP_GRADES, SKILLS, SKILL_MASTERY_TIERS};
 
-// The forest is a training ground: each major realm brings a stronger wave.
-export function enemyStats(kind, realmIdx) {
-  const stage=[0,1,13,17,21,25].filter(i=>i<=realmIdx).at(-1);
-  const base=REALMS[stage], factor={wolf:1,deer:.5}[kind];
-  const progression=1+Math.max(0,realmIdx-stage)*.24;
-  return {hp:Math.round(base.hp*.85*factor*progression),def:Math.round(base.def*.45*progression),
-    attack:kind==='deer'?0:Math.max(5,Math.round(base.hp*.065*factor*progression))};
+// Combat, labels and core drops share the same beast rank and substage.
+export function enemyStats(kind, beastRank=kind==='deer'?0:1, beastStage=0) {
+  const rank=Math.max(0,Math.min(5,Math.floor(Number(beastRank)||0)));
+  const stage=rank?Math.max(0,Math.min(3,Math.floor(Number(beastStage)||0))):-1;
+  const level=ENEMY_DATA.combatLevels.find(e=>e.rank===rank&&e.stage===stage);
+  if(!level)throw new Error(`Missing beast combat level ${rank}:${stage}`);
+  const asset=ENEMY_DATA.kindSprites[kind]||kind;
+  const entry=ENEMY_DATA.enemies[asset];
+  const modifier=ENEMY_DATA.groups[entry?.category]?.combat||{};
+  return {hp:modifier.hpOverride??Math.round(level.hp*(modifier.hpMultiplier??1)*100)/100,
+    attack:Math.ceil(level.attack*(modifier.attackMultiplier??1)),def:level.def};
 }
 export function syncStats(p, refill=false) {
+  if(p.realmIdx>=1&&!p.activeCongPhapId){
+    p.activeCongPhapId='cp_dan_khi';
+    if(Array.isArray(p.ownedManuals)&&!p.ownedManuals.includes('cp_dan_khi'))p.ownedManuals.push('cp_dan_khi');
+    if(!p.congPhapMastery)p.congPhapMastery=0.35;
+  }
   p.maxHp=Engine.calcMaxHp(p);p.maxMp=Engine.calcMaxMp(p);
   p.hp=refill?p.maxHp:Math.min(p.hp,p.maxHp);p.mp=refill?p.maxMp:Math.min(p.mp,p.maxMp);
 }
 // Luyen Khi 1-3 / 4-6 / 7-9 / 10-12 correspond to early/mid/late/peak.
-export function npcRealmForFloor(floor){return Math.min(28,Math.max(0,floor-1))}
+export function npcRealmForFloor(floor){return floor===2?0:Math.min(28,Math.max(0,floor-1))}
 export function npcMasteryCap(p,id){
   const sk=SKILLS.find(s=>s.id===id);
   if(!sk||sk.minRealm>p.realmIdx)return -1;
@@ -53,6 +63,7 @@ export const CULTIVATION_PILLS = Object.freeze([
 export function cultivationPillForRealm(realmIdx){
   return CULTIVATION_PILLS.find(p=>realmIdx>=p.minRealm&&realmIdx<=p.maxRealm);
 }
-export function cultivationPillExp(char){
-  return Math.max(1, Math.ceil(Engine.getRealm(char).expReq * cultivationPillForRealm(char.realmIdx).expPct));
+export function cultivationPillExp(char, pill=cultivationPillForRealm(char.realmIdx)){
+  const pct = pill?.expPct ?? cultivationPillForRealm(char.realmIdx)?.expPct ?? 0.12;
+  return Math.max(1, Math.ceil(Engine.getRealm(char).expReq * pct));
 }
