@@ -3,6 +3,7 @@ import {Engine,SKILLS,trainSkill,npcMasteryCap} from '../cultivation.js';
 import {clamp,distance,rand} from '../core/runtime.js';
 import {combatTempo} from '../core/combat-tempo.js';
 import {WORLD} from '../world.js';
+import {generateBeastLoot} from '../core/beast-loot.js';
 
 export const CombatSystem = {
   skillRange(sk){return sk.type==='melee'?108:(sk.type==='aoe'||sk.type==='heal')?sk.radius:300},
@@ -137,7 +138,11 @@ export const CombatSystem = {
   },
   kill(e,p=this.player){
     e.dead=true;e.attackAnim=0;e.attackAge=0;e.respawn=12+Math.random()*8;
-    // Killing monsters grants only drops/materials/gold, NEVER cultivation EXP.
-    this.state.drops.push({x:e.x+rand(-9,9),y:e.y,gold:e.gold,owner:p===this.player?null:p.id,life:13,spin:Math.random()*6});
+    // Enemies drop ONLY hide/fur/blood and possibly a graded inner core; no currency or EXP.
+    const owner=p===this.player?null:p.id;
+    for(const loot of generateBeastLoot(e)){
+      this.state.drops.push({x:e.x+rand(-15,15),y:e.y+rand(-10,10),
+        itemId:loot.itemId,quantity:loot.quantity,owner,life:24,spin:Math.random()*6});
+    }
   }
 };
