@@ -1,6 +1,7 @@
 import {SPECIES} from '../world.js';
 import {Engine} from '../cultivation.js';
 import {distance,rand} from '../core/runtime.js';
+import {lootInfo} from '../core/beast-loot.js';
 
 export const WorldUpdateSystem = {
   stepEnemies(dt){
@@ -64,13 +65,24 @@ export const WorldUpdateSystem = {
     }
   },
   stepDrops(dt){
+    let pickedByPlayer=false;
     this.state.drops=this.state.drops.filter(d=>{
       d.life-=dt;d.spin+=dt*3;if(d.life<=0)return false;
       const p=d.owner?this.state.npcs.find(p=>p.id===d.owner):this.player;
       if(!p||p.dead)return true;
-      if(distance(d,p)<38){if(d.gold)p.gold+=d.gold;return false}
-      return true;
+      if(distance(d,p)>=38)return true;
+      const item=lootInfo(d.itemId),quantity=Math.max(0,Math.floor(d.quantity||0));
+      if(item&&quantity){
+        p.materials??={};
+        p.materials[d.itemId]=(p.materials[d.itemId]||0)+quantity;
+        if(p===this.player){
+          pickedByPlayer=true;
+          this.floatText(d.x,d.y-43,`+${quantity} ${item.name}`,item.color);
+        }
+      }
+      return false;
     });
+    if(pickedByPlayer)this.save();
   },
   floatText(x,y,text,color){this.state.texts.push({x,y,text,color,life:.95,max:.95,offset:rand(-10,10)})},
   stepEffects(dt){
