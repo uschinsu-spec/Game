@@ -23,8 +23,9 @@ export const WorldUpdateSystem = {
             p.isMeditating=false;
             const amount=p.buffTime>0&&p.buffId==='tho_5'?0:Math.max(1,e.attack-Engine.calcElementalDefense(p,'Vật Lý'));
             if(p.buffTime>0&&p.buffId==='tho_5')this.damageEnemy(e,e.attack,false,p);
-            p.hp=Math.max(0,p.hp-amount);p.hurt=.25;
-            this.floatText(p.x,p.y-70,'-'+amount,'#ff7772');
+            const adjusted=p.buffId==='profession_shield'&&p.buffTime>0?Math.max(1,Math.ceil(amount*(1-(p.professionShield||.2)))):amount;
+             p.hp=Math.max(0,p.hp-adjusted);p.hurt=.25;
+            this.floatText(p.x,p.y-70,'-'+adjusted,'#ff7772');
             if(p.hp<=0){
               p.dead=true;p.walk=false;p.attackAnim=0;p.skillAnim=0;
               if(p===this.player){this.auto=false;this.ui.dead();this.save()}else p.respawn=12;
