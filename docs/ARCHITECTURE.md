@@ -22,7 +22,7 @@ GAME/
       progression.js          Tu luyện, công pháp, luyện đan, chỉ số quái
       persistence.js          Đọc/ghi save và đặt lại game
       travel.js               Truyền tống và bộ nhớ đệm ảnh map
-      world-update.js         Quái, linh thảo, vật phẩm và tuổi hiệu ứng
+      world-update.js         Quái, chiến lợi phẩm Linh Thạch và tuổi hiệu ứng
       renderer.js             Vẽ thế giới, nhân vật, VFX và minimap
     cultivation.js            Kết nối engine và giới hạn NPC
     floors.js / world.js      Asset 99 tầng, spawn, địa hình, cửa truyền tống
@@ -49,7 +49,7 @@ Module mới phải được import và đăng ký tại `game.js`; thêm hàm c
 ## Trạng thái và save
 
 - `player`: tiến trình và trạng thái người chơi.
-- `state`: quái, NPC, linh thảo, vật phẩm và hiệu ứng tầng hiện tại.
+- `state`: quái, NPC, chiến lợi phẩm Linh Thạch và hiệu ứng tầng hiện tại.
 - `mapStates`: trạng thái tầng đã ghé trong phiên chơi.
 - `images` / `mapImages`: ảnh hoạt động và bộ nhớ đệm map có giới hạn.
 - `target`: mục tiêu Player; `npc.aiTarget`: mục tiêu riêng của NPC.
