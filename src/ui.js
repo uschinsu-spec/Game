@@ -1,3 +1,4 @@
+import {RESOURCE_RANKS,RESOURCE_QUALITIES,resourceId,resourceInfo,floorResourceRank} from './core/profession-items.js';
 const $=selector=>document.querySelector(selector);
 import {Engine,REALMS,CONG_PHAP_LIST,CONG_PHAP_GRADES,SKILLS,SKILL_MASTERY_TIERS,availableSkills,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from './cultivation.js';
 import {floorNumber,FLOOR_COUNT} from './floors.js';
@@ -65,6 +66,9 @@ export class UI {
     const pills=Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n);
     this.show('Hành trang','Vật liệu yêu thú và đan dược được cộng dồn',
       `🪙 Linh Thạch: ${p.gold.toLocaleString('vi-VN')}\n✨ Tu Vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${items.length?items.join('\n'):'Chưa có vật liệu yêu thú'}\n${pills.join('\n')}`);
+    const owned=Object.entries(p.professionItems||{}).filter(([id,count])=>count>0&&resourceInfo(id));
+    const heading=document.createElement('p');heading.textContent='⛏ Khoáng Thạch · 🌿 Linh Thảo · ⚗ Đan Dược · 📜 Phù Lục';details.append(heading);
+    for(const [id,count] of owned){const info=resourceInfo(id),line=document.createElement('div');line.className='inventory-row';line.textContent=info.name+' ×'+count;details.append(line)}
     const total=Object.keys(BEAST_MATERIALS).reduce((sum,id)=>sum+(p.materials?.[id]||0),0);
     const box=$('#cultivation-controls');box.replaceChildren();box.hidden=false;
     const button=document.createElement('button');
@@ -72,6 +76,16 @@ export class UI {
     button.disabled=!total;
     button.addEventListener('click',()=>{this.game.sellBeastMaterials();this.bag()});
     box.append(button);
+    const action=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.addEventListener('click',()=>{if(fn())this.bag()});box.append(b)};
+    const rankLabel=document.createElement('label');rankLabel.textContent='Phẩm cấp chế tạo';const gradeSelect=document.createElement('select');
+    const maxRank=floorResourceRank(floorNumber(this.game.mapId));
+    for(let rank=0;rank<=maxRank;rank++)for(let quality=0;quality<(rank===0?1:4);quality++){const o=document.createElement('option');o.value=rank+':'+quality;o.textContent=RESOURCE_RANKS[rank]+(rank?' · '+RESOURCE_QUALITIES[quality]:'');gradeSelect.append(o)}
+    gradeSelect.value=maxRank+':0';rankLabel.append(gradeSelect);box.append(rankLabel);
+    const grade=()=>gradeSelect.value.split(':').map(Number);
+    action('⚗ Luyện Đan (2 Linh Thảo + 1 Khoáng)',()=>this.game.craftProfessionItem('elixir',...grade()));
+    action('📜 Chế Phù (2 Khoáng + 1 Linh Thảo)',()=>this.game.craftProfessionItem('talisman',...grade()));
+    const usable=owned.filter(([id])=>['elixir','talisman'].includes(resourceInfo(id).kind));
+    if(usable.length){const useSelect=document.createElement('select');for(const [id,count] of usable){const o=document.createElement('option');o.value=id;o.textContent=resourceInfo(id).name+' ×'+count;useSelect.append(o)}box.append(useSelect);action('Sử dụng vật phẩm',()=>this.game.useProfessionItem(useSelect.value))}
   }
   cultivation(){
     const g=this.game,p=g.player,r=Engine.getRealm(p),cp=Engine.getCongPhap(p),pill=cultivationPillForRealm(p.realmIdx);
