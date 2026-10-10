@@ -7,8 +7,7 @@ export function enemyStats(kind, realmIdx) {
   const base=REALMS[stage], factor={wolf:1,deer:.5}[kind];
   const progression=1+Math.max(0,realmIdx-stage)*.24;
   return {hp:Math.round(base.hp*.85*factor*progression),def:Math.round(base.def*.45*progression),
-    attack:kind==='deer'?0:Math.max(5,Math.round(base.hp*.065*factor*progression)),
-    gold:Math.round((18+stage*12)*factor*progression)};
+    attack:kind==='deer'?0:Math.max(5,Math.round(base.hp*.065*factor*progression))};
 }
 export function syncStats(p, refill=false) {
   p.maxHp=Engine.calcMaxHp(p);p.maxMp=Engine.calcMaxMp(p);
