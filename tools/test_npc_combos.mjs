@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {makeWorld} from '../src/world.js';
-import {SKILLS,syncStats,trainSkill,npcComboSkills,npcMasteryCap,npcRealmForFloor} from '../src/cultivation.js';
+import {Engine,SKILLS,syncStats,trainSkill,npcComboSkills,npcMasteryCap,npcRealmForFloor} from '../src/cultivation.js';
 
 function game(floor=2){
   const g=Object.assign(Object.create(Game.prototype),{mapId:'map'+floor,state:makeWorld('map'+floor),toast(){},ui:{toast(){}}});
@@ -32,8 +32,8 @@ Object.assign(p,{x:1000,y:600,aiTarget:g.state.enemies[0]});
 const enemy=p.aiTarget;Object.assign(enemy,{x:1060,y:600,hp:1e12,maxHp:1e12});g.state.enemies=[enemy];
 p.selectedSkillId='hoa_1';syncStats(p,true);
 const before=p.mp;assert.equal(g.skill(p),undefined);assert.equal(p.mp,before);
-p.selectedSkillId='kiem_1';p.skillMastery.kiem_1=3;p.mp=1;assert.equal(g.skill(p),true);
-assert.equal(p.mp,0,'A skill costs exactly 1 MP');
+p.selectedSkillId='kiem_1';p.skillMastery.kiem_1=3;p.mp=Engine.calcSkillMpCost(p,SKILLS.find(s=>s.id==='kiem_1'));assert.equal(g.skill(p),true);
+assert.equal(p.mp,0,'Skill MP cost follows maximum MP and tier');
 assert.equal(p.skillMastery.kiem_1,1,'Invalid mastery is clamped before damage');
 
 // Truc Co chains both skill generations; each individual cooldown is respected.
@@ -71,7 +71,7 @@ for(const [element,targetX,direction] of [['Kim',1240,0],['Kim',1350,1],['Kim',1
 }
 assert.equal(typeof g.dash,'undefined');assert.equal('dash' in p.cooldowns,false);
 // Once the first skill is cast, stay put for this target even if it moves.
-Object.assign(p,{skillElement:'Kim',selectedSkillId:'kiem_1',x:1000,y:600,castTarget:null,skillAnim:0,mp:1});
+Object.assign(p,{skillElement:'Kim',selectedSkillId:'kiem_1',x:1000,y:600,castTarget:null,skillAnim:0,pendingSkill:null,mp:p.maxMp});
 Object.assign(enemy,{x:1240,y:600});p.cooldowns.skill=0;p.skillCooldowns={};
 assert.equal(cast(p),true);assert.equal(p.castTarget,enemy);
 for(const x of [1100,1350]){
