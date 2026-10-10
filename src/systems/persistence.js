@@ -2,11 +2,12 @@ import {makeWorld,clampIntoWorld} from '../world.js';
 import {floorNumber,floorId} from '../floors.js';
 import {Engine,REALMS,CONG_PHAP_LIST,SKILLS,syncStats,availableSkills} from '../cultivation.js';
 import {SAVE_KEY,clamp} from '../core/runtime.js';
+import {lootInfo} from '../core/beast-loot.js';
 
 export const PersistenceSystem = {
   restore(){
     try{
-      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2,3,4].includes(s.version))return;
+      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2,3,4,5].includes(s.version))return;
       this.mapId=floorId(floorNumber(s.mapId));
       const p=this.player;for(const k of ['x','y','exp','gold']){
         if(Number.isFinite(s[k]))p[k]=Math.max(0,s[k]);
@@ -31,6 +32,14 @@ export const PersistenceSystem = {
           }
         }
       }
+      if(s.version>=5&&s.materials&&typeof s.materials==='object'&&!Array.isArray(s.materials)){
+        p.materials={};
+        for(const [id,count] of Object.entries(s.materials)){
+          if(lootInfo(id)&&Number.isFinite(count)&&count>0){
+            p.materials[id]=clamp(Math.floor(count),0,1000000000);
+          }
+        }
+      }
       syncStats(p,true);
       const pos=clampIntoWorld(p.x,p.y);p.x=pos.x;p.y=pos.y;
     }catch(e){console.warn('Không thể đọc save cũ:',e)}
@@ -38,7 +47,7 @@ export const PersistenceSystem = {
   save(){
     const p=this.player;
     try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({version:4,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
+      localStorage.setItem(SAVE_KEY,JSON.stringify({version:5,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','materials','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
     }catch(e){console.warn('Không lưu được:',e)}
   },
   reset(){
