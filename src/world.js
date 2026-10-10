@@ -27,17 +27,10 @@ const ENEMY_PLACES = [
   [610,1550],[350,360],[470,290],[530,365],
 ];
 
-const HERB_PLACES = [
-  [425,470],[610,540],[490,625],[380,695],[585,795],[340,850],
-  [425,1000],[610,1050],[430,1175],[545,1270],[320,1380],[585,1450],
-  [480,1530],[350,280],[600,340],
-];
-
 export function makeWorld(mapId='map') {
   const kind=floorNumber(mapId)===1?'deer':'wolf';
   const enemies = ENEMY_PLACES.map(([x,y],i)=>makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i));
-  const herbs = HERB_PLACES.map(([x,y],i)=>({id:i,x:x*MAP_X_SCALE,y:y*MAP_Y_SCALE,available:true,respawn:0,phase:i*.7}));
-  return {enemies,herbs,drops:[],effects:[],texts:[]};
+  return {enemies,drops:[],effects:[],texts:[]};
 }
 
 export function makeEnemy(kind,x,y,id) {

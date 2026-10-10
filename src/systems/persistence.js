@@ -6,9 +6,9 @@ import {SAVE_KEY,clamp} from '../core/runtime.js';
 export const PersistenceSystem = {
   restore(){
     try{
-      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2,3].includes(s.version))return;
+      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2,3,4].includes(s.version))return;
       this.mapId=floorId(floorNumber(s.mapId));
-      const p=this.player;for(const k of ['x','y','exp','gold','herbs','kills']){
+      const p=this.player;for(const k of ['x','y','exp','gold']){
         if(Number.isFinite(s[k]))p[k]=Math.max(0,s[k]);
       }
       p.realmIdx=clamp(Math.floor(s.version===1?(s.level||1)-1:(s.realmIdx||0)),0,28);
@@ -38,7 +38,7 @@ export const PersistenceSystem = {
   save(){
     const p=this.player;
     try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','herbs','kills','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
+      localStorage.setItem(SAVE_KEY,JSON.stringify({version:4,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
     }catch(e){console.warn('Không lưu được:',e)}
   },
   reset(){
