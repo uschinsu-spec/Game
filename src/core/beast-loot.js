@@ -14,15 +14,15 @@ export const CORE_QUALITIES=Object.freeze([
   Object.freeze({id:'cuc',name:'Cực Phẩm',color:'#ffca65'})
 ]);
 export const BEAST_STAGES=Object.freeze([
-  Object.freeze({id:'so',name:'Sơ Kỳ',quality:'ha',coreChance:.20}),
-  Object.freeze({id:'trung',name:'Trung Kỳ',quality:'trung',coreChance:.35}),
-  Object.freeze({id:'hau',name:'Hậu Kỳ',quality:'thuong',coreChance:.50}),
-  Object.freeze({id:'dinh',name:'Đỉnh Phong',quality:'cuc',coreChance:.70})
+  Object.freeze({id:'so',name:'Sơ Kỳ',quality:'ha',coreChance:.50}),
+  Object.freeze({id:'trung',name:'Trung Kỳ',quality:'trung',coreChance:.30}),
+  Object.freeze({id:'hau',name:'Hậu Kỳ',quality:'thuong',coreChance:.15}),
+  Object.freeze({id:'dinh',name:'Đỉnh Phong',quality:'cuc',coreChance:.05})
 ]);
-// Each higher major rank gains another two percentage points, capped at 90%.
-export const CORE_CHANCE_BONUS_PER_RANK=.02;
-export const MAX_CORE_CHANCE=.90;
-export const BEAST_CORE_DROP_CHANCE=BEAST_STAGES[0].coreChance; // base chance (Nhất Phẩm Sơ Kỳ)
+// Each higher major rank has 15% less chance than the preceding rank.
+// Higher substage grades (Cực > Thượng > Trung > Hạ) are independently rarer.
+export const CORE_CHANCE_MULTIPLIER_PER_RANK=.85;
+export const BEAST_CORE_DROP_CHANCE=BEAST_STAGES[0].coreChance; // Nhất Phẩm Sơ Kỳ: 50%
 
 export function beastRankForFloor(floor){
   if(!Number.isInteger(floor)||floor<2)return 0;
@@ -36,8 +36,8 @@ export function beastCoreDropChance(enemy){
   const rank=Math.min(9,Math.max(0,Math.floor(Number(enemy?.beastRank)||0)));
   if(!rank)return 0; // Phàm thú không có nội đan
   const stage=Math.min(3,Math.max(0,Math.floor(Number(enemy?.beastStage)||0)));
-  return Math.min(MAX_CORE_CHANCE,
-    BEAST_STAGES[stage].coreChance+(rank-1)*CORE_CHANCE_BONUS_PER_RANK);
+  return BEAST_STAGES[stage].coreChance *
+    Math.pow(CORE_CHANCE_MULTIPLIER_PER_RANK,rank-1);
 }
 export function beastCoreQuality(enemy){
   const stage=Math.min(3,Math.max(0,Math.floor(Number(enemy?.beastStage)||0)));
