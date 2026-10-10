@@ -30,7 +30,7 @@ assert.equal(makeWorld('map14').enemies[0].beastRank,2);
 assert.equal(makeWorld('map99').enemies[0].beastRank,9);
 
 assert.equal(CORE_QUALITIES.length,4);
-assert.equal(CORE_QUALITIES.reduce((s,q)=>s+q.weight,0),1);
+assert.ok(Math.abs(CORE_QUALITIES.reduce((s,q)=>s+q.weight,0)-1)<1e-12);
 assert.equal(BEAST_CORE_DROP_CHANCE,.35);
 for(const [roll,quality] of [[0,'ha'],[.69999,'ha'],[.70,'trung'],[.89999,'trung'],[.90,'thuong'],[.97999,'thuong'],[.98,'cuc'],[.99999,'cuc']]){
   assert.equal(rollCoreQuality(()=>roll).id,quality,'Core grade roll '+roll);
