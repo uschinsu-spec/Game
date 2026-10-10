@@ -40,9 +40,6 @@ export class UI {
     $('#skill-btn .button-label').textContent=p.realmIdx<1?'Chưa mở':skill.name;
     $('#skill-btn').setAttribute('aria-label',`${skill.name}, phím Q`);
     $('#gold').textContent=p.gold.toLocaleString('vi-VN');
-    $('#wolf-count').textContent=`${Math.min(10,p.kills)}/10`;
-    $('#herb-count').textContent=`${Math.min(5,p.herbs)}/5`;
-    $('#quest-complete').hidden=!(p.kills>=10&&p.herbs>=5);
     $('#coords').textContent=`(${Math.round(p.x/1.43)}, ${Math.round(p.y/1.43)})`;
     for(const [key,id] of [['skill','skill-cd'],['heal','heal-cd']]){
       const cd=p.cooldowns[key],el=$('#'+id),btn=el.parentElement;
@@ -58,18 +55,18 @@ export class UI {
     'Điện thoại: Joystick để di chuyển, nút kiếm để đánh.\nMáy tính: WASD / phím mũi tên · Space/J đánh · Q thần thông · F hồi máu.\nChạm bản đồ để đi, chạm quái để chọn mục tiêu.\n☯ Tu luyện: tĩnh tọa, đột phá, học công pháp và chọn thần thông.');
   }
   bag(){if(this.game.player.dead){this.dead();return}const p=this.game.player;this.show('Hành trang','Vật phẩm và tiến trình hiện tại',
-    `🪙 Linh thạch: ${p.gold}\n🌿 Linh thảo: ${p.herbs}\n⚔ Yêu Lang đã hạ: ${p.kills}\n✨ Tu vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n).join('\n')}`);
+    `🪙 Linh thạch: ${p.gold}\n✨ Tu vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n).join('\n')}`);
   }
   cultivation(){
     const g=this.game,p=g.player,r=Engine.getRealm(p),cp=Engine.getCongPhap(p),pill=cultivationPillForRealm(p.realmIdx);
     this.show('Tu luyện',r.name,
-      `Tu vi: ${Math.floor(p.exp)} / ${r.expReq}\nCông pháp: ${cp.name} · Thuần thục ${Math.round(p.congPhapMastery*100)}%\nGiới hạn: ${CONG_PHAP_GRADES[cp.grade].maxStage} · Tĩnh tọa: ${Engine.calcMeditationRate(p).toLocaleString('vi-VN')} tu vi/giây\nCông: ${Engine.calcElementalDamage(p,cp.elem==='Toàn Hệ'?'Kim':cp.elem)} · Thủ: ${Engine.calcElementalDefense(p,'Vật Lý')} · Thần thức: ${Engine.calcSpiritualSense(p)}\nBạo kích: ${Math.round(Engine.calcCritRate(p)*100)}% · Tốc độ đánh: ${Engine.calcAttackInterval(p)}ms\nLinh thạch: ${p.gold} · Linh thảo: ${p.herbs}\n${r.bottleneck?'Bình cảnh: cần '+r.pillNeeded+' (có '+(p.pills[r.pillNeeded]||0)+')':'Cảnh giới kế: '+(REALMS[p.realmIdx+1]?.name||'Đã đạt đỉnh')}`);
+      `Tu vi: ${Math.floor(p.exp)} / ${r.expReq}\nCông pháp: ${cp.name} · Thuần thục ${Math.round(p.congPhapMastery*100)}%\nGiới hạn: ${CONG_PHAP_GRADES[cp.grade].maxStage} · Tĩnh tọa: ${Engine.calcMeditationRate(p).toLocaleString('vi-VN')} tu vi/giây\nCông: ${Engine.calcElementalDamage(p,cp.elem==='Toàn Hệ'?'Kim':cp.elem)} · Thủ: ${Engine.calcElementalDefense(p,'Vật Lý')} · Thần thức: ${Engine.calcSpiritualSense(p)}\nBạo kích: ${Math.round(Engine.calcCritRate(p)*100)}% · Tốc độ đánh: ${Engine.calcAttackInterval(p)}ms\nLinh thạch: ${p.gold}\n${r.bottleneck?'Bình cảnh: cần '+r.pillNeeded+' (có '+(p.pills[r.pillNeeded]||0)+')':'Cảnh giới kế: '+(REALMS[p.realmIdx+1]?.name||'Đã đạt đỉnh')}`);
     const box=$('#cultivation-controls');box.replaceChildren();box.hidden=false;
     const button=(label,fn,disabled=false)=>{const b=document.createElement('button');b.textContent=label;b.disabled=disabled;b.addEventListener('click',fn);box.append(b)};
     button('Tĩnh tọa',()=>g.meditate());
     button('Đột phá',()=>{g.breakthrough();this.cultivation()},p.exp<r.expReq||p.realmIdx===28);
-    if(r.bottleneck){const cost=pillCost(p);button(`Luyện đan đột phá · ${cost.herbs} thảo + ${cost.gold} thạch`,()=>{g.craftPill();this.cultivation()})}
-    button(`Luyện ${pill.name} · ${pill.herbs} thảo + ${pill.gold} thạch`,()=>{g.craftCultivationPill();this.cultivation()},p.herbs<pill.herbs||p.gold<pill.gold);
+    if(r.bottleneck){const cost=pillCost(p);button(`Luyện đan đột phá · ${cost.gold} thạch`,()=>{g.craftPill();this.cultivation()},p.gold<cost.gold)}
+    button(`Luyện ${pill.name} · ${pill.gold} thạch`,()=>{g.craftCultivationPill();this.cultivation()},p.gold<pill.gold);
     button(`Dùng ${pill.name} (+${cultivationPillExp(p).toLocaleString('vi-VN')} Tu Vi) · Có ${p.pills[pill.id]||0}`,()=>{g.useCultivationPill();this.cultivation()},(p.pills[pill.id]||0)<1);
     const label=document.createElement('label');label.textContent='Công pháp';const select=document.createElement('select');
     for(const manual of CONG_PHAP_LIST){const o=document.createElement('option');o.value=manual.id;o.textContent=manual.name+' · '+manual.grade+(p.ownedManuals.includes(manual.id)?' · Đã học':' · '+manualCost(manual)+' thạch');select.append(o)}
