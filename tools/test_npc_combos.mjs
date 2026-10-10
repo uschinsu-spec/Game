@@ -61,22 +61,60 @@ assert.equal(p.attackAnim,0);
 p.mp=0;p.cooldowns.skill=10;
 for(let i=0;i<10;i++)g.stepNPCs(.1);
 assert.equal(p.attackAnim,0);g.attack(p);assert.equal(p.attackAnim,0);
-// Movement uses the skill range even while waiting for the next cast.
-p.realmIdx=1;p.skillAnim=0;p.attackAnim=0;p.detourTime=0;p.hp=p.maxHp;
-for(const [element,targetX,direction] of [['Kim',1240,0],['Kim',1350,1],['Kim',1100,-1],['Vật Lý',1140,1],['Vật Lý',1090,0],['Thổ',1150,1]]){
-  Object.assign(p,{skillElement:element,x:1000,y:600,comboIndex:0,aiTarget:enemy,castTarget:null});
-  Object.assign(enemy,{x:targetX,y:600,dead:false});p.cooldowns.skill=10;
-  g.stepNPCs(.01);
-  assert.equal(Math.sign(p.x-1000),direction,'Skill range movement: '+element+' '+targetX);
-}
-assert.equal(typeof g.dash,'undefined');assert.equal('dash' in p.cooldowns,false);
-// Once the first skill is cast, stay put for this target even if it moves.
-Object.assign(p,{skillElement:'Kim',selectedSkillId:'kiem_1',x:1000,y:600,castTarget:null,skillAnim:0,pendingSkill:null,mp:p.maxMp});
-Object.assign(enemy,{x:1240,y:600});p.cooldowns.skill=0;p.skillCooldowns={};
-assert.equal(cast(p),true);assert.equal(p.castTarget,enemy);
-for(const x of [1100,1350]){
-  enemy.x=x;p.skillAnim=0;p.cooldowns.skill=10;
-  g.stepNPCs(.01);assert.equal(p.x,1000,'No repositioning after first cast');assert.equal(p.walk,false);
-}
-enemy.dead=true;g.stepNPCs(.01);assert.equal(p.castTarget,null);
-console.log('PASS: floor realm, mastery caps, same-element combos, skill range movement, cooldowns and no basic fallback');
+// A cultivated NPC should cast against the nearest enemy immediately from anywhere.
+const distant=game(14),rangedNpc=distant.state.npcs[0];
+rangedNpc.realmIdx=1;syncStats(rangedNpc,true); // Tier-1 skill: test actual projectile travel
+const farEnemy=distant.state.enemies[0],closerEnemy=distant.state.enemies[1];
+Object.assign(rangedNpc,{x:1000,y:600,skillElement:'Kim',aiTarget:null,skillAnim:0,attackAnim:0,
+  comboIndex:0,mp:rangedNpc.maxMp});
+rangedNpc.cooldowns.skill=0;rangedNpc.skillCooldowns={};
+Object.assign(farEnemy,{x:2250,y:1000,dead:false,hp:1e12,maxHp:1e12});
+Object.assign(closerEnemy,{x:2100,y:600,dead:false,hp:1e12,maxHp:1e12});
+distant.state.enemies=[farEnemy,closerEnemy];
+distant.stepNPCs(.01);
+assert.equal(rangedNpc.aiTarget,closerEnemy,'First cast goes straight to nearest enemy');
+assert.ok(rangedNpc.cooldowns.skill>0);
+assert.equal(rangedNpc.x,1000,'NPC casts without walking into attack range');
+assert.equal(rangedNpc.y,600);
+distant.tickCharacter(rangedNpc,rangedNpc.skillReleaseAge+.001);
+const projectile=distant.state.effects.find(f=>f.type==='skillProjectile');
+assert.ok(projectile,'Tier 1 projectile is released from the NPC position');
+assert.equal(projectile.target,closerEnemy);
+assert.ok(projectile.max>3,'Long distance projectile is not cut off at the old 3-second limit');
+const hpBefore=closerEnemy.hp;distant.stepEffects(1);
+assert.equal(closerEnemy.hp,hpBefore,'Projectile still deals damage on arrival, not immediately');
+distant.stepEffects(5);assert.ok(closerEnemy.hp<hpBefore);
+rangedNpc.cooldowns.skill=0;rangedNpc.skillAnim=0;rangedNpc.skillCooldowns={};
+closerEnemy.dead=true;
+distant.stepNPCs(.01);
+assert.equal(rangedNpc.aiTarget,farEnemy,'NPC immediately retargets the next nearest living enemy');
+assert.equal(rangedNpc.x,1000);
+
+// AOE skills should strike the nearest remote target, not an empty circle around NPC.
+const aoeGame=game(18),aoeNPC=aoeGame.state.npcs[0],victim=aoeGame.state.enemies[0];
+Object.assign(aoeNPC,{x:1000,y:600,aiTarget:null,skillAnim:0,attackAnim:0,mp:aoeNPC.maxMp});
+aoeNPC.cooldowns.skill=0;aoeNPC.skillCooldowns={};
+Object.assign(victim,{x:1800,y:1100,hp:1e12,maxHp:1e12,dead:false});
+aoeGame.state.enemies=[victim];
+aoeNPC.comboIndex=0; // Kim Dan skill kiem_3 is an AOE attack
+aoeGame.stepNPCs(.01);
+assert.equal(aoeNPC.selectedSkillId,'kiem_3');
+const hpAoe=victim.hp;
+aoeGame.tickCharacter(aoeNPC,aoeNPC.skillReleaseAge+.001);
+assert.ok(victim.hp<hpAoe,'Remote AOE is centered on selected enemy');
+assert.equal(aoeNPC.x,1000);
+
+// Melee spells from cultivated NPCs also target directly, without approaching.
+const meleeGame=game(14),meleeNpc=meleeGame.state.npcs[0],meleeEnemy=meleeGame.state.enemies[0];
+Object.assign(meleeNpc,{skillElement:'Vật Lý',x:1000,y:600,comboIndex:0,mp:meleeNpc.maxMp});
+meleeNpc.skillCooldowns={};meleeNpc.cooldowns.skill=0;
+Object.assign(meleeEnemy,{x:1500,y:850,hp:1e12,maxHp:1e12,dead:false});
+meleeGame.state.enemies=[meleeEnemy];
+meleeGame.stepNPCs(.01);
+assert.equal(meleeNpc.selectedSkillId,'ly_2');
+const hpMelee=meleeEnemy.hp;
+meleeGame.tickCharacter(meleeNpc,meleeNpc.skillReleaseAge+.001);
+assert.ok(meleeEnemy.hp<hpMelee,'Remote NPC melee-type spell hits selected enemy');
+assert.equal(meleeNpc.x,1000);
+
+console.log('PASS: floor realm, mastery caps, shared nearest targets, long-distance projectiles, remote AOE and no melee repositioning');

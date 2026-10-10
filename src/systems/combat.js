@@ -2,6 +2,7 @@ import {skillVfxRow,skillColor} from '../skill-vfx.js';
 import {Engine,SKILLS,trainSkill,npcMasteryCap} from '../cultivation.js';
 import {clamp,distance,rand} from '../core/runtime.js';
 import {combatTempo} from '../core/combat-tempo.js';
+import {WORLD} from '../world.js';
 
 export const CombatSystem = {
   skillRange(sk){return sk.type==='melee'?108:(sk.type==='aoe'||sk.type==='heal')?sk.radius:300},
@@ -12,7 +13,7 @@ export const CombatSystem = {
     return found;
   },
   combatTarget(range,p=this.player){
-    if(p!==this.player)return p.aiTarget&&!p.aiTarget.dead&&distance(p,p.aiTarget)<range?p.aiTarget:null;
+    if(p.isNPC)return p.aiTarget&&!p.aiTarget.dead?p.aiTarget:this.findNearest(Infinity,p);
     const selected=this.target?.kind==='enemy'
       ?this.state.enemies.find(e=>e.id===this.target.id&&!e.dead):null;
     return selected&&distance(this.player,selected)<range?selected:this.findNearest(range);
@@ -57,7 +58,9 @@ export const CombatSystem = {
     const x=p.x+p.face*16,y=p.y-36;
     this.state.effects.push({
       type:'skillProjectile',row:skillVfxRow(sk),actor:p,skill:sk,target,
-      x,y,angle:Math.atan2(target.y-24-y,target.x-x),age:0,life:3,max:3,
+      x,y,angle:Math.atan2(target.y-24-y,target.x-x),age:0,
+      life:p.isNPC?Math.max(3,Math.hypot(WORLD.width,WORLD.height)/tempo.projectileSpeed+1):3,
+      max:p.isNPC?Math.max(3,Math.hypot(WORLD.width,WORLD.height)/tempo.projectileSpeed+1):3,
       startX:x,startY:y,speed:tempo.projectileSpeed,vfxFps:tempo.vfxFps,
       impacted:false
     });
@@ -90,7 +93,9 @@ export const CombatSystem = {
       p.buffTime=sk.duration;p.buffId=sk.id;
       if(p===this.player)this.toast(sk.name+' · '+sk.duration+' giây');
     }else if(area){
-      for(const e of this.state.enemies)if(!e.dead&&distance(e,p)<this.skillRange(sk))this.hitEnemy(e,sk.id,p);
+      // NPC AOE is centered on its nearest enemy, not on the NPC's position.
+      const center=p.isNPC&&target&&!target.dead?target:p;
+      for(const e of this.state.enemies)if(!e.dead&&distance(e,center)<this.skillRange(sk))this.hitEnemy(e,sk.id,p);
     }else if(target&&!target.dead)this.hitEnemy(target,sk.id,p);
     if(sk.healPct)p.hp=Math.min(p.maxHp,p.hp+Math.floor(p.maxHp*sk.healPct));
     if(!flying)this.state.effects.push({type:'wave',x:target?.x??p.x,y:(target?.y??p.y)-16,life:.5,max:.5});
@@ -114,7 +119,6 @@ export const CombatSystem = {
     p.skillDuration=tempo.skillDuration;p.skillAnim=tempo.skillDuration;p.skillAge=0;
     p.skillReleaseAge=p.skillDuration*tempo.releaseRatio;
     p.pendingSkill={sk,target,area};p.walk=false;
-    if(p.isNPC&&target&&sk.type!=='buff')p.castTarget=target;
     trainSkill(p,sk.id);
     return true;
   },

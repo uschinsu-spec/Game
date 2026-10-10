@@ -19,19 +19,23 @@ assert.notEqual(npc.cooldowns,g.player.cooldowns);
 assert.notEqual(npc.skillExp,g.player.skillExp);
 for(const p of g.state.npcs)assert.ok(isWalkable(p.x,p.y,g.mapId));
 
-// NPCs reserve separate targets across the map, including after a kill.
+// Each NPC chooses the nearest living enemy, even when another NPC chose it.
 const spread=game(),[firstNPC,secondNPC]=spread.state.npcs;
 for(const actor of spread.state.npcs)Object.assign(actor,{x:1000,y:600,aiTarget:null});
 const [firstEnemy,secondEnemy]=spread.state.enemies;
-Object.assign(firstEnemy,{x:1300,y:600});Object.assign(secondEnemy,{x:2000,y:600});
-spread.state.enemies=[firstEnemy,secondEnemy];spread.stepNPCs(.01);
-assert.equal(firstNPC.aiTarget,firstEnemy);assert.equal(secondNPC.aiTarget,secondEnemy);
-spread.stepNPCs(.01);assert.notEqual(firstNPC.aiTarget,secondNPC.aiTarget);
-assert.equal(spread.combatTarget(300,secondNPC),null,'Never switch to another NPC target when out of range');
+Object.assign(firstEnemy,{x:1300,y:600,hp:1e12,maxHp:1e12});
+Object.assign(secondEnemy,{x:2000,y:600,hp:1e12,maxHp:1e12});
+spread.state.enemies=[firstEnemy,secondEnemy];
+spread.stepNPCs(.01);
+assert.equal(firstNPC.aiTarget,firstEnemy);
+assert.equal(secondNPC.aiTarget,firstEnemy,'Shared nearest enemy is allowed');
+assert.equal(spread.combatTarget(10,secondNPC),firstEnemy,'NPC range checks are bypassed');
+assert.ok(firstNPC.cooldowns.skill>0&&secondNPC.cooldowns.skill>0,'Both NPCs cast immediately at distance');
+assert.equal(firstNPC.x,1000);
+assert.equal(secondNPC.x,1000);
 firstEnemy.dead=true;spread.stepNPCs(.01);
-assert.equal(firstNPC.aiTarget,null,'Wait or patrol when all living monsters are reserved');
+assert.equal(firstNPC.aiTarget,secondEnemy);
 assert.equal(secondNPC.aiTarget,secondEnemy);
-secondNPC.dead=true;spread.stepNPCs(.01);assert.equal(firstNPC.aiTarget,secondEnemy);
 
 // Shared movement has the same speed, facing, and animation clocks.
 const player=g.makePlayer(),other=g.makePlayer();
@@ -80,7 +84,8 @@ const initial=sim.state.npcs.map(p=>({x:p.x,y:p.y}));
 for(let i=0;i<600;i++){
   sim.stepNPCs(1/60);sim.stepEnemies(1/60);sim.stepDrops(1/60);sim.stepEffects(1/60);
 }
-assert.ok(sim.state.npcs.some((p,i)=>Math.hypot(p.x-initial[i].x,p.y-initial[i].y)>10));
+assert.ok(sim.state.npcs.some((p,i)=>Math.hypot(p.x-initial[i].x,p.y-initial[i].y)<.01),
+  'Cultivated NPCs no longer move into skill range');
 assert.ok(sim.state.npcs.some(p=>p.skillExp.basic_attack>0||p.skillExp.kiem_1>0));
 for(const p of sim.state.npcs)assert.ok(Number.isFinite(p.hp)&&Number.isFinite(p.x));
 
