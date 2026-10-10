@@ -57,10 +57,11 @@ assert.ok(npc.mp<mp);assert.equal(g.player.skillAnim,0);
 npc.hp=1;npc.mp=npc.maxMp;g.heal(npc);assert.ok(npc.hp>1);
 assert.equal(g.player.cooldowns.heal,0);
 
-// NPC kills must not complete the human player's quest or award their XP.
-const kills=g.player.kills,exp=g.player.exp;g.damageEnemy(enemy,1000000,false,npc);
-assert.ok(enemy.dead);assert.equal(g.player.kills,kills);assert.equal(g.player.exp,exp);
-assert.ok(npc.kills>0);assert.ok(g.state.drops.every(d=>d.owner===npc.id));
+// NPC kills must not award Player or NPC cultivation EXP, and drop only spirit stones.
+const playerExp=g.player.exp,npcExp=npc.exp;g.damageEnemy(enemy,1000000,false,npc);
+assert.ok(enemy.dead);assert.equal(g.player.exp,playerExp);assert.equal(npc.exp,npcExp);
+assert.ok(!('kills' in g.player));assert.ok(!('kills' in npc));
+assert.ok(g.state.drops.every(d=>d.owner===npc.id&&d.gold>0&&!('herb' in d)));
 
 // Wolves lock their chosen victim for the attack, then NPCs respawn.
 const wolf=g.state.enemies[1];
@@ -77,7 +78,7 @@ assert.equal(npc.x,npc.homeX);
 const sim=game();sim.player.x=200;sim.player.y=700;
 const initial=sim.state.npcs.map(p=>({x:p.x,y:p.y}));
 for(let i=0;i<600;i++){
-  sim.stepNPCs(1/60);sim.stepEnemies(1/60);sim.stepHerbs(1/60);sim.stepDrops(1/60);sim.stepEffects(1/60);
+  sim.stepNPCs(1/60);sim.stepEnemies(1/60);sim.stepDrops(1/60);sim.stepEffects(1/60);
 }
 assert.ok(sim.state.npcs.some((p,i)=>Math.hypot(p.x-initial[i].x,p.y-initial[i].y)>10));
 assert.ok(sim.state.npcs.some(p=>p.skillExp.basic_attack>0||p.skillExp.kiem_1>0));
