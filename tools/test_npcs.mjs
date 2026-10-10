@@ -61,11 +61,11 @@ assert.ok(npc.mp<mp);assert.equal(g.player.skillAnim,0);
 npc.hp=1;npc.mp=npc.maxMp;g.heal(npc);assert.ok(npc.hp>1);
 assert.equal(g.player.cooldowns.heal,0);
 
-// NPC kills must not award Player or NPC cultivation EXP, and drop only spirit stones.
+// NPC kills must not award Player or NPC cultivation EXP; drops belong to the killer.
 const npcExp=npc.exp;g.damageEnemy(enemy,1000000,false,npc);
 assert.ok(enemy.dead);assert.equal(g.player.exp,playerExp);assert.equal(npc.exp,npcExp);
 assert.ok(!('kills' in g.player));assert.ok(!('kills' in npc));
-assert.ok(g.state.drops.every(d=>d.owner===npc.id&&d.gold>0&&!('herb' in d)));
+assert.ok(g.state.drops.every(d=>d.owner===npc.id&&d.itemId&&!('gold' in d)&&!('herb' in d)));
 
 // Wolves lock their chosen victim for the attack, then NPCs respawn.
 const wolf=g.state.enemies[1];
