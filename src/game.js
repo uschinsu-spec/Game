@@ -61,6 +61,8 @@ export class Game {
     if(this.paused||this.player.dead||this.transitioning)return;this.stopMeditation();
     const r=this.canvas.getBoundingClientRect(),zoom=this.viewScale||1;
     const x=this.cam.x+(clientX-r.left)/zoom,y=this.cam.y+(clientY-r.top)/zoom;
+    const node=(this.state.deposits||[]).find(n=>n.readyAt<=this.gameTime&&Math.hypot(n.x-x,n.y-y)<28);
+    if(node){if(Math.hypot(node.x-this.player.x,node.y-this.player.y)<90)this.gatherProfessionResource(node.kind);else this.ui.toast('Hãy đến gần điểm thu thập');return}
     let closest=null,best=45;
     for(const enemy of this.state.enemies){
       if(enemy.dead)continue;
