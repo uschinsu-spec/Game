@@ -7,7 +7,7 @@
 - Đan Tu Vi: craft với linh thảo + linh thạch, được cất trong `pills`, sử dụng thủ công tại **☯ Tu luyện**; mỗi viên tăng 12% EXP cần cho cảnh giới hiện tại.
 - Đan **đột phá** thuộc hệ riêng, vẫn được dùng ở bình cảnh.
 - Tốc độ tĩnh tọa phụ thuộc công pháp **và EXP yêu cầu của cảnh giới**, dùng `Engine.calcMeditationRate`. Không còn tình trạng vài ngày mới có đủ EXP ở Hóa Thần.
-- Thuần thục **Skill** tăng bằng luyện chiêu nhưng không cấp EXP cảnh giới.
+- Thuần thục **Skill** tăng bằng luyện chiêu nhưng không cấp EXP cảnh giới. Thuần thục **công pháp** tăng rất chậm khi thực sự tĩnh tọa (đủ 100% sau nhiều giờ), không tăng từ hạ quái.
 
 ## Nguồn dữ liệu chuẩn
 
@@ -23,7 +23,7 @@
 
 - Bạo kích tăng theo đường cong logarithm Thần Thức, trần 75%, không còn 95% ngay Trúc Cơ.
 - Thần Thức/bonus tốc đánh quyết định cooldown và tốc độ animation. VFX bay bằng pixel/s (theo `dt`), hệ số thuần thục tăng tốc VFX.
-- Skill có MP theo phần trăm tối đa và tier; cooldown riêng **không** bị giảm bởi tốc đánh để tránh nhân đôi DPS.
+- Skill có MP theo phần trăm tối đa và tier (bậc 1–5: 5% / 8% / 12% / 18% / 25%); cooldown riêng **không** bị giảm bởi tốc đánh để tránh nhân đôi DPS.
 - Công pháp chuyên hệ cho lợi thế đúng hệ, nhưng nền sát thương và thủ vẫn có tác dụng với các đòn còn lại.
 - Quái scale trong tiểu cảnh giới; NPC scale theo tầng như trước. Hiệu ứng choáng/chậm có thể kháng nhờ `controlResistance`.
 - `equippedGear`, `spiritualSenseBonus`, `congPhapMastery` được lưu; cấp phát trang bị/vật phẩm vẫn có thể mở rộng sau.
