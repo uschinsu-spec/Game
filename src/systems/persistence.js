@@ -6,19 +6,30 @@ import {SAVE_KEY,clamp} from '../core/runtime.js';
 export const PersistenceSystem = {
   restore(){
     try{
-      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2].includes(s.version))return;
+      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s ||![1,2,3].includes(s.version))return;
       this.mapId=floorId(floorNumber(s.mapId));
       const p=this.player;for(const k of ['x','y','exp','gold','herbs','kills']){
         if(Number.isFinite(s[k]))p[k]=Math.max(0,s[k]);
       }
       p.realmIdx=clamp(Math.floor(s.version===1?(s.level||1)-1:(s.realmIdx||0)),0,28);
       if(s.version===1)p.exp=Math.min(p.exp,Engine.getRealm(p).expReq);
-      if(s.version===2){
+      if(s.version>=2){
         p.ownedManuals=CONG_PHAP_LIST.filter(cp=>cp.id==='cp_dan_khi'||s.ownedManuals?.includes(cp.id)).map(cp=>cp.id);
         if(p.ownedManuals.includes(s.activeCongPhapId))p.activeCongPhapId=s.activeCongPhapId;
         if(availableSkills(p).some(sk=>sk.id===s.selectedSkillId))p.selectedSkillId=s.selectedSkillId;
         for(const sk of SKILLS){p.skillMastery[sk.id]=clamp(Math.floor(Number(s.skillMastery?.[sk.id])||0),0,3);p.skillExp[sk.id]=clamp(Number(s.skillExp?.[sk.id])||0,0,450)}
         for(const r of REALMS.filter(r=>r.bottleneck))p.pills[r.pillNeeded]=clamp(Math.floor(Number(s.pills?.[r.pillNeeded])||0),0,999);
+        if(s.version>=3){
+          const keys=['hp','mp','dmg','def','critRate','critDamage','attackSpeed','elementDamage','spiritualSense','hpPct','mpPct','dmgPct','defPct'];
+          p.equippedGear=Object.fromEntries(keys.filter(k=>Number.isFinite(s.equippedGear?.[k]))
+            .map(k=>[k,clamp(s.equippedGear[k],-99,1e9)]));
+          p.spiritualSenseBonus=clamp(Number(s.spiritualSenseBonus)||0,0,1e9);
+          const mastery=Number(s.congPhapMastery);
+          p.congPhapMastery=Number.isFinite(mastery)?clamp(mastery,0,1):.35;
+          for(const id of ['tu_vi_pham','tu_vi_luyen_khi','tu_vi_truc_co','tu_vi_kim_dan','tu_vi_nguyen_anh','tu_vi_hoa_than']){
+            p.pills[id]=clamp(Math.floor(Number(s.pills?.[id])||0),0,999);
+          }
+        }
       }
       syncStats(p,true);
       const pos=clampIntoWorld(p.x,p.y);p.x=pos.x;p.y=pos.y;
@@ -27,7 +38,7 @@ export const PersistenceSystem = {
   save(){
     const p=this.player;
     try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({version:2,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','herbs','kills','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills'].map(k=>[k,p[k]]))}));
+      localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','herbs','kills','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
     }catch(e){console.warn('Không lưu được:',e)}
   },
   reset(){
