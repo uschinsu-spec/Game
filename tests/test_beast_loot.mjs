@@ -4,7 +4,8 @@ import {makeWorld} from '../src/world.js';
 import {SAVE_KEY} from '../src/core/config.js';
 import {Engine} from '../src/cultivation.js';
 import {
-  BEAST_MATERIALS,CORE_QUALITIES,BEAST_STAGES,BEAST_CORE_DROP_CHANCE,beastRankForFloor,
+  BEAST_MATERIALS,CORE_QUALITIES,BEAST_STAGES,BEAST_CORE_DROP_CHANCE,
+  CORE_CHANCE_MULTIPLIER_PER_RANK,beastRankForFloor,
   beastStageForFloor,beastCoreDropChance,beastCoreQuality,beastTitle,
   lootInfo,generateBeastLoot,sellCommonMaterials
 } from '../src/core/beast-loot.js';
@@ -52,9 +53,10 @@ for(let floor=2;floor<=99;floor++){
 }
 assert.equal(CORE_QUALITIES.length,4);
 assert.equal(BEAST_STAGES.length,4);
-assert.equal(BEAST_CORE_DROP_CHANCE,.20);
+assert.equal(BEAST_CORE_DROP_CHANCE,.50);
+assert.equal(CORE_CHANCE_MULTIPLIER_PER_RANK,.85);
 assert.deepEqual(BEAST_STAGES.map(s=>s.quality),['ha','trung','thuong','cuc']);
-assert.deepEqual(BEAST_STAGES.map(s=>s.coreChance),[.20,.35,.50,.70]);
+assert.deepEqual(BEAST_STAGES.map(s=>s.coreChance),[.50,.30,.15,.05]);
 assert.equal(beastTitle({beastRank:1,beastStage:3},'Yêu Lang'),'Yêu Lang · Nhất Phẩm Đỉnh Phong');
 assert.equal(beastTitle({beastRank:0},'Linh Lộc'),'Linh Lộc · Phàm Thú');
 for(const [id,info] of Object.entries(BEAST_MATERIALS)){
@@ -74,13 +76,13 @@ for(const drop of deerLoot)assert.equal(drop.quantity,1);
 assert.ok(deerLoot.every(x=>!('gold' in x)&&!('exp' in x)));
 assert.equal(beastCoreDropChance({beastRank:0,beastStage:-1}),0);
 
-// Quality is guaranteed by substage whenever a core drops. Chance scales up both
-// across substages and across major ranks.
+// Quality is guaranteed by substage whenever a core drops, but rarer stages
+// and higher major ranks reduce the chance of receiving that core.
 for(const rank of [1,2,5,9]){
   for(let stage=0;stage<4;stage++){
     const enemy={kind:'wolf',beastRank:rank,beastStage:stage};
     const chance=beastCoreDropChance(enemy);
-    const expected=Math.min(.9,BEAST_STAGES[stage].coreChance+(rank-1)*.02);
+    const expected=BEAST_STAGES[stage].coreChance*Math.pow(.85,rank-1);
     assert.ok(Math.abs(chance-expected)<1e-12);
     assert.equal(beastCoreQuality(enemy).id,BEAST_STAGES[stage].quality);
     const hit=[.99,.99,chance-.000001];
@@ -91,14 +93,25 @@ for(const rank of [1,2,5,9]){
     assert.deepEqual(generateBeastLoot(enemy,()=>miss.shift()).map(x=>x.itemId),
       ['da_thu'],'Core roll at chance boundary must fail');
     if(stage>0){
-      assert.ok(beastCoreDropChance(enemy)>
-        beastCoreDropChance({...enemy,beastStage:stage-1}));
+      assert.ok(beastCoreDropChance(enemy)<
+        beastCoreDropChance({...enemy,beastStage:stage-1}),
+        'Higher-grade inner cores must have a lower chance');
     }
-    if(rank>1)assert.ok(chance>beastCoreDropChance({...enemy,beastRank:rank-1}));
+    if(rank>1)assert.ok(chance<beastCoreDropChance({...enemy,beastRank:rank-1}),
+      'Higher-rank beasts must have a lower core drop rate at equal substage');
   }
 }
-assert.equal(beastCoreDropChance({beastRank:1,beastStage:3}),.70);
-assert.equal(beastCoreDropChance({beastRank:9,beastStage:3}),.86);
+assert.equal(beastCoreDropChance({beastRank:1,beastStage:3}),.05);
+assert.ok(Math.abs(beastCoreDropChance({beastRank:9,beastStage:3})-
+  .05*Math.pow(.85,8))<1e-12);
+for(let rank=1;rank<=9;rank++){
+  let previous=Infinity;
+  for(let stage=0;stage<=3;stage++){
+    const chance=beastCoreDropChance({beastRank:rank,beastStage:stage});
+    assert.ok(chance<previous,'Substage progression must reduce core chance');
+    previous=chance;
+  }
+}
 const peak={kind:'wolf',beastRank:1,beastStage:3};
 const peakLoot=generateBeastLoot(peak,()=>0);
 assert.equal(peakLoot.at(-1).itemId,'noi_dan_1_cuc');
@@ -163,4 +176,4 @@ const npcg=game(),npc=npcg.state.npcs[0],prey=npcg.state.enemies[0];
 npcg.damageEnemy(prey,prey.hp+1,false,npc);
 assert.ok(npcg.state.drops.length>0);
 assert.ok(npcg.state.drops.every(d=>d.owner===npc.id&&!('gold' in d)));
-console.log('PASS: substage-ranked core quality, escalating chances, no money/EXP, materials, stacking and save-v5 compatibility');
+console.log('PASS: deterministic core quality, drop chance declines with substage and rank, no money/EXP, stacking and save-v5 compatibility');
