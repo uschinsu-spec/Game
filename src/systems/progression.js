@@ -1,4 +1,5 @@
 import {Engine,CONG_PHAP_LIST,CONG_PHAP_GRADES,syncStats,enemyStats,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from '../cultivation.js';
+import {sellCommonMaterials} from '../core/beast-loot.js';
 
 export const ProgressionSystem = {
   refreshEnemies(){
@@ -11,6 +12,12 @@ export const ProgressionSystem = {
     const result=Engine.breakthrough(p,pill);if(!result.success){this.toast(result.reason);return}
     if(pill)p.pills[pill]--;syncStats(p,true);this.refreshEnemies();this.stopMeditation();
     this.state.effects.push({type:'level',x:p.x,y:p.y,life:.9,max:.9});this.toast(result.message);this.save();
+  },
+  sellBeastMaterials(){
+    const result=sellCommonMaterials(this.player);
+    if(!result.items){this.toast('Không có Da Thú, Lông Thú hoặc Huyết Thú để bán');return false}
+    this.toast(`Đã bán ${result.items} nguyên liệu · +${result.gold.toLocaleString('vi-VN')} Linh Thạch`);
+    this.save();return true;
   },
   learnManual(id){
     const p=this.player,cp=CONG_PHAP_LIST.find(c=>c.id===id);if(!cp)return;

@@ -1,6 +1,7 @@
 const $=selector=>document.querySelector(selector);
 import {Engine,REALMS,CONG_PHAP_LIST,CONG_PHAP_GRADES,SKILLS,SKILL_MASTERY_TIERS,availableSkills,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from './cultivation.js';
 import {floorNumber,FLOOR_COUNT} from './floors.js';
+import {BEAST_MATERIALS,lootInfo} from './core/beast-loot.js';
 export class UI {
   constructor(game){
     this.game=game;this.lastHud=0;this.noticeTimer=0;
@@ -54,8 +55,23 @@ export class UI {
   menu(){if(this.game.player.dead){this.dead();return}if(!this.overlay.hidden){this.close();return}this.show('Vạn Mộc Sâm Lâm','Game tu tiên 2D top-down · Lưu tiến trình tự động',
     'Điện thoại: Joystick để di chuyển, nút kiếm để đánh.\nMáy tính: WASD / phím mũi tên · Space/J đánh · Q thần thông · F hồi máu.\nChạm bản đồ để đi, chạm quái để chọn mục tiêu.\n☯ Tu luyện: tĩnh tọa, đột phá, học công pháp và chọn thần thông.');
   }
-  bag(){if(this.game.player.dead){this.dead();return}const p=this.game.player;this.show('Hành trang','Vật phẩm và tiến trình hiện tại',
-    `🪙 Linh thạch: ${p.gold}\n✨ Tu vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n).join('\n')}`);
+  bag(){
+    if(this.game.player.dead){this.dead();return}
+    const p=this.game.player;
+    const items=Object.entries(p.materials||{})
+      .filter(([id,count])=>lootInfo(id)&&count>0)
+      .sort(([a],[b])=>a.localeCompare(b,'vi'))
+      .map(([id,count])=>`${lootInfo(id).icon} ${lootInfo(id).name} ×${count.toLocaleString('vi-VN')}`);
+    const pills=Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n);
+    this.show('Hành trang','Vật liệu yêu thú và đan dược được cộng dồn',
+      `🪙 Linh Thạch: ${p.gold.toLocaleString('vi-VN')}\n✨ Tu Vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${items.length?items.join('\n'):'Chưa có vật liệu yêu thú'}\n${pills.join('\n')}`);
+    const total=Object.keys(BEAST_MATERIALS).reduce((sum,id)=>sum+(p.materials?.[id]||0),0);
+    const box=$('#cultivation-controls');box.replaceChildren();box.hidden=false;
+    const button=document.createElement('button');
+    button.textContent='Bán Da/Lông/Huyết lấy Linh Thạch';
+    button.disabled=!total;
+    button.addEventListener('click',()=>{this.game.sellBeastMaterials();this.bag()});
+    box.append(button);
   }
   cultivation(){
     const g=this.game,p=g.player,r=Engine.getRealm(p),cp=Engine.getCongPhap(p),pill=cultivationPillForRealm(p.realmIdx);

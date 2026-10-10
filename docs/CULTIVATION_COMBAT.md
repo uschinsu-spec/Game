@@ -3,10 +3,12 @@
 ## Quy tắc Tu Vi
 
 - Tu Vi (EXP cảnh giới) **chỉ** tăng bằng tĩnh tọa hoặc dùng **đan Tu Vi**.
-- Giết quái/Boss **không** cấp Tu Vi cho Player lẫn NPC; vẫn nhận Linh Thạch.
+- Giết quái/Boss **không** cấp Tu Vi hoặc Linh Thạch cho Player lẫn NPC; chỉ có chiến lợi phẩm Da Thú, Lông Thú, Huyết Thú, và có thể thêm Nội Đan từ Yêu Thú Nhất Phẩm.
 - Đan Tu Vi: luyện bằng Linh Thạch, được cất trong `pills`, sử dụng thủ công tại **☯ Tu luyện**; mỗi viên tăng 12% EXP cần cho cảnh giới hiện tại.
 - Bỏ hoàn toàn Linh Thảo, không sinh đối tượng hoặc rơi vật phẩm thảo dược. Gỡ bảng nhiệm vụ đánh Yêu Lang và thu thập Linh Thảo; vẫn giữ quái Yêu Lang.
-- Đan bình cảnh và đan Tu Vi đều dùng chi phí Linh Thạch, không còn điều kiện nguyên liệu Linh Thảo.
+- Đan bình cảnh và đan Tu Vi đều dùng chi phí Linh Thạch, không còn điều kiện nguyên liệu Linh Thảo. Linh Thạch có thể nhận bằng cách **bán nguyên liệu Yêu Thú trong Hành Trang**, không phải từ quái rơi trực tiếp.
+- Hệ Nội Đan: Linh Lộc tầng 1 không có Nội Đan; tầng 2–13 yêu thú Nhất Phẩm, tiếp tục mỗi 12 tầng tăng một phẩm tới Cửu Phẩm. 35% xác suất rơi Nội Đan, phẩm chất Hạ/Trung/Thượng/Cực = 70/20/8/2 (tỷ lệ có điều kiện khi đã rơi). Không tự bán Nội Đan.
+- Tất cả vật liệu và Nội Đan đều cộng dồn và lưu vào `materials` (save v5).
 - Đan **đột phá** thuộc hệ riêng, vẫn được dùng ở bình cảnh.
 - Tốc độ tĩnh tọa phụ thuộc công pháp **và EXP yêu cầu của cảnh giới**, dùng `Engine.calcMeditationRate`. Không còn tình trạng vài ngày mới có đủ EXP ở Hóa Thần.
 - Thuần thục **Skill** tăng bằng luyện chiêu nhưng không cấp EXP cảnh giới. Thuần thục **công pháp** tăng rất chậm khi thực sự tĩnh tọa (đủ 100% sau nhiều giờ), không tăng từ hạ quái.
@@ -19,7 +21,7 @@
 - `src/systems/combat.js`: xác thực tầm đánh và MP, giảm cooldown, ghi nhận trạng thái cast; sát thương Skill chỉ xảy ra ở **release frame** hoặc khi **projectile va chạm**.
 - `src/systems/characters.js`: cập nhật đồng hồ animation; `renderer.js` chỉ vẽ, không tính sát thương.
 - `src/systems/progression.js`: tĩnh tọa, luyện đan đột phá, luyện và dùng đan Tu Vi.
-- `src/systems/persistence.js`: `save.version=4` và tiếp tục hỗ trợ save v1/v2/v3 với khóa localStorage gốc.
+- `src/systems/persistence.js`: `save.version=5` và tiếp tục hỗ trợ save v1/v2/v3/v4 với khóa localStorage gốc.
 
 ## Quy tắc cân bằng
 
