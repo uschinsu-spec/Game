@@ -63,6 +63,7 @@ for(let i=0;i<10;i++)g.stepNPCs(.1);
 assert.equal(p.attackAnim,0);g.attack(p);assert.equal(p.attackAnim,0);
 // A cultivated NPC should cast against the nearest enemy immediately from anywhere.
 const distant=game(14),rangedNpc=distant.state.npcs[0];
+rangedNpc.realmIdx=1;syncStats(rangedNpc,true); // Tier-1 skill: test actual projectile travel
 const farEnemy=distant.state.enemies[0],closerEnemy=distant.state.enemies[1];
 Object.assign(rangedNpc,{x:1000,y:600,skillElement:'Kim',aiTarget:null,skillAnim:0,attackAnim:0,
   comboIndex:0,mp:rangedNpc.maxMp});
