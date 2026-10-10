@@ -1,12 +1,10 @@
-import ENEMY_DATA from '../data/enemies.json' with {type:'json'};
-import {FLOOR_GRADES,FINAL_RANK_FLOOR,rankForFloor,stageForFloor} from './floor-grades.js';
 /**
  * Enemy rewards: beast hide, fur, blood, and possibly an inner core. No gold or EXP.
  * Only 5 major beast ranks exist; each has four 3-floor substages.
  * Floors past Ngũ Phẩm Đỉnh Phong stay at this highest supported rank.
  */
-export const MAX_BEAST_RANK=FLOOR_GRADES.maxRank;
-export const FINAL_BEAST_FLOOR=FINAL_RANK_FLOOR; // 61
+export const MAX_BEAST_RANK=5;
+export const FINAL_BEAST_FLOOR=2+MAX_BEAST_RANK*12-1; // 61
 export const BEAST_MATERIALS=Object.freeze({
   da_thu:Object.freeze({id:'da_thu',name:'Da Thú',icon:'▤',color:'#cba178',sellPrice:12}),
   long_thu:Object.freeze({id:'long_thu',name:'Lông Thú',icon:'❧',color:'#e5d8bd',sellPrice:8}),
@@ -29,8 +27,14 @@ export const BEAST_STAGES=Object.freeze([
 export const CORE_CHANCE_MULTIPLIER_PER_RANK=.85;
 export const BEAST_CORE_DROP_CHANCE=BEAST_STAGES[0].coreChance; // Nhất Phẩm Sơ Kỳ: 50%
 
-export function beastRankForFloor(floor){return ENEMY_DATA.beastFloorOverrides?.[floor]?.rank??rankForFloor(floor)}
-export function beastStageForFloor(floor){return ENEMY_DATA.beastFloorOverrides?.[floor]?.stage??stageForFloor(floor)}
+export function beastRankForFloor(floor){
+  if(!Number.isInteger(floor)||floor<2)return 0;
+  return Math.min(MAX_BEAST_RANK,1+Math.floor((floor-2)/12));
+}
+export function beastStageForFloor(floor){
+  if(!Number.isInteger(floor)||floor<2)return -1;
+  return Math.floor(((Math.min(floor,FINAL_BEAST_FLOOR)-2)%12)/3);
+}
 export function beastCoreDropChance(enemy){
   const rank=Math.min(MAX_BEAST_RANK,Math.max(0,Math.floor(Number(enemy?.beastRank)||0)));
   if(!rank)return 0; // Phàm thú không có nội đan
@@ -88,8 +92,4 @@ export function sellCommonMaterials(actor){
   }
   if(gold)actor.gold=(actor.gold||0)+gold;
   return {gold,items};
-}
-
-export function lootIconPath(id){
-  return ({da_thu:'materials/beast_pelt',long_thu:'materials/beast_fur',huyet_thu:'materials/beast_blood'})[id]||'pills/pill_golden';
 }

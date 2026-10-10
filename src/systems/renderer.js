@@ -1,9 +1,8 @@
-import {enemyVisual} from '../core/enemy-master.js';
-import {WORLD,SPECIES,portalsFor,storyNPCsFor} from '../world.js';
+import {WORLD,SPECIES,portalsFor} from '../world.js';
 import {floorNumber} from '../floors.js';
 import {SKILL_VFX,skillVfxFrame} from '../skill-vfx.js';
 import {Engine} from '../cultivation.js';
-import {lootInfo,beastTitle,lootIconPath} from '../core/beast-loot.js';
+import {lootInfo,beastTitle} from '../core/beast-loot.js';
 import {FRAME,PLAYER_FRAME_WIDTH,PLAYER_FRAME_HEIGHT,PLAYER_SCALE,PLAYER_FRAMES,PLAYER_COLUMNS,NPC_RENDER,PLAYER_FEET,PLAYER_HEIGHTS,clamp,easing} from '../core/runtime.js';
 
 export const RendererSystem = {
@@ -32,30 +31,25 @@ export const RendererSystem = {
     c.save();c.translate(-this.cam.x,-this.cam.y);
     this.drawPortal();this.drawResourceNodes();this.drawDrops();this.drawTap();
     const drawables=[...this.state.enemies.filter(e=>!e.dead),
-      ...this.state.npcs.filter(p=>!p.dead),...storyNPCsFor(this.mapId),this.player];
+      ...this.state.npcs.filter(p=>!p.dead),this.player];
     drawables.sort((a,b)=>a.y-b.y);
-    for(const entity of drawables){if(entity.id==='village-elder')this.drawStoryNPC(entity);else if(entity.kind)this.drawEnemy(entity);else this.drawHero(entity)}
+    for(const entity of drawables){if(entity.kind)this.drawEnemy(entity);else this.drawHero(entity)}
     this.drawEffects();this.drawTexts();c.restore();c.restore();
-  },
-  drawStoryNPC(npc){
-    const c=this.ctx,image=this.images[npc.asset];if(!image)return;
-    this.drawShadow(npc.x,npc.y,34,10);
-    c.drawImage(image,npc.x-npc.width/2,npc.y-npc.height,npc.width,npc.height);
-    c.save();c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
-    c.fillStyle='#12372ee8';c.fillRect(npc.x-54,npc.y-npc.height-25,108,23);
-    c.strokeStyle='#d5b76b';c.lineWidth=1;c.strokeRect(npc.x-54,npc.y-npc.height-25,108,23);
-    c.fillStyle='#ffe7a0';c.fillText(npc.name,npc.x,npc.y-npc.height-13);c.restore();
   },
   drawShadow(x,y,w=36,h=12){
     const c=this.ctx;c.fillStyle='#020b0b60';c.beginPath();c.ellipse(x,y-4,w/2,h/2,0,0,Math.PI*2);c.fill();
   },
   drawResourceNodes(){
     const c=this.ctx;
-    for(const n of this.state.deposits||[]){if(n.readyAt>(this.gameTime||0))continue;
+    for(const n of this.state.deposits||[]){
+      if(n.readyAt>this.gameTime)continue;
       c.save();c.translate(n.x,n.y);
-      const image=this.resourceImages?.[n.kind];if(image)c.drawImage(image,-18,-20,36,36);
-      c.font='bold 11px system-ui';c.textAlign='center';const label=n.kind==='ore'?'Khoáng Thạch':'Linh Thảo';
-      c.strokeStyle='#10251c';c.lineWidth=3;c.strokeText(label,0,-26);c.fillStyle='#f1ffe7';c.fillText(label,0,-26);c.restore();
+      c.fillStyle=n.kind==='ore'?'#778da7':'#4d9b65';c.strokeStyle='#d7eddf';c.lineWidth=2;
+      c.beginPath();
+      if(n.kind==='ore'){c.moveTo(-15,9);c.lineTo(-6,-17);c.lineTo(12,-9);c.lineTo(17,9);c.closePath()}
+      else c.ellipse(0,-3,12,18,0,0,7);
+      c.fill();c.stroke();c.font='11px system-ui';c.textAlign='center';c.fillStyle='#ffffff';
+      c.fillText(n.kind==='ore'?'Khoáng Thạch':'Linh Thảo',0,-23);c.restore();
     }
   },
   drawPortal(){
@@ -112,25 +106,23 @@ export const RendererSystem = {
   },
   drawEnemy(e){
     const c=this.ctx,spec=SPECIES[e.kind],w=spec.size[0],h=spec.size[1];
-    const visual=enemyVisual(e,spec),spriteY=e.y-visual.hoverHeight;
-    c.save();c.globalAlpha*=visual.shadowOpacity;
-    this.drawShadow(e.x,e.y,w*visual.shadowWidthRatio,visual.shadowHeight);c.restore();
+    this.drawShadow(e.x,e.y,w*.57,12);
     if(e.kind!=='deer'&&e.flinch>0)c.globalAlpha=.66;
+    const attacking=e.attackAnim>0;
+    const row=attacking?1:0;
+    const col=attacking?clamp(Math.floor(e.attackAge/.6*8),0,7):(e.kind==='deer'||e.walk?Math.floor(e.moveAge)%8:0);
     const foot=173;
-    this.drawSprite(this.images[visual.asset],visual.row,visual.column,e.x,spriteY,w,h,foot,FRAME,e.face<0);c.globalAlpha=1;
+    this.drawSprite(this.images[e.kind],row,col,e.x,e.y,w,h,foot,FRAME,e.face<0);c.globalAlpha=1;
     const targeted=this.target?.kind==='enemy'&&this.target.id===e.id;
     if(targeted){c.strokeStyle='#ffef9a';c.lineWidth=1.6;c.beginPath();c.ellipse(e.x,e.y-1,27,9,0,0,7);c.stroke()}
-    const hpY=spriteY-h*.88;
+    const hpY=e.y-h*.88;
     this.drawHealth(e.x,hpY,44,e.hp/e.maxHp,'#ee474c');
-    c.save();c.textAlign='center';c.textBaseline='bottom';c.lineJoin='round';
-    c.strokeStyle='#071713';c.lineWidth=3;
-    c.font='bold 11px system-ui';c.fillStyle=targeted?'#fff0ad':'#ffe2a3';
-    const name=e.name||spec.name;
-    c.strokeText(name,e.x,hpY-10);c.fillText(name,e.x,hpY-10);
-    const level=beastTitle(e,'').replace(/^ · /,'');
-    c.font='bold 10px system-ui';c.fillStyle='#e3e8d4';
-    c.strokeText(level,e.x,hpY-24);c.fillText(level,e.x,hpY-24);
-    c.restore();
+    if(targeted){
+      c.save();c.textAlign='center';c.textBaseline='bottom';c.font='bold 10px system-ui';
+      c.fillStyle='#ffe4ac';c.shadowColor='#08151b';c.shadowBlur=4;
+      c.fillText(beastTitle(e,spec.name),e.x,hpY-6);
+      c.restore();
+    }
   },
   drawHealth(x,y,width,ratio,color){
     const c=this.ctx;c.fillStyle='#0d1917d9';c.fillRect(x-width/2-1,y-1,width+2,7);
@@ -141,14 +133,13 @@ export const RendererSystem = {
     for(const d of this.state.drops){
       const item=lootInfo(d.itemId);
       if(!item)continue;
-      c.save();c.translate(d.x,d.y-12);
-      const image=this.lootImages?.[lootIconPath(d.itemId)];
-      const label=item.name+(d.quantity>1?' ×'+d.quantity:'');
-      c.font='bold 12px system-ui';c.textAlign='left';c.textBaseline='middle';
-      const width=c.measureText(label).width+40;
-      if(image)c.drawImage(image,-width/2+3,-14,28,28);
-      c.lineWidth=3;c.strokeStyle='#07120e';c.strokeText(label,-width/2+35,0);
-      c.fillStyle=item.color;c.fillText(label,-width/2+35,0);
+      c.save();c.translate(d.x,d.y-12+Math.sin(d.spin)*3);
+      c.shadowColor=item.color;c.shadowBlur=12;
+      c.fillStyle=item.color;c.strokeStyle='#24312b';c.lineWidth=2;
+      c.beginPath();c.arc(0,0,item.beastRank?10:8,0,Math.PI*2);c.fill();c.stroke();
+      c.shadowBlur=0;c.fillStyle='#12252b';c.font='bold 12px sans-serif';
+      c.textAlign='center';c.textBaseline='middle';c.fillText(item.icon,0,1);
+      if(item.beastRank){c.fillStyle='#fff5d3';c.font='bold 9px sans-serif';c.fillText(item.beastRank,0,14)}
       c.restore();
     }
   },
@@ -187,11 +178,10 @@ export const RendererSystem = {
         c.shadowColor=f.color;c.shadowBlur=16;
         c.drawImage(this.impactSprite(f.color),f.x-size/2,f.y-size/2,size,size);
       }else if(f.type==='slash'){
-        c.translate(f.x,f.y);c.scale(f.face,1);
-        c.rotate(-.35+progress*.6);
-        const size=100+24*easing(progress);
-        c.globalAlpha=Math.sin(Math.PI*Math.min(1,progress))*.95;
-        c.drawImage(this.images.basic_attack_slash,-size/2,-size/2,size,size);
+        c.translate(f.x,f.y);c.scale(f.face,1);c.rotate(-.26);
+        c.strokeStyle='#a8eaff';c.lineWidth=10*(1-progress*.7);c.shadowBlur=24;c.shadowColor='#19aaff';
+        c.beginPath();c.arc(0,0,52,-1.3,1.15);c.stroke();c.strokeStyle='#ffffff';c.lineWidth=2.5;
+        c.beginPath();c.arc(0,0,58,-1.25,1.1);c.stroke();
       }else if(f.type==='wave'||f.type==='level'||f.type==='heal'){
         const radius=f.type==='wave'?25+190*easing(progress):f.type==='level'?20+110*easing(progress):15+65*easing(progress);
         c.strokeStyle=f.type==='heal'?'#9fffba':f.type==='level'?'#ffe5a3':'#7fdfff';
@@ -211,7 +201,6 @@ export const RendererSystem = {
     }
   },
   drawTexts(){
-    if(this.showDamageNumbers===false)return;
     const c=this.ctx;c.textAlign='center';c.textBaseline='middle';
     for(const t of this.state.texts){
       c.save();c.globalAlpha=clamp(t.life/.35,0,1);c.font=t.text.includes('ĐỘT PHÁ')?'900 15px system-ui':'900 17px system-ui';

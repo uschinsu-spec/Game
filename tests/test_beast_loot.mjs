@@ -19,9 +19,9 @@ function game(mapId='map2'){
   g.player=g.makePlayer();g.refreshEnemies();g.ensureNPCs();return g;
 }
 
-// Floors 1 and 2 are mortal beasts; higher floor progression is unchanged.
+// Rank 0 deer has no core; starting from floor 2, the wolf is rank 1.
 assert.equal(beastRankForFloor(1),0);
-assert.equal(beastRankForFloor(2),0);
+assert.equal(beastRankForFloor(2),1);
 assert.equal(beastRankForFloor(13),1);
 assert.equal(beastRankForFloor(14),2);
 assert.equal(MAX_BEAST_RANK,5);
@@ -35,14 +35,14 @@ assert.equal(beastRankForFloor(62),5);
 assert.equal(beastRankForFloor(98),5);
 assert.equal(beastRankForFloor(99),5);
 assert.equal(makeWorld('map').enemies[0].beastRank,0);
-assert.equal(makeWorld('map2').enemies[0].beastRank,0);
+assert.equal(makeWorld('map2').enemies[0].beastRank,1);
 assert.equal(makeWorld('map14').enemies[0].beastRank,2);
 assert.equal(makeWorld('map99').enemies[0].beastRank,5);
 assert.equal(makeWorld('map99').enemies[0].beastStage,3);
 
 // Substages are mapped to 3 floors per grade, including the boundary floors.
 assert.equal(beastStageForFloor(1),-1);
-assert.equal(beastStageForFloor(2),-1);
+assert.equal(beastStageForFloor(2),0);
 assert.equal(beastStageForFloor(4),0);
 assert.equal(beastStageForFloor(5),1);
 assert.equal(beastStageForFloor(7),1);
@@ -60,7 +60,7 @@ assert.equal(beastStageForFloor(61),3);
 assert.equal(beastStageForFloor(62),3);
 assert.equal(beastStageForFloor(98),3);
 assert.equal(beastStageForFloor(99),3);
-for(let floor=3;floor<=99;floor++){
+for(let floor=2;floor<=99;floor++){
   const beast=makeWorld(floor===1?'map':'map'+floor).enemies[0];
   assert.equal(beast.beastRank,beastRankForFloor(floor));
   assert.equal(beast.beastStage,beastStageForFloor(floor));
@@ -158,9 +158,7 @@ assert.ok(enemy.dead);
 assert.ok(g.state.drops.some(d=>d.itemId==='da_thu'));
 assert.ok(g.state.drops.every(d=>lootInfo(d.itemId)&&!('gold' in d)&&!('exp' in d)&&!('herb' in d)));
 assert.equal(p.exp,expBefore);assert.equal(p.gold,goldBefore);
-g.stepDrops(1.99);
-assert.ok(g.state.drops.length>0);
-g.stepDrops(.01);
+g.stepDrops(.05);
 assert.equal(g.state.drops.length,0);
 assert.ok(p.materials.da_thu>=1);
 assert.equal(p.gold,goldBefore);
@@ -169,7 +167,7 @@ assert.equal(p.exp,expBefore);
 // All inner-core grades stack under distinct rank/quality IDs.
 g.state.drops.push({x:p.x,y:p.y,life:24,spin:0,owner:null,quantity:1,itemId:'noi_dan_1_cuc'});
 g.state.drops.push({x:p.x,y:p.y,life:24,spin:0,owner:null,quantity:2,itemId:'noi_dan_1_cuc'});
-g.stepDrops(2);
+g.stepDrops(.01);
 assert.equal(p.materials.noi_dan_1_cuc,3);
 const materialCount=Object.entries(BEAST_MATERIALS).reduce((sum,[id])=>sum+(p.materials[id]||0),0);
 const expectedMoney=Object.entries(BEAST_MATERIALS)

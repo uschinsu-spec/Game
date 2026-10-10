@@ -4,11 +4,11 @@ import {clamp,GAMEPLAY} from '../core/runtime.js';
 
 export const CharactersSystem = {
   makePlayer(){
-    const p={...Engine.createCharacter('Thanh Phong'),x:PLAYER_SPAWN.x,y:PLAYER_SPAWN.y,face:1,mp:100,
-      gold:0,materials:{},gearInventory:{},gearSlots:{},baseEquippedGear:{},skillExp:{},selectedSkillId:'kiem_1',ownedManuals:[],pills:{hoi_huyet:0,hoi_linh:0},meditationAge:0,buffTime:0,buffId:null,walk:false,walkAge:0,idleAge:0,
+    const p={...Engine.createCharacter('Thanh Phong',{equippedGear:{dmg:12,def:2}}),x:PLAYER_SPAWN.x,y:PLAYER_SPAWN.y,face:1,mp:100,
+      gold:0,materials:{},professionItems:{},gatherCooldown:0,skillExp:{},selectedSkillId:'kiem_1',ownedManuals:['cp_dan_khi'],pills:{},meditationAge:0,buffTime:0,buffId:null,walk:false,walkAge:0,idleAge:0,
       attackAnim:0,attackAge:0,attackHit:false,attackDuration:.38,attackHitTime:.11,
       skillAnim:0,skillAge:0,skillDuration:.52,skillReleaseAge:.2,pendingSkill:null,
-      cooldowns:{attack:0,skill:0,heal:0,mana:0},hurt:0,dead:false};
+      cooldowns:{attack:0,skill:0,heal:0},hurt:0,dead:false};
     syncStats(p,true);return p;
   },
   tickCharacter(p,dt){
@@ -35,7 +35,7 @@ export const CharactersSystem = {
   },
   respawn(){
     const p=this.player;this.stopMeditation();p.buffTime=0;p.dead=false;p.hp=p.maxHp;p.mp=p.maxMp;p.x=PLAYER_SPAWN.x;p.y=PLAYER_SPAWN.y;
-    p.cooldowns={attack:0,skill:0,heal:0,mana:0};p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;this.target=null;this.save();
+    p.cooldowns={attack:0,skill:0,heal:0};p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;this.target=null;this.save();
   },
   moveEntity(entity,dx,dy){
     const nx=clamp(entity.x+dx,20,WORLD.width-20),ny=clamp(entity.y+dy,20,WORLD.height-20);
