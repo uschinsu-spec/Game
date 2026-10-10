@@ -28,6 +28,7 @@
 - Skill có MP theo phần trăm tối đa và tier (bậc 1–5: 5% / 8% / 12% / 18% / 25%); cooldown riêng **không** bị giảm bởi tốc đánh để tránh nhân đôi DPS.
 - Công pháp chuyên hệ cho lợi thế đúng hệ, nhưng nền sát thương và thủ vẫn có tác dụng với các đòn còn lại.
 - Quái scale trong tiểu cảnh giới; NPC scale theo tầng như trước. Hiệu ứng choáng/chậm có thể kháng nhờ `controlResistance`.
+- NPC đã tu luyện chọn Enemy gần nhất liên tục và thi triển Skill ngay dù mục tiêu ở xa (không tranh mục tiêu với NPC khác, không chờ tiếp cận tầm Skill đầu, không khóa vị trí sau lần cast đầu). Skill AOE NPC lấy Enemy làm tâm; VFX đạn vẫn bay và sát thương được áp dụng khi chạm đích. Phàm Nhân vẫn đánh cận chiến như cũ.
 - `equippedGear`, `spiritualSenseBonus`, `congPhapMastery` được lưu; cấp phát trang bị/vật phẩm vẫn có thể mở rộng sau.
 
 ## Độ tương thích
