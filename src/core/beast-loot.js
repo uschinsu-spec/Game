@@ -1,6 +1,6 @@
 /**
- * All enemy rewards are physical beast parts. No gold/EXP drops.
- * Floor 1: ordinary deer (no core); floor 2 onward: rank 1-9 beasts.
+ * Enemy rewards: beast hide, fur, blood, and possibly an inner core. No gold or EXP.
+ * Each 12-floor major rank has four 3-floor substages; quality matches substage exactly.
  */
 export const BEAST_MATERIALS=Object.freeze({
   da_thu:Object.freeze({id:'da_thu',name:'Da Thú',icon:'▤',color:'#cba178',sellPrice:12}),
@@ -8,18 +8,48 @@ export const BEAST_MATERIALS=Object.freeze({
   huyet_thu:Object.freeze({id:'huyet_thu',name:'Huyết Thú',icon:'✚',color:'#e45b66',sellPrice:20})
 });
 export const CORE_QUALITIES=Object.freeze([
-  Object.freeze({id:'ha',name:'Hạ Phẩm',weight:.70,color:'#8adea9'}),
-  Object.freeze({id:'trung',name:'Trung Phẩm',weight:.20,color:'#64cafa'}),
-  Object.freeze({id:'thuong',name:'Thượng Phẩm',weight:.08,color:'#d49bff'}),
-  Object.freeze({id:'cuc',name:'Cực Phẩm',weight:.02,color:'#ffca65'})
+  Object.freeze({id:'ha',name:'Hạ Phẩm',color:'#8adea9'}),
+  Object.freeze({id:'trung',name:'Trung Phẩm',color:'#64cafa'}),
+  Object.freeze({id:'thuong',name:'Thượng Phẩm',color:'#d49bff'}),
+  Object.freeze({id:'cuc',name:'Cực Phẩm',color:'#ffca65'})
 ]);
-export const BEAST_CORE_DROP_CHANCE=.35;
+export const BEAST_STAGES=Object.freeze([
+  Object.freeze({id:'so',name:'Sơ Kỳ',quality:'ha',coreChance:.20}),
+  Object.freeze({id:'trung',name:'Trung Kỳ',quality:'trung',coreChance:.35}),
+  Object.freeze({id:'hau',name:'Hậu Kỳ',quality:'thuong',coreChance:.50}),
+  Object.freeze({id:'dinh',name:'Đỉnh Phong',quality:'cuc',coreChance:.70})
+]);
+// Each higher major rank gains another two percentage points, capped at 90%.
+export const CORE_CHANCE_BONUS_PER_RANK=.02;
+export const MAX_CORE_CHANCE=.90;
+export const BEAST_CORE_DROP_CHANCE=BEAST_STAGES[0].coreChance; // base chance (Nhất Phẩm Sơ Kỳ)
 
 export function beastRankForFloor(floor){
-  if(!Number.isFinite(floor)||floor<2)return 0;
+  if(!Number.isInteger(floor)||floor<2)return 0;
   return Math.min(9,1+Math.floor((floor-2)/12));
 }
-
+export function beastStageForFloor(floor){
+  if(!Number.isInteger(floor)||floor<2)return -1;
+  return Math.min(3,Math.floor(((floor-2)%12)/3));
+}
+export function beastCoreDropChance(enemy){
+  const rank=Math.min(9,Math.max(0,Math.floor(Number(enemy?.beastRank)||0)));
+  if(!rank)return 0; // Phàm thú không có nội đan
+  const stage=Math.min(3,Math.max(0,Math.floor(Number(enemy?.beastStage)||0)));
+  return Math.min(MAX_CORE_CHANCE,
+    BEAST_STAGES[stage].coreChance+(rank-1)*CORE_CHANCE_BONUS_PER_RANK);
+}
+export function beastCoreQuality(enemy){
+  const stage=Math.min(3,Math.max(0,Math.floor(Number(enemy?.beastStage)||0)));
+  return CORE_QUALITIES.find(q=>q.id===BEAST_STAGES[stage].quality);
+}
+export function beastTitle(enemy,speciesName='Yêu Thú'){
+  const rank=Math.min(9,Math.max(0,Math.floor(Number(enemy?.beastRank)||0)));
+  if(!rank)return speciesName+' · Phàm Thú';
+  const name=['','Nhất','Nhị','Tam','Tứ','Ngũ','Lục','Thất','Bát','Cửu'][rank];
+  const stage=Math.min(3,Math.max(0,Math.floor(Number(enemy?.beastStage)||0)));
+  return `${speciesName} · ${name} Phẩm ${BEAST_STAGES[stage].name}`;
+}
 export function lootInfo(itemId){
   if(Object.hasOwn(BEAST_MATERIALS,itemId))return BEAST_MATERIALS[itemId];
   const m=/^noi_dan_([1-9])_(ha|trung|thuong|cuc)$/.exec(itemId);
@@ -28,23 +58,15 @@ export function lootInfo(itemId){
   return {id:itemId,name:`Nội Đan ${m[1]} Phẩm · ${quality.name}`,
     icon:'◆',color:quality.color,sellPrice:0,beastRank:Number(m[1]),quality:quality.id};
 }
-export function rollCoreQuality(random=Math.random){
-  const roll=Math.min(.999999,Math.max(0,random()));
-  let cumulative=0;
-  for(const quality of CORE_QUALITIES){
-    cumulative+=quality.weight;
-    if(roll<cumulative)return quality;
-  }
-  return CORE_QUALITIES.at(-1);
-}
 export function generateBeastLoot(enemy,random=Math.random){
-  // Always drop hide; fur and blood may drop as additional items.
   const loot=[{itemId:'da_thu',quantity:1}];
   if(random()<.72)loot.push({itemId:'long_thu',quantity:1});
   if(random()<.42)loot.push({itemId:'huyet_thu',quantity:1});
-  const rank=Math.min(9,Math.max(0,Math.floor(Number(enemy.beastRank)||0)));
-  if(rank>=1&&random()<BEAST_CORE_DROP_CHANCE){
-    const quality=rollCoreQuality(random);
+  const rank=Math.min(9,Math.max(0,Math.floor(Number(enemy?.beastRank)||0)));
+  if(rank&&random()<beastCoreDropChance(enemy)){
+    // Quality comes exclusively from this beast's cultivation stage;
+    // e.g. Nhất Phẩm Đỉnh Phong always yields Nhất Phẩm Cực Phẩm when a core drops.
+    const quality=beastCoreQuality(enemy);
     loot.push({itemId:`noi_dan_${rank}_${quality.id}`,quantity:1});
   }
   return loot;
