@@ -34,6 +34,11 @@ assert.equal(p.exp,before+gained);
 assert.equal(p.pills[recipe.id],pillStock-1);
 assert.equal(g.useCultivationPill(),false,'Cannot consume an absent pill');
 assert.ok(Engine.calcMeditationRate(p)>0);
+const oldMastery=p.congPhapMastery;Engine.meditateTick({...p,isMeditating:false},1);
+const training={...p,isMeditating:true,exp:p.exp};
+Engine.meditateTick(training,1);
+assert.ok(training.congPhapMastery>oldMastery);
+assert.equal(p.congPhapMastery,oldMastery);
 assert.equal(Engine.calcMeditationRate({...p,realmIdx:0}),6);
 
 // Sense upgrades improve attack tempo without making crit almost certain at Truc Co.
