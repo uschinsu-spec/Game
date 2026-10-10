@@ -58,7 +58,7 @@ npc.hp=1;npc.mp=npc.maxMp;g.heal(npc);assert.ok(npc.hp>1);
 assert.equal(g.player.cooldowns.heal,0);
 
 // NPC kills must not award Player or NPC cultivation EXP, and drop only spirit stones.
-const playerExp=g.player.exp,npcExp=npc.exp;g.damageEnemy(enemy,1000000,false,npc);
+const npcExp=npc.exp;g.damageEnemy(enemy,1000000,false,npc);
 assert.ok(enemy.dead);assert.equal(g.player.exp,playerExp);assert.equal(npc.exp,npcExp);
 assert.ok(!('kills' in g.player));assert.ok(!('kills' in npc));
 assert.ok(g.state.drops.every(d=>d.owner===npc.id&&d.gold>0&&!('herb' in d)));
