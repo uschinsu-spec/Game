@@ -42,7 +42,7 @@ chọn branch và thư mục gốc trong Settings → Pages.
 - Cảnh giới NPC tăng theo bậc: tầng 3 là Luyện Khí Tầng 2, tầng 14 là Trúc Cơ Sơ Kỳ; từ tầng 29 giữ Hóa Thần Đỉnh Phong. Không phụ thuộc cảnh giới Player.
 - Từ Luyện Khí, NPC chỉ dùng thần thông khi tấn công, không đánh thường kể cả khi thiếu MP hoặc chờ hồi chiêu. AI luân phiên các chiêu được mở, ưu tiên bậc hiện tại rồi bậc thấp hơn; mỗi chiêu có hồi chiêu riêng và cách lần thi triển tối thiểu 0,65 giây.
 - Thuần thục chiêu cùng đại cảnh giới bị giới hạn theo sơ/trung/hậu/đỉnh: Sơ Nhập/Tiểu Thành/Đại Thành/Viên Mãn. Luyện Khí tầng 1–3/4–6/7–9/10–12 tương ứng bốn giai đoạn. Chiêu thuộc đại cảnh giới thấp hơn có thể đạt Viên Mãn. Giới hạn này chỉ áp dụng NPC.
-- NPC đã tu luyện có thể hồi máu; vào tầm thi triển lần đầu rồi đứng đánh mục tiêu đó. Mỗi NPC chọn quái riêng trên map. Xích Phong hệ Kim/Kiếm, Bạch Vân hệ Hỏa. Sói có thể tấn công NPC.
+- NPC đã tu luyện có thể hồi máu; mỗi lần thi triển chọn Enemy còn sống gần nhất và đánh ngay tại vị trí đang đứng, không yêu cầu khoảng cách hoặc giữ vị trí sau Skill đầu. Hai NPC có thể cùng nhắm một Enemy; Skill AOE của NPC lấy Enemy mục tiêu làm tâm. NPC Phàm Nhân vẫn phải tiếp cận trong tầm đánh thường. Xích Phong hệ Kim/Kiếm, Bạch Vân hệ Hỏa. Sói có thể tấn công NPC.
 - Player và NPC dùng chung di chuyển, animation và hành động trong `src/systems/characters.js` và `src/systems/combat.js`.
 - NPC hồi sinh sau 12 giây. Chiến lợi phẩm Linh Thạch của NPC được tính riêng; hạ quái không cộng EXP cho NPC.
 - Trạng thái từng map được giữ khi truyền tống trong phiên chơi. Tải lại trang tạo lại quái và NPC.
