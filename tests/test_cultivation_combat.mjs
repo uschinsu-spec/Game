@@ -93,7 +93,7 @@ p.spiritualSenseBonus=123;p.congPhapMastery=.9;
 p.equippedGear={...p.equippedGear,spiritualSense:12,attackSpeed:17};
 p.pills[recipe.id]=3;g.save();
 const saved=JSON.parse(store.get('van-moc-sam-lam-save-v1'));
-assert.equal(saved.version,4);
+assert.equal(saved.version,5);
 assert.ok(!('herbs' in saved));assert.ok(!('kills' in saved));
 assert.deepEqual(saved.materials,p.materials);
 const restored=game();restored.restore();
