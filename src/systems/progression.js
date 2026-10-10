@@ -19,14 +19,14 @@ export const ProgressionSystem = {
   },
   craftPill(){
     const p=this.player,r=Engine.getRealm(p);if(!r.bottleneck)return;
-    const cost=pillCost(p);if(p.herbs<cost.herbs||p.gold<cost.gold){this.toast('Chưa đủ linh thảo hoặc linh thạch để luyện đan.');return}
-    p.herbs-=cost.herbs;p.gold-=cost.gold;p.pills[r.pillNeeded]=(p.pills[r.pillNeeded]||0)+1;this.save();this.toast('Luyện thành '+r.pillNeeded);
+    const cost=pillCost(p);if(p.gold<cost.gold){this.toast('Không đủ linh thạch để luyện đan.');return}
+    p.gold-=cost.gold;p.pills[r.pillNeeded]=(p.pills[r.pillNeeded]||0)+1;this.save();this.toast('Luyện thành '+r.pillNeeded);
   },
   craftCultivationPill(){
     const p=this.player,pill=cultivationPillForRealm(p.realmIdx);
     if(p.dead)return false;
-    if(p.herbs<pill.herbs||p.gold<pill.gold){this.toast('Chưa đủ nguyên liệu luyện '+pill.name);return false}
-    p.herbs-=pill.herbs;p.gold-=pill.gold;p.pills[pill.id]=(p.pills[pill.id]||0)+1;
+    if(p.gold<pill.gold){this.toast('Không đủ linh thạch để luyện '+pill.name);return false}
+    p.gold-=pill.gold;p.pills[pill.id]=(p.pills[pill.id]||0)+1;
     this.toast('Luyện thành '+pill.name);this.save();return true;
   },
   useCultivationPill(){
