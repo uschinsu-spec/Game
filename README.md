@@ -1,6 +1,8 @@
 # Vạn Mộc Sâm Lâm — Game tu tiên 2D
 
 Game HTML5 Canvas, chạy trên điện thoại và máy tính, không cần npm hoặc backend.
+
+**Quy tắc Tu Vi (cập nhật 10/10/2026):** đánh quái/Boss không tăng EXP cảnh giới. Chỉ **tĩnh tọa tu luyện** hoặc **dùng đan Tu Vi** mới tăng EXP. Đánh quái vẫn nhận linh thạch/vật liệu; đan Tu Vi luyện và sử dụng tại bảng ☯ Tu luyện, khác đan đột phá. Chi tiết và giới hạn chỉ số: [docs/CULTIVATION_COMBAT.md](docs/CULTIVATION_COMBAT.md).
 Máy tính dùng toàn bộ cửa sổ; điện thoại giữ giao diện cảm ứng.
 
 ## Chạy game
@@ -51,14 +53,16 @@ chọn branch và thư mục gốc trong Settings → Pages.
 Có 29 cảnh giới từ Phàm Nhân đến Hóa Thần Đỉnh Phong, công pháp, đột phá,
 luyện đan, 40 thần thông thuộc 8 hệ và 4 bậc thuần thục.
 Chọn thần thông Q trong bảng ☯ Tu luyện. Chế độ tự đánh của Player chỉ tự đánh thường.
-Game lưu tiến trình Player và map hiện tại vào localStorage; save cũ phiên bản 1 vẫn được hỗ trợ.
+EXP của kẻ địch không còn là nguồn Tu Vi. Tốc độ tu luyện tĩnh tọa tự mở rộng theo yêu cầu cảnh giới và phẩm cấp công pháp; dùng đan Tu Vi để chủ động tăng Tu Vi.
+Game lưu tiến trình Player và map hiện tại vào localStorage (schema v3, giữ save cũ v1/v2). Ngoài công pháp và Skill, save giữ Thần Thức thưởng, trang bị, thuần thục công pháp và đan Tu Vi.
 
 `cultivation_engine.js` tính chỉ số và kết quả giao tranh; `src/cultivation.js`
 kết nối engine vào game. Linh lực dùng duy nhất `mp`, mỗi thần thông tốn 1 MP.
+Skill tiêu hao MP theo bậc và MP tối đa; Thần Thức tăng tốc ra đòn và tốc độ animation/VFX, không giảm thời gian hồi chiêu. Sát thương Skill được phát tại frame xuất chiêu hoặc lúc đạn chạm quái.
 Hồi phục từ thần thông được áp dụng một lần mỗi lượt thi triển, kể cả khi đánh nhiều mục tiêu.
 Vạn Vật Tái Sinh có thể dùng khi không có địch và gây sát thương trong bán kính 260px.
 
-Thần thông Luyện Khí (bậc 1) dùng sprite đạn bay 12 frame từ nhân vật tới địch;
+Thần thông Luyện Khí (bậc 1) dùng sprite đạn bay 12 frame từ nhân vật tới địch, vận tốc theo Thần Thức và độ thuần thục;
 sát thương và trạng thái được áp dụng lúc chạm đích. Chiêu diện rộng bậc 1 nổ
 quanh mục tiêu khi đạn tới. Bậc cao hơn hiện vẫn xử lý tức thời và dùng hiệu ứng Canvas.
 Asset VFX: `luyen_khi_9he_7frame.webp`, 1774×887, 9 hàng × 12 cột không đều;
