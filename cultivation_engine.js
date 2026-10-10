@@ -309,7 +309,7 @@ export class CultivationEngine {
   /** MP cost is a share of the actor's maximum MP, not a flat point at every realm. */
   static calcSkillMpCost(char, skill) {
     const tier = Math.max(0, Math.min(5, skill?.tier || 0));
-    const shares = [0, 0.015, 0.025, 0.035, 0.05, 0.07];
+    const shares = [0, 0.05, 0.08, 0.12, 0.18, 0.25];
     return tier ? Math.max(1, Math.ceil(this.calcMaxMp(char) * shares[tier])) : 0;
   }
 
@@ -377,6 +377,9 @@ export class CultivationEngine {
     const speed = this.calcMeditationRate(char); // Tu vi chỉ từ tĩnh tọa hoặc đan tu vi
     const expGain = Math.floor(speed * deltaSeconds);
     char.exp = (char.exp || 0) + expGain;
+    // Only actual meditation improves manual proficiency; fighting never does.
+    const mastery = Number.isFinite(char.congPhapMastery) ? char.congPhapMastery : .35;
+    char.congPhapMastery = Math.min(1, Math.max(0,mastery) + Math.max(0,deltaSeconds) / 18000);
     return expGain;
   }
 
