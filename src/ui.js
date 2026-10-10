@@ -1,7 +1,6 @@
 const $=selector=>document.querySelector(selector);
-import {Engine,REALMS,CONG_PHAP_LIST,CONG_PHAP_GRADES,SKILLS,SKILL_MASTERY_TIERS,availableSkills,manualCost,pillCost} from './cultivation.js';
+import {Engine,REALMS,CONG_PHAP_LIST,CONG_PHAP_GRADES,SKILLS,SKILL_MASTERY_TIERS,availableSkills,manualCost,pillCost,cultivationPillForRealm,cultivationPillExp} from './cultivation.js';
 import {floorNumber,FLOOR_COUNT} from './floors.js';
-import {GAMEPLAY} from './core/config.js';
 export class UI {
   constructor(game){
     this.game=game;this.lastHud=0;this.noticeTimer=0;
@@ -62,14 +61,16 @@ export class UI {
     `🪙 Linh thạch: ${p.gold}\n🌿 Linh thảo: ${p.herbs}\n⚔ Yêu Lang đã hạ: ${p.kills}\n✨ Tu vi: ${Math.floor(p.exp)}/${Engine.getRealm(p).expReq}\nCảnh giới: ${Engine.getRealm(p).name}\n${Object.entries(p.pills).filter(([,n])=>n>0).map(([name,n])=>name+': '+n).join('\n')}`);
   }
   cultivation(){
-    const g=this.game,p=g.player,r=Engine.getRealm(p),cp=Engine.getCongPhap(p);
+    const g=this.game,p=g.player,r=Engine.getRealm(p),cp=Engine.getCongPhap(p),pill=cultivationPillForRealm(p.realmIdx);
     this.show('Tu luyện',r.name,
-      `Tu vi: ${Math.floor(p.exp)} / ${r.expReq}\nCông pháp: ${cp.name}\nGiới hạn: ${CONG_PHAP_GRADES[cp.grade].maxStage} · Tĩnh tọa: ${cp.speed*3} tu vi/giây\nCông: ${Engine.calcElementalDamage(p,cp.elem==='Toàn Hệ'?'Kim':cp.elem)} · Thủ: ${Engine.calcElementalDefense(p,'Vật Lý')} · Thần thức: ${Engine.calcSpiritualSense(p)}\nBạo kích: ${Math.round(Engine.calcCritRate(p)*100)}% · Tốc độ đánh: ${Engine.calcAttackInterval(p)}ms\nLinh thạch: ${p.gold} · Linh thảo: ${p.herbs}\n${r.bottleneck?'Bình cảnh: cần '+r.pillNeeded+' (có '+(p.pills[r.pillNeeded]||0)+')':'Cảnh giới kế: '+(REALMS[p.realmIdx+1]?.name||'Đã đạt đỉnh')}`);
+      `Tu vi: ${Math.floor(p.exp)} / ${r.expReq}\nCông pháp: ${cp.name}\nGiới hạn: ${CONG_PHAP_GRADES[cp.grade].maxStage} · Tĩnh tọa: ${Engine.calcMeditationRate(p).toLocaleString('vi-VN')} tu vi/giây\nCông: ${Engine.calcElementalDamage(p,cp.elem==='Toàn Hệ'?'Kim':cp.elem)} · Thủ: ${Engine.calcElementalDefense(p,'Vật Lý')} · Thần thức: ${Engine.calcSpiritualSense(p)}\nBạo kích: ${Math.round(Engine.calcCritRate(p)*100)}% · Tốc độ đánh: ${Engine.calcAttackInterval(p)}ms\nLinh thạch: ${p.gold} · Linh thảo: ${p.herbs}\n${r.bottleneck?'Bình cảnh: cần '+r.pillNeeded+' (có '+(p.pills[r.pillNeeded]||0)+')':'Cảnh giới kế: '+(REALMS[p.realmIdx+1]?.name||'Đã đạt đỉnh')}`);
     const box=$('#cultivation-controls');box.replaceChildren();box.hidden=false;
     const button=(label,fn,disabled=false)=>{const b=document.createElement('button');b.textContent=label;b.disabled=disabled;b.addEventListener('click',fn);box.append(b)};
     button('Tĩnh tọa',()=>g.meditate());
     button('Đột phá',()=>{g.breakthrough();this.cultivation()},p.exp<r.expReq||p.realmIdx===28);
-    if(r.bottleneck){const cost=pillCost(p);button(`Luyện đan · ${cost.herbs} thảo + ${cost.gold} thạch`,()=>{g.craftPill();this.cultivation()})}
+    if(r.bottleneck){const cost=pillCost(p);button(`Luyện đan đột phá · ${cost.herbs} thảo + ${cost.gold} thạch`,()=>{g.craftPill();this.cultivation()})}
+    button(`Luyện ${pill.name} · ${pill.herbs} thảo + ${pill.gold} thạch`,()=>{g.craftCultivationPill();this.cultivation()},p.herbs<pill.herbs||p.gold<pill.gold);
+    button(`Dùng ${pill.name} (+${cultivationPillExp(p).toLocaleString('vi-VN')} Tu Vi) · Có ${p.pills[pill.id]||0}`,()=>{g.useCultivationPill();this.cultivation()},(p.pills[pill.id]||0)<1);
     const label=document.createElement('label');label.textContent='Công pháp';const select=document.createElement('select');
     for(const manual of CONG_PHAP_LIST){const o=document.createElement('option');o.value=manual.id;o.textContent=manual.name+' · '+manual.grade+(p.ownedManuals.includes(manual.id)?' · Đã học':' · '+manualCost(manual)+' thạch');select.append(o)}
     select.value=p.activeCongPhapId;label.append(select);box.append(label);
@@ -78,7 +79,7 @@ export class UI {
     if(skills.length){const l=document.createElement('label');l.textContent='Thần thông phím Q';const sel=document.createElement('select');
       for(const sk of skills){const o=document.createElement('option');o.value=sk.id;o.textContent=sk.name+' · '+sk.elem+' · '+SKILL_MASTERY_TIERS[p.skillMastery[sk.id]||0].name;sel.append(o)}
       sel.value=p.selectedSkillId;sel.addEventListener('change',()=>{p.selectedSkillId=sel.value;g.save();describe()});
-      const desc=document.createElement('p');const describe=()=>{const sk=SKILLS.find(s=>s.id===sel.value);desc.textContent=sk.desc+` · Hồi ${sk.cd}s · Linh lực ${GAMEPLAY.skillCost} · Luyện chiêu ${p.skillExp[sk.id]||0}/${SKILL_MASTERY_TIERS[p.skillMastery[sk.id]||0].expReq}`};
+      const desc=document.createElement('p');const describe=()=>{const sk=SKILLS.find(s=>s.id===sel.value);desc.textContent=sk.desc+` · Hồi ${sk.cd}s · Linh lực ${Engine.calcSkillMpCost(p,sk).toLocaleString('vi-VN')} · Luyện chiêu ${p.skillExp[sk.id]||0}/${SKILL_MASTERY_TIERS[p.skillMastery[sk.id]||0].expReq}`};
       l.append(sel);box.append(l,desc);describe();
     }
   }
