@@ -1,3 +1,4 @@
+import {normalizeItems} from '../core/profession-items.js';
 import {makeWorld,clampIntoWorld} from '../world.js';
 import {floorNumber,floorId} from '../floors.js';
 import {Engine,REALMS,CONG_PHAP_LIST,SKILLS,syncStats,availableSkills} from '../cultivation.js';
@@ -42,6 +43,7 @@ export const PersistenceSystem = {
           }
         }
       }
+      p.professionItems=normalizeItems(s.professionItems);
       syncStats(p,true);
       const pos=clampIntoWorld(p.x,p.y);p.x=pos.x;p.y=pos.y;
     }catch(e){console.warn('Không thể đọc save cũ:',e)}
@@ -49,7 +51,7 @@ export const PersistenceSystem = {
   save(){
     const p=this.player;
     try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({version:5,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','materials','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
+      localStorage.setItem(SAVE_KEY,JSON.stringify({version:5,mapId:this.mapId,...Object.fromEntries(['x','y','realmIdx','exp','gold','materials','professionItems','activeCongPhapId','ownedManuals','selectedSkillId','skillMastery','skillExp','pills','equippedGear','spiritualSenseBonus','congPhapMastery'].map(k=>[k,p[k]]))}));
     }catch(e){console.warn('Không lưu được:',e)}
   },
   reset(){
