@@ -36,14 +36,14 @@ const result=Engine.resolveCombat(combat.player,{def:0},'moc_4');
 assert.equal(combat.player.hp,10);assert.equal(result.healAmount,Math.floor(combat.player.maxHp*.25));
 combat.player.selectedSkillId='moc_4';combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;
 combat.state.enemies=Array.from({length:3},(_,id)=>({...enemyStats('wolf',28),id,kind:'wolf',x:combat.player.x+20+id*10,y:combat.player.y,hp:1e12,maxHp:1e12,dead:false}));
-combat.skill();combat.releaseSkill(combat.player);assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.25),'AOE heals once, not per target');
+combat.skill();combat.releaseSkill(combat.player);combat.player.skillAnim=0;assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.25),'AOE heals once, not per target');
 // Healing AOE works without an enemy and damages every enemy in its radius.
 combat.player.hp=10;combat.player.selectedSkillId='moc_5';combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;
-const previous=combat.state.enemies.map(e=>e.hp);combat.skill();combat.releaseSkill(combat.player);
+const previous=combat.state.enemies.map(e=>e.hp);combat.skill();combat.releaseSkill(combat.player);combat.player.skillAnim=0;
 assert.ok(combat.state.enemies.every((e,i)=>e.hp<previous[i]));
 assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.6));
 combat.state.enemies=[];combat.player.hp=10;combat.player.cooldowns.skill=0;combat.player.mp=combat.player.maxMp;
-combat.skill();combat.releaseSkill(combat.player);assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.6));
+combat.skill();combat.releaseSkill(combat.player);combat.player.skillAnim=0;assert.equal(combat.player.hp,10+Math.floor(combat.player.maxHp*.6));
 assert.equal('mana' in combat.player,false,'MP has a single source of truth');
 const fresh=Engine.createCharacter();assert.equal(fresh.mp,100);assert.equal('mana' in fresh,false);
 fresh.exp=REALMS[0].expReq;Engine.breakthrough(fresh);assert.equal(fresh.mp,Engine.calcMaxMp(fresh));
