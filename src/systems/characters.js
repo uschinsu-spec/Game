@@ -6,7 +6,9 @@ export const CharactersSystem = {
   makePlayer(){
     const p={...Engine.createCharacter('Thanh Phong',{equippedGear:{dmg:12,def:2}}),x:PLAYER_SPAWN.x,y:PLAYER_SPAWN.y,face:1,mp:100,
       gold:0,herbs:0,kills:0,skillExp:{},selectedSkillId:'kiem_1',ownedManuals:['cp_dan_khi'],pills:{},meditationAge:0,buffTime:0,buffId:null,walk:false,walkAge:0,idleAge:0,
-      attackAnim:0,attackAge:0,attackHit:false,skillAnim:0,skillAge:0,cooldowns:{attack:0,skill:0,heal:0},hurt:0,dead:false};
+      attackAnim:0,attackAge:0,attackHit:false,attackDuration:.38,attackHitTime:.11,
+      skillAnim:0,skillAge:0,skillDuration:.52,skillReleaseAge:.2,pendingSkill:null,
+      cooldowns:{attack:0,skill:0,heal:0},hurt:0,dead:false};
     syncStats(p,true);return p;
   },
   tickCharacter(p,dt){
@@ -16,9 +18,12 @@ export const CharactersSystem = {
     p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.001*dt);p.buffTime=Math.max(0,p.buffTime-dt);
     if(p.attackAnim>0){
       p.attackAnim=Math.max(0,p.attackAnim-dt);p.attackAge+=dt;
-      if(!p.attackHit&&p.attackAge>.11){p.attackHit=true;this.doAttackHit(p)}
+      if(!p.attackHit&&p.attackAge>=p.attackHitTime){p.attackHit=true;this.doAttackHit(p)}
     }
-    if(p.skillAnim>0){p.skillAnim=Math.max(0,p.skillAnim-dt);p.skillAge+=dt}
+    if(p.skillAnim>0){
+      p.skillAnim=Math.max(0,p.skillAnim-dt);p.skillAge+=dt;
+      if(p.pendingSkill&&p.skillAge>=p.skillReleaseAge)this.releaseSkill(p);
+    }
   },
   moveCharacter(p,dir,dt){
     const moving=Math.hypot(dir.x,dir.y)>.01;
@@ -30,7 +35,7 @@ export const CharactersSystem = {
   },
   respawn(){
     const p=this.player;this.stopMeditation();p.buffTime=0;p.dead=false;p.hp=p.maxHp;p.mp=p.maxMp;p.x=PLAYER_SPAWN.x;p.y=PLAYER_SPAWN.y;
-    p.cooldowns={attack:0,skill:0,heal:0};this.target=null;this.save();
+    p.cooldowns={attack:0,skill:0,heal:0};p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;this.target=null;this.save();
   },
   moveEntity(entity,dx,dy){
     const nx=clamp(entity.x+dx,20,WORLD.width-20),ny=clamp(entity.y+dy,20,WORLD.height-20);
