@@ -29,7 +29,7 @@ export const TravelSystem = {
     this.ensureNPCs();
     const p=this.player,portal=portalsFor(destination).find(p=>p.to===previous);
     p.x=portal.x+(direction==='next'?90:-90);p.y=portal.y;
-    p.walk=false;p.attackAnim=0;p.skillAnim=0;p.attackAge=0;p.skillAge=0;
+    p.walk=false;p.attackAnim=0;p.skillAnim=0;p.pendingSkill=null;p.attackAge=0;p.skillAge=0;
     this.portalCooldown=1.5;this.lastManual=this.gameTime;
     this.images[destination]=image;delete this.images[previous];
     this.transitioning=false;this.drawMinimap();this.save();this.toast(`Đã đến tầng ${floorNumber(destination)} / 99`);
