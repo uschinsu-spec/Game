@@ -5,9 +5,9 @@ import {SAVE_KEY} from '../src/core/config.js';
 import {Engine} from '../src/cultivation.js';
 import {
   BEAST_MATERIALS,CORE_QUALITIES,BEAST_STAGES,BEAST_CORE_DROP_CHANCE,
-  CORE_CHANCE_MULTIPLIER_PER_RANK,beastRankForFloor,
+  CORE_CHANCE_MULTIPLIER_PER_RANK,MAX_BEAST_RANK,FINAL_BEAST_FLOOR,beastRankForFloor,
   beastStageForFloor,beastCoreDropChance,beastCoreQuality,beastTitle,
-  lootInfo,generateBeastLoot,sellCommonMaterials
+  lootInfo,normalizeBeastLootId,generateBeastLoot,sellCommonMaterials
 } from '../src/core/beast-loot.js';
 
 const store=new Map();
@@ -24,12 +24,21 @@ assert.equal(beastRankForFloor(1),0);
 assert.equal(beastRankForFloor(2),1);
 assert.equal(beastRankForFloor(13),1);
 assert.equal(beastRankForFloor(14),2);
-assert.equal(beastRankForFloor(98),9);
-assert.equal(beastRankForFloor(99),9);
+assert.equal(MAX_BEAST_RANK,5);
+assert.equal(FINAL_BEAST_FLOOR,61);
+assert.equal(beastRankForFloor(37),3);
+assert.equal(beastRankForFloor(38),4);
+assert.equal(beastRankForFloor(49),4);
+assert.equal(beastRankForFloor(50),5);
+assert.equal(beastRankForFloor(61),5);
+assert.equal(beastRankForFloor(62),5);
+assert.equal(beastRankForFloor(98),5);
+assert.equal(beastRankForFloor(99),5);
 assert.equal(makeWorld('map').enemies[0].beastRank,0);
 assert.equal(makeWorld('map2').enemies[0].beastRank,1);
 assert.equal(makeWorld('map14').enemies[0].beastRank,2);
-assert.equal(makeWorld('map99').enemies[0].beastRank,9);
+assert.equal(makeWorld('map99').enemies[0].beastRank,5);
+assert.equal(makeWorld('map99').enemies[0].beastStage,3);
 
 // Substages are mapped to 3 floors per grade, including the boundary floors.
 assert.equal(beastStageForFloor(1),-1);
@@ -44,12 +53,20 @@ assert.equal(beastStageForFloor(13),3);
 assert.equal(beastStageForFloor(14),0);
 assert.equal(beastStageForFloor(25),3);
 assert.equal(beastStageForFloor(26),0);
-assert.equal(beastStageForFloor(98),0);
-assert.equal(beastStageForFloor(99),0);
+assert.equal(beastStageForFloor(50),0);
+assert.equal(beastStageForFloor(58),2);
+assert.equal(beastStageForFloor(59),3);
+assert.equal(beastStageForFloor(61),3);
+assert.equal(beastStageForFloor(62),3);
+assert.equal(beastStageForFloor(98),3);
+assert.equal(beastStageForFloor(99),3);
 for(let floor=2;floor<=99;floor++){
   const beast=makeWorld(floor===1?'map':'map'+floor).enemies[0];
   assert.equal(beast.beastRank,beastRankForFloor(floor));
   assert.equal(beast.beastStage,beastStageForFloor(floor));
+  assert.ok(beast.beastRank>=1&&beast.beastRank<=MAX_BEAST_RANK);
+  assert.ok(beast.beastStage>=0&&beast.beastStage<=3);
+  if(floor>=62)assert.equal(beastTitle(beast,'Yêu Lang'),'Yêu Lang · Ngũ Phẩm Đỉnh Phong');
 }
 assert.equal(CORE_QUALITIES.length,4);
 assert.equal(BEAST_STAGES.length,4);
@@ -67,7 +84,14 @@ assert.equal(lootInfo('gold'),null);
 assert.equal(lootInfo('noi_dan_0_ha'),null);
 assert.equal(lootInfo('noi_dan_10_ha'),null);
 assert.equal(lootInfo('noi_dan_1_khong'),null);
-assert.equal(lootInfo('noi_dan_9_cuc').name,'Nội Đan 9 Phẩm · Cực Phẩm');
+assert.equal(lootInfo('noi_dan_5_cuc').name,'Nội Đan 5 Phẩm · Cực Phẩm');
+for(let rank=6;rank<=9;rank++){
+  assert.equal(lootInfo('noi_dan_'+rank+'_cuc'),null);
+  assert.equal(normalizeBeastLootId('noi_dan_'+rank+'_cuc'),'noi_dan_5_cuc');
+}
+assert.equal(normalizeBeastLootId('da_thu'),'da_thu');
+assert.equal(normalizeBeastLootId('noi_dan_5_ha'),'noi_dan_5_ha');
+assert.equal(normalizeBeastLootId('made_up_item'),null);
 
 // Deer (Phàm Thú) drops no core even when all random draws succeed.
 const deerLoot=generateBeastLoot({kind:'deer',beastRank:0,beastStage:-1},()=>0);
@@ -78,7 +102,7 @@ assert.equal(beastCoreDropChance({beastRank:0,beastStage:-1}),0);
 
 // Quality is guaranteed by substage whenever a core drops, but rarer stages
 // and higher major ranks reduce the chance of receiving that core.
-for(const rank of [1,2,5,9]){
+for(const rank of [1,2,3,4,5]){
   for(let stage=0;stage<4;stage++){
     const enemy={kind:'wolf',beastRank:rank,beastStage:stage};
     const chance=beastCoreDropChance(enemy);
@@ -102,9 +126,16 @@ for(const rank of [1,2,5,9]){
   }
 }
 assert.equal(beastCoreDropChance({beastRank:1,beastStage:3}),.05);
-assert.ok(Math.abs(beastCoreDropChance({beastRank:9,beastStage:3})-
-  .05*Math.pow(.85,8))<1e-12);
-for(let rank=1;rank<=9;rank++){
+assert.ok(Math.abs(beastCoreDropChance({beastRank:5,beastStage:3})-
+  .05*Math.pow(.85,4))<1e-12);
+assert.equal(beastCoreDropChance({beastRank:9,beastStage:3}),
+  beastCoreDropChance({beastRank:5,beastStage:3}),
+  'Out-of-range enemy ranks cannot generate Lục–Cửu Phẩm cores');
+assert.equal(beastTitle({beastRank:9,beastStage:3},'Yêu Lang'),
+  'Yêu Lang · Ngũ Phẩm Đỉnh Phong');
+assert.equal(generateBeastLoot({beastRank:9,beastStage:3},()=>0).at(-1).itemId,
+  'noi_dan_5_cuc');
+for(let rank=1;rank<=MAX_BEAST_RANK;rank++){
   let previous=Infinity;
   for(let stage=0;stage<=3;stage++){
     const chance=beastCoreDropChance({beastRank:rank,beastStage:stage});
@@ -165,6 +196,21 @@ const clean=game();clean.restore();
 assert.equal(clean.player.materials.da_thu,8);
 assert.equal(clean.player.materials.noi_dan_2_ha,1);
 assert.ok(!Object.hasOwn(clean.player.materials,'made_up_item'));
+store.set(SAVE_KEY,JSON.stringify({
+  ...save,materials:{noi_dan_5_cuc:2,noi_dan_6_cuc:3,noi_dan_7_cuc:4,
+    noi_dan_8_thuong:5,noi_dan_9_cuc:1,da_thu:8}
+}));
+const migrated=game();migrated.restore();
+assert.equal(migrated.player.materials.noi_dan_5_cuc,10,
+  'Old rank-6/7/9 cores merge into rank-5 stack, keeping quantities');
+assert.equal(migrated.player.materials.noi_dan_5_thuong,5);
+for(let rank=6;rank<=9;rank++)for(const quality of ['ha','trung','thuong','cuc']){
+  assert.ok(!Object.hasOwn(migrated.player.materials,`noi_dan_${rank}_${quality}`));
+}
+migrated.save();
+const migratedSave=JSON.parse(store.get(SAVE_KEY));
+assert.equal(migratedSave.materials.noi_dan_5_cuc,10);
+assert.ok(!('noi_dan_9_cuc' in migratedSave.materials));
 store.set(SAVE_KEY,JSON.stringify({version:4,realmIdx:1,exp:12,gold:31,materials:{da_thu:99},pills:{}}));
 const legacy=game();legacy.restore();
 assert.equal(legacy.player.gold,31);
@@ -176,4 +222,4 @@ const npcg=game(),npc=npcg.state.npcs[0],prey=npcg.state.enemies[0];
 npcg.damageEnemy(prey,prey.hp+1,false,npc);
 assert.ok(npcg.state.drops.length>0);
 assert.ok(npcg.state.drops.every(d=>d.owner===npc.id&&!('gold' in d)));
-console.log('PASS: deterministic core quality, drop chance declines with substage and rank, no money/EXP, stacking and save-v5 compatibility');
+console.log('PASS: max 5 beast ranks across 99 floors, capped core drops, 6–9 save migration, decreasing rarity and inventory compatibility');
