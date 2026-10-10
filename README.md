@@ -52,8 +52,8 @@ chọn branch và thư mục gốc trong Settings → Pages.
 
 - Tầng 1: Linh Lộc phàm thú, không có Nội Đan. Từ tầng 2 là yêu thú Nhất Phẩm; mỗi 12 tầng tăng một phẩm, cao nhất Cửu Phẩm ở tầng 98–99.
 - Mỗi quái rơi Da Thú; Lông Thú có xác suất 72%, Huyết Thú 42%. Không bao giờ rơi tiền, Linh Thạch hoặc EXP.
-- Mỗi đại phẩm chia thành bốn tiểu cảnh giới, mỗi cảnh giới tương ứng ba tầng: **Sơ Kỳ → Nội Đan Hạ Phẩm (20% cơ hội rơi)**, **Trung Kỳ → Trung Phẩm (35%)**, **Hậu Kỳ → Thượng Phẩm (50%)**, **Đỉnh Phong → Cực Phẩm (70%)**. Ví dụ tầng 11–13: Yêu Lang Nhất Phẩm Đỉnh Phong, khi rơi Nội Đan luôn là **Nội Đan 1 Phẩm · Cực Phẩm**.
-- Tỷ lệ rơi cộng thêm **2 điểm phần trăm** cho mỗi đại phẩm cao hơn Nhất Phẩm, trần 90%. Phẩm chất Nội Đan **không còn quay ngẫu nhiên** sau khi rơi: phụ thuộc chính xác cấp tu luyện của yêu thú.
+- Mỗi đại phẩm chia thành bốn tiểu cảnh giới, mỗi cảnh giới tương ứng ba tầng: **Sơ Kỳ → Nội Đan Hạ Phẩm (50% cơ hội rơi)**, **Trung Kỳ → Trung Phẩm (30%)**, **Hậu Kỳ → Thượng Phẩm (15%)**, **Đỉnh Phong → Cực Phẩm (5%)**. Ví dụ tầng 11–13: Yêu Lang Nhất Phẩm Đỉnh Phong, khi rơi Nội Đan luôn là **Nội Đan 1 Phẩm · Cực Phẩm**.
+- **Yêu thú càng cao cấp thì Nội Đan càng hiếm**: mỗi đại phẩm cao hơn có tỷ lệ chỉ bằng **85% của đại phẩm trước** ở cùng tiểu cảnh giới (ví dụ Nhị Phẩm Sơ Kỳ 42,5%; Cửu Phẩm Đỉnh Phong khoảng 1,36%). Phẩm chất Nội Đan **không quay ngẫu nhiên** sau khi rơi mà phụ thuộc tiểu cảnh giới của yêu thú.
 - Nhấn chọn quái để xem phẩm cấp và tiểu cảnh giới trên đầu quái.
 - Vật phẩm nhặt tự động khi tiến đến gần, được cộng dồn trong **Hành trang** và lưu qua các lần đăng nhập. Nội Đan phân biệt cả phẩm cấp yêu thú (1–9) lẫn phẩm chất (Hạ/Trung/Thượng/Cực).
 - Hành trang có nút **Bán Da/Lông/Huyết** để đổi nguyên liệu thường lấy Linh Thạch phục vụ học công pháp và luyện đan; **không tự bán Nội Đan**.
