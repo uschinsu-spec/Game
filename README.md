@@ -44,7 +44,7 @@ chọn branch và thư mục gốc trong Settings → Pages.
 - Thuần thục chiêu cùng đại cảnh giới bị giới hạn theo sơ/trung/hậu/đỉnh: Sơ Nhập/Tiểu Thành/Đại Thành/Viên Mãn. Luyện Khí tầng 1–3/4–6/7–9/10–12 tương ứng bốn giai đoạn. Chiêu thuộc đại cảnh giới thấp hơn có thể đạt Viên Mãn. Giới hạn này chỉ áp dụng NPC.
 - NPC đã tu luyện có thể hồi máu; vào tầm thi triển lần đầu rồi đứng đánh mục tiêu đó. Mỗi NPC chọn quái riêng trên map. Xích Phong hệ Kim/Kiếm, Bạch Vân hệ Hỏa. Sói có thể tấn công NPC.
 - Player và NPC dùng chung di chuyển, animation và hành động trong `src/systems/characters.js` và `src/systems/combat.js`.
-- NPC hồi sinh sau 12 giây. XP, số quái hạ và vật phẩm của NPC tính riêng.
+- NPC hồi sinh sau 12 giây. Số quái hạ và vật phẩm của NPC tính riêng; hạ quái không cộng EXP cho NPC.
 - Trạng thái từng map được giữ khi truyền tống trong phiên chơi. Tải lại trang tạo lại quái và NPC.
 - Asset dự trữ `bandit.webp` và `assets/webp/map3.webp` ở ngoài thư mục MAP không được tải vào game.
 
@@ -57,7 +57,7 @@ EXP của kẻ địch không còn là nguồn Tu Vi. Tốc độ tu luyện tĩ
 Game lưu tiến trình Player và map hiện tại vào localStorage (schema v3, giữ save cũ v1/v2). Ngoài công pháp và Skill, save giữ Thần Thức thưởng, trang bị, thuần thục công pháp và đan Tu Vi.
 
 `cultivation_engine.js` tính chỉ số và kết quả giao tranh; `src/cultivation.js`
-kết nối engine vào game. Linh lực dùng duy nhất `mp`, mỗi thần thông tốn 1 MP.
+kết nối engine vào game. Linh lực dùng duy nhất `mp`, chi phí thần thông theo bậc và MP tối đa.
 Skill tiêu hao MP theo bậc và MP tối đa; Thần Thức tăng tốc ra đòn và tốc độ animation/VFX, không giảm thời gian hồi chiêu. Sát thương Skill được phát tại frame xuất chiêu hoặc lúc đạn chạm quái.
 Hồi phục từ thần thông được áp dụng một lần mỗi lượt thi triển, kể cả khi đánh nhiều mục tiêu.
 Vạn Vật Tái Sinh có thể dùng khi không có địch và gây sát thương trong bán kính 260px.
