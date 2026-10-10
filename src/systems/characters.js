@@ -5,7 +5,7 @@ import {clamp,GAMEPLAY} from '../core/runtime.js';
 export const CharactersSystem = {
   makePlayer(){
     const p={...Engine.createCharacter('Thanh Phong',{equippedGear:{dmg:12,def:2}}),x:PLAYER_SPAWN.x,y:PLAYER_SPAWN.y,face:1,mp:100,
-      gold:0,herbs:0,kills:0,skillExp:{},selectedSkillId:'kiem_1',ownedManuals:['cp_dan_khi'],pills:{},meditationAge:0,buffTime:0,buffId:null,walk:false,walkAge:0,idleAge:0,
+      gold:0,skillExp:{},selectedSkillId:'kiem_1',ownedManuals:['cp_dan_khi'],pills:{},meditationAge:0,buffTime:0,buffId:null,walk:false,walkAge:0,idleAge:0,
       attackAnim:0,attackAge:0,attackHit:false,attackDuration:.38,attackHitTime:.11,
       skillAnim:0,skillAge:0,skillDuration:.52,skillReleaseAge:.2,pendingSkill:null,
       cooldowns:{attack:0,skill:0,heal:0},hurt:0,dead:false};
