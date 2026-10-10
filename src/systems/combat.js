@@ -133,10 +133,7 @@ export const CombatSystem = {
   },
   kill(e,p=this.player){
     e.dead=true;e.attackAnim=0;e.attackAge=0;e.respawn=12+Math.random()*8;
-    if(e.kind==='wolf')p.kills++;
     // Killing monsters grants only drops/materials/gold, NEVER cultivation EXP.
     this.state.drops.push({x:e.x+rand(-9,9),y:e.y,gold:e.gold,owner:p===this.player?null:p.id,life:13,spin:Math.random()*6});
-    if(e.kind==='deer'||Math.random()<.22)this.state.drops.push({x:e.x+rand(-13,13),y:e.y+12,herb:1,owner:p===this.player?null:p.id,life:14,spin:0});
-    if(p===this.player&&p.kills===10)this.ui.toast('Đã hoàn thành: Đánh bại 10 Yêu Lang!');
   }
 };
