@@ -29,7 +29,7 @@ export const RendererSystem = {
     c.scale(this.viewScale,this.viewScale);
     c.drawImage(this.images[this.mapId],-this.cam.x,-this.cam.y,WORLD.width,WORLD.height);
     c.save();c.translate(-this.cam.x,-this.cam.y);
-    this.drawPortal();this.drawDrops();this.drawTap();
+    this.drawPortal();this.drawResourceNodes();this.drawDrops();this.drawTap();
     const drawables=[...this.state.enemies.filter(e=>!e.dead),
       ...this.state.npcs.filter(p=>!p.dead),this.player];
     drawables.sort((a,b)=>a.y-b.y);
@@ -38,6 +38,19 @@ export const RendererSystem = {
   },
   drawShadow(x,y,w=36,h=12){
     const c=this.ctx;c.fillStyle='#020b0b60';c.beginPath();c.ellipse(x,y-4,w/2,h/2,0,0,Math.PI*2);c.fill();
+  },
+  drawResourceNodes(){
+    const c=this.ctx;
+    for(const n of this.state.deposits||[]){
+      if(n.readyAt>this.gameTime)continue;
+      c.save();c.translate(n.x,n.y);
+      c.fillStyle=n.kind==='ore'?'#778da7':'#4d9b65';c.strokeStyle='#d7eddf';c.lineWidth=2;
+      c.beginPath();
+      if(n.kind==='ore'){c.moveTo(-15,9);c.lineTo(-6,-17);c.lineTo(12,-9);c.lineTo(17,9);c.closePath()}
+      else c.ellipse(0,-3,12,18,0,0,7);
+      c.fill();c.stroke();c.font='11px system-ui';c.textAlign='center';c.fillStyle='#ffffff';
+      c.fillText(n.kind==='ore'?'Khoáng Thạch':'Linh Thảo',0,-23);c.restore();
+    }
   },
   drawPortal(){
     const c=this.ctx,pulse=1+Math.sin(this.gameTime*3)*.06;
