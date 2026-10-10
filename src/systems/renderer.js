@@ -28,7 +28,7 @@ export const RendererSystem = {
     c.scale(this.viewScale,this.viewScale);
     c.drawImage(this.images[this.mapId],-this.cam.x,-this.cam.y,WORLD.width,WORLD.height);
     c.save();c.translate(-this.cam.x,-this.cam.y);
-    this.drawPortal();this.drawHerbs();this.drawDrops();this.drawTap();
+    this.drawPortal();this.drawDrops();this.drawTap();
     const drawables=[...this.state.enemies.filter(e=>!e.dead),
       ...this.state.npcs.filter(p=>!p.dead),this.player];
     drawables.sort((a,b)=>a.y-b.y);
@@ -107,22 +107,11 @@ export const RendererSystem = {
     const c=this.ctx;c.fillStyle='#0d1917d9';c.fillRect(x-width/2-1,y-1,width+2,7);
     c.fillStyle=color;c.fillRect(x-width/2,y,width*clamp(ratio,0,1),5);
   },
-  drawHerbs(){
-    const c=this.ctx;for(const h of this.state.herbs){if(!h.available)continue;
-      const bob=Math.sin(h.phase)*2;c.save();c.translate(h.x,h.y+bob);
-      c.shadowColor='#88fcb0';c.shadowBlur=9;c.strokeStyle='#d4ffd5';c.lineWidth=1.3;c.fillStyle='#49af5f';
-      c.beginPath();c.moveTo(0,9);c.lineTo(0,-8);c.stroke();
-      for(const v of [[-7,-4,-2,-9],[7,-3,3,-11],[-5,4,-1,0]]){
-        c.beginPath();c.ellipse(v[0],v[1],5,2.7,v[0]<0?-.7:.7,0,7);c.fill();c.stroke()}
-      c.restore();
-    }
-  },
   drawDrops(){
     const c=this.ctx;for(const d of this.state.drops){
-      c.save();c.translate(d.x,d.y-12+Math.sin(d.spin)*3);c.shadowColor=d.gold?'#ffda54':'#7cffaf';c.shadowBlur=9;
-      if(d.gold){c.fillStyle='#ffd366';c.strokeStyle='#9b6422';c.lineWidth=2;c.beginPath();c.arc(0,0,7,0,7);c.fill();c.stroke();
-        c.fillStyle='#96631f';c.font='bold 9px sans-serif';c.textAlign='center';c.fillText('✦',0,3)}
-      else{c.fillStyle='#4af396';c.font='bold 21px sans-serif';c.textAlign='center';c.fillText('❀',0,7)}c.restore();
+      c.save();c.translate(d.x,d.y-12+Math.sin(d.spin)*3);c.shadowColor='#ffda54';c.shadowBlur=9;
+      c.fillStyle='#ffd366';c.strokeStyle='#9b6422';c.lineWidth=2;c.beginPath();c.arc(0,0,7,0,7);c.fill();c.stroke();
+      c.fillStyle='#96631f';c.font='bold 9px sans-serif';c.textAlign='center';c.fillText('✦',0,3);c.restore();
     }
   },
   drawTap(){
