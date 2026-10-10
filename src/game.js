@@ -110,7 +110,7 @@ export class Game {
       }
     }
     this.moveCharacter(p,moving?dir:{x:0,y:0},dt);
-    this.stepNPCs(dt);this.stepEnemies(dt);this.stepHerbs(dt);this.stepDrops(dt);this.stepEffects(dt);
+    this.stepNPCs(dt);this.stepEnemies(dt);this.stepDrops(dt);this.stepEffects(dt);
 
     this.saveAge+=dt;if(this.saveAge>GAMEPLAY.saveInterval){this.saveAge=0;this.save()}
   }
