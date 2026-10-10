@@ -1,6 +1,7 @@
 /** World metadata and spawn points (coordinates expressed as pixels in map_original.png). */
 import {enemyStats} from './cultivation.js';
 import {FLOOR_COUNT,floorNumber,floorId} from './floors.js';
+import {beastRankForFloor} from './core/beast-loot.js';
 export const MAP_SCALE = 1.43;
 // Spawn/collision data uses the original 941x1672 coordinate space.
 // Reproject it onto the current landscape map without stretching the artwork.
@@ -28,14 +29,15 @@ const ENEMY_PLACES = [
 ];
 
 export function makeWorld(mapId='map') {
-  const kind=floorNumber(mapId)===1?'deer':'wolf';
-  const enemies = ENEMY_PLACES.map(([x,y],i)=>makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i));
+  const floor=floorNumber(mapId),kind=floor===1?'deer':'wolf';
+  const rank=beastRankForFloor(floor);
+  const enemies = ENEMY_PLACES.map(([x,y],i)=>makeEnemy(kind,x*MAP_X_SCALE,y*MAP_Y_SCALE,i,rank));
   return {enemies,drops:[],effects:[],texts:[]};
 }
 
-export function makeEnemy(kind,x,y,id) {
+export function makeEnemy(kind,x,y,id,beastRank=kind==='wolf'?1:0) {
   const stats=enemyStats(kind,0);
-  return {id,kind,x,y,homeX:x,homeY:y,...stats,maxHp:stats.hp,face: id%2===0?-1:1,
+  return {id,kind,beastRank,x,y,homeX:x,homeY:y,...stats,maxHp:stats.hp,face: id%2===0?-1:1,
     moveAge:id*.17,walk:false,attackCD:0,attackAnim:0,attackAge:0,attackHit:false,flinch:0,dead:false,respawn:0,wander:1.5+(id%4)*.6,
     vx:0,vy:0};
 }
