@@ -1,0 +1,13 @@
+{
+  "name": "van-moc-sam-lam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Game tu tiên HTML5 Canvas, không cần bước build",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "test:browser": "node tests/browser-smoke.mjs",
+    "check:assets": "python tools/verify_assets.py",
+    "start": "python -m http.server 8000 --bind 127.0.0.1"
+  }
+}

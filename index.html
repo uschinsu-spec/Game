@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#101c1a" />
+  <meta name="description" content="Vạn Mộc Sâm Lâm: game tu tiên 2D top-down nhẹ, chơi trực tiếp trong trình duyệt điện thoại và máy tính." />
+  <title>Vạn Mộc Sâm Lâm · Tu Tiên 2D</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preload" href="./assets/webp/map.webp" as="image" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="game-shell">
+    <canvas id="game" aria-label="Bản đồ Vạn Mộc Sâm Lâm. Dùng WASD hoặc joystick để di chuyển."></canvas>
+    <div class="shade-top" aria-hidden="true"></div>
+    <div class="shade-bottom" aria-hidden="true"></div>
+
+    <header class="hud" aria-label="Thông tin nhân vật">
+      <div class="avatar"><img src="./assets/webp/avatar.webp" alt="Ảnh nhân vật"/><span id="level" class="level">Chưa Tu Luyện</span></div>
+      <div class="vitals">
+        <div class="hero-name">Thanh Phong <span id="realm-name">· Phàm Nhân</span></div>
+        <div class="meter hp"><span id="hp-fill"></span><b id="hp-text">105 / 105</b></div>
+        <div class="meter mp"><span id="mp-fill"></span><b id="mp-text">100 / 100</b></div>
+        <div class="meter exp"><span id="exp-fill"></span><b id="exp-text">Tu vi 0 / 50</b></div>
+      </div>
+      <div class="currency"><span>🪙 <b id="gold">0</b></span></div>
+    </header>
+
+    <section class="quests" aria-label="Nhiệm vụ">
+      <div class="quest-title">✦ TU TIÊN CHI LỘ</div>
+      <div class="quest-line"><span class="quest-bullet">⚔</span> Đánh bại Yêu Lang <b id="wolf-count">0/10</b></div>
+      <div class="quest-line"><span class="quest-bullet green">❀</span> Thu thập Linh Thảo <b id="herb-count">0/5</b></div>
+      <div id="quest-complete" class="quest-complete" hidden>✓ Hoàn thành thử thách!</div>
+    </section>
+
+    <aside class="mapbox" aria-label="Bản đồ thu nhỏ">
+      <canvas id="minimap" width="224" height="224"></canvas>
+      <div class="map-name">Vạn Mộc Sâm Lâm</div>
+      <div class="map-coords" id="coords">(420, 555)</div>
+    </aside>
+
+    <div class="right-tools">
+      <button id="menu-btn" class="tool" aria-label="Mở menu">☰</button>
+      <button id="bag-btn" class="tool" aria-label="Xem hành trang">♧</button>
+      <button id="cultivation-btn" class="tool" aria-label="Mở bảng Tu luyện">☯</button>
+      <button id="auto-btn" class="tool auto" aria-label="Bật hoặc tắt tự động đánh quái"><span>◎</span><small id="auto-text">Tự đánh</small></button>
+    </div>
+
+    <div id="notice" class="notice" role="status" aria-live="polite"></div>
+    <div id="float-msg" class="float-msg" aria-live="polite"></div>
+
+    <div id="joystick" class="joystick" aria-label="Điều khiển hướng di chuyển">
+      <div class="joy-guides">▲ <span>◀</span><span>▶</span> ▼</div>
+      <div id="joy-knob" class="joy-knob"></div>
+    </div>
+
+    <div class="action-pad">
+      <button class="action skill skill-1" id="skill-btn" data-action="skill" aria-label="Kiếm khí, phím Q"><span class="glyph">✧</span><span class="button-label">Kiếm khí</span><span class="cooldown" id="skill-cd"></span></button>
+      <button class="action skill skill-3" id="heal-btn" data-action="heal" aria-label="Hồi máu, phím F"><span class="glyph">✚</span><span class="button-label">Hồi máu</span><span class="cooldown" id="heal-cd"></span></button>
+      <button class="action basic" id="attack-btn" data-action="attack" aria-label="Đánh thường, phím Space"><span class="glyph">⚔</span><span class="button-label">Tấn công</span></button>
+    </div>
+
+
+    <div id="overlay" class="overlay" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <div class="dialog-emblem">☯</div>
+        <h1 id="dialog-title">Vạn Mộc Sâm Lâm</h1>
+        <p id="dialog-text">Phiêu lưu tu tiên, thu thập linh thảo và đánh bại yêu thú.</p>
+        <div id="dialog-details" class="dialog-details"></div>
+        <div id="cultivation-controls" hidden></div>
+        <div class="dialog-actions"><button id="resume-btn" class="primary">Tiếp tục</button><button id="reset-btn" class="secondary">Chơi lại</button></div>
+      </div>
+    </div>
+    <div id="loading" class="loading"><div class="loading-logo">☯</div><strong>VẠN MỘC SÂM LÂM</strong><span id="loading-text">Đang tải bản đồ...</span></div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
