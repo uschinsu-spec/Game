@@ -2,7 +2,7 @@ import {makeWorld,clampIntoWorld} from '../world.js';
 import {floorNumber,floorId} from '../floors.js';
 import {Engine,REALMS,CONG_PHAP_LIST,SKILLS,syncStats,availableSkills} from '../cultivation.js';
 import {SAVE_KEY,clamp} from '../core/runtime.js';
-import {lootInfo} from '../core/beast-loot.js';
+import {normalizeBeastLootId} from '../core/beast-loot.js';
 
 export const PersistenceSystem = {
   restore(){
@@ -35,8 +35,10 @@ export const PersistenceSystem = {
       if(s.version>=5&&s.materials&&typeof s.materials==='object'&&!Array.isArray(s.materials)){
         p.materials={};
         for(const [id,count] of Object.entries(s.materials)){
-          if(lootInfo(id)&&Number.isFinite(count)&&count>0){
-            p.materials[id]=clamp(Math.floor(count),0,1000000000);
+          const canonicalId=normalizeBeastLootId(id);
+          if(canonicalId&&Number.isFinite(count)&&count>0){
+            // Preserve previously earned Lục–Cửu Phẩm cores as Ngũ Phẩm of the same quality.
+            p.materials[canonicalId]=clamp((p.materials[canonicalId]||0)+Math.floor(count),0,1000000000);
           }
         }
       }
