@@ -46,7 +46,7 @@ Object.assign(npc,{x:1000,y:600});Object.assign(enemy,{x:1060,y:600,hp:100000,ma
 npc.aiTarget=enemy;const playerGold=g.player.gold,playerExp=g.player.exp;
 npc.realmIdx=0;
 g.attack(npc);assert.ok(npc.attackAnim>0);assert.equal(g.player.attackAnim,0);
-const hp=enemy.hp;g.tickCharacter(npc,.12);assert.ok(enemy.hp<hp);
+const hp=enemy.hp;g.tickCharacter(npc,npc.attackHitTime+.01);assert.ok(enemy.hp<hp);
 const after=enemy.hp;g.tickCharacter(npc,.02);assert.equal(enemy.hp,after);
 assert.equal(g.player.gold,playerGold);assert.equal(g.player.exp,playerExp);
 
