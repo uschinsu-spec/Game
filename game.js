@@ -226,8 +226,8 @@
     const light=new B.HemisphericLight("sky ambient",new B.Vector3(0,1,0),scene);light.intensity=.85;light.diffuse=new B.Color3(.9,.95,1);light.groundColor=new B.Color3(.32,.46,.22);
     const world=new window.ForestWorld(scene);await world.create();
     const player=new window.PlayerController(scene);await player.create(new B.Vector3(0,0,0));player.invulnerable=window.PlayerConfig?.stats?.spawnInvulnerability??6;window.player=player;window.PlayerRuntime={player,equip:(slot,id)=>player.equip(slot,id),unequip:slot=>player.unequip(slot),applyLoadout:loadout=>player.applyLoadout(loadout),reset:()=>player.resetEquipment(),getEquipment:()=>player.getEquipment(),list:slot=>player.listEquipment(slot),getSocket:name=>player.getSocket(name),getMeasurements:()=>window.PlayerConfig?.anthropometry||null};
-    const camera=new B.ArcRotateCamera("camera",-Math.PI/2,1.32,22,player.position.clone(),scene);
-    camera.lowerRadiusLimit=9;camera.upperRadiusLimit=48;camera.lowerBetaLimit=.55;camera.upperBetaLimit=1.45;camera.maxZ=320;camera.wheelPrecision=30;camera.panningSensibility=0;camera.angularSensibilityX=4200;camera.angularSensibilityY=4200;camera.attachControl(canvas,true);
+    const camera=new B.ArcRotateCamera("camera",-Math.PI/2,1.22,9.5,player.position.clone(),scene);
+    camera.lowerRadiusLimit=3.5;camera.upperRadiusLimit=28;camera.lowerBetaLimit=.45;camera.upperBetaLimit=1.45;camera.maxZ=320;camera.wheelPrecision=30;camera.panningSensibility=0;camera.angularSensibilityX=4200;camera.angularSensibilityY=4200;camera.attachControl(canvas,true);
     const entities=new window.EnemyManager(scene,world);entities.spawn(16);
     const input=new InputManager(),combat=new Combat(player,entities),inventory=new Inventory(),loot=new Loot(scene,inventory,player),vfx=new window.ForestVfx(scene),hud=new Hud(player,entities,combat,inventory,scene,camera);
     window._gameHud=hud;
