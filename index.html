@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Babylon MMORPG Prototype - CDN</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./camera-controls.css" />
+  <link rel="stylesheet" href="./mobile-ui.css" />
+</head>
+<body>
+  <div id="loadingScreen">
+    <div class="loader-card">
+      <div class="loader-title">BABYLON MMORPG</div>
+      <div id="loaderText">Đang tải Babylon.js...</div>
+      <div class="loader-line"><i></i></div>
+    </div>
+  </div>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hudRoot"></div>
+  </div>
+
+  <!-- Babylon.js stable CDN. No npm required. -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="./mountain-world.js"></script>
+  <script src="./forest-world.js"></script>
+  <!-- Skill VFX architecture: registry -> shared engine -> manifest -> loader. -->
+  <script src="./skills-vfx/registry.js"></script>
+  <script src="./forest-vfx.js"></script>
+  <script src="./skills-vfx/manifest.js"></script>
+  <script src="./skills-vfx/loader.js"></script>
+  <script src="./mobile-ui.js"></script>
+
+  <!-- Modular MMORPG Player: master rig -> part registry -> slot parts -> equipment -> visual -> controller. -->
+  <script src="./assets/player/core/config.js"></script>
+  <script src="./assets/player/core/rig.js"></script>
+  <script src="./assets/player/core/animations.js"></script>
+  <script src="./assets/player/systems/part-registry.js"></script>
+  <script src="./assets/player/parts/body/procedural.js"></script>
+  <script src="./assets/player/parts/head/procedural.js"></script>
+  <script src="./assets/player/parts/hair/procedural.js"></script>
+  <script src="./assets/player/parts/chest/procedural.js"></script>
+  <script src="./assets/player/parts/hands/procedural.js"></script>
+  <script src="./assets/player/parts/legs/procedural.js"></script>
+  <script src="./assets/player/parts/boots/procedural.js"></script>
+  <script src="./assets/player/parts/mainhand/procedural.js"></script>
+  <script src="./assets/player/parts/offhand/procedural.js"></script>
+  <script src="./assets/player/parts/back/procedural.js"></script>
+  <script src="./assets/player/parts/accessory/procedural.js"></script>
+  <script src="./assets/player/systems/equipment-system.js"></script>
+  <script src="./assets/player/systems/visual.js"></script>
+  <script src="./assets/player/core/motor.js"></script>
+  <script src="./assets/player/core/player.js"></script>
+
+  <!-- Unified Enemy System: Core registry -> Base visuals -> Universal GLB Engine -> Attack System -> Monster & Enemy Manager -->
+  <script src="./enemies/core/enemy-registry.js"></script>
+  <script src="./enemies/core/base-enemy-visual.js"></script>
+  <script src="./enemies/core/glb-enemy-visual.js"></script>
+  <script src="./enemies/core/attack-system.js"></script>
+  <script src="./enemies/core/monster.js"></script>
+  <script src="./enemies/core/enemy-manager.js"></script>
+  <script src="./enemies/wolf/config.js"></script>
+  <script src="./enemies/wolf/visual.js"></script>
+  <script src="./enemies/golem/config.js"></script>
+  <script src="./enemies/golem/visual.js"></script>
+  <script src="./enemies/bandit/config.js"></script>
+  <script src="./enemies/bandit/visual.js"></script>
+
+  <script src="./game.js"></script>
+</body>
+</html>
