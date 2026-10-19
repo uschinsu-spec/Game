@@ -139,15 +139,16 @@
     }
 
     reset() {
-      // Clear the previous animation state as well as its transforms. A reused
-      // wolf must never carry a Death/Hit pose into its next locomotion cycle.
+      // Respawn is a clean baseline, not a continuation of Spawn/Death/Hit.
+      // WolfVisual shares this transition marker and clears its remembered pose.
       this._previousState = null;
-      this.state = "Spawn";
+      this.state = "Idle";
       this.stateTime = 0;
-      this.stateDuration = this.config.animation?.spawnDuration || 0.45;
+      this.stateDuration = 0;
+      this.attackVariant = 0;
       this.root.setEnabled(true);
       this._resetPose();
-      this._applyScale(0.35);
+      this._applyScale(1);
     }
 
     update(dt, moving) {
