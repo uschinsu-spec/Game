@@ -139,6 +139,9 @@
     }
 
     reset() {
+      // Clear the previous animation state as well as its transforms. A reused
+      // wolf must never carry a Death/Hit pose into its next locomotion cycle.
+      this._previousState = null;
       this.state = "Spawn";
       this.stateTime = 0;
       this.stateDuration = this.config.animation?.spawnDuration || 0.45;
