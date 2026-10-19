@@ -262,6 +262,22 @@
         r.head.rotation.x = -e * 0.22;
         r.armL.rotation.x = -e * 0.25;
         r.armR.rotation.x = -e * 0.25;
+
+      } else if (this.state === "Death") {
+        // Heavy stone body slumps forward while the arms and knees give way.
+        const e = p * p * (3 - 2 * p);
+        r.body.rotation.x += e * 0.48;
+        r.body.rotation.z += e * 0.36;
+        r.body.position.y -= e * 0.20;
+        r.head.rotation.x += e * 0.46;
+        r.armL.rotation.x += e * 1.05;
+        r.armR.rotation.x += e * 1.05;
+        r.armL.rotation.z -= e * 0.24;
+        r.armR.rotation.z += e * 0.24;
+        r.legL.rotation.x += e * 0.20;
+        r.legR.rotation.x += e * 0.20;
+        if (r.kneeL) r.kneeL.rotation.x += e * 0.30;
+        if (r.kneeR) r.kneeR.rotation.x += e * 0.30;
       }
     }
   }
