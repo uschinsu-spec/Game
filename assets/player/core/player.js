@@ -49,6 +49,21 @@
     get position() { return this.root.position; }
     getSocket(name) { return this.visual.getSocket(name); }
 
+    // Lock character yaw to the combat target while an attack/cast is active.
+    faceTarget(targetPosition) {
+      if (!targetPosition || this.dead) return false;
+      this._combatFacingTarget = targetPosition;
+      const dx = targetPosition.x - this.position.x;
+      const dz = targetPosition.z - this.position.z;
+      if (dx * dx + dz * dz < 1e-6) return false;
+      const yaw = Math.atan2(dx, dz);
+      this.motor.currentYaw = yaw;
+      this.root.rotation.x = 0;
+      this.root.rotation.y = yaw;
+      this.root.rotation.z = 0;
+      return true;
+    }
+
     async equip(slot, itemId) { const ok = await this.visual.equip(slot, itemId); this._saveEquipment(); return ok; }
     async unequip(slot) { const ok = await this.visual.unequip(slot); this._saveEquipment(); return ok; }
     async applyLoadout(loadout) { await this.visual.equipment.equipLoadout(loadout); this._saveEquipment(); return this.getEquipment(); }
@@ -156,7 +171,23 @@
       const motion = this.motor.update(dt, desiredDir, inputMagnitude, world);
       const currentSpeed = motion.currentSpeed;
       const isMoving = motion.isMoving;
-      const currentYaw = motion.yaw;
+      let currentYaw = motion.yaw;
+
+      // Combat facing takes priority over locomotion yaw during attack/cast.
+      const animator = this.visual.animator;
+      if (this._combatFacingTarget && animator?.action && !this.dead) {
+        const dx = this._combatFacingTarget.x - this.position.x;
+        const dz = this._combatFacingTarget.z - this.position.z;
+        if (dx * dx + dz * dz >= 1e-6) {
+          currentYaw = Math.atan2(dx, dz);
+          this.motor.currentYaw = currentYaw;
+          this.root.rotation.x = 0;
+          this.root.rotation.y = currentYaw;
+          this.root.rotation.z = 0;
+        }
+      } else {
+        this._combatFacingTarget = null;
+      }
 
       // Visual-only banking. Never rotate the logical root on Z.
       this.visual.root.rotation.z = motion.bank;
