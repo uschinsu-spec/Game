@@ -29,6 +29,7 @@
       this.route = [];
       this.routeTimer = 0;
       this.deathHideTimer = 0;
+      this.respawnIdleTimer = 0;
 
       this.attackRange = def.combat.attackRange;
       this.moveSpeed = def.movement.speed;
@@ -80,6 +81,14 @@
           world.constrain(this.spawn);
           this.respawn();
         }
+        return;
+      }
+
+      // Give the reset Idle pose a short, stable window after respawn.
+      // This prevents a reused enemy from showing a stale run/attack/death pose.
+      if (this.respawnIdleTimer > 0) {
+        this.respawnIdleTimer = Math.max(0, this.respawnIdleTimer - dt);
+        this.visual.update(dt, false, 0);
         return;
       }
 
@@ -150,6 +159,7 @@
       this.routeTimer = 0;
       this.attackCd = 0.5 + Math.random();
       this.deathHideTimer = 0;
+      this.respawnIdleTimer = 0.35;
       this.mesh.position.copyFrom(this.spawn.add(new B.Vector3(0, this.rootYOffset, 0)));
       this.mesh.rotation.set(0, 0, 0);
       this.mesh.setEnabled(true);
