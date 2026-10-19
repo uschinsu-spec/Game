@@ -107,10 +107,22 @@
           if (step > 0.0001) {
             moving = true;
             currentSpeed = step / dt;
+
+            // Derive facing from the actual world-space displacement, not the
+            // requested waypoint vector. Path steering and world constraints
+            // can alter the final movement direction; using the pre-constraint
+            // vector can make the wolf appear to run sideways.
             direction.normalize();
+            const previousX = p.x;
+            const previousZ = p.z;
             p.addInPlace(direction.scale(step));
             world.constrain(p);
-            this.mesh.rotation.y = Math.atan2(direction.x, direction.z);
+
+            const movedX = p.x - previousX;
+            const movedZ = p.z - previousZ;
+            if (movedX * movedX + movedZ * movedZ > 1e-6) {
+              this.mesh.rotation.y = Math.atan2(movedX, movedZ);
+            }
           }
         }
       } else {
