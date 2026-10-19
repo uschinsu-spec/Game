@@ -184,6 +184,7 @@
 
     trigger(state) {
       const a = this.config.animation || {};
+      if (this.state === "Death" && state !== "Death") return;
       this.state = state;
       this.stateTime = 0;
       if (state === "Death") {
@@ -199,8 +200,18 @@
     }
 
     reset() {
+      // Stop every previous clip and discard pending crossfades before replaying Idle.
+      // Otherwise a recycled GLB can keep a fading Death/Attack clip on its skeleton.
+      for (const ag of Object.values(this.animGroups)) {
+        ag.stop();
+        setAgWeight(ag, 0);
+      }
+      this.fadingOutAgs.length = 0;
+      this.activeAnimName = null;
+      this.activeAg = null;
       this.state = "Idle";
       this.stateTime = 0;
+      this.stateDuration = 0;
       this.root.setEnabled(true);
       this.root.position.set(0, 0, 0);
       this.root.rotation.set(0, 0, 0);
