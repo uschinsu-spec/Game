@@ -98,6 +98,7 @@
       if(!this.target?.alive||B.Vector3.Distance(p.position,this.target.mesh.position)>s.r)this.target=this.entities.nearest(p.position,s.r);
       if(!this.target&&i!==3)return false;
       const target=this.target||{mesh:{position:p.position}},origin=p.position.clone();
+      if (this.target?.alive && typeof p.faceTarget === "function") p.faceTarget(target.mesh.position);
       if(p.playSkill)p.playSkill(i);else p.playAttack();this.onSkillCast?.({index:i,skillId:s.id,target,origin});this.global=.25;this.cds[i]=s.c;
       if(i===3)p.hp=Math.min(p.maxHp,p.hp+45);
       const center=i===4?target.mesh.position:p.position;
