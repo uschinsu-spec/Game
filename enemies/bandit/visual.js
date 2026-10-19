@@ -228,6 +228,24 @@
         r.head.rotation.x = e * 0.32;
         r.armL.rotation.x = e * 0.45;
         r.armR.rotation.x = e * 0.45;
+
+      } else if (this.state === "Death") {
+        // The bandit loses balance, lowers the head and lets the arms/legs drop.
+        const e = p * p * (3 - 2 * p);
+        r.body.rotation.x += e * 0.58;
+        r.body.rotation.z += e * 0.18;
+        r.body.position.y -= e * 0.14;
+        r.head.rotation.x += e * 0.52;
+        r.armL.rotation.x += e * 0.95;
+        r.armR.rotation.x += e * 0.95;
+        r.armL.rotation.z -= e * 0.20;
+        r.armR.rotation.z += e * 0.20;
+        r.legL.rotation.x += e * 0.26;
+        r.legR.rotation.x += e * 0.26;
+        if (r.kneeL) r.kneeL.rotation.x += e * 0.24;
+        if (r.kneeR) r.kneeR.rotation.x += e * 0.24;
+        if (r.cape_0) r.cape_0.rotation.x -= e * 0.32;
+        if (r.cape_1) r.cape_1.rotation.x -= e * 0.40;
       }
     }
   }
