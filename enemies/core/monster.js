@@ -117,20 +117,15 @@
             moving = true;
             currentSpeed = step / dt;
 
-            // Derive facing from the actual world-space displacement, not the
-            // requested waypoint vector. Path steering and world constraints
-            // can alter the final movement direction; using the pre-constraint
-            // vector can make the wolf appear to run sideways.
             direction.normalize();
-            const previousX = p.x;
-            const previousZ = p.z;
             p.addInPlace(direction.scale(step));
             world.constrain(p);
 
-            const movedX = p.x - previousX;
-            const movedZ = p.z - previousZ;
-            if (movedX * movedX + movedZ * movedZ > 1e-6) {
-              this.mesh.rotation.y = Math.atan2(movedX, movedZ);
+            // Face the player while pursuing rather than turning toward every
+            // path waypoint. On quadrupeds (especially Wolf), waypoint-facing
+            // can make the body appear to crawl sideways as the route bends.
+            if (d.lengthSquared() > 1e-6) {
+              this.mesh.rotation.y = Math.atan2(d.x, d.z);
             }
           }
         }
