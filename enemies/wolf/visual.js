@@ -1644,9 +1644,11 @@
       const backLeft = Math.sin(phase + Math.PI * 0.72);
       const backRight = Math.sin(phase + Math.PI * 1.72);
 
+      // Keep the wolf's body close to its grounded height. The old large
+      // airborne bounce made all four paws visibly leave the terrain each cycle.
       const extension = Math.cos(phase * 2);
-      const bounce = Math.max(0, extension) * 0.11;
-      const impact = Math.max(0, -extension) * 0.035;
+      const bounce = Math.max(0, extension) * 0.025;
+      const impact = Math.max(0, -extension) * 0.008;
 
       r.body.position.y = 0.09 + bounce - impact;
       r.body.position.z = 0;
@@ -1689,44 +1691,44 @@
       r.ear_R.rotation.z = -0.08;
 
       // Chân trước
-      r.frontL_hip.rotation.x = frontLeft * 0.92;
-      r.frontR_hip.rotation.x = frontRight * 0.92;
+      r.frontL_hip.rotation.x = frontLeft * 0.62;
+      r.frontR_hip.rotation.x = frontRight * 0.62;
 
       r.frontL_knee.rotation.x =
-        Math.max(0, -frontLeft) * 0.82 -
+        Math.max(0, -frontLeft) * 0.52 -
         Math.max(0, frontLeft) * 0.12;
 
       r.frontR_knee.rotation.x =
-        Math.max(0, -frontRight) * 0.82 -
+        Math.max(0, -frontRight) * 0.52 -
         Math.max(0, frontRight) * 0.12;
 
       // Chân sau
       r.backL_hip.rotation.x =
-        backLeft * 1.05 - 0.05;
+        backLeft * 0.72 - 0.05;
 
       r.backR_hip.rotation.x =
-        backRight * 1.05 - 0.05;
+        backRight * 0.72 - 0.05;
 
       r.backL_knee.rotation.x =
-        Math.max(0, backLeft) * 0.87 +
+        Math.max(0, backLeft) * 0.56 +
         Math.max(0, -backLeft) * 0.16;
 
       r.backR_knee.rotation.x =
-        Math.max(0, backRight) * 0.87 +
+        Math.max(0, backRight) * 0.56 +
         Math.max(0, -backRight) * 0.16;
 
       // Bàn chân bù góc tiếp đất
       r.frontL_foot.rotation.x =
-        -frontLeft * 0.24;
+        -frontLeft * 0.16;
 
       r.frontR_foot.rotation.x =
-        -frontRight * 0.24;
+        -frontRight * 0.16;
 
       r.backL_foot.rotation.x =
-        -backLeft * 0.29;
+        -backLeft * 0.19;
 
       r.backR_foot.rotation.x =
-        -backRight * 0.29;
+        -backRight * 0.19;
 
       // Gait đầu vào vẫn ảnh hưởng nhẹ để tương thích Base
       r.body.rotation.z += gait * 0.012;
