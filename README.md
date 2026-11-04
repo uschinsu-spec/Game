@@ -90,4 +90,4 @@ The active development branch `feature/perspective-2-5d-upgrade` introduces:
 
 ### Current scope and limitations
 
-This is still a 2.5D sprite prototype using temporary generated art, not a full 3D renderer. Offline progression, authoritative server saves, and production asset animation remain separate implementation tasks. Validate on-device and run `npm run build` before release.
+This is still a 2.5D sprite prototype using temporary generated art, not a full 3D renderer. The prototype includes localStorage-based offline reward calculation capped at 12 hours; authoritative server validation, durable character saves, and production asset animation remain separate implementation tasks. Validate on-device and run `npm run build` before release.
