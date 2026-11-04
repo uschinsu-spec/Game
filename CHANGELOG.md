@@ -1,0 +1,25 @@
+# CHANGELOG – VẠN TIÊN LỤC
+
+Tất cả các thay đổi và cột mốc phát triển của dự án Vạn Tiên Lục được ghi nhận tại đây.
+
+---
+
+## [Phase 1.1.0] - 2.5D Forward Perspective (Đạp Thủy Trảm Yêu) (04/11/2026)
+
+### Đã chuyển đổi kiến trúc đồ họa & góc nhìn (Perspective Shift)
+- Chuyển đổi toàn diện từ **2D Cuộn ngang (Side-scrolling)** sang **2.5D Chiều sâu hướng tâm (Forward Pseudo-Depth / Đạp Thủy Phi Hành)** theo phong cách các tựa game Tiên hiệp màn hình dọc thịnh hành:
+  - **Mặt biển mây hoàng hôn**: Tái hiện chân trời rực rỡ với vầng thái dương lặn và các gợn sóng phối cảnh động (Perspective Waves) cuộn về phía trước.
+  - **Nhân vật Bạch Y Kiếm Tiên (Góc nhìn từ sau lưng 3/4)**: Đứng ở trung tâm phía dưới (`X: 50%, Y: 58%`), chân đạp đài sen linh lực tỏa gợn sóng nước, tóc dài và tiên y phất phơ.
+  - **Chiến trường phía trước**: Ma vật U Minh (*Thiên Mục Yêu - 千目妖*) lơ lửng trên mặt biển ở đường chân trời.
+  - **Quỹ đạo đòn đánh**: Phi kiếm và kiếm khí phóng thẳng từ nhân vật hướng lên trước găm vào kẻ địch.
+  - **Số sát thương phong cách Tiên hiệp**: Hiển thị chữ bạo kích thư pháp màu đỏ viền vàng (`暴击 893`, `暴击 1819`) cực kỳ hoành tráng.
+  - **Pháp bảo Tiên Đỉnh**: Lò luyện đan Hỗn Nguyên Đỉnh lơ lửng ngay dưới chân nhân vật, tự động gom nhặt tinh hoa linh khí.
+  - **Giao diện Dock Xianxia chuẩn**: Tái lập toàn bộ thanh Dock vòng cung với 7 nút tròn huy hiệu phát sáng (`Nhân vật`, `Luyện khí`, `Chí bảo`, `Động phủ` trung tâm, `Tiên thuật`, `Hóa linh`, `Đạo lữ`, `Tông môn`), thanh Lực chiến (战力 20,825+), VIP 0 và icon sự kiện.
+
+---
+
+## [Phase 1.0.0] - Core Gameplay & Modular Refactoring (04/11/2026)
+- Xây dựng kiến trúc module tách rời Core, Entities, Systems, Data và UI.
+- Hoàn thiện FSM 8 trạng thái cho Player và AI State Machine cho Monster.
+- Hệ thống tính toán sát thương, bạo kích, 4 auto skills + 1 tuyệt kỹ Vạn Kiếm Quy Tông.
+- Hệ thống rơi đồ và nam châm linh lực tự động hút vật phẩm.

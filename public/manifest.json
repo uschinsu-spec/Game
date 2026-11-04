@@ -1,0 +1,19 @@
+{
+  "name": "Vạn Tiên Lục – Đạp Thủy Trảm Yêu",
+  "short_name": "Vạn Tiên Lục",
+  "description": "Game Tiên Hiệp 2.5D Đạp Thủy Trảm Yêu Màn Hình Dọc",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#081720",
+  "theme_color": "#081720",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

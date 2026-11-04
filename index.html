@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#081720" />
+    <meta name="description" content="Vạn Tiên Lục - Game tiên hiệp AFK 2.5D Đạp Thủy Trảm Yêu" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vạn Tiên Lục" />
+    <meta name="application-name" content="Vạn Tiên Lục" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.json" />
+    <title>Vạn Tiên Lục – Đạp Thủy Trảm Yêu</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-root"></div>
+
+      <!-- Xianxia HUD Overlay -->
+      <div id="hud">
+        <!-- Top Status Bar -->
+        <header class="top-bar">
+          <div class="hero-card">
+            <div class="avatar-frame">
+              <div class="avatar-img">仙</div>
+              <span class="level-badge" id="level">Lv.1</span>
+            </div>
+            <div class="hero-meta">
+              <div class="power-banner">
+                <span class="power-label">Lực chiến</span>
+                <b class="power-val" id="power">12,485</b>
+              </div>
+              <div class="hp-line">
+                <i id="hp-bar" style="width: 100%;"></i>
+                <span id="hp-text">120 / 120</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="currency-group">
+            <div class="curr-pill"><span>💎</span><b id="spirit">0</b></div>
+            <div class="curr-pill"><span>🪙</span><b id="gold">0</b></div>
+            <div class="vip-pill">VIP 0</div>
+          </div>
+
+          <div class="top-shortcuts">
+            <button class="icon-circle" title="Phúc lợi"><span>🎁</span><small>Phúc lợi</small></button>
+            <button class="icon-circle" title="Tài thần"><span>🧧</span><small>Tài thần</small></button>
+          </div>
+        </header>
+
+        <!-- Left Side Event Badges -->
+        <aside class="left-sidebar">
+          <div class="side-badge"><span class="badge-icon">👑</span><small>Nạp đầu</small></div>
+          <div class="side-badge"><span class="badge-icon">🔮</span><small>Linh bảo</small></div>
+          <div class="side-badge countdown"><span class="badge-icon">💍</span><small>Tiên hoàn</small><time>23s</time></div>
+        </aside>
+
+        <!-- Right Side Shortcut Badges -->
+        <aside class="right-sidebar">
+          <div class="side-badge" id="boss-quick-btn"><span class="badge-icon">🎯</span><small>Săn Boss</small></div>
+          <div class="side-badge"><span class="badge-icon">📜</span><small>Bảng vàng</small></div>
+        </aside>
+
+        <!-- Quest / Target Banner (Above bottom dock) -->
+        <div class="center-banner-zone">
+          <div class="quest-mini-pill">
+            <span class="quest-icon">🎯</span>
+            <span class="quest-desc" id="quest-text">Tiêu diệt Thiên Mục Yêu (0/10)</span>
+          </div>
+
+          <!-- Quick Action Toggles floating above dock -->
+          <div class="floating-controls">
+            <button class="auto-toggle active" id="auto-btn">
+              <span class="auto-spinner">☯</span>
+              <small>Auto</small>
+            </button>
+            <button class="cauldron-level" id="cauldron-btn">
+              <span class="cauldron-icon">鼎</span>
+              <small>Luyện Đan</small>
+            </button>
+            <button class="skill-ult-btn" id="skill-btn">
+              <span>🌟</span>
+              <small>Tuyệt kỹ</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Xianxia Navigation Dock -->
+        <footer class="bottom-dock">
+          <!-- Server Scrolling Notice -->
+          <div class="chat-ticker" id="battle-feed">
+            <span class="ticker-tag">[Liên server]</span>
+            <span class="ticker-text">✦ Chúc mừng đạo hữu bước vào cảnh giới Tiên Lộ!</span>
+          </div>
+
+          <div class="dock-actions">
+            <div class="dock-left-btn" data-panel="Tiên duyên">
+              <span class="dock-icon">🌸</span>
+              <small>Tiên duyên</small>
+            </div>
+
+            <nav class="dock-center-items">
+              <button class="dock-item" data-panel="Nhân vật">
+                <span class="item-ring">👤</span>
+                <small>Nhân vật</small>
+              </button>
+              <button class="dock-item" data-panel="Luyện khí">
+                <span class="item-ring">⚡</span>
+                <small>Luyện khí</small>
+              </button>
+              <button class="dock-item" data-panel="Pháp bảo">
+                <span class="item-ring">🗡️</span>
+                <small>Chí bảo</small>
+              </button>
+              <button class="dock-item main-cave" data-panel="Động phủ">
+                <div class="cave-glow"></div>
+                <span class="item-ring cave">☯</span>
+                <small>Động phủ</small>
+              </button>
+              <button class="dock-item" data-panel="Tiên thuật">
+                <span class="item-ring">✧</span>
+                <small>Tiên thuật</small>
+              </button>
+              <button class="dock-item" data-panel="Hóa linh">
+                <span class="item-ring">🦅</span>
+                <small>Hóa linh</small>
+              </button>
+              <button class="dock-item" data-panel="Đồng hành">
+                <span class="item-ring">👥</span>
+                <small>Đạo lữ</small>
+              </button>
+            </nav>
+
+            <div class="dock-right-btn" data-panel="Tông môn">
+              <span class="dock-icon">🏯</span>
+              <small>Tông môn</small>
+            </div>
+          </div>
+        </footer>
+
+        <!-- Floating Toast Message -->
+        <div id="toast" class="toast"></div>
+
+        <!-- Xianxia Modal Popup -->
+        <div id="modal" class="modal hidden">
+          <div class="modal-card">
+            <button id="modal-close" class="close">✕</button>
+            <h2 id="modal-title">Nhân vật</h2>
+            <div id="modal-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

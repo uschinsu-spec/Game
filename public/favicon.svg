@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2d6375"/>
+      <stop offset="80%" stop-color="#0a1d27"/>
+      <stop offset="100%" stop-color="#051016"/>
+    </radialGradient>
+    <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffecb0"/>
+      <stop offset="50%" stop-color="#d4a34b"/>
+      <stop offset="100%" stop-color="#805315"/>
+    </linearGradient>
+    <linearGradient id="swordBlade" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#7beef7"/>
+      <stop offset="100%" stop-color="#2c899c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circular background -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGlow)" stroke="url(#goldRing)" stroke-width="12"/>
+
+  <!-- Celestial Magic Array / Lotus Petals -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#68c9db" stroke-width="3" stroke-dasharray="12 8" opacity="0.6"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="url(#goldRing)" stroke-width="2" opacity="0.8"/>
+
+  <!-- Spiritual Sword (Thanh Phong Tiên Kiếm) -->
+  <g transform="translate(256, 256) rotate(-45)">
+    <!-- Sword Blade -->
+    <path d="M-12,-160 L0,-210 L12,-160 L8,60 L-8,60 Z" fill="url(#swordBlade)"/>
+    <line x1="0" y1="-200" x2="0" y2="60" stroke="#ffffff" stroke-width="3"/>
+    
+    <!-- Crossguard -->
+    <path d="M-40,60 L0,75 L40,60 L30,50 L-30,50 Z" fill="url(#goldRing)"/>
+    <circle cx="0" cy="62" r="10" fill="#7beef7"/>
+
+    <!-- Grip -->
+    <rect x="-6" y="75" width="12" height="50" rx="3" fill="#1b2e38" stroke="url(#goldRing)" stroke-width="2"/>
+
+    <!-- Pommel -->
+    <circle cx="0" cy="135" r="14" fill="url(#goldRing)"/>
+    <!-- Tassel / Dải lụa -->
+    <path d="M0,148 Q15,180 5,210 Q-5,180 0,148 Z" fill="#e85b5b"/>
+  </g>
+
+  <!-- Xianxia Glow Stars -->
+  <circle cx="256" cy="70" r="6" fill="#ffe494"/>
+  <circle cx="256" cy="442" r="6" fill="#ffe494"/>
+  <circle cx="70" cy="256" r="6" fill="#ffe494"/>
+  <circle cx="442" cy="256" r="6" fill="#ffe494"/>
+</svg>

@@ -1,0 +1,554 @@
+:root {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #f7ecd2;
+  background: #061118;
+  font-synthesis: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #081720;
+  overscroll-behavior: none;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
+#game-root {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+#game-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ==============================================
+   HUD OVERLAY & LAYOUT
+   ============================================== */
+#hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 8px) 8px env(safe-area-inset-bottom, 8px);
+}
+
+/* 1. TOP HEADER */
+.top-bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+.hero-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avatar-frame {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #e2be6d;
+  background: radial-gradient(circle, #294754 0%, #0d222d 100%);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 10px rgba(226, 190, 109, 0.4);
+}
+
+.avatar-img {
+  font-size: 22px;
+  color: #ffebaa;
+  font-weight: bold;
+}
+
+.level-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #185084;
+  border: 1px solid #7bc6ff;
+  border-radius: 10px;
+  padding: 0 5px;
+  font-size: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.power-banner {
+  background: linear-gradient(90deg, #d34a17 0%, #eb8428 50%, #f4b238 100%);
+  border: 1px solid #ffe391;
+  border-radius: 10px;
+  padding: 1px 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.power-label {
+  font-size: 9px;
+  color: #fff2d1;
+  text-shadow: 0 1px 2px #5c1800;
+}
+
+.power-val {
+  font-size: 11px;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #5c1800;
+}
+
+.hp-line {
+  position: relative;
+  width: 95px;
+  height: 8px;
+  background: #13242c;
+  border: 1px solid #6b868f;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.hp-line i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #44cc55, #88ff66);
+  border-radius: 6px;
+  transition: width 0.2s;
+}
+
+.hp-line span {
+  position: absolute;
+  inset: 0;
+  font-size: 7px;
+  line-height: 8px;
+  text-align: center;
+  color: #ffffff;
+  text-shadow: 0 1px 1px #000;
+}
+
+.currency-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.curr-pill {
+  background: rgba(14, 38, 48, 0.85);
+  border: 1px solid #c2a764;
+  border-radius: 12px;
+  padding: 2px 7px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #ffe08a;
+}
+
+.vip-pill {
+  background: linear-gradient(135deg, #f7ba36, #cf8311);
+  border: 1px solid #ffe99b;
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: bold;
+  color: #3b1f02;
+}
+
+.top-shortcuts {
+  display: flex;
+  gap: 5px;
+}
+
+.icon-circle {
+  border: 1px solid #d3b36a;
+  background: radial-gradient(circle, #335463, #152b36);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffe494;
+}
+
+.icon-circle span {
+  font-size: 13px;
+  line-height: 14px;
+}
+
+.icon-circle small {
+  font-size: 7px;
+  transform: scale(0.85);
+}
+
+/* 2. SIDEBARS */
+.left-sidebar {
+  pointer-events: auto;
+  position: absolute;
+  left: 8px;
+  top: 75px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.right-sidebar {
+  pointer-events: auto;
+  position: absolute;
+  right: 8px;
+  top: 75px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #dfb967;
+  background: radial-gradient(circle, #2d5568, #112732);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.side-badge .badge-icon {
+  font-size: 14px;
+}
+
+.side-badge small {
+  font-size: 8px;
+  color: #ffeaab;
+  white-space: nowrap;
+  transform: scale(0.85);
+}
+
+.side-badge.countdown time {
+  font-size: 7px;
+  color: #72ff95;
+  font-weight: bold;
+}
+
+/* 3. CENTER / FLOATING ACTION BANNER */
+.center-banner-zone {
+  pointer-events: auto;
+  margin-top: auto;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.quest-mini-pill {
+  background: rgba(14, 38, 48, 0.88);
+  border: 1px solid #deb86c;
+  border-radius: 14px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #fff1d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.floating-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-toggle, .cauldron-level, .skill-ult-btn {
+  border: 1.5px solid #d8b463;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle, #30586b, #122a36);
+  color: #ffe6a3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+}
+
+.auto-toggle.active {
+  border-color: #ffd700;
+  background: radial-gradient(circle, #7a541f, #33210b);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}
+
+.auto-spinner {
+  font-size: 16px;
+  animation: spin 6s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.cauldron-icon {
+  font-size: 16px;
+  color: #7bf5ff;
+}
+
+.auto-toggle small, .cauldron-level small, .skill-ult-btn small {
+  font-size: 8px;
+}
+
+/* 4. BOTTOM XIANXIA DOCK */
+.bottom-dock {
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(14, 43, 53, 0.96) 0%, rgba(7, 25, 33, 0.98) 100%);
+  border: 1px solid #c7a45e;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
+}
+
+.chat-ticker {
+  font-size: 9px;
+  padding: 2px 6px 4px;
+  border-bottom: 1px solid rgba(199, 164, 94, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-tag {
+  color: #ff55bb;
+  font-weight: bold;
+}
+
+.ticker-text {
+  color: #bfe3db;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.dock-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+  gap: 2px;
+}
+
+.dock-left-btn, .dock-right-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.dock-icon {
+  font-size: 16px;
+}
+
+.dock-left-btn small, .dock-right-btn small {
+  font-size: 8px;
+  color: #edd195;
+}
+
+.dock-center-items {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  flex: 1;
+  gap: 2px;
+}
+
+.dock-item {
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 2px;
+  flex: 1;
+}
+
+.item-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #d4b267;
+  background: radial-gradient(circle, #2f5669, #132b36);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #ffeaab;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.dock-item small {
+  font-size: 8px;
+  color: #cdd9d6;
+}
+
+.dock-item.selected small {
+  color: #ffd977;
+  font-weight: bold;
+}
+
+/* Center Big Button (Động Phủ) */
+.dock-item.main-cave {
+  position: relative;
+  margin-top: -12px;
+}
+
+.dock-item.main-cave .item-ring.cave {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  border: 2px solid #ffe18b;
+  background: radial-gradient(circle, #48809c, #163745);
+  box-shadow: 0 0 15px rgba(123, 245, 255, 0.6);
+}
+
+.cave-glow {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(123, 245, 255, 0.4), transparent 70%);
+  z-index: -1;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0.9; }
+}
+
+/* TOAST */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(13, 35, 45, 0.95);
+  border: 1px solid #dcb567;
+  color: #ffebaa;
+  font-size: 12px;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, -55%);
+}
+
+/* MODAL */
+.modal {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 15, 20, 0.82);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(100%, 380px);
+  background: linear-gradient(160deg, #1f424f 0%, #0e2733 100%);
+  border: 1.5px solid #d5af66;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
+}
+
+.modal-card h2 {
+  font-size: 17px;
+  color: #ffebad;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(213, 175, 102, 0.4);
+  padding-bottom: 6px;
+}
+
+.modal-card p, .modal-card div {
+  font-size: 13px;
+  color: #e4eee9;
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
