@@ -47,7 +47,7 @@ export class SkillSystem {
     skill.lastUsedTime = time;
 
     const targets = skill.type === SkillType.AOE
-      ? this.targetSystem.selectAoeTargets(allMonsters, primaryTarget, skill.targetCount, 130)
+      ? this.targetSystem.selectAoeTargets(allMonsters, primaryTarget, skill.targetCount, 0.28)
       : [primaryTarget];
 
     targets.forEach(target => {
@@ -59,7 +59,7 @@ export class SkillSystem {
   }
 
   public castUltimate(allMonsters: Monster[], time: number): boolean {
-    const aliveTargets = allMonsters.filter(m => m.alive && m.active && m.x > this.player.x - 30 && m.x < this.player.x + 380);
+    const aliveTargets = allMonsters.filter(m => m.alive && m.active && m.worldZ >= 0.45 && m.worldZ <= 0.9);
     if (aliveTargets.length === 0) {
       EventBus.emit(GameEvents.TOAST_MESSAGE, 'Không có kẻ địch trong tầm tuyệt kỹ!');
       return false;
