@@ -70,3 +70,4 @@ git push -u origin main
 - **Trên iPhone (Safari)**: Nhấn nút Chia sẻ (biểu tượng hình vuông có mũi tên lên) -> Chọn **"Thêm vào Màn hình chính" (Add to Home Screen)**.
 - **Trên Android (Chrome)**: Nhấn dấu 3 chấm góc phải -> Chọn **"Cài đặt ứng dụng"** hoặc **"Thêm vào màn hình chính"**.
 - Biểu tượng **Vạn Tiên Lục** sẽ xuất hiện trên màn hình điện thoại, mở ra chơi ở chế độ Full Screen màn hình dọc siêu mượt!
+
