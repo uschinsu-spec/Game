@@ -12,7 +12,7 @@ export class WorldMotion {
     if (exploring) {
       for (const monster of monsters) {
         if (monster.alive && monster.worldZ < 0.72) {
-          monster.worldZ = Math.min(0.72, monster.worldZ + deltaMs * 0.000055);
+          monster.worldZ = Math.min(0.72, monster.worldZ + deltaMs * 0.00012);
         }
       }
     } else if (state === PlayerStateEnum.COMBAT || state === PlayerStateEnum.BOSS_COMBAT) {
