@@ -23,7 +23,7 @@ export class SkillSystem {
   }
 
   public updateAutoSkills(monsters: Monster[], time: number): boolean {
-    const primaryTarget = this.targetSystem.selectPrimaryTarget(monsters, 220);
+    const primaryTarget = this.targetSystem.selectPrimaryTarget(monsters, 0.62);
     if (!primaryTarget || !primaryTarget.alive) return false;
 
     const availableSkills = this.skills
