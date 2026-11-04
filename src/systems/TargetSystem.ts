@@ -10,7 +10,7 @@ export class TargetSystem {
 
   /** Targets are selected in world-space, not from projected pixel positions. */
   public getMonstersInRange(monsters: Monster[], maxDistance = 0.62): Monster[] {
-    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.48 && this.worldDistance(m) <= maxDistance);
+    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.66 && this.worldDistance(m) <= maxDistance);
   }
 
   public selectPrimaryTarget(monsters: Monster[], maxRange = 0.62): Monster | null {
