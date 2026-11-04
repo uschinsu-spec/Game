@@ -209,6 +209,7 @@ export class WorldScene extends Phaser.Scene {
 
     const cauldronSprite = this.add.image(0, 0, 'cauldron').setOrigin(0.5, 0.5);
     this.cauldron.add([runeCircle, cauldronSprite]);
+    this.cauldron.setDepth(y + 1);
 
     // Floating animation
     this.tweens.add({
@@ -223,6 +224,7 @@ export class WorldScene extends Phaser.Scene {
 
   private createPlayer(x: number, y: number): void {
     this.player = new Player(this, x, y);
+    this.player.setDepth(y);
   }
 
   private initSystems(): void {
@@ -374,7 +376,9 @@ export class WorldScene extends Phaser.Scene {
     this.cauldronY = height * 0.71;
 
     this.player.setPosition(width * 0.5, this.playerY);
+    this.player.setDepth(this.playerY);
     this.cauldron.setPosition(width * 0.5, this.cauldronY);
+    this.cauldron.setDepth(this.cauldronY + 1);
     this.spawnSystem.setArenaY(height * 0.32);
 
     this.cameras.main.setViewport(0, 0, width, height);
