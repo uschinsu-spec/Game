@@ -56,10 +56,11 @@ export class OfflineProgression {
     }
   }
 
-  public static bindLifecycle(): void {
+  public static bindLifecycle(player: Player): void {
     if (typeof window === 'undefined') return;
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') this.saveNow();
+      else if (document.visibilityState === 'visible') this.claim(player);
     });
     window.addEventListener('pagehide', () => this.saveNow());
   }
