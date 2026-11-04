@@ -61,7 +61,7 @@ export class WorldScene extends Phaser.Scene {
     this.createCauldron(w * 0.5, this.cauldronY);
     this.createPlayer(w * 0.5, this.playerY);
     this.initSystems();
-    OfflineProgression.bindLifecycle();
+    OfflineProgression.bindLifecycle(this.player);
     OfflineProgression.claim(this.player);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
