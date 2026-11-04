@@ -11,6 +11,7 @@ import { PlayerStateEnum } from '../core/Types';
 import { EventBus, GameEvents } from '../core/EventBus';
 import { PerspectiveProjector } from './perspective/PerspectiveProjector';
 import { WorldMotion } from './perspective/WorldMotion';
+import { OfflineProgression } from '../services/OfflineProgression';
 
 interface WaterWave {
   line: Phaser.GameObjects.Graphics;
@@ -60,6 +61,8 @@ export class WorldScene extends Phaser.Scene {
     this.createCauldron(w * 0.5, this.cauldronY);
     this.createPlayer(w * 0.5, this.playerY);
     this.initSystems();
+    OfflineProgression.bindLifecycle();
+    OfflineProgression.claim(this.player);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.handleResize(gameSize.width, gameSize.height);
