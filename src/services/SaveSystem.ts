@@ -41,7 +41,11 @@ export class SaveSystem {
       }
       const snapshot = JSON.parse(raw) as SaveSnapshot;
       if (![2, 3].includes(snapshot.version) || !Number.isFinite(snapshot.savedAt)) return 0;
-      player.restoreSnapshot(snapshot);
+      const legacyRealmMap = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11];
+      const migratedRealmIndex = snapshot.version === 2
+        ? legacyRealmMap[snapshot.realmIndex] ?? Math.min(35, snapshot.realmIndex)
+        : snapshot.realmIndex;
+      player.restoreSnapshot({ ...snapshot, realmIndex: migratedRealmIndex });
       return Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - snapshot.savedAt) / 1000)));
     } catch {
       return 0;
