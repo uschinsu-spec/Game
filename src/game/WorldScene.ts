@@ -160,6 +160,9 @@ export class WorldScene extends Phaser.Scene {
         speed: 0.18
       });
     }
+
+    this.cinematicEnvironment = new CinematicEnvironment(this);
+    this.cinematicEnvironment.create(w, h, this.horizonY);
   }
 
   private createCauldron(x: number, y: number): void {
@@ -250,6 +253,7 @@ export class WorldScene extends Phaser.Scene {
     // 1. Tick Player
     this.player.update(time, delta);
     this.hudManager.updateCooldowns(time);
+    this.cinematicEnvironment.update(time, delta);
 
     // 2. Animate perspective water waves moving downwards to create forward surfing motion
     const w = this.scale.width;
@@ -348,7 +352,8 @@ export class WorldScene extends Phaser.Scene {
     this.player.setDepth(this.playerY);
     this.cauldron.setPosition(width * 0.5, this.cauldronY);
     this.cauldron.setDepth(this.cauldronY + 1);
-    this.spawnSystem.setArenaY(height * 0.32);\n    this.cinematicEnvironment.resize(width, height);
+    this.spawnSystem.setArenaY(height * 0.32);
+    this.cinematicEnvironment.resize(width, height);
 
     this.cameras.main.setViewport(0, 0, width, height);
   }
