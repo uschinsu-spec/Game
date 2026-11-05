@@ -59,7 +59,7 @@ export class SkillSystem {
   }
 
   public castUltimate(allMonsters: Monster[], time: number): boolean {
-    const aliveTargets = allMonsters.filter(m => m.alive && m.active && m.worldZ >= 0.45 && m.worldZ <= 0.9);
+    const aliveTargets = allMonsters.filter(m => m.alive && m.active && m.worldZ >= 0.38 && m.worldZ <= 0.56);
     if (aliveTargets.length === 0) {
       EventBus.emit(GameEvents.TOAST_MESSAGE, 'Không có kẻ địch trong tầm tuyệt kỹ!');
       return false;

@@ -93,13 +93,17 @@ export class Monster extends Phaser.GameObjects.Container {
       .addState({
         name: MonsterStateEnum.ATTACK,
         enter: (m) => {
-          // Lunge downward towards player
+          // Ranged casting tell: charge in place; never lunge into the player's space.
+          m.bodySprite.setTint(m.config.isBoss ? 0xff9a5c : 0xc77bff);
           m.scene.tweens.add({
-            targets: m.bodySprite,
-            y: 12,
-            duration: 120,
+            targets: [m.bodySprite, m.auraRing],
+            scale: 1.12,
+            duration: 180,
             yoyo: true,
-            ease: 'Quad.easeInOut'
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+              if (m.alive) m.bodySprite.clearTint();
+            }
           });
         }
       })
