@@ -210,7 +210,7 @@ export class WorldScene extends Phaser.Scene {
     this.combatSystem = new CombatSystem(this, this.player);
     this.skillSystem = new SkillSystem(this.player, this.targetSystem, this.combatSystem);
     this.lootSystem = new LootSystem(this, this.player);
-    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32);
+    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32, () => this.player.stats.level);
 
     this.hudManager = new HUDManager(this.player, this.skillSystem, {
       onAutoToggle: (running: boolean) => {
