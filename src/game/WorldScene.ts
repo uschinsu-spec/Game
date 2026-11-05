@@ -12,6 +12,7 @@ import { EventBus, GameEvents } from '../core/EventBus';
 import { PerspectiveProjector } from './perspective/PerspectiveProjector';
 import { WorldMotion } from './perspective/WorldMotion';
 import { OfflineProgression } from '../services/OfflineProgression';
+import { CinematicEnvironment } from './CinematicEnvironment';
 
 interface WaterWave {
   line: Phaser.GameObjects.Graphics;
@@ -35,6 +36,7 @@ export class WorldScene extends Phaser.Scene {
   private cauldron!: Phaser.GameObjects.Container;
   private waterWaves: WaterWave[] = [];
   private sunShimmer!: Phaser.GameObjects.Graphics;
+  private cinematicEnvironment!: CinematicEnvironment;
 
   // Game control
   private isAutoCombat = true;
@@ -346,7 +348,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.setDepth(this.playerY);
     this.cauldron.setPosition(width * 0.5, this.cauldronY);
     this.cauldron.setDepth(this.cauldronY + 1);
-    this.spawnSystem.setArenaY(height * 0.32);
+    this.spawnSystem.setArenaY(height * 0.32);\n    this.cinematicEnvironment.resize(width, height);
 
     this.cameras.main.setViewport(0, 0, width, height);
   }
