@@ -38,6 +38,12 @@ export class SkillSystem {
   }
 
   public castSkill(skill: SkillConfig, primaryTarget: Monster, allMonsters: Monster[], time: number): void {
+    const cooldownRemaining = skill.cooldown - (time - skill.lastUsedTime);
+    if (skill.lastUsedTime > 0 && cooldownRemaining > 0) {
+      EventBus.emit(GameEvents.TOAST_MESSAGE, `${skill.name} còn hồi ${Math.ceil(cooldownRemaining / 1000)} giây!`);
+      return;
+    }
+
     if (this.player.stats.mp < skill.mpCost) {
       EventBus.emit(GameEvents.TOAST_MESSAGE, 'Linh lực không đủ!');
       return;
@@ -62,6 +68,12 @@ export class SkillSystem {
     const aliveTargets = allMonsters.filter(m => m.alive && m.active && m.worldZ >= 0.38 && m.worldZ <= 0.56);
     if (aliveTargets.length === 0) {
       EventBus.emit(GameEvents.TOAST_MESSAGE, 'Không có kẻ địch trong tầm tuyệt kỹ!');
+      return false;
+    }
+
+    const ultimateCooldownRemaining = this.ultimateSkill.cooldown - (time - this.ultimateSkill.lastUsedTime);
+    if (this.ultimateSkill.lastUsedTime > 0 && ultimateCooldownRemaining > 0) {
+      EventBus.emit(GameEvents.TOAST_MESSAGE, `Tuyệt kỹ còn hồi ${Math.ceil(ultimateCooldownRemaining / 1000)} giây!`);
       return false;
     }
 
