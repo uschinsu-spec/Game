@@ -71,7 +71,7 @@ export class SpawnSystem {
   public spawnMonster(x: number, y: number, templateKey: string): Monster {
     const config = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
     const monster = new Monster(this.scene, x, y, config);
-    monster.worldZ = templateKey === 'eye_boss' ? 0.18 : Phaser.Math.FloatBetween(0.12, 0.25);
+    monster.worldZ = templateKey === 'eye_boss' ? 0.025 : templateKey === 'eye_elite' ? 0.045 : Phaser.Math.FloatBetween(0.025, 0.075);
     this.monsters.push(monster);
     EventBus.emit(GameEvents.MONSTER_SPAWNED, monster);
     return monster;
