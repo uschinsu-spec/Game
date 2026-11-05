@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import heroRearUrl from '../assets/hero-xianxia.svg';
-import monsterEyeUrl from '../assets/monster-void-eye.svg';
-import monsterEliteUrl from '../assets/monster-elite.svg';
-import monsterBossUrl from '../assets/monster-boss.svg';
+import heroRearUrl from '../assets/hero-xianxia.webp';
+import monsterEyeUrl from '../assets/monster-void-eye.webp';
+import monsterEliteUrl from '../assets/monster-elite.webp';
+import monsterBossUrl from '../assets/monster-boss.webp';
 import { Player } from '../entities/Player';
 import { Monster } from '../entities/Monster';
 import { TargetSystem } from '../systems/TargetSystem';
@@ -86,7 +86,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createTextures(): void {
-    // Character and demon artwork is loaded as hand-illustrated SVG texture assets.
+    // Character and demon artwork is loaded as high-density WebP textures generated from editable SVG masters.
     // 2. Flying Spiritual Sword (Phi Kiếm)
     const s = this.make.graphics({ x: 0, y: 0 });
     s.fillStyle(0x95f1ff); s.fillRect(7, 4, 4, 30);
