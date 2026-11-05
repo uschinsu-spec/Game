@@ -171,6 +171,8 @@ export class CinematicEnvironment {
     // Recreate only on scene resize to keep the artwork aligned with the new horizon.
     this.clouds.forEach(({ root }) => root.destroy());
     this.motes.forEach(({ dot }) => dot.destroy());
+    this.staticLayers.forEach((layer) => layer.destroy());
+    this.staticLayers = [];
     this.clouds = [];
     this.motes = [];
     this.width = width;
