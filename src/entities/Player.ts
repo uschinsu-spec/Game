@@ -419,7 +419,7 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
-  public cultivate(amount = 10): boolean {
+  public cultivate(amount = 15): boolean {
     if (this.spirit < 5 || this.stats.mp < 5) return false;
     this.spirit -= 5;
     this.spendMp(5);
