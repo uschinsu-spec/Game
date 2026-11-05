@@ -3,6 +3,7 @@ import { PlayerStateEnum, type CharacterStats } from '../core/Types';
 import { StateMachine } from '../core/StateMachine';
 import { EventBus, GameEvents } from '../core/EventBus';
 import { CULTIVATION_REALMS } from '../data/realms.data';
+import type { InventoryEntry, EquipmentSlot } from '../core/Types';
 
 export class Player extends Phaser.GameObjects.Container {
   public stats: CharacterStats;
@@ -14,6 +15,9 @@ export class Player extends Phaser.GameObjects.Container {
   public kills = 0;
   public questKills = 0;
   public realmIndex = 0;
+  public inventory: InventoryEntry[] = [];
+  public equipment: Partial<Record<EquipmentSlot, InventoryEntry>> = {};
+  public questClaims = 0;
 
   // Visual sub-elements
   private heroSprite: Phaser.GameObjects.Image;
@@ -299,6 +303,114 @@ export class Player extends Phaser.GameObjects.Container {
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
   }
 
+
+  public gainResources(gold: number, spirit: number): void {
+    this.gold = Math.max(0, this.gold + Math.floor(gold));
+    this.spirit = Math.max(0, this.spirit + Math.floor(spirit));
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+  }
+
+  public addInventoryItem(item: InventoryEntry): void {
+    const existing = this.inventory.find(entry => entry.id === item.id && entry.type === item.type);
+    if (existing && item.type !== 'equipment') existing.amount += item.amount;
+    else this.inventory.push({ ...item });
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+  }
+
+  public usePotion(itemId: string): boolean {
+    const item = this.inventory.find(entry => entry.id === itemId && entry.type === 'potion' && entry.amount > 0);
+    if (!item) return false;
+    item.amount -= 1;
+    if (item.amount <= 0) this.inventory = this.inventory.filter(entry => entry !== item);
+    this.heal(Math.max(40, Math.round(this.stats.maxHp * 0.3)));
+    this.restoreMp(Math.max(25, Math.round(this.stats.maxMp * 0.3)));
+    return true;
+  }
+
+  public equipItem(itemId: string): boolean {
+    const index = this.inventory.findIndex(entry => entry.id === itemId && entry.type === 'equipment' && !!entry.slot);
+    if (index < 0) return false;
+    const item = this.inventory[index];
+    const slot = item.slot as EquipmentSlot;
+    const previous = this.equipment[slot];
+    if (previous) this.inventory.push(previous);
+    this.equipment[slot] = item;
+    this.inventory.splice(index, 1);
+    this.recalculateEquipmentStats();
+    return true;
+  }
+
+  public unequipItem(slot: EquipmentSlot): boolean {
+    const item = this.equipment[slot];
+    if (!item) return false;
+    this.inventory.push(item);
+    delete this.equipment[slot];
+    this.recalculateEquipmentStats();
+    return true;
+  }
+
+  private recalculateEquipmentStats(): void {
+    const gear = Object.values(this.equipment);
+    const atk = gear.reduce((sum, item) => sum + (item?.atk || 0), 0);
+    const def = gear.reduce((sum, item) => sum + (item?.def || 0), 0);
+    const hp = gear.reduce((sum, item) => sum + (item?.hp || 0), 0);
+    const mp = gear.reduce((sum, item) => sum + (item?.mp || 0), 0);
+    const old = (this as unknown as { gear?: { atk: number; def: number; hp: number; mp: number } }).gear || { atk: 0, def: 0, hp: 0, mp: 0 };
+    const oldMaxHp = this.stats.maxHp;
+    const oldMaxMp = this.stats.maxMp;
+    this.stats.atk = Math.max(1, this.stats.atk - old.atk + atk);
+    this.stats.def = Math.max(0, this.stats.def - old.def + def);
+    this.stats.maxHp = Math.max(1, this.stats.maxHp - old.hp + hp);
+    this.stats.maxMp = Math.max(1, this.stats.maxMp - old.mp + mp);
+    (this as unknown as { gear: { atk: number; def: number; hp: number; mp: number } }).gear = { atk, def, hp, mp };
+    this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + Math.max(0, this.stats.maxHp - oldMaxHp));
+    this.stats.mp = Math.min(this.stats.maxMp, this.stats.mp + Math.max(0, this.stats.maxMp - oldMaxMp));
+    this.stats.combatPower = Math.round(this.stats.atk * 12 + this.stats.def * 8 + this.stats.maxHp * 0.4 + this.stats.maxMp * 0.25 + this.stats.level * 100);
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+  }
+
+  public cultivate(amount = 10): boolean {
+    if (this.spirit < 5 || this.stats.mp < 5) return false;
+    this.spirit -= 5;
+    this.spendMp(5);
+    this.addExp(amount);
+    return true;
+  }
+
+  public breakthrough(): boolean {
+    const next = CULTIVATION_REALMS[this.realmIndex + 1];
+    if (!next || this.exp < next.expRequired || this.stats.level < (this.realmIndex + 1) * 5 || this.spirit < next.id * 10) return false;
+    this.spirit -= next.id * 10;
+    this.exp -= next.expRequired;
+    this.realmIndex += 1;
+    this.stats.maxHp += next.bonusHp;
+    this.stats.hp = this.stats.maxHp;
+    this.stats.atk += next.bonusAtk;
+    this.stats.def += next.bonusDef;
+    this.stats.combatPower = Math.round(this.stats.atk * 12 + this.stats.def * 8 + this.stats.maxHp * 0.4 + this.stats.level * 100);
+    this.realmLabel.setText(next.name + ' · ' + next.stage);
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'Đột phá thành công: ' + next.name + ' · ' + next.stage + '!');
+    return true;
+  }
+
+  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number }>): void {
+    if (snapshot.stats) this.stats = { ...this.stats, ...snapshot.stats };
+    this.exp = Math.max(0, snapshot.exp ?? this.exp);
+    this.maxExp = Math.max(1, snapshot.maxExp ?? this.maxExp);
+    this.gold = Math.max(0, snapshot.gold ?? this.gold);
+    this.spirit = Math.max(0, snapshot.spirit ?? this.spirit);
+    this.kills = Math.max(0, snapshot.kills ?? this.kills);
+    this.questKills = Math.max(0, snapshot.questKills ?? this.questKills);
+    this.realmIndex = Math.min(CULTIVATION_REALMS.length - 1, Math.max(0, snapshot.realmIndex ?? this.realmIndex));
+    this.inventory = Array.isArray(snapshot.inventory) ? snapshot.inventory : [];
+    this.equipment = snapshot.equipment || {};
+    this.questClaims = Math.max(0, snapshot.questClaims ?? 0);
+    const realm = CULTIVATION_REALMS[this.realmIndex];
+    this.realmLabel.setText(realm.name + ' · ' + realm.stage);
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+  }
+
   private levelUp(): void {
     this.stats.level++;
     this.maxExp = Math.round(this.maxExp * 1.35);
@@ -310,11 +422,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.stats.def += 4;
     this.stats.combatPower = Math.round(this.stats.combatPower + 850 + this.stats.level * 120);
 
-    if (this.stats.level % 5 === 0 && this.realmIndex < CULTIVATION_REALMS.length - 1) {
-      this.realmIndex++;
-      const realm = CULTIVATION_REALMS[this.realmIndex];
-      this.realmLabel.setText(`${realm.name} · ${realm.stage}`);
-    }
+    this.stats.combatPower = Math.round(this.stats.atk * 12 + this.stats.def * 8 + this.stats.maxHp * 0.4 + this.stats.maxMp * 0.25 + this.stats.level * 100);
 
     EventBus.emit(GameEvents.LEVEL_UP, this.stats.level);
     EventBus.emit(GameEvents.TOAST_MESSAGE, `Đột phá Cấp độ ${this.stats.level}! Lực chiến tăng vọt!`);
