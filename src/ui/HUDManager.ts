@@ -278,7 +278,7 @@ export class HUDManager {
       case 'Phúc lợi':
       case 'Tài thần': {
         const today = new Date().toISOString().slice(0,10);
-        const claimed = localStorage.getItem('van-tien-luc-daily-' + today) === '1';
+        const claimed = p.dailyClaimDate === today;
         html = '<div style="line-height:1.8"><b>Phúc lợi đăng nhập</b><br>Thưởng mỗi ngày: 100 bạc · 5 linh thạch · 50 tu vi.' + actionButton(claimed ? 'Đã nhận phúc lợi hôm nay' : '🎁 Nhận phúc lợi hôm nay', 'daily', claimed ? 'disabled' : '') + '</div>';
         break;
       }
@@ -307,16 +307,7 @@ export class HUDManager {
       if (action === 'equip') success = p.equipItem(button.dataset.itemId || '');
       if (action === 'unequip') success = p.unequipItem((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
       if (action === 'use') success = p.usePotion(button.dataset.itemId || '');
-      if (action === 'daily') {
-        const today = new Date().toISOString().slice(0,10);
-        const key = 'van-tien-luc-daily-' + today;
-        if (localStorage.getItem(key) !== '1') {
-          localStorage.setItem(key, '1');
-          p.gainResources(100, 5);
-          p.addExp(50);
-          success = true;
-        }
-      }
+      if (action === 'daily') success = p.claimDailyWelfare();
       if (success) {
         SaveSystem.save(p);
         this.showToast('Đạo hữu đã hoàn tất thao tác!');
