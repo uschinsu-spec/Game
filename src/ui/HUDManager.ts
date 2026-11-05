@@ -226,7 +226,7 @@ export class HUDManager {
     const realmLabel = ['Luyện Khí · Sơ Kỳ','Luyện Khí · Trung Kỳ','Luyện Khí · Hậu Kỳ','Luyện Khí · Viên Mãn','Trúc Cơ · Sơ Kỳ','Trúc Cơ · Trung Kỳ','Trúc Cơ · Hậu Kỳ','Trúc Cơ · Viên Mãn','Kim Đan · Sơ Kỳ','Kim Đan · Viên Mãn'];
     const currentRealm = realmLabel[p.realmIndex] || realmLabel[0];
     const nextRealmLevel = (p.realmIndex + 1) * 5;
-    const safe = (value: string) => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char] || char));
+    const safe = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const actionButton = (label: string, action: string, attrs = '') => '<button type="button" data-action="' + action + '" ' + attrs + ' style="margin:5px 0;padding:9px 12px;width:100%;border:1px solid #d7b86e;border-radius:8px;background:linear-gradient(145deg,#315d69,#173340);color:#fff1c8;font-weight:700;">' + label + '</button>';
     let html = '';
     switch (tabName) {
