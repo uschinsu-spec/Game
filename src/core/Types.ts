@@ -113,3 +113,18 @@ export interface CultivationRealm {
   bonusDef: number;
 }
 
+
+export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
+export interface InventoryEntry {
+  id: string;
+  name: string;
+  type: 'material' | 'potion' | 'equipment';
+  amount: number;
+  quality: LootQuality;
+  iconText: string;
+  slot?: EquipmentSlot;
+  atk?: number;
+  def?: number;
+  hp?: number;
+  mp?: number;
+}
