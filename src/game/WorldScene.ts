@@ -242,14 +242,6 @@ export class WorldScene extends Phaser.Scene {
     this.player.questKills++;
     this.player.addExp(monster.config.expReward);
 
-    if (this.player.questKills >= 10) {
-      this.player.questKills = 0;
-      this.player.gold += 120;
-      this.player.spirit += 8;
-      this.player.addExp(80);
-      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Hoàn thành trảm yêu! Thu hoạch linh thạch phong phú!');
-      EventBus.emit(GameEvents.BATTLE_LOG, '✦ Công đức vô lượng: Tiên môn ban thưởng Bạc +120, Linh Thạch +8, EXP +80.');
-    }
 
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
   }
