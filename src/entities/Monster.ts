@@ -8,6 +8,9 @@ export class Monster extends Phaser.GameObjects.Container {
   public maxHp: number;
   public alive = true;
   public nextAttackTime = 0;
+  public bossPhase = 1;
+  private baseBossAtk = 0;
+  private baseBossAttackInterval = 0;
   /** Normalized world lane (-1..1) and depth (0 horizon, 1 near camera). */
   public worldX: number;
   public worldZ = 0.22;
@@ -28,6 +31,8 @@ export class Monster extends Phaser.GameObjects.Container {
     this.baseScale = config.scale || 1;
     this.hp = config.maxHp;
     this.maxHp = config.maxHp;
+    this.baseBossAtk = config.atk;
+    this.baseBossAttackInterval = config.attackInterval;
 
     // Distant water reflection / shadow
     this.shadow = scene.add.ellipse(0, 48 * (config.scale || 1), 38 * (config.scale || 1), 10, 0x051b22, 0.45);
@@ -159,7 +164,8 @@ export class Monster extends Phaser.GameObjects.Container {
   public takeDamage(amount: number, _isCrit = false): boolean {
     if (!this.alive) return false;
 
-    this.hp = Math.max(0, this.hp - amount);
+    this.hp = Math.max(0, this.hp - Math.max(0, Number.isFinite(amount) ? amount : 0));
+    this.updateBossPhase();
     this.drawHpBar();
 
     if (this.hp <= 0) {
@@ -169,6 +175,28 @@ export class Monster extends Phaser.GameObjects.Container {
       this.stateMachine.transitionTo(MonsterStateEnum.HURT);
       return false;
     }
+  }
+
+  /** Bosses gain two escalating phases at 70% and 35% HP. */
+  private updateBossPhase(): void {
+    if (!this.config.isBoss) return;
+    const hpRatio = this.hp / this.maxHp;
+    const nextPhase = hpRatio <= 0.35 ? 3 : hpRatio <= 0.70 ? 2 : 1;
+    if (nextPhase <= this.bossPhase) return;
+
+    this.bossPhase = nextPhase;
+    const attackMultiplier = nextPhase === 2 ? 1.2 : 1.45;
+    const cadenceMultiplier = nextPhase === 2 ? 0.88 : 0.72;
+    this.config.atk = Math.round(this.baseBossAtk * attackMultiplier);
+    this.config.attackInterval = Math.round(this.baseBossAttackInterval * cadenceMultiplier);
+    this.nameLabel.setText(`👑 ${this.config.name} · Giai đoạn ${nextPhase}`);
+    this.nameLabel.setColor(nextPhase === 3 ? '#ff3333' : '#ff9b52');
+    this.auraRing?.setFillStyle(nextPhase === 3 ? 0xff2222 : 0xff7a22, 0.42);
+    this.scene.cameras.main.shake(180, nextPhase === 3 ? 0.008 : 0.004);
+    EventBus.emit(GameEvents.TOAST_MESSAGE, nextPhase === 2
+      ? '⚠ Boss chuyển sang Giai đoạn 2 — cuồng nộ!'
+      : '☠ Boss bước vào Giai đoạn Cuối — diệt thế!');
+    EventBus.emit(GameEvents.BATTLE_LOG, `${this.config.name} tiến vào giai đoạn ${nextPhase}!`);
   }
 
   public die(): void {
