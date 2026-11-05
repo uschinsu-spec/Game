@@ -90,4 +90,18 @@ The active development branch `feature/perspective-2-5d-upgrade` introduces:
 
 ### Current scope and limitations
 
-This is still a 2.5D sprite prototype using temporary generated art, not a full 3D renderer. The prototype includes localStorage-based offline reward calculation capped at 12 hours; authoritative server validation, durable character saves, and production asset animation remain separate implementation tasks. Validate on-device and run `npm run build` before release.
+This is a 2.5D sprite prototype, not a full 3D renderer. The visual polish branch adds original SVG character/demon illustrations, horizon-to-camera enemy approach, sword trails, layered water highlights and a responsive combat HUD. The prototype includes localStorage-based offline reward calculation capped at 12 hours; authoritative server validation, durable character saves, and production asset animation remain separate implementation tasks. Validate on-device and run `npm run build` before release.
+
+
+## Visual & Gameplay Polish v0.3
+
+Branch feature/visual-gameplay-polish-v0.3 adds:
+
+- Original SVG artwork for the white-robed sword cultivator and three demon tiers (normal, elite, boss).
+- Enemies enter at normalized horizon depth and advance toward the player with the existing perspective projector.
+- Cyan sword trails, additive glow and an impact burst on hit.
+- Layered water depth bands, sun reflection highlights and perspective wave glints.
+- HP and MP meters plus radial skill/ultimate cooldown overlays.
+- Responsive HUD breakpoints for compact phones, short screens and wider desktop viewports.
+
+See docs/visual-gameplay-polish-v0.3.md for the QA matrix and release checks.
