@@ -9,6 +9,7 @@ export class HUDManager {
   private onAutoToggle: (running: boolean) => void;
   private onSpeedChange: (speed: number) => void;
   private onUltimateCast: () => void;
+  private onBossHunt: () => void;
 
   private isAuto = true;
   private speedMultiplier = 1;
@@ -21,6 +22,7 @@ export class HUDManager {
       onAutoToggle: (running: boolean) => void;
       onSpeedChange: (speed: number) => void;
       onUltimateCast: () => void;
+      onBossHunt: () => void;
     }
   ) {
     this.player = player;
@@ -28,6 +30,8 @@ export class HUDManager {
     this.onAutoToggle = callbacks.onAutoToggle;
     this.onSpeedChange = callbacks.onSpeedChange;
     this.onUltimateCast = callbacks.onUltimateCast;
+    this.onBossHunt = callbacks.onBossHunt;
+    this.onBossHunt = callbacks.onBossHunt;
 
     this.setupListeners();
     this.bindDOM();
@@ -77,6 +81,27 @@ export class HUDManager {
       };
     });
 
+    // Match speed cycles through supported values and updates the scene clock.
+    const speedBtn = document.getElementById('speed-btn');
+    if (speedBtn) speedBtn.onclick = () => {
+      const speeds = [1, 2, 3];
+      const next = speeds[(speeds.indexOf(this.speedMultiplier) + 1) % speeds.length];
+      this.speedMultiplier = next;
+      speedBtn.textContent = `x${next}`;
+      this.onSpeedChange(next);
+      this.showToast(`Tốc độ trận đấu x${next}`);
+    };
+
+    // Boss quick action.
+    const bossBtn = document.getElementById('boss-quick-btn');
+    if (bossBtn) {
+      const activate = () => this.onBossHunt();
+      bossBtn.addEventListener('click', activate);
+      bossBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); }
+      });
+    }
+
     // Ultimate Button
     const skillBtn = document.getElementById('skill-btn');
     if (skillBtn) {
@@ -95,6 +120,15 @@ export class HUDManager {
         const tab = btn.dataset.panel || 'Nhân vật';
         this.openModal(tab);
       };
+    });
+
+    // Close modal by tapping its backdrop or pressing Escape.
+    const modal = document.getElementById('modal');
+    if (modal) modal.addEventListener('click', (event) => {
+      if (event.target === modal) this.closeModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') this.closeModal();
     });
 
     // Modal Close

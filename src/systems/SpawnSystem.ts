@@ -68,6 +68,19 @@ export class SpawnSystem {
     }
   }
 
+  public spawnBossWave(): void {
+    if (this.monsters.some((monster) => monster.alive && monster.config.isBoss)) {
+      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss đã xuất hiện trên chiến trường!');
+      return;
+    }
+    const w = this.scene.scale.width;
+    this.spawnMonster(w * 0.5, this.arenaY - 10, 'eye_boss');
+    this.spawnMonster(w * 0.28, this.arenaY + 12, 'eye_elite');
+    this.spawnMonster(w * 0.72, this.arenaY + 12, 'eye_elite');
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss lĩnh chủ được triệu hồi!');
+    EventBus.emit(GameEvents.BATTLE_LOG, '⚠️ Đạo hữu chủ động khiêu chiến Boss lĩnh chủ!');
+  }
+
   public spawnMonster(x: number, y: number, templateKey: string): Monster {
     const config = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
     const monster = new Monster(this.scene, x, y, config);

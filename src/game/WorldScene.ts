@@ -223,6 +223,9 @@ export class WorldScene extends Phaser.Scene {
       },
       onUltimateCast: () => {
         this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.time.now);
+      },
+      onBossHunt: () => {
+        this.spawnSystem.spawnBossWave();
       }
     });
 
