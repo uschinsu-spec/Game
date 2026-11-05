@@ -369,6 +369,29 @@ export class Player extends Phaser.GameObjects.Container {
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
   }
 
+
+  public craftRecoveryPill(): boolean {
+    const material = this.inventory.find(item => item.type === 'material' && item.name === 'Thanh Trúc Dược Thảo' && item.amount > 0);
+    if (!material || this.gold < 30 || this.spirit < 3) return false;
+    this.gold -= 30;
+    this.spirit -= 3;
+    material.amount -= 1;
+    if (material.amount <= 0) this.inventory = this.inventory.filter(item => item !== material);
+    this.addInventoryItem({ id: 'recovery-pill', name: 'Bồi Nguyên Đan', type: 'potion', amount: 1, quality: material.quality, iconText: '🧪' });
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+    return true;
+  }
+
+  public claimKillQuest(): boolean {
+    const required = (this.questClaims + 1) * 10;
+    if (this.kills < required) return false;
+    this.questClaims += 1;
+    this.gainResources(120, 8);
+    this.addExp(80);
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'Hoàn thành nhiệm vụ trảm yêu! Nhận 120 bạc, 8 linh thạch và 80 tu vi.');
+    return true;
+  }
+
   public cultivate(amount = 10): boolean {
     if (this.spirit < 5 || this.stats.mp < 5) return false;
     this.spirit -= 5;
