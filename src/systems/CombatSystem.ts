@@ -102,18 +102,29 @@ export class CombatSystem {
   }
 
   private spawnSwordProjectile(fromX: number, fromY: number, toX: number, toY: number, onHit: () => void): void {
-    const sword = this.scene.add.image(fromX, fromY, 'spirit_sword').setScale(0.7);
-    sword.setTint(0x7beef7);
-    sword.rotation = Phaser.Math.Angle.Between(fromX, fromY, toX, toY) + Math.PI / 2;
-
+    const angle = Phaser.Math.Angle.Between(fromX, fromY, toX, toY);
+    const trail = this.scene.add.graphics().setDepth(9000);
+    trail.lineStyle(10, 0x3deaff, 0.14);
+    trail.lineBetween(fromX, fromY, toX, toY);
+    trail.lineStyle(3, 0xc8fbff, 0.52);
+    trail.lineBetween(fromX, fromY, toX, toY);
+    trail.setBlendMode(Phaser.BlendModes.ADD);
+    const glow = this.scene.add.circle(fromX, fromY, 13, 0x66efff, 0.24).setBlendMode(Phaser.BlendModes.ADD);
+    const sword = this.scene.add.image(fromX, fromY, 'spirit_sword').setScale(0.92);
+    sword.setTint(0xc9fbff);
+    sword.rotation = angle + Math.PI / 2;
+    sword.setBlendMode(Phaser.BlendModes.ADD);
+    sword.setDepth(9001);
+    glow.setDepth(9000);
     this.scene.tweens.add({
-      targets: sword,
-      x: toX,
-      y: toY,
-      duration: 180,
+      targets: [sword, glow], x: toX, y: toY,
+      duration: Phaser.Math.Clamp(260 - Phaser.Math.Distance.Between(fromX, fromY, toX, toY) * 0.12, 150, 260),
       ease: 'Cubic.easeIn',
+      onUpdate: () => glow.setScale(0.85 + Math.sin(this.scene.time.now / 35) * 0.18),
       onComplete: () => {
-        sword.destroy();
+        trail.destroy(); glow.destroy(); sword.destroy();
+        const impact = this.scene.add.circle(toX, toY, 10, 0xb8fbff, 0.9).setBlendMode(Phaser.BlendModes.ADD);
+        this.scene.tweens.add({ targets: impact, scale: 3.2, alpha: 0, duration: 180, onComplete: () => impact.destroy() });
         onHit();
       }
     });

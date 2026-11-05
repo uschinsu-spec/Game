@@ -1,5 +1,26 @@
 # CHANGELOG – VẠN TIÊN LỤC
 
+## [v0.3] - Visual & Gameplay Polish (05/11/2026)
+
+### Visuals
+- Added original vector-illustrated SVG sprites for the white-robed sword cultivator, standard demon, elite demon and demon lord.
+- Replaced orb-like placeholder enemy art with distinct creature silhouettes.
+- Added layered water depth shading, sun-glint reflection and brighter perspective ripples.
+
+### Combat
+- Spawned enemies close to the horizon and let world-depth progression scale them naturally as they approach.
+- Improved sword projectiles with cyan glow, a luminous trail and an impact burst before damage resolves.
+
+### HUD & responsive layout
+- Added an MP meter beside the HP bar.
+- Added radial cooldown sweeps and remaining-time labels for four skills and the ultimate.
+- Added compact-phone and short-screen layout breakpoints while preserving safe-area spacing.
+
+### Validation
+- GitHub Actions build/type-check workflow is configured for feature/** pushes and PRs into main.
+- Device/browser viewport QA remains a manual release gate; see docs/visual-gameplay-polish-v0.3.md.
+
+
 Tất cả các thay đổi và cột mốc phát triển của dự án Vạn Tiên Lục được ghi nhận tại đây.
 
 ---

@@ -50,7 +50,7 @@ export class Monster extends Phaser.GameObjects.Container {
     // Monster Sprite
     this.bodySprite = scene.add.image(0, 0, config.textureKey).setOrigin(0.5, 0.5);
     if (config.scale) {
-      this.bodySprite.setScale(config.scale);
+      this.bodySprite.setScale(config.scale * 0.38);
     }
     this.add(this.bodySprite);
 
@@ -109,7 +109,7 @@ export class Monster extends Phaser.GameObjects.Container {
           m.bodySprite.setTint(0xff5555);
           m.scene.tweens.add({
             targets: m.bodySprite,
-            scaleX: (m.config.scale || 1) * 1.15,
+            scaleX: (m.config.scale || 1) * 0.38 * 1.15,
             duration: 90,
             yoyo: true,
             onComplete: () => {

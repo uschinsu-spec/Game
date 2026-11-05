@@ -593,3 +593,96 @@ html, body {
   .skill-slot span { font-size: 16px; }
   .skill-bar { gap: 8px; }
 }
+
+
+/* v0.3 premium combat HUD, responsive safe-area layout */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: url('/assets/hero-xianxia.svg') center 24% / 145% auto no-repeat,
+    radial-gradient(circle, #294754, #0d222d);
+  color: transparent;
+  font-size: 0;
+}
+.hero-meta { min-width: 0; }
+.mp-line {
+  position: relative;
+  width: 95px;
+  height: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(112, 194, 224, .65);
+  border-radius: 6px;
+  background: rgba(5, 19, 34, .92);
+}
+.mp-line i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1679cf, #69d9ff);
+  box-shadow: 0 0 7px rgba(65, 190, 255, .65);
+  transition: width .2s ease;
+}
+.mp-line span {
+  position: absolute;
+  inset: -1px 0 0;
+  text-align: center;
+  font-size: 6px;
+  line-height: 6px;
+  color: #eafaff;
+  text-shadow: 0 1px 2px #00121c;
+}
+.skill-slot {
+  overflow: hidden;
+  isolation: isolate;
+  background: conic-gradient(rgba(3, 10, 18, .76) var(--cooldown, 0deg), transparent 0),
+    radial-gradient(circle at 35% 25%, #47788a, #102a38 72%);
+}
+.skill-slot.cooling::after,
+.skill-ult-btn.cooling::after {
+  content: attr(data-cooldown);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(2, 9, 17, .42);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 1px 3px #000;
+}
+.skill-slot.cooling span, .skill-slot.cooling small { opacity: .3; }
+.skill-ult-btn { position: relative; overflow: hidden; }
+.skill-ult-btn.cooling { background: conic-gradient(rgba(4, 10, 18, .76) var(--cooldown, 0deg), transparent 0), radial-gradient(circle, #30586b, #122a36); }
+
+@media (max-width: 380px) {
+  #hud { padding-left: 5px; padding-right: 5px; }
+  .top-bar { gap: 3px; padding-left: 2px; padding-right: 2px; }
+  .avatar-frame { width: 38px; height: 38px; }
+  .hp-line, .mp-line { width: 82px; }
+  .power-label { font-size: 8px; }
+  .power-val { font-size: 10px; }
+  .currency-group { gap: 2px; }
+  .curr-pill { padding: 2px 4px; font-size: 9px; }
+  .vip-pill { display: none; }
+  .top-shortcuts { display: none; }
+  .skill-bar { gap: 6px; }
+  .skill-slot { width: 40px; height: 40px; }
+  .dock-left-btn, .dock-right-btn { padding: 2px; }
+  .dock-left-btn small, .dock-right-btn small, .dock-item small { font-size: 7px; }
+  .item-ring { width: 29px; height: 29px; }
+  .dock-item.main-cave .item-ring.cave { width: 39px; height: 39px; }
+}
+@media (max-height: 700px) {
+  .left-sidebar, .right-sidebar { top: 66px; gap: 5px; }
+  .side-badge { width: 33px; height: 33px; }
+  .center-banner-zone { gap: 5px; margin-bottom: 3px; }
+  .skill-slot { width: 38px; height: 38px; }
+  .floating-controls button { width: 40px; height: 40px; }
+  .bottom-dock { padding-top: 2px; }
+  .chat-ticker { padding-bottom: 2px; }
+}
+@media (min-width: 521px) {
+  #app { border-left: 1px solid rgba(231, 197, 122, .22); border-right: 1px solid rgba(231, 197, 122, .22); }
+}

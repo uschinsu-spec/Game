@@ -110,6 +110,8 @@ export class HUDManager {
     this.setText('level', `Lv.${stats.level}`);
     this.setText('hp-text', `${stats.hp} / ${stats.maxHp}`);
     this.setWidth('hp-bar', (stats.hp / stats.maxHp) * 100);
+    this.setText('mp-text', `${stats.mp} / ${stats.maxMp}`);
+    this.setWidth('mp-bar', (stats.mp / stats.maxMp) * 100);
 
     this.setText('gold', String(this.player.gold));
     this.setText('spirit', String(this.player.spirit));
@@ -301,6 +303,26 @@ export class HUDManager {
   private setWidth(id: string, percentage: number): void {
     const el = document.getElementById(id);
     if (el) el.style.width = `${Phaser.Math.Clamp(percentage, 0, 100)}%`;
+  }
+
+  public updateCooldowns(time: number): void {
+    this.skillSystem.skills.forEach((skill, index) => {
+      const button = document.querySelector<HTMLButtonElement>('[data-skill-index="' + index + '"]');
+      if (!button) return;
+      const remaining = Math.max(0, skill.cooldown - (time - skill.lastUsedTime));
+      const ratio = skill.cooldown > 0 ? remaining / skill.cooldown : 0;
+      button.style.setProperty('--cooldown', (ratio * 360) + 'deg');
+      button.dataset.cooldown = remaining > 0 ? (remaining / 1000).toFixed(1) + 's' : '';
+      button.classList.toggle('cooling', remaining > 0);
+    });
+    const ultimate = document.getElementById('skill-btn');
+    if (ultimate) {
+      const remaining = Math.max(0, this.skillSystem.ultimateSkill.cooldown - (time - this.skillSystem.ultimateSkill.lastUsedTime));
+      const ratio = this.skillSystem.ultimateSkill.cooldown > 0 ? remaining / this.skillSystem.ultimateSkill.cooldown : 0;
+      ultimate.style.setProperty('--cooldown', (ratio * 360) + 'deg');
+      ultimate.dataset.cooldown = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+      ultimate.classList.toggle('cooling', remaining > 0);
+    }
   }
 
   public refreshAll(): void {
