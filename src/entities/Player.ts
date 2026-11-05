@@ -405,6 +405,13 @@ export class Player extends Phaser.GameObjects.Container {
     this.realmIndex = Math.min(CULTIVATION_REALMS.length - 1, Math.max(0, snapshot.realmIndex ?? this.realmIndex));
     this.inventory = Array.isArray(snapshot.inventory) ? snapshot.inventory : [];
     this.equipment = snapshot.equipment || {};
+    const equipped = Object.values(this.equipment);
+    (this as unknown as { gear: { atk: number; def: number; hp: number; mp: number } }).gear = {
+      atk: equipped.reduce((sum, item) => sum + (item?.atk || 0), 0),
+      def: equipped.reduce((sum, item) => sum + (item?.def || 0), 0),
+      hp: equipped.reduce((sum, item) => sum + (item?.hp || 0), 0),
+      mp: equipped.reduce((sum, item) => sum + (item?.mp || 0), 0)
+    };
     this.questClaims = Math.max(0, snapshot.questClaims ?? 0);
     const realm = CULTIVATION_REALMS[this.realmIndex];
     this.realmLabel.setText(realm.name + ' · ' + realm.stage);
