@@ -46,6 +46,7 @@ export class WorldScene extends Phaser.Scene {
   private isAutoCombat = true;
   private speedMultiplier = 1;
   private basicAttackTimer = 0;
+  private combatClock = 0;
   private readonly worldMotion = new WorldMotion();
   private readonly depthEntities: Phaser.GameObjects.GameObject[] = [];
 
@@ -223,7 +224,7 @@ export class WorldScene extends Phaser.Scene {
         this.speedMultiplier = speed;
       },
       onUltimateCast: () => {
-        this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.time.now);
+        this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.combatClock);
       },
       onBossHunt: () => {
         this.spawnSystem.spawnBossWave();
@@ -248,11 +249,13 @@ export class WorldScene extends Phaser.Scene {
 
   override update(time: number, rawDelta: number): void {
     const delta = Math.min(rawDelta, 50) * this.speedMultiplier;
+    this.combatClock += delta;
+    const combatTime = this.combatClock;
     const currentState = this.player.stateMachine.getCurrentStateName();
 
     // 1. Tick Player
     this.player.update(time, delta);
-    this.hudManager.updateCooldowns(time);
+    this.hudManager.updateCooldowns(combatTime);
     this.cinematicEnvironment.update(time, delta);
 
     // 2. Animate perspective water waves moving downwards to create forward surfing motion
@@ -304,6 +307,13 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    // Every living enemy runs its own attack cooldown; the auto toggle only controls
+    // the player's autonomous attacks, not incoming enemy damage.
+    for (const enemy of monsters) {
+      if (!enemy.alive || !enemy.active) continue;
+      this.combatSystem.processMonsterAttack(enemy, combatTime);
+    }
+
     if (!this.isAutoCombat) {
       return;
     }
@@ -330,17 +340,14 @@ export class WorldScene extends Phaser.Scene {
       }
 
       // Basic Attack tick
-      const attackInterval = (900 / this.player.stats.attackSpeed) / this.speedMultiplier;
-      if (time - this.basicAttackTimer > attackInterval) {
-        this.basicAttackTimer = time;
-        this.combatSystem.performBasicAttack(primaryTarget, time);
+      const attackInterval = 900 / this.player.stats.attackSpeed;
+      if (combatTime - this.basicAttackTimer > attackInterval) {
+        this.basicAttackTimer = combatTime;
+        this.combatSystem.performBasicAttack(primaryTarget, combatTime);
       }
 
       // Auto Skills tick
-      this.skillSystem.updateAutoSkills(monsters, time);
-
-      // Monster Retaliation tick
-      this.combatSystem.processMonsterAttack(primaryTarget, time);
+      this.skillSystem.updateAutoSkills(monsters, combatTime);
     }
   }
 
