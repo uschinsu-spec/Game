@@ -227,7 +227,7 @@ export class HUDManager {
     const s = p.stats;
     const currentRealm = CULTIVATION_REALMS[p.realmIndex];
     const nextRealm = CULTIVATION_REALMS[p.realmIndex + 1];
-    const nextRealmLevel = (p.realmIndex + 1) * 5;
+    const nextRealmLevel = nextRealm?.levelRequired ?? 100;
     const safe = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const actionButton = (label: string, action: string, attrs = '') => '<button type="button" data-action="' + action + '" ' + attrs + ' style="margin:5px 0;padding:9px 12px;width:100%;border:1px solid #d7b86e;border-radius:8px;background:linear-gradient(145deg,#315d69,#173340);color:#fff1c8;font-weight:700;">' + label + '</button>';
     let html = '';
@@ -236,7 +236,7 @@ export class HUDManager {
         html = '<div style="line-height:1.9"><b>Cảnh giới:</b> ' + currentRealm.name + ' · ' + currentRealm.stage + '<br><b>Cấp độ:</b> Lv.' + s.level + '<br><b>Lực chiến:</b> ' + s.combatPower.toLocaleString() + '<br><b>HP:</b> ' + s.hp + ' / ' + s.maxHp + '<br><b>MP:</b> ' + s.mp + ' / ' + s.maxMp + '<br><b>Công kích:</b> ' + s.atk + '<br><b>Phòng ngự:</b> ' + s.def + '<br><b>Bạo kích:</b> ' + (s.critRate * 100).toFixed(0) + '% · x' + s.critDmg + '<br><b>Xuyên thấu:</b> ' + s.penetration + '<br><b>Yêu ma đã diệt:</b> ' + p.kills + '</div>';
         break;
       case 'Động phủ':
-        html = '<div style="line-height:1.8"><b>Cảnh giới:</b> ' + currentRealm.name + ' · ' + currentRealm.stage + '<br><b>Tu vi:</b> ' + p.exp + ' / ' + p.maxExp + '<br><b>Linh thạch:</b> ' + p.spirit + '<br><b>Tu luyện:</b> 5 linh thạch + 5 MP để nhận 15 tu vi.' + (nextRealm ? '<br><b>Đột phá kế tiếp:</b> ' + nextRealm.name + ' · ' + nextRealm.stage + '<br>Cần: ' + nextRealm.expRequired + ' tu vi, cấp ' + nextRealmLevel + ' và ' + (nextRealm.id * 10) + ' linh thạch.' : '<br><b>Đã đạt cảnh giới tối đa hiện tại.</b>') + actionButton('☯ Tụ khí tu luyện (-5 Linh thạch, -5 MP)', 'cultivate') + (nextRealm ? actionButton('⚡ Đột phá cảnh giới', 'breakthrough') : '') + '</div>';
+        html = '<div style="line-height:1.8"><b>Cảnh giới:</b> ' + currentRealm.name + ' · ' + currentRealm.stage + '<br><b>Tu vi tích lũy:</b> ' + p.cultivationExp + ' / ' + (nextRealm?.expRequired ?? '—') + '<br><b>EXP nhân vật:</b> ' + p.exp + ' / ' + (p.maxExp || 'MAX') + '<br><b>Linh thạch:</b> ' + p.spirit + '<br><b>Tu luyện:</b> 5 linh thạch + 5 MP để nhận 15 tu vi.' + (nextRealm ? '<br><b>Đột phá kế tiếp:</b> ' + nextRealm.name + ' · ' + nextRealm.stage + '<br>Cần: ' + nextRealm.expRequired + ' tu vi, cấp ' + nextRealmLevel + ', ' + nextRealm.goldRequired + ' bạc, ' + nextRealm.spiritRequired + ' linh thạch' + (nextRealm.materialRequired ? ', ' + nextRealm.materialRequired + ' Ma Hạch' : '') + '.' : '<br><b>Đã đạt cảnh giới tối đa hiện tại.</b>') + actionButton('☯ Tụ khí tu luyện (-5 Linh thạch, -5 MP)', 'cultivate') + (nextRealm ? actionButton('⚡ Đột phá cảnh giới', 'breakthrough') : '') + '</div>';
         break;
       case 'Luyện khí':
         html = '<div style="line-height:1.8"><b>Tiên Đỉnh Cổ · Luyện đan</b><br>Công thức Bồi Nguyên Đan: 1 Thanh Trúc Dược Thảo + 30 bạc + 3 linh thạch.<br>Đan dược hồi 30% HP và MP khi sử dụng.' + actionButton('🔥 Luyện Bồi Nguyên Đan', 'craft') + '<p>Thảo dược hiện có: ' + (p.inventory.find(i => i.name === 'Thanh Trúc Dược Thảo')?.amount || 0) + '</p></div>';
