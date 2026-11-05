@@ -286,8 +286,11 @@ export class CombatSystem {
       duration: 250,
       onComplete: () => {
         orb.destroy();
-        const damageDealt = monster.config.atk;
-        const isPlayerDead = this.player.takeDamage(damageDealt);
+        // Several projectiles may be in flight when the player dies. Ignore late impacts
+        // and show the mitigated amount actually removed from HP.
+        if (this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
+        const damageDealt = this.player.calculateIncomingDamage(monster.config.atk);
+        const isPlayerDead = this.player.takeDamage(monster.config.atk);
         this.showDamageNumber(this.player.x, this.player.y - 45, damageDealt, false);
 
         if (isPlayerDead) {
