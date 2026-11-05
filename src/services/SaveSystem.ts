@@ -19,6 +19,7 @@ interface SaveSnapshot {
   inventory: InventoryEntry[];
   equipment: Partial<Record<EquipmentSlot, InventoryEntry>>;
   questClaims: number;
+  dailyClaimDate: string;
 }
 
 export class SaveSystem {
@@ -50,7 +51,8 @@ export class SaveSystem {
         realmIndex: player.realmIndex,
         inventory: player.inventory.map(item => ({ ...item })),
         equipment: Object.fromEntries(Object.entries(player.equipment).map(([slot, item]) => [slot, item ? { ...item } : undefined])),
-        questClaims: player.questClaims
+        questClaims: player.questClaims,
+        dailyClaimDate: player.dailyClaimDate
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
     } catch {
@@ -60,22 +62,21 @@ export class SaveSystem {
 
   static bind(player: Player): void {
     if (typeof window === 'undefined') return;
-    let checkpointAt = Date.now();
-    const save = () => {
-      this.save(player);
-      checkpointAt = Date.now();
-    };
+    let hiddenAt: number | null = null;
+    const save = () => this.save(player);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
         save();
-      } else if (document.visibilityState === 'visible') {
-        const elapsed = Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - checkpointAt) / 1000)));
+      } else if (document.visibilityState === 'visible' && hiddenAt !== null) {
+        const elapsed = Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - hiddenAt) / 1000)));
+        hiddenAt = null;
         if (elapsed >= 60) this.grantOfflineRewards(player, elapsed);
         save();
       }
     });
-    window.setInterval(save, 15000);
+    window.setInterval(() => { if (document.visibilityState === 'visible') save(); }, 15000);
   }
 
   static grantOfflineRewards(player: Player, elapsedSeconds: number): void {
