@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="280" height="250" viewBox="0 0 280 250">
+<svg xmlns="http://www.w3.org/2000/svg" width="190" height="170" viewBox="0 0 280 250">
 <defs>
  <radialGradient id="shell" cx=".42" cy=".3"><stop stop-color="#d46a78"/><stop offset=".38" stop-color="#7d294e"/><stop offset=".78" stop-color="#35152f"/><stop offset="1" stop-color="#100b1d"/></radialGradient>
  <linearGradient id="spike" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4c58a"/><stop offset=".5" stop-color="#a84a62"/><stop offset="1" stop-color="#34142c"/></linearGradient>
