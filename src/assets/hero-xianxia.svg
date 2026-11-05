@@ -1,1 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="160" height="220" viewBox="0 0 160 220"><defs><linearGradient id="robe" x2="1" y2="1"><stop stop-color="#fffef0"/><stop offset=".52" stop-color="#d8edf0"/><stop offset="1" stop-color="#72b5c4"/></linearGradient><linearGradient id="hair" x2="1"><stop stop-color="#17212a"/><stop offset="1" stop-color="#46545b"/></linearGradient><radialGradient id="aura"><stop stop-color="#b8fff2" stop-opacity=".55"/><stop offset="1" stop-color="#7ce9e8" stop-opacity="0"/></radialGradient></defs><ellipse cx="80" cy="192" rx="66" ry="17" fill="url(#aura)"/><path d="M47 49Q28 93 39 151L22 194Q48 207 80 198Q113 207 139 194L121 151Q132 91 111 49Z" fill="url(#hair)" stroke="#101c27" stroke-width="5"/><path d="M54 55Q80 27 106 55L117 112Q100 132 80 128Q59 132 43 112Z" fill="#17232c"/><path d="M57 53Q80 31 103 53L96 77L64 77Z" fill="#253641"/><path d="M42 91Q80 76 118 91L139 181Q111 202 80 194Q48 202 21 181Z" fill="url(#robe)" stroke="#b7d9dc" stroke-width="3"/><path d="M80 87L68 193L80 198L93 193Z" fill="#9ccbd1" opacity=".8"/><path d="M43 102L14 159L28 174L58 124M117 102L146 159L132 174L102 124" fill="#effaff" stroke="#9bcbd4" stroke-width="3"/><path d="M44 119Q8 145 26 207Q39 188 54 156M116 119Q151 145 134 207Q121 188 106 156" fill="none" stroke="#7de6e8" stroke-width="7" stroke-linecap="round"/><path d="M48 91Q80 104 112 91L108 106Q80 120 52 106Z" fill="#c69b50"/><path d="M65 42Q80 24 95 42" fill="none" stroke="#d8b66a" stroke-width="5"/><path d="M80 31V8" stroke="#b9f4ed" stroke-width="5"/><path d="M68 8H92" stroke="#d9bd72" stroke-width="4"/><path d="M52 61Q80 48 108 61" fill="none" stroke="#e9ffff" stroke-width="3" opacity=".8"/><path d="M80 108L80 174" stroke="#fff" stroke-width="2" opacity=".65"/><path d="M28 183Q80 211 132 183" fill="none" stroke="#e4c779" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="440" viewBox="0 0 320 440">
+<defs>
+ <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffdf2"/><stop offset=".28" stop-color="#dceef0"/><stop offset=".62" stop-color="#8dbbc8"/><stop offset="1" stop-color="#315b70"/></linearGradient>
+ <linearGradient id="silk" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#f9ffff"/><stop offset=".48" stop-color="#b9dce3"/><stop offset="1" stop-color="#638b9b"/></linearGradient>
+ <linearGradient id="hair" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#07141e"/><stop offset=".35" stop-color="#304956"/><stop offset=".58" stop-color="#0b1c2a"/><stop offset="1" stop-color="#526977"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff1b1"/><stop offset=".45" stop-color="#c69b50"/><stop offset="1" stop-color="#654526"/></linearGradient>
+ <radialGradient id="aura"><stop stop-color="#bafcff" stop-opacity=".62"/><stop offset=".55" stop-color="#5be2f2" stop-opacity=".2"/><stop offset="1" stop-color="#4ad6e8" stop-opacity="0"/></radialGradient>
+ <linearGradient id="cape" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#eaffff"/><stop offset=".5" stop-color="#80b9c8"/><stop offset="1" stop-color="#23475c"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="7"/></filter>
+ <filter id="shadow"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<ellipse cx="160" cy="393" rx="116" ry="26" fill="#061c2b" opacity=".65" filter="url(#shadow)"/>
+<ellipse cx="160" cy="382" rx="130" ry="47" fill="url(#aura)"/>
+<path d="M58 359Q23 300 57 220Q66 161 93 122L227 122Q258 168 266 226Q297 302 260 361L222 391L98 391Z" fill="#071725" opacity=".9"/>
+<!-- flowing rear hair -->
+<path d="M116 70Q73 112 87 202Q54 269 84 350Q105 329 117 279L139 369L160 389L180 362L203 278Q216 333 239 352Q268 267 230 196Q249 115 204 70Z" fill="url(#hair)" stroke="#08131f" stroke-width="7"/>
+<path d="M125 86Q101 155 119 236L105 326M154 78Q142 174 158 352M190 82Q218 164 194 245L218 324" fill="none" stroke="#8ba9b4" stroke-opacity=".42" stroke-width="5"/>
+<path d="M132 94Q115 164 133 233M184 93Q205 170 185 235" fill="none" stroke="#d4e8e8" stroke-opacity=".2" stroke-width="3"/>
+<!-- head and topknot -->
+<path d="M111 82Q112 34 160 30Q208 34 209 82L198 133Q160 158 122 133Z" fill="url(#hair)" stroke="#07131f" stroke-width="6"/>
+<path d="M126 49Q160 13 194 49L183 74L137 74Z" fill="#203b49"/>
+<path d="M160 33V7M143 20L177 20" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
+<path d="M160 7L151 21L160 30L169 21Z" fill="#bffaff" stroke="#d9bd77" stroke-width="3"/>
+<!-- shoulder mantle -->
+<path d="M83 143Q116 111 160 126Q204 111 237 143L267 205Q222 231 160 216Q98 231 53 205Z" fill="#18394b" stroke="url(#gold)" stroke-width="6"/>
+<path d="M93 149Q125 127 160 142Q195 127 227 149L242 190Q203 208 160 194Q117 208 78 190Z" fill="url(#silk)" stroke="#e5f8f3" stroke-width="3"/>
+<path d="M78 176L50 209L83 257L113 215M242 176L270 209L237 257L207 215" fill="url(#cape)" stroke="#c9e6e8" stroke-width="4"/>
+<!-- long robe -->
+<path d="M91 192Q125 211 160 202Q195 211 229 192L270 355Q224 400 160 389Q96 400 50 355Z" fill="url(#robe)" stroke="#d7f2ee" stroke-width="5"/>
+<path d="M160 204L143 386L160 398L178 386Z" fill="#4f8295" opacity=".58"/>
+<path d="M102 215Q122 246 111 350L83 367M218 215Q198 246 209 350L237 367" fill="none" stroke="#f8ffff" stroke-width="7" opacity=".7"/>
+<path d="M116 222Q135 263 127 365M204 222Q185 263 193 365" fill="none" stroke="#5f96a8" stroke-width="4" opacity=".6"/>
+<!-- embroidered back crest -->
+<path d="M160 225L183 250L160 281L137 250Z" fill="#1b6074" stroke="url(#gold)" stroke-width="4"/>
+<path d="M160 235Q144 249 160 267Q176 249 160 235Z" fill="#bffaff" stroke="#fff4c8" stroke-width="2"/>
+<path d="M160 267V303M147 284L160 296L173 284" fill="none" stroke="#f4d78e" stroke-width="3"/>
+<!-- waist belt and hanging jade -->
+<path d="M76 278Q160 300 244 278L249 294Q160 319 71 294Z" fill="#153849" stroke="url(#gold)" stroke-width="5"/>
+<path d="M160 294L174 314L160 339L146 314Z" fill="#65d8d8" stroke="#f1d58e" stroke-width="4"/>
+<path d="M160 303L160 327" stroke="#eaffff" stroke-width="3"/>
+<!-- cuffs / gold trims -->
+<path d="M55 204L77 219L92 242L75 253L48 222Z M265 204L243 219L228 242L245 253L272 222Z" fill="#e4f5ef" stroke="url(#gold)" stroke-width="5"/>
+<path d="M51 357Q160 404 269 357" fill="none" stroke="url(#gold)" stroke-width="6"/>
+<path d="M76 370Q160 414 244 370" fill="none" stroke="#e9ffff" stroke-width="3" opacity=".8"/>
+<!-- magical rim lighting -->
+<path d="M57 206Q36 275 58 342M263 206Q284 275 262 342" fill="none" stroke="#8cf6ff" stroke-width="5" opacity=".7" filter="url(#glow)"/>
+<path d="M57 206Q36 275 58 342M263 206Q284 275 262 342" fill="none" stroke="#b8fbff" stroke-width="2" opacity=".8"/>
+<g fill="#c9ffff"><circle cx="47" cy="162" r="3"/><circle cx="273" cy="147" r="4"/><circle cx="235" cy="91" r="3"/><circle cx="81" cy="104" r="2.5"/></g>
+</svg>
