@@ -68,7 +68,7 @@ export class SpawnSystem {
     }
   }
 
-  public spawnMonster(x: number, y: number, templateKey: string): Monster {
+  public spawnBossWave(): void {\n    if (this.monsters.some((monster) => monster.alive && monster.config.isBoss)) {\n      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss đã xuất hiện trên chiến trường!');\n      return;\n    }\n    const w = this.scene.scale.width;\n    this.spawnMonster(w * 0.5, this.arenaY - 10, 'eye_boss');\n    this.spawnMonster(w * 0.28, this.arenaY + 12, 'eye_elite');\n    this.spawnMonster(w * 0.72, this.arenaY + 12, 'eye_elite');\n    EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss lĩnh chủ được triệu hồi!');\n    EventBus.emit(GameEvents.BATTLE_LOG, '⚠️ Đạo hữu chủ động khiêu chiến Boss lĩnh chủ!');\n  }\n\n  public spawnMonster(x: number, y: number, templateKey: string): Monster {
     const config = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
     const monster = new Monster(this.scene, x, y, config);
     monster.worldZ = templateKey === 'eye_boss' ? 0.025 : templateKey === 'eye_elite' ? 0.045 : Phaser.Math.FloatBetween(0.025, 0.075);
