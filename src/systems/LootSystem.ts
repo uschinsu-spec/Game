@@ -106,6 +106,7 @@ export class LootSystem {
         EventBus.emit(GameEvents.BATTLE_LOG, `Thu thập +${item.amount} Linh Thạch`);
         break;
       case 'material':
+        this.player.addInventoryItem({ id: item.name, name: item.name, type: 'material', amount: item.amount, quality: item.quality, iconText: item.iconText });
         EventBus.emit(GameEvents.BATTLE_LOG, `Thu được kỳ bảo: [${item.name}]!`);
         EventBus.emit(GameEvents.TOAST_MESSAGE, `Thu được [${item.name}]!`);
         break;
