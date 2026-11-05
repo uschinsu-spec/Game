@@ -50,7 +50,7 @@ export class Player extends Phaser.GameObjects.Container {
       attackSpeed: 1.2,
       moveSpeed: 140,
       penetration: 8,
-      combatPower: 686
+      combatPower: 584
     };
 
     // Expanding water ripple ring underfoot
@@ -384,7 +384,8 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   public claimDailyWelfare(): boolean {
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     if (this.dailyClaimDate === today) return false;
     this.dailyClaimDate = today;
     this.gainResources(100, 5);
