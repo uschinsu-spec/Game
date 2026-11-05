@@ -18,6 +18,7 @@ export class Player extends Phaser.GameObjects.Container {
   public inventory: InventoryEntry[] = [];
   public equipment: Partial<Record<EquipmentSlot, InventoryEntry>> = {};
   public questClaims = 0;
+  public dailyClaimDate = '';
 
   // Visual sub-elements
   private heroSprite: Phaser.GameObjects.Image;
@@ -382,6 +383,15 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
+  public claimDailyWelfare(): boolean {
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.dailyClaimDate === today) return false;
+    this.dailyClaimDate = today;
+    this.gainResources(100, 5);
+    this.addExp(50);
+    return true;
+  }
+
   public claimKillQuest(): boolean {
     const required = (this.questClaims + 1) * 10;
     if (this.kills < required) return false;
@@ -417,7 +427,7 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
-  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number }>): void {
+  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number; dailyClaimDate: string }>): void {
     if (snapshot.stats) this.stats = { ...this.stats, ...snapshot.stats };
     this.exp = Math.max(0, snapshot.exp ?? this.exp);
     this.maxExp = Math.max(1, snapshot.maxExp ?? this.maxExp);
@@ -436,6 +446,7 @@ export class Player extends Phaser.GameObjects.Container {
       mp: equipped.reduce((sum, item) => sum + (item?.mp || 0), 0)
     };
     this.questClaims = Math.max(0, snapshot.questClaims ?? 0);
+    this.dailyClaimDate = snapshot.dailyClaimDate || '';
     const realm = CULTIVATION_REALMS[this.realmIndex];
     this.realmLabel.setText(realm.name + ' · ' + realm.stage);
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
