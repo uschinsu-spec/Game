@@ -210,7 +210,7 @@ export class WorldScene extends Phaser.Scene {
     this.combatSystem = new CombatSystem(this, this.player);
     this.skillSystem = new SkillSystem(this.player, this.targetSystem, this.combatSystem);
     this.lootSystem = new LootSystem(this, this.player);
-    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32, () => this.player.stats.level);
+    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32, () => this.player.stats.level, () => this.player.realmIndex / 4);
 
     this.hudManager = new HUDManager(this.player, this.skillSystem, {
       onAutoToggle: (running: boolean) => {
@@ -249,7 +249,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.player.kills++;
     this.player.questKills++;
-    this.player.addExp(monster.config.expReward);
+    this.player.addCultivationExp(monster.config.expReward);
 
 
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
