@@ -33,9 +33,9 @@ export class OfflineProgression {
     if (elapsedSeconds < 60) return 0;
 
     const minutes = Math.floor(elapsedSeconds / 60);
-    const exp = minutes * 8;
-    const gold = minutes * 5;
-    const spirit = Math.floor(minutes / 5);
+    const exp = Math.floor(minutes * 700 / 60);
+    const gold = minutes * 4;
+    const spirit = Math.floor(minutes / 8);
 
     player.addExp(exp);
     player.gold += gold;
@@ -43,7 +43,7 @@ export class OfflineProgression {
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, player.stats);
     EventBus.emit(
       GameEvents.TOAST_MESSAGE,
-      `AFK ${Math.floor(minutes / 60)}h ${minutes % 60}p: +${exp} Tu vi, +${gold} Bạc, +${spirit} Linh thạch`
+      `AFK ${Math.floor(minutes / 60)}h ${minutes % 60}p: +${exp} EXP, +${gold} Bạc, +${spirit} Linh thạch`
     );
     return elapsedSeconds;
   }
