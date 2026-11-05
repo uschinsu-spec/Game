@@ -78,6 +78,7 @@ export class WorldScene extends Phaser.Scene {
     const offlineSeconds = SaveSystem.load(this.player);
     SaveSystem.bind(this.player);
     SaveSystem.grantOfflineRewards(this.player, offlineSeconds);
+    SaveSystem.save(this.player);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.handleResize(gameSize.width, gameSize.height);
