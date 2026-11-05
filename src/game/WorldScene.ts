@@ -259,6 +259,9 @@ export class WorldScene extends Phaser.Scene {
     this.hudManager.updateCooldowns(combatTime);
     this.cinematicEnvironment.update(time, delta);
 
+    // A defeated character waits for the respawn state machine; do not spawn or attack during this window.
+    if (currentState === PlayerStateEnum.DEAD) return;
+
     // 2. Animate perspective water waves moving downwards to create forward surfing motion
     const w = this.scale.width;
     const h = this.scale.height;
@@ -303,12 +306,7 @@ export class WorldScene extends Phaser.Scene {
     // 5. Tick Loot System (pulling dropped crystals to hero & cauldron)
     this.lootSystem.update(time, delta);
 
-    // 6. Dead state handling
-    if (currentState === PlayerStateEnum.DEAD) {
-      return;
-    }
-
-    // Every living enemy runs its own attack cooldown; the auto toggle only controls
+    // 6. Every living enemy runs its own attack cooldown; the auto toggle only controls
     // the player's autonomous attacks, not incoming enemy damage.
     for (const enemy of monsters) {
       if (!enemy.alive || !enemy.active) continue;
