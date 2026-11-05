@@ -63,6 +63,25 @@ export class LootSystem {
       });
     }
 
+    // Equipment is a meaningful but uncommon reward; Bosses have a much higher chance.
+    const equipmentRate = monster.config.isBoss ? 0.45 : 0.08;
+    if (Math.random() < equipmentRate) {
+      const slots = ['weapon', 'armor', 'accessory'] as const;
+      const slot = slots[Phaser.Math.Between(0, slots.length - 1)];
+      const quality = monster.config.isBoss ? LootQuality.EPIC : LootQuality.RARE;
+      const tier = monster.config.isBoss ? 2 : 1;
+      const names = { weapon: 'Phi Kiếm', armor: 'Tiên Giáp', accessory: 'Linh Phù' };
+      const icons = { weapon: '🗡️', armor: '🛡️', accessory: '📿' };
+      this.createLootItem(x + 4, y - 18, {
+        id: 'equip_' + slot + '_' + monster.config.id + '_' + Date.now(),
+        name: names[slot] + (monster.config.isBoss ? ' Ma Quân' : ' Thanh Trúc'),
+        type: 'equip', amount: 1, quality, iconText: icons[slot], color: 0xb77cff,
+        slot, atk: slot === 'weapon' ? 8 * tier : 0,
+        def: slot === 'armor' ? 5 * tier : 0,
+        hp: slot === 'armor' ? 35 * tier : slot === 'accessory' ? 15 * tier : 0,
+        mp: slot === 'accessory' ? 12 * tier : 0
+      });
+    }
     EventBus.emit(GameEvents.LOOT_DROPPED, { x, y });
   }
 
@@ -109,6 +128,10 @@ export class LootSystem {
         this.player.addInventoryItem({ id: item.name, name: item.name, type: 'material', amount: item.amount, quality: item.quality, iconText: item.iconText });
         EventBus.emit(GameEvents.BATTLE_LOG, `Thu được kỳ bảo: [${item.name}]!`);
         EventBus.emit(GameEvents.TOAST_MESSAGE, `Thu được [${item.name}]!`);
+        break;
+      case 'equip':
+        this.player.addInventoryItem({ id: item.id, name: item.name, type: 'equipment', amount: 1, quality: item.quality, iconText: item.iconText, slot: item.slot, atk: item.atk, def: item.def, hp: item.hp, mp: item.mp });
+        EventBus.emit(GameEvents.TOAST_MESSAGE, 'Nhận trang bị: ' + item.name + '!');
         break;
     }
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
