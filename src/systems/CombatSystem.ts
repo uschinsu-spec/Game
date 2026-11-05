@@ -271,6 +271,7 @@ export class CombatSystem {
 
   public processMonsterAttack(monster: Monster, time: number): void {
     if (!monster.alive) return;
+    if (Phaser.Math.Distance.Between(monster.x, monster.y, this.player.x, this.player.y) > monster.config.attackRange) return;
     if (time < monster.nextAttackTime) return;
 
     monster.nextAttackTime = time + monster.config.attackInterval;
