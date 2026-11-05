@@ -277,25 +277,40 @@ export class CombatSystem {
     monster.nextAttackTime = time + monster.config.attackInterval;
     monster.stateMachine.transitionTo(MonsterStateEnum.ATTACK);
 
-    // Dark energy orb shot downward from monster to player
-    const orb = this.scene.add.circle(monster.x, monster.y + 15, 6, 0x991133, 0.9);
+    // Telegraph the targeted lane before the projectile launches. Boss phases shorten
+    // the warning slightly through their faster attack cadence, but never remove it.
+    const targetX = this.player.x;
+    const targetY = this.player.y - 15;
+    const warning = this.scene.add.circle(targetX, this.player.y + 8, 28, 0xff3333, 0.16)
+      .setStrokeStyle(2, 0xff5555, 0.9)
+      .setDepth(9500);
     this.scene.tweens.add({
-      targets: orb,
-      x: this.player.x,
-      y: this.player.y - 15,
-      duration: 250,
+      targets: warning,
+      scale: 1.35,
+      alpha: 0.04,
+      duration: 320,
+      ease: 'Sine.easeIn',
       onComplete: () => {
-        orb.destroy();
-        // Several projectiles may be in flight when the player dies. Ignore late impacts
-        // and show the mitigated amount actually removed from HP.
-        if (this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
-        const damageDealt = this.player.calculateIncomingDamage(monster.config.atk);
-        const isPlayerDead = this.player.takeDamage(monster.config.atk);
-        this.showDamageNumber(this.player.x, this.player.y - 45, damageDealt, false);
-
-        if (isPlayerDead) {
-          EventBus.emit(GameEvents.BATTLE_LOG, `☠ Bạn bị ${monster.config.name} trọng thương! Chờ hồi sinh...`);
-        }
+        warning.destroy();
+        if (!monster.alive || !this.player.active || this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
+        const orb = this.scene.add.circle(monster.x, monster.y + 15, 7, 0xff334f, 0.95).setDepth(9501);
+        this.scene.tweens.add({
+          targets: orb,
+          x: targetX,
+          y: targetY,
+          duration: 250,
+          onComplete: () => {
+            orb.destroy();
+            // Ignore late impacts after death and show the mitigated HP loss.
+            if (!monster.alive || this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
+            const damageDealt = this.player.calculateIncomingDamage(monster.config.atk);
+            const isPlayerDead = this.player.takeDamage(monster.config.atk);
+            this.showDamageNumber(this.player.x, this.player.y - 45, damageDealt, false);
+            if (isPlayerDead) {
+              EventBus.emit(GameEvents.BATTLE_LOG, `☠ Bạn bị ${monster.config.name} trọng thương! Chờ hồi sinh...`);
+            }
+          }
+        });
       }
     });
   }

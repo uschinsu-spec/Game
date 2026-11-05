@@ -50,11 +50,12 @@ export class LootSystem {
 
     // 3. Rare material or equipment drop
     const dropRate = monster.config.isBoss ? 0.85 : 0.25;
-    if (Math.random() < dropRate) {
+    // Every boss kill guarantees its crafting core; regular monsters retain a chance-based material drop.
+    if (monster.config.isBoss || Math.random() < dropRate) {
       const isBossDrop = monster.config.isBoss;
       this.createLootItem(x, y - 5, {
         id: `mat_${Date.now()}_${Math.random()}`,
-        name: isBossDrop ? 'Xích Huyết Lang Tủy' : 'Thanh Trúc Dược Thảo',
+        name: isBossDrop ? 'Thiên Mục Ma Hạch' : 'Thanh Trúc Dược Thảo',
         type: 'material',
         amount: 1,
         quality: isBossDrop ? LootQuality.EPIC : LootQuality.FINE,
