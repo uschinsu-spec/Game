@@ -120,6 +120,11 @@ export class HUDManager {
         const tab = btn.dataset.panel || 'Nhân vật';
         this.openModal(tab);
       };
+      if (btn instanceof HTMLElement && btn.getAttribute('role') === 'button') {
+        btn.onkeydown = (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); btn.click(); }
+        };
+      }
     });
 
     // Close modal by tapping its backdrop or pressing Escape.
@@ -218,10 +223,8 @@ export class HUDManager {
     if (!content) return;
     const p = this.player;
     const s = p.stats;
-    const nextRealm = (awaitRealm => awaitRealm)(undefined);
     const realmLabel = ['Luyện Khí · Sơ Kỳ','Luyện Khí · Trung Kỳ','Luyện Khí · Hậu Kỳ','Luyện Khí · Viên Mãn','Trúc Cơ · Sơ Kỳ','Trúc Cơ · Trung Kỳ','Trúc Cơ · Hậu Kỳ','Trúc Cơ · Viên Mãn','Kim Đan · Sơ Kỳ','Kim Đan · Viên Mãn'];
     const currentRealm = realmLabel[p.realmIndex] || realmLabel[0];
-    const nextReq = [100,250,500,900,1600,2600,4000,6000,9000,14000][p.realmIndex + 1] || 0;
     const nextRealmLevel = (p.realmIndex + 1) * 5;
     const safe = (value: string) => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char] || char));
     const actionButton = (label: string, action: string, attrs = '') => '<button type="button" data-action="' + action + '" ' + attrs + ' style="margin:5px 0;padding:9px 12px;width:100%;border:1px solid #d7b86e;border-radius:8px;background:linear-gradient(145deg,#315d69,#173340);color:#fff1c8;font-weight:700;">' + label + '</button>';
