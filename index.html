@@ -46,22 +46,22 @@
           </div>
 
           <div class="top-shortcuts">
-            <button class="icon-circle" title="Phúc lợi"><span>🎁</span><small>Phúc lợi</small></button>
-            <button class="icon-circle" title="Tài thần"><span>🧧</span><small>Tài thần</small></button>
+            <button class="icon-circle" title="Phúc lợi" data-panel="Phúc lợi"><span>🎁</span><small>Phúc lợi</small></button>
+            <button class="icon-circle" title="Tài thần" data-panel="Tài thần"><span>🧧</span><small>Tài thần</small></button>
           </div>
         </header>
 
         <!-- Left Side Event Badges -->
         <aside class="left-sidebar">
-          <div class="side-badge"><span class="badge-icon">👑</span><small>Nạp đầu</small></div>
-          <div class="side-badge"><span class="badge-icon">🔮</span><small>Linh bảo</small></div>
-          <div class="side-badge countdown"><span class="badge-icon">💍</span><small>Tiên hoàn</small><time>23s</time></div>
+          <div class="side-badge" data-panel="Nạp đầu" role="button" tabindex="0"><span class="badge-icon">👑</span><small>Nạp đầu</small></div>
+          <div class="side-badge" data-panel="Linh bảo" role="button" tabindex="0"><span class="badge-icon">🔮</span><small>Linh bảo</small></div>
+          <div class="side-badge countdown" data-panel="Tiên hoàn" role="button" tabindex="0"><span class="badge-icon">💍</span><small>Tiên hoàn</small><time>23s</time></div>
         </aside>
 
         <!-- Right Side Shortcut Badges -->
         <aside class="right-sidebar">
           <div class="side-badge" id="boss-quick-btn" role="button" tabindex="0" aria-label="Triệu hồi Boss"><span class="badge-icon">🎯</span><small>Săn Boss</small></div>
-          <div class="side-badge"><span class="badge-icon">📜</span><small>Bảng vàng</small></div>
+          <div class="side-badge" data-panel="Bảng vàng" role="button" tabindex="0"><span class="badge-icon">📜</span><small>Bảng vàng</small></div>
         </aside>
 
         <!-- Quest / Target Banner (Above bottom dock) -->
@@ -106,7 +106,7 @@
           </div>
 
           <div class="dock-actions">
-            <div class="dock-left-btn" data-panel="Tiên duyên" role="button" tabindex="0">
+            <div class="dock-left-btn" data-panel="Tiên duyên" role="button" tabindex="0" aria-label="Tiên duyên">
               <span class="dock-icon">🌸</span>
               <small>Tiên duyên</small>
             </div>
@@ -143,7 +143,7 @@
               </button>
             </nav>
 
-            <div class="dock-right-btn" data-panel="Tông môn" role="button" tabindex="0">
+            <div class="dock-right-btn" data-panel="Tông môn" role="button" tabindex="0" aria-label="Tông môn">
               <span class="dock-icon">🏯</span>
               <small>Tông môn</small>
             </div>
