@@ -157,7 +157,8 @@ export class HUDManager {
     this.setText('power', stats.combatPower.toLocaleString());
 
     const questTarget = 10;
-    this.setText('quest-text', `Tiêu diệt Thiên Mục Yêu (${this.player.kills % questTarget}/${questTarget})`);
+    const questProgress = Phaser.Math.Clamp(this.player.kills - this.player.questClaims * questTarget, 0, questTarget);
+    this.setText('quest-text', `Tiêu diệt Thiên Mục Yêu (${questProgress}/${questTarget})`);
 
     const modal = document.getElementById('modal');
     if (modal && !modal.classList.contains('hidden')) {
