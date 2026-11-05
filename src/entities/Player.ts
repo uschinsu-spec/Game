@@ -50,7 +50,7 @@ export class Player extends Phaser.GameObjects.Container {
       attackSpeed: 1.2,
       moveSpeed: 140,
       penetration: 8,
-      combatPower: 12485
+      combatPower: 686
     };
 
     // Expanding water ripple ring underfoot
