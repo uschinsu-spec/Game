@@ -277,7 +277,8 @@ export class HUDManager {
       }
       case 'Phúc lợi':
       case 'Tài thần': {
-        const today = new Date().toISOString().slice(0,10);
+        const now = new Date();
+        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
         const claimed = p.dailyClaimDate === today;
         html = '<div style="line-height:1.8"><b>Phúc lợi đăng nhập</b><br>Thưởng mỗi ngày: 100 bạc · 5 linh thạch · 50 tu vi.' + actionButton(claimed ? 'Đã nhận phúc lợi hôm nay' : '🎁 Nhận phúc lợi hôm nay', 'daily', claimed ? 'disabled' : '') + '</div>';
         break;
