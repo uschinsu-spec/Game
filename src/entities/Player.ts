@@ -255,10 +255,16 @@ export class Player extends Phaser.GameObjects.Container {
     this.stateMachine.transitionTo(PlayerStateEnum.RUNNING);
   }
 
+  /** Resolve mitigation once so combat feedback and HP loss always use the same value. */
+  public calculateIncomingDamage(amount: number): number {
+    const safeAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+    return Math.max(1, Math.round(safeAmount - Math.max(0, this.stats.def) * 0.35));
+  }
+
   public takeDamage(amount: number): boolean {
     if (this.stateMachine.getCurrentStateName() === PlayerStateEnum.DEAD) return false;
 
-    const effectiveDamage = Math.max(1, Math.round(amount - this.stats.def * 0.35));
+    const effectiveDamage = this.calculateIncomingDamage(amount);
     this.stats.hp = Math.max(0, this.stats.hp - effectiveDamage);
 
     EventBus.emit(GameEvents.PLAYER_DAMAGE_TAKEN, effectiveDamage);
