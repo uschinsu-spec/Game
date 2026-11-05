@@ -56,7 +56,7 @@ export class SaveSystem {
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
     } catch {
-      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Không thể lưu tiến trình: bộ nhớ trình duyệt không khả dụng.');
+      // Keep the current session playable when browser storage is unavailable.
     }
   }
 
@@ -64,6 +64,7 @@ export class SaveSystem {
     if (typeof window === 'undefined') return;
     let hiddenAt: number | null = null;
     const save = () => this.save(player);
+    EventBus.on(GameEvents.PLAYER_STATS_CHANGED, save);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
