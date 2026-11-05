@@ -60,10 +60,20 @@ export class SaveSystem {
 
   static bind(player: Player): void {
     if (typeof window === 'undefined') return;
-    const save = () => this.save(player);
+    let checkpointAt = Date.now();
+    const save = () => {
+      this.save(player);
+      checkpointAt = Date.now();
+    };
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') save();
+      if (document.visibilityState === 'hidden') {
+        save();
+      } else if (document.visibilityState === 'visible') {
+        const elapsed = Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - checkpointAt) / 1000)));
+        if (elapsed >= 60) this.grantOfflineRewards(player, elapsed);
+        save();
+      }
     });
     window.setInterval(save, 15000);
   }
