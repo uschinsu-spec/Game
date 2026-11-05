@@ -10,7 +10,6 @@ export class HUDManager {
   private onSpeedChange: (speed: number) => void;
   private onUltimateCast: () => void;
   private onBossHunt: () => void;
-  private onBossHunt: () => void;
 
   private isAuto = true;
   private speedMultiplier = 1;
