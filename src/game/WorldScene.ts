@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import heroRearUrl from '../assets/hero-xianxia.svg';
+import monsterEyeUrl from '../assets/monster-void-eye.svg';
+import monsterEliteUrl from '../assets/monster-elite.svg';
+import monsterBossUrl from '../assets/monster-boss.svg';
 import { Player } from '../entities/Player';
 import { Monster } from '../entities/Monster';
 import { TargetSystem } from '../systems/TargetSystem';
@@ -50,10 +54,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.image('hero_rear', '/assets/hero-xianxia.svg');
-    this.load.image('monster_eye', '/assets/monster-void-eye.svg');
-    this.load.image('monster_eye_elite', '/assets/monster-elite.svg');
-    this.load.image('monster_eye_boss', '/assets/monster-boss.svg');
+    this.load.image('hero_rear', heroRearUrl);
+    this.load.image('monster_eye', monsterEyeUrl);
+    this.load.image('monster_eye_elite', monsterEliteUrl);
+    this.load.image('monster_eye_boss', monsterBossUrl);
   }
 
   create(): void {
@@ -292,7 +296,8 @@ export class WorldScene extends Phaser.Scene {
         h,
         0.28
       );
-      m.setPerspectivePosition(projected.x, projected.y, projected.scale * m.baseScale);
+      // Monster child artwork already includes its archetype scale; apply depth scaling only.
+      m.setPerspectivePosition(projected.x, projected.y, projected.scale);
     }
 
     // 5. Tick Loot System (pulling dropped crystals to hero & cauldron)
