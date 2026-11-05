@@ -2,15 +2,17 @@ import { EventBus, GameEvents } from '../core/EventBus';
 import { Player } from '../entities/Player';
 import type { CharacterStats, InventoryEntry, EquipmentSlot } from '../core/Types';
 
-const SAVE_KEY = 'van-tien-luc-save-v2';
+const SAVE_KEY = 'van-tien-luc-save-v3';
+const LEGACY_SAVE_KEY = 'van-tien-luc-save-v2';
 const MAX_OFFLINE_SECONDS = 12 * 60 * 60;
 
 interface SaveSnapshot {
-  version: 2;
+  version: 3;
   savedAt: number;
   stats: CharacterStats;
   exp: number;
   maxExp: number;
+  cultivationExp: number;
   gold: number;
   spirit: number;
   kills: number;
@@ -25,7 +27,7 @@ interface SaveSnapshot {
 export class SaveSystem {
   static load(player: Player): number {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(LEGACY_SAVE_KEY);
       if (!raw) {
         // Migrate the previous prototype's timestamp-only AFK record once.
         const legacyRaw = localStorage.getItem('van-tien-luc-offline-v1');
@@ -38,7 +40,7 @@ export class SaveSystem {
         return elapsed;
       }
       const snapshot = JSON.parse(raw) as SaveSnapshot;
-      if (snapshot.version !== 2 || !Number.isFinite(snapshot.savedAt)) return 0;
+      if (![2, 3].includes(snapshot.version) || !Number.isFinite(snapshot.savedAt)) return 0;
       player.restoreSnapshot(snapshot);
       return Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - snapshot.savedAt) / 1000)));
     } catch {
@@ -49,11 +51,12 @@ export class SaveSystem {
   static save(player: Player): void {
     try {
       const snapshot: SaveSnapshot = {
-        version: 2,
+        version: 3,
         savedAt: Date.now(),
         stats: { ...player.stats },
         exp: player.exp,
         maxExp: player.maxExp,
+        cultivationExp: player.cultivationExp,
         gold: player.gold,
         spirit: player.spirit,
         kills: player.kills,
@@ -93,7 +96,7 @@ export class SaveSystem {
   static grantOfflineRewards(player: Player, elapsedSeconds: number): void {
     const minutes = Math.floor(elapsedSeconds / 60);
     if (minutes < 1) return;
-    const exp = minutes * 5;
+    const exp = Math.floor(minutes * 700 / 60);
     const gold = minutes * 4;
     const spirit = Math.floor(minutes / 8);
     player.addExp(exp);
