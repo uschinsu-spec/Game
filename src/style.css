@@ -686,3 +686,93 @@ html, body {
 @media (min-width: 521px) {
   #app { border-left: 1px solid rgba(231, 197, 122, .22); border-right: 1px solid rgba(231, 197, 122, .22); }
 }
+
+
+/* v0.4 — cinematic xianxia art direction */
+#app {
+  background: radial-gradient(ellipse at 50% 22%, #416f7a 0%, #173b4c 44%, #071923 100%);
+}
+#game-root canvas {
+  filter: saturate(1.08) contrast(1.035);
+}
+.avatar-frame {
+  border: 2px solid #f0d28b;
+  background: linear-gradient(145deg, #f8e7b0, #8d6635 48%, #243d50);
+  padding: 2px;
+  box-shadow: 0 0 0 1px rgba(255,245,204,.25), 0 0 18px rgba(255,215,128,.42), inset 0 0 8px rgba(255,255,255,.35);
+}
+.avatar-img {
+  border: 1px solid rgba(255,245,210,.7);
+  background: url('/assets/hero-portrait.svg') center / cover no-repeat;
+}
+.power-banner {
+  background: linear-gradient(110deg, #5a2d22 0%, #b66c2b 48%, #e5b95e 100%);
+  border: 1px solid #ffe5a2;
+  box-shadow: 0 0 12px rgba(235,177,85,.25), inset 0 1px rgba(255,255,255,.25);
+}
+.hp-line, .mp-line {
+  box-shadow: 0 0 8px rgba(87,213,230,.16), inset 0 1px 2px rgba(0,0,0,.65);
+}
+.hp-line i {
+  background: linear-gradient(90deg, #168c4b, #68ed91 62%, #d2ffad);
+  box-shadow: 0 0 8px rgba(82,255,144,.45);
+}
+.mp-line i {
+  background: linear-gradient(90deg, #1766bd, #48c6f5 62%, #d9fbff);
+}
+.skill-slot {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #c7a65e;
+  background-color: #102638;
+  box-shadow: 0 3px 12px rgba(0,0,0,.62), 0 0 10px rgba(111,220,241,.12), inset 0 0 9px rgba(255,255,255,.1);
+}
+.skill-slot span {
+  display: block;
+  width: 27px;
+  height: 27px;
+  font-size: 0;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.7));
+}
+.skill-slot[data-skill-index="0"] span { background-image: url('/assets/skill-sword.svg'); }
+.skill-slot[data-skill-index="1"] span { background-image: url('/assets/skill-wind.svg'); }
+.skill-slot[data-skill-index="2"] span { background-image: url('/assets/skill-fire.svg'); }
+.skill-slot[data-skill-index="3"] span { background-image: url('/assets/skill-formation.svg'); }
+.skill-slot small {
+  position: absolute;
+  bottom: -1px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: rgba(5,17,27,.82);
+  font-size: 6px;
+  color: #fff0c1;
+}
+.skill-slot.active {
+  border-color: #ffe3a0;
+  box-shadow: 0 0 14px rgba(245,206,120,.42), inset 0 0 10px rgba(255,236,179,.18);
+}
+.quest-mini-pill, .chat-ticker {
+  border-color: rgba(240,211,143,.85);
+  background: linear-gradient(100deg, rgba(13,35,47,.92), rgba(37,65,72,.92), rgba(13,35,47,.92));
+  box-shadow: 0 4px 14px rgba(0,0,0,.36), inset 0 1px rgba(255,255,255,.08);
+}
+.item-ring, .side-badge, .icon-circle {
+  border-color: #dfc17a;
+  box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 1px rgba(255,255,255,.14);
+}
+.modal-card {
+  background: linear-gradient(155deg, rgba(43,78,87,.98), rgba(8,28,40,.99) 75%);
+  border: 1px solid #e6c77f;
+  box-shadow: 0 18px 55px rgba(0,0,0,.82), inset 0 1px rgba(255,255,255,.12);
+}
+@media (max-width: 380px) {
+  .skill-slot { width: 42px; height: 42px; }
+  .skill-slot span { width: 23px; height: 23px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cave-glow { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
