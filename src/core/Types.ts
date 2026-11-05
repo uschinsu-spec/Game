@@ -101,6 +101,11 @@ export interface LootItemData {
   quality: LootQuality;
   iconText: string;
   color: number;
+  slot?: EquipmentSlot;
+  atk?: number;
+  def?: number;
+  hp?: number;
+  mp?: number;
 }
 
 export interface CultivationRealm {
