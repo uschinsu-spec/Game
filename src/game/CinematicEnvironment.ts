@@ -20,7 +20,7 @@ interface SpiritMote {
 export class CinematicEnvironment {
   private scene: Phaser.Scene;
   private clouds: DriftCloud[] = [];
-  private motes: SpiritMote[] = [];
+  private motes: SpiritMote[] = [];\n  private staticLayers: Phaser.GameObjects.GameObject[] = [];
   private width = 0;
   private height = 0;
   private horizon = 0;
@@ -42,7 +42,7 @@ export class CinematicEnvironment {
 
   private drawMountainLayers(): void {
     const { scene, width: w, horizon: y } = this;
-    const far = scene.add.graphics().setDepth(3);
+    const far = scene.add.graphics().setDepth(3);\n    this.staticLayers.push(far);
     far.fillStyle(0x9bc5c4, 0.22);
     far.beginPath();
     far.moveTo(0, y + 16);
@@ -52,7 +52,7 @@ export class CinematicEnvironment {
     far.lineTo(w * .93, y - 30); far.lineTo(w, y + 14);
     far.closePath(); far.fillPath();
 
-    const mid = scene.add.graphics().setDepth(4);
+    const mid = scene.add.graphics().setDepth(4);\n    this.staticLayers.push(mid);
     mid.fillStyle(0x426f78, 0.34);
     mid.beginPath();
     mid.moveTo(0, y + 30);
@@ -62,7 +62,7 @@ export class CinematicEnvironment {
     mid.lineTo(w, y + 8); mid.lineTo(w, y + 44); mid.lineTo(0, y + 44);
     mid.closePath(); mid.fillPath();
 
-    const ridge = scene.add.graphics().setDepth(5);
+    const ridge = scene.add.graphics().setDepth(5);\n    this.staticLayers.push(ridge);
     ridge.lineStyle(1.5, 0xd9eee0, 0.2);
     ridge.beginPath();
     ridge.moveTo(0, y + 20); ridge.lineTo(w * .13, y - 8);
@@ -73,7 +73,7 @@ export class CinematicEnvironment {
 
   private drawFloatingSanctuary(): void {
     const { scene, width: w, horizon: y } = this;
-    const island = scene.add.container(w * .78, y - 38).setDepth(6).setAlpha(.72);
+    const island = scene.add.container(w * .78, y - 38).setDepth(6).setAlpha(.72);\n    this.staticLayers.push(island);
     const glow = scene.add.ellipse(0, 28, 112, 20, 0xb5f4df, .15);
     const rock = scene.add.triangle(0, 18, -52, 0, 50, 0, 0, 52, 0x385d68, .9);
     const terrace = scene.add.ellipse(0, 0, 116, 18, 0x8bb6a9, .9).setStrokeStyle(2, 0xd5d5a3, .6);
@@ -89,7 +89,7 @@ export class CinematicEnvironment {
     island.add([glow, rock, terrace, hall]);
     scene.tweens.add({ targets: island, y: island.y - 5, duration: 3600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    const distantPeak = scene.add.graphics().setDepth(5);
+    const distantPeak = scene.add.graphics().setDepth(5);\n    this.staticLayers.push(distantPeak);
     distantPeak.fillStyle(0x244c5b, .42);
     distantPeak.fillTriangle(w * .19, y + 5, w * .28, y - 76, w * .39, y + 5);
     distantPeak.fillStyle(0xe0eee1, .35);
@@ -133,7 +133,7 @@ export class CinematicEnvironment {
   }
 
   private drawAtmosphericLight(): void {
-    const light = this.scene.add.graphics().setDepth(2);
+    const light = this.scene.add.graphics().setDepth(2);\n    this.staticLayers.push(light);
     light.fillStyle(0xffe7a8, .08);
     light.fillTriangle(this.width * .5, this.horizon - 30, this.width * .12, this.horizon + 5, this.width * .88, this.horizon + 5);
     light.fillStyle(0xb5f8ef, .045);
