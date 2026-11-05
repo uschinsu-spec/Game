@@ -10,10 +10,13 @@ export class SpawnSystem {
   private arenaY: number;
   private emptySince = 0;
   private readonly waveDelayMs = 1400;
+  private lastManualBossAt = -60000;
+  private getPlayerLevel: () => number;
 
-  constructor(scene: Phaser.Scene, arenaY: number) {
+  constructor(scene: Phaser.Scene, arenaY: number, getPlayerLevel: () => number = () => 1) {
     this.scene = scene;
     this.arenaY = arenaY;
+    this.getPlayerLevel = getPlayerLevel;
   }
 
   public setArenaY(y: number): void {
@@ -68,21 +71,44 @@ export class SpawnSystem {
     }
   }
 
-  public spawnBossWave(): void {
+  public canSpawnBossWave(): boolean {
     if (this.monsters.some((monster) => monster.alive && monster.config.isBoss)) {
       EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss đã xuất hiện trên chiến trường!');
-      return;
+      return false;
     }
+    if (this.scene.time.now - this.lastManualBossAt < 60000) {
+      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Săn Boss đang hồi chiêu. Vui lòng chờ!');
+      return false;
+    }
+    return true;
+  }
+
+  public spawnBossWave(): boolean {
+    if (!this.canSpawnBossWave()) return false;
+    this.lastManualBossAt = this.scene.time.now;
     const w = this.scene.scale.width;
     this.spawnMonster(w * 0.5, this.arenaY - 10, 'eye_boss');
     this.spawnMonster(w * 0.28, this.arenaY + 12, 'eye_elite');
     this.spawnMonster(w * 0.72, this.arenaY + 12, 'eye_elite');
     EventBus.emit(GameEvents.TOAST_MESSAGE, 'Boss lĩnh chủ được triệu hồi!');
     EventBus.emit(GameEvents.BATTLE_LOG, '⚠️ Đạo hữu chủ động khiêu chiến Boss lĩnh chủ!');
+    return true;
   }
 
   public spawnMonster(x: number, y: number, templateKey: string): Monster {
-    const config = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
+    const base = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
+    const level = Math.max(base.level, this.getPlayerLevel());
+    const levelGap = Math.min(20, level - base.level);
+    const config = {
+      ...base,
+      level,
+      maxHp: Math.round(base.maxHp * (1 + levelGap * 0.16)),
+      atk: Math.round(base.atk * (1 + levelGap * 0.10)),
+      def: Math.round(base.def * (1 + levelGap * 0.08)),
+      expReward: Math.round(base.expReward * (1 + levelGap * 0.10)),
+      goldReward: Math.round(base.goldReward * (1 + levelGap * 0.08)),
+      spiritReward: base.spiritReward + Math.floor(levelGap / 5)
+    };
     const monster = new Monster(this.scene, x, y, config);
     monster.worldZ = templateKey === 'eye_boss' ? 0.025 : templateKey === 'eye_elite' ? 0.045 : Phaser.Math.FloatBetween(0.025, 0.075);
     this.monsters.push(monster);

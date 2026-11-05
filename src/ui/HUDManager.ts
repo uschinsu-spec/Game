@@ -2,6 +2,8 @@ import { EventBus, GameEvents } from '../core/EventBus';
 import { PlayerStateEnum, type CharacterStats } from '../core/Types';
 import { Player } from '../entities/Player';
 import { SkillSystem } from '../systems/SkillSystem';
+import { SaveSystem } from '../services/SaveSystem';
+import { CULTIVATION_REALMS } from '../data/realms.data';
 
 export class HUDManager {
   private player: Player;
@@ -30,7 +32,6 @@ export class HUDManager {
     this.onAutoToggle = callbacks.onAutoToggle;
     this.onSpeedChange = callbacks.onSpeedChange;
     this.onUltimateCast = callbacks.onUltimateCast;
-    this.onBossHunt = callbacks.onBossHunt;
     this.onBossHunt = callbacks.onBossHunt;
 
     this.setupListeners();
@@ -120,6 +121,11 @@ export class HUDManager {
         const tab = btn.dataset.panel || 'Nhân vật';
         this.openModal(tab);
       };
+      if (btn instanceof HTMLElement && btn.getAttribute('role') === 'button') {
+        btn.onkeydown = (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); btn.click(); }
+        };
+      }
     });
 
     // Close modal by tapping its backdrop or pressing Escape.
@@ -152,7 +158,8 @@ export class HUDManager {
     this.setText('power', stats.combatPower.toLocaleString());
 
     const questTarget = 10;
-    this.setText('quest-text', `Tiêu diệt Thiên Mục Yêu (${this.player.questKills}/${questTarget})`);
+    const questProgress = Phaser.Math.Clamp(this.player.kills - this.player.questClaims * questTarget, 0, questTarget);
+    this.setText('quest-text', `Tiêu diệt Thiên Mục Yêu (${questProgress}/${questTarget})`);
 
     const modal = document.getElementById('modal');
     if (modal && !modal.classList.contains('hidden')) {
@@ -212,121 +219,107 @@ export class HUDManager {
     if (modal) modal.classList.add('hidden');
   }
 
+
   private renderModalContent(tabName: string): void {
     const content = document.getElementById('modal-content');
     if (!content) return;
-
-    const stats = this.player.stats;
+    const p = this.player;
+    const s = p.stats;
+    const currentRealm = CULTIVATION_REALMS[p.realmIndex];
+    const nextRealm = CULTIVATION_REALMS[p.realmIndex + 1];
+    const nextRealmLevel = (p.realmIndex + 1) * 5;
+    const safe = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const actionButton = (label: string, action: string, attrs = '') => '<button type="button" data-action="' + action + '" ' + attrs + ' style="margin:5px 0;padding:9px 12px;width:100%;border:1px solid #d7b86e;border-radius:8px;background:linear-gradient(145deg,#315d69,#173340);color:#fff1c8;font-weight:700;">' + label + '</button>';
+    let html = '';
     switch (tabName) {
       case 'Nhân vật':
-        content.innerHTML = `
-          <div style="line-height: 1.8;">
-            <b>Đẳng cấp:</b> Lv.${stats.level}<br>
-            <b>Lực chiến:</b> <span style="color:#ffd700; font-size:15px; font-weight:bold;">${stats.combatPower.toLocaleString()}</span><br>
-            <b>Khí huyết (HP):</b> ${stats.hp} / ${stats.maxHp}<br>
-            <b>Linh lực (MP):</b> ${stats.mp} / ${stats.maxMp}<br>
-            <b>Công kích:</b> ${stats.atk}<br>
-            <b>Phòng ngự:</b> ${stats.def}<br>
-            <b>Bạo kích:</b> ${(stats.critRate * 100).toFixed(0)}% (x${stats.critDmg} Sát thương)<br>
-            <b>Xuyên thấu:</b> ${stats.penetration}<br>
-            <b>Đã hạ ma vật:</b> ${this.player.kills}
-          </div>
-        `;
+        html = '<div style="line-height:1.9"><b>Cảnh giới:</b> ' + currentRealm.name + ' · ' + currentRealm.stage + '<br><b>Cấp độ:</b> Lv.' + s.level + '<br><b>Lực chiến:</b> ' + s.combatPower.toLocaleString() + '<br><b>HP:</b> ' + s.hp + ' / ' + s.maxHp + '<br><b>MP:</b> ' + s.mp + ' / ' + s.maxMp + '<br><b>Công kích:</b> ' + s.atk + '<br><b>Phòng ngự:</b> ' + s.def + '<br><b>Bạo kích:</b> ' + (s.critRate * 100).toFixed(0) + '% · x' + s.critDmg + '<br><b>Xuyên thấu:</b> ' + s.penetration + '<br><b>Yêu ma đã diệt:</b> ' + p.kills + '</div>';
         break;
-
-      case 'Luyện khí':
-        content.innerHTML = `
-          <div style="line-height: 1.8;">
-            <b>Tiên Đỉnh Cổ:</b> Cấp 2 · Hỗn Nguyên Đỉnh<br>
-            <b>Hỏa hầu:</b> Tam Muội Chân Hỏa<br>
-            <b>Sản lượng linh dịch:</b> +15 Linh thạch / phút<br>
-            <div style="margin-top: 12px;">
-              <button id="alchemy-btn" style="background: linear-gradient(145deg, #2b778c, #134554); color: #fff; border: 1px solid #7beef7; border-radius: 8px; padding: 9px 14px; cursor: pointer; font-weight: bold; width: 100%;">
-                🔥 Luyện Chế Bồi Nguyên Đan (+40 Tu vi)
-              </button>
-            </div>
-          </div>
-        `;
-        const alchemyBtn = document.getElementById('alchemy-btn');
-        if (alchemyBtn) {
-          alchemyBtn.onclick = () => {
-            this.player.addExp(40);
-            this.showToast('Luyện chế thành công Bồi Nguyên Đan! +40 Tu vi!');
-            this.renderModalContent('Luyện khí');
-          };
-        }
-        break;
-
       case 'Động phủ':
-        content.innerHTML = `
-          <div style="line-height: 1.8;">
-            <b>Động Thiên Phúc Địa:</b> Cửu U Tiên Đảo<br>
-            <b>Nồng độ linh khí:</b> Cực Đậm (100%)<br>
-            <b>Tu vi hiện tại:</b> ${this.player.exp} / ${this.player.maxExp}<br>
-            <b>Tiến trình đột phá:</b> ${Math.round((this.player.exp / this.player.maxExp) * 100)}%<br>
-            <div style="margin-top: 12px;">
-              <button id="cultivate-btn" style="background: linear-gradient(145deg, #d47e24, #8a480a); color: #fff; border: 1px solid #fedb7c; border-radius: 8px; padding: 9px 14px; cursor: pointer; font-weight: bold; width: 100%;">
-                ☯ Đột Phá Cảnh Giới Tu Vi
-              </button>
-            </div>
-          </div>
-        `;
-        const cultivateBtn = document.getElementById('cultivate-btn');
-        if (cultivateBtn) {
-          cultivateBtn.onclick = () => {
-            this.player.addExp(25);
-            this.showToast('Tụ linh nhập đan điền! +25 Tu vi!');
-            this.renderModalContent('Động phủ');
-          };
-        }
+        html = '<div style="line-height:1.8"><b>Cảnh giới:</b> ' + currentRealm.name + ' · ' + currentRealm.stage + '<br><b>Tu vi:</b> ' + p.exp + ' / ' + p.maxExp + '<br><b>Linh thạch:</b> ' + p.spirit + '<br><b>Tu luyện:</b> 5 linh thạch + 5 MP để nhận 15 tu vi.' + (nextRealm ? '<br><b>Đột phá kế tiếp:</b> ' + nextRealm.name + ' · ' + nextRealm.stage + '<br>Cần: ' + nextRealm.expRequired + ' tu vi, cấp ' + nextRealmLevel + ' và ' + (nextRealm.id * 10) + ' linh thạch.' : '<br><b>Đã đạt cảnh giới tối đa hiện tại.</b>') + actionButton('☯ Tụ khí tu luyện (-5 Linh thạch, -5 MP)', 'cultivate') + (nextRealm ? actionButton('⚡ Đột phá cảnh giới', 'breakthrough') : '') + '</div>';
         break;
-
+      case 'Luyện khí':
+        html = '<div style="line-height:1.8"><b>Tiên Đỉnh Cổ · Luyện đan</b><br>Công thức Bồi Nguyên Đan: 1 Thanh Trúc Dược Thảo + 30 bạc + 3 linh thạch.<br>Đan dược hồi 30% HP và MP khi sử dụng.' + actionButton('🔥 Luyện Bồi Nguyên Đan', 'craft') + '<p>Thảo dược hiện có: ' + (p.inventory.find(i => i.name === 'Thanh Trúc Dược Thảo')?.amount || 0) + '</p></div>';
+        break;
       case 'Pháp bảo':
-        content.innerHTML = `
-          <div style="line-height: 1.8;">
-            <b>🗡️ Bản Mệnh Phi Kiếm:</b> Thanh Sương Kiếm <span style="color:#72e09b;">(Thượng Phẩm)</span><br>
-            <b>🛡️ Hộ Thân Bảo Châu:</b> Hỗn Thiên Linh Châu <span style="color:#75b2ff;">(Cực Phẩm)</span><br>
-            <b>📿 Định Hải Thần Thâm:</b> Đang khóa (Đạt Trúc Cơ mở)
-          </div>
-        `;
-        break;
-
-      case 'Tiên thuật': {
-        const skillList = this.skillSystem.skills.map((s, i) => `
-          <div style="margin-bottom: 8px; padding: 6px 8px; background: rgba(0,0,0,0.25); border-radius: 6px; border-left: 3px solid #${s.color.toString(16)};">
-            <b>${i + 1}. ${s.name}</b> <small style="color:#ffd277;">(${s.icon})</small><br>
-            <span style="font-size:11px; color:#d2dedb;">${s.description}</span><br>
-            <span style="font-size:10px; color:#95c1b5;">ST: ${s.damageMultiplier}x · Hồi: ${s.cooldown / 1000}s · MP: ${s.mpCost} · Mục tiêu: ${s.targetCount}</span>
-          </div>
-        `).join('');
-
-        const ult = this.skillSystem.ultimateSkill;
-        const ultHtml = `
-          <div style="margin-top: 10px; padding: 8px; background: rgba(80, 50, 10, 0.4); border-radius: 6px; border: 1px solid #e5b958;">
-            <b style="color: #ffdc73;">🌟 ${ult.name}</b><br>
-            <span style="font-size:11px; color:#ffe8b0;">${ult.description}</span><br>
-            <span style="font-size:10px; color:#ffb049;">ST: ${ult.damageMultiplier}x · Hồi: ${ult.cooldown / 1000}s · MP: ${ult.mpCost} · Toàn màn hình</span>
-          </div>
-        `;
-        content.innerHTML = skillList + ultHtml;
+      case 'Trang bị': {
+        const slots = [{key:'weapon',label:'Phi kiếm'},{key:'armor',label:'Tiên giáp'},{key:'accessory',label:'Linh phù'}];
+        html = '<div style="line-height:1.8"><b>Trang bị đang mặc</b>';
+        for (const slot of slots) {
+          const item = p.equipment[slot.key as 'weapon'|'armor'|'accessory'];
+          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
+        }
+        html += '<p>Trang bị mới được nhận từ quái tinh anh và Boss. Mở Túi đồ để trang bị.</p></div>';
         break;
       }
-
+      case 'Túi đồ': {
+        html = '<div style="line-height:1.6"><b>Kho vật phẩm · ' + p.inventory.length + ' loại</b>';
+        if (!p.inventory.length) html += '<p>Túi đồ đang trống. Hãy đánh quái để thu thập bạc, linh thạch, thảo dược và trang bị.</p>';
+        for (const item of p.inventory) {
+          const details = item.type === 'equipment' ? ' · ' + (item.atk ? '+' + item.atk + ' ATK ' : '') + (item.def ? '+' + item.def + ' DEF ' : '') + (item.hp ? '+' + item.hp + ' HP ' : '') + (item.mp ? '+' + item.mp + ' MP' : '') : ' · x' + item.amount;
+          html += '<div style="display:flex;align-items:center;gap:6px;padding:7px;margin:5px 0;background:rgba(0,0,0,.25);border-radius:8px"><span>' + item.iconText + '</span><span style="flex:1">' + safe(item.name) + '<small style="display:block;color:#b8d3cc">' + item.quality + details + '</small></span>';
+          if (item.type === 'equipment') html += '<button type="button" data-action="equip" data-item-id="' + safe(item.id) + '">Trang bị</button>';
+          if (item.type === 'potion') html += '<button type="button" data-action="use" data-item-id="' + safe(item.id) + '">Dùng</button>';
+          html += '</div>';
+        }
+        html += '</div>';
+        break;
+      }
+      case 'Nhiệm vụ':
+      case 'Bảng vàng': {
+        const milestone = (p.questClaims + 1) * 10;
+        const canClaim = p.kills >= milestone;
+        html = '<div style="line-height:1.8"><b>Nhiệm vụ trảm yêu</b><br>Đã tiêu diệt: ' + p.kills + ' / ' + milestone + '<br>Phần thưởng: 120 bạc · 8 linh thạch · 80 tu vi<br>Đã nhận: ' + p.questClaims + ' lần' + actionButton(canClaim ? '🎁 Nhận thưởng nhiệm vụ' : 'Chưa đủ điều kiện nhận thưởng', 'quest', canClaim ? '' : 'disabled') + '</div>';
+        break;
+      }
+      case 'Tiên thuật': {
+        const skillList = this.skillSystem.skills.map((skill, index) => '<div style="padding:8px;margin:6px 0;background:rgba(0,0,0,.25);border-radius:8px"><b>' + (index + 1) + '. ' + safe(skill.name) + '</b><br><small>' + safe(skill.description) + '</small><br><small>ST: ' + skill.damageMultiplier + 'x · Hồi: ' + skill.cooldown / 1000 + 's · MP: ' + skill.mpCost + '</small></div>').join('');
+        html = skillList + '<p>Tắt/bật tự động từng kỹ năng bằng 4 nút phía trên chiến trường.</p>';
+        break;
+      }
+      case 'Phúc lợi':
+      case 'Tài thần': {
+        const now = new Date();
+        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        const claimed = p.dailyClaimDate === today;
+        html = '<div style="line-height:1.8"><b>Phúc lợi đăng nhập</b><br>Thưởng mỗi ngày: 100 bạc · 5 linh thạch · 50 tu vi.' + actionButton(claimed ? 'Đã nhận phúc lợi hôm nay' : '🎁 Nhận phúc lợi hôm nay', 'daily', claimed ? 'disabled' : '') + '</div>';
+        break;
+      }
+      case 'Linh bảo':
+      case 'Tiên hoàn':
+      case 'Tiên duyên':
+      case 'Tông môn':
       case 'Hóa linh':
       case 'Đồng hành':
-      case 'Tông môn':
-      case 'Tiên duyên':
-        content.innerHTML = `
-          <div style="line-height: 1.8;">
-            <p>Hệ thống <b>${tabName}</b> đã sẵn sàng mở khi đạt cấp độ cao hơn!</p>
-            <p style="margin-top: 8px; color: #a4d2c8;">Hãy tiếp tục trảm yêu đạp thủy để nhận thêm đan dược và bí kíp tiên gia.</p>
-          </div>
-        `;
+        html = '<div style="line-height:1.8"><b>' + safe(tabName) + '</b><p>Chức năng này chưa được triển khai trong bản hiện tại. Không có giao dịch, tài nguyên hoặc phần thưởng giả lập ở đây.</p><p style="color:#b8d3cc">Các thao tác sẽ được mở khi có hệ thống dữ liệu và gameplay tương ứng.</p></div>';
         break;
-
       default:
-        content.innerHTML = `<p>Đang cập nhật...</p>`;
+        html = '<p>Chức năng chưa được triển khai.</p>';
     }
+    content.innerHTML = html;
+    content.onclick = (event) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>('button[data-action]');
+      if (!button || button.disabled) return;
+      const action = button.dataset.action || '';
+      let success = false;
+      if (action === 'cultivate') success = p.cultivate(15);
+      if (action === 'breakthrough') success = p.breakthrough();
+      if (action === 'craft') success = p.craftRecoveryPill();
+      if (action === 'quest') success = p.claimKillQuest();
+      if (action === 'equip') success = p.equipItem(button.dataset.itemId || '');
+      if (action === 'unequip') success = p.unequipItem((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
+      if (action === 'use') success = p.usePotion(button.dataset.itemId || '');
+      if (action === 'daily') success = p.claimDailyWelfare();
+      if (success) {
+        SaveSystem.save(p);
+        this.showToast('Đạo hữu đã hoàn tất thao tác!');
+      } else {
+        this.showToast('Chưa đủ điều kiện hoặc thiếu nguyên liệu.');
+      }
+      this.renderModalContent(this.currentModalTab);
+      this.updateStatsUI();
+    };
   }
 
   private setText(id: string, text: string): void {

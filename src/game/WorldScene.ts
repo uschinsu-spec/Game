@@ -15,7 +15,7 @@ import { PlayerStateEnum } from '../core/Types';
 import { EventBus, GameEvents } from '../core/EventBus';
 import { PerspectiveProjector } from './perspective/PerspectiveProjector';
 import { WorldMotion } from './perspective/WorldMotion';
-import { OfflineProgression } from '../services/OfflineProgression';
+import { SaveSystem } from '../services/SaveSystem';
 import { CinematicEnvironment } from './CinematicEnvironment';
 
 interface WaterWave {
@@ -46,6 +46,7 @@ export class WorldScene extends Phaser.Scene {
   private isAutoCombat = true;
   private speedMultiplier = 1;
   private basicAttackTimer = 0;
+  private combatClock = 0;
   private readonly worldMotion = new WorldMotion();
   private readonly depthEntities: Phaser.GameObjects.GameObject[] = [];
 
@@ -74,8 +75,10 @@ export class WorldScene extends Phaser.Scene {
     this.createCauldron(w * 0.5, this.cauldronY);
     this.createPlayer(w * 0.5, this.playerY);
     this.initSystems();
-    OfflineProgression.bindLifecycle(this.player);
-    OfflineProgression.claim(this.player);
+    const offlineSeconds = SaveSystem.load(this.player);
+    SaveSystem.bind(this.player);
+    SaveSystem.grantOfflineRewards(this.player, offlineSeconds);
+    SaveSystem.save(this.player);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.handleResize(gameSize.width, gameSize.height);
@@ -207,7 +210,7 @@ export class WorldScene extends Phaser.Scene {
     this.combatSystem = new CombatSystem(this, this.player);
     this.skillSystem = new SkillSystem(this.player, this.targetSystem, this.combatSystem);
     this.lootSystem = new LootSystem(this, this.player);
-    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32);
+    this.spawnSystem = new SpawnSystem(this, this.scale.height * 0.32, () => this.player.stats.level);
 
     this.hudManager = new HUDManager(this.player, this.skillSystem, {
       onAutoToggle: (running: boolean) => {
@@ -222,9 +225,16 @@ export class WorldScene extends Phaser.Scene {
         this.speedMultiplier = speed;
       },
       onUltimateCast: () => {
-        this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.time.now);
+        this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.combatClock);
       },
       onBossHunt: () => {
+        if (!this.spawnSystem.canSpawnBossWave()) return;
+        if (this.player.spirit < 50) {
+          EventBus.emit(GameEvents.TOAST_MESSAGE, 'Cần 50 linh thạch để khiêu chiến Boss!');
+          return;
+        }
+        this.player.spirit -= 50;
+        EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
         this.spawnSystem.spawnBossWave();
       }
     });
@@ -241,26 +251,23 @@ export class WorldScene extends Phaser.Scene {
     this.player.questKills++;
     this.player.addExp(monster.config.expReward);
 
-    if (this.player.questKills >= 10) {
-      this.player.questKills = 0;
-      this.player.gold += 120;
-      this.player.spirit += 8;
-      this.player.addExp(80);
-      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Hoàn thành trảm yêu! Thu hoạch linh thạch phong phú!');
-      EventBus.emit(GameEvents.BATTLE_LOG, '✦ Công đức vô lượng: Tiên môn ban thưởng Bạc +120, Linh Thạch +8, EXP +80.');
-    }
 
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
   }
 
   override update(time: number, rawDelta: number): void {
     const delta = Math.min(rawDelta, 50) * this.speedMultiplier;
+    this.combatClock += delta;
+    const combatTime = this.combatClock;
     const currentState = this.player.stateMachine.getCurrentStateName();
 
     // 1. Tick Player
     this.player.update(time, delta);
-    this.hudManager.updateCooldowns(time);
+    this.hudManager.updateCooldowns(combatTime);
     this.cinematicEnvironment.update(time, delta);
+
+    // A defeated character waits for the respawn state machine; do not spawn or attack during this window.
+    if (currentState === PlayerStateEnum.DEAD) return;
 
     // 2. Animate perspective water waves moving downwards to create forward surfing motion
     const w = this.scale.width;
@@ -306,9 +313,11 @@ export class WorldScene extends Phaser.Scene {
     // 5. Tick Loot System (pulling dropped crystals to hero & cauldron)
     this.lootSystem.update(time, delta);
 
-    // 6. Dead state handling
-    if (currentState === PlayerStateEnum.DEAD) {
-      return;
+    // 6. Every living enemy runs its own attack cooldown; the auto toggle only controls
+    // the player's autonomous attacks, not incoming enemy damage.
+    for (const enemy of monsters) {
+      if (!enemy.alive || !enemy.active) continue;
+      this.combatSystem.processMonsterAttack(enemy, combatTime);
     }
 
     if (!this.isAutoCombat) {
@@ -337,17 +346,14 @@ export class WorldScene extends Phaser.Scene {
       }
 
       // Basic Attack tick
-      const attackInterval = (900 / this.player.stats.attackSpeed) / this.speedMultiplier;
-      if (time - this.basicAttackTimer > attackInterval) {
-        this.basicAttackTimer = time;
-        this.combatSystem.performBasicAttack(primaryTarget, time);
+      const attackInterval = 900 / this.player.stats.attackSpeed;
+      if (combatTime - this.basicAttackTimer > attackInterval) {
+        this.basicAttackTimer = combatTime;
+        this.combatSystem.performBasicAttack(primaryTarget, combatTime);
       }
 
       // Auto Skills tick
-      this.skillSystem.updateAutoSkills(monsters, time);
-
-      // Monster Retaliation tick
-      this.combatSystem.processMonsterAttack(primaryTarget, time);
+      this.skillSystem.updateAutoSkills(monsters, combatTime);
     }
   }
 

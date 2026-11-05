@@ -56,7 +56,7 @@ export class Monster extends Phaser.GameObjects.Container {
 
     // Name & Title label (e.g. 千目妖 · Lv.01)
     const labelColor = config.isBoss ? '#ff5252' : '#ffcf66';
-    const tagText = `${config.isBoss ? '👑 ' : ''}${config.name}`;
+    const tagText = `${config.isBoss ? '👑 ' : ''}${config.name} · Lv.${config.level}`;
     this.nameLabel = scene.add.text(0, -38 * (config.scale || 1), tagText, {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '11px',
