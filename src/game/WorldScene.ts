@@ -228,6 +228,13 @@ export class WorldScene extends Phaser.Scene {
         this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.combatClock);
       },
       onBossHunt: () => {
+        if (!this.spawnSystem.canSpawnBossWave()) return;
+        if (this.player.spirit < 50) {
+          EventBus.emit(GameEvents.TOAST_MESSAGE, 'Cần 50 linh thạch để khiêu chiến Boss!');
+          return;
+        }
+        this.player.spirit -= 50;
+        EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
         this.spawnSystem.spawnBossWave();
       }
     });
