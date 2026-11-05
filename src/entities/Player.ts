@@ -72,7 +72,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.add(this.auraCircle);
 
     // Hero rear-view sprite (Bạch Y Kiếm Tiên)
-    this.heroSprite = scene.add.image(0, 16, 'hero_rear').setOrigin(0.5, 1);
+    this.heroSprite = scene.add.image(0, 16, 'hero_rear').setOrigin(0.5, 1).setScale(0.32);
     this.add(this.heroSprite);
 
     // Flying Spiritual Sword hovering near shoulder
