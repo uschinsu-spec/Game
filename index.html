@@ -60,7 +60,7 @@
 
         <!-- Right Side Shortcut Badges -->
         <aside class="right-sidebar">
-          <div class="side-badge" id="boss-quick-btn"><span class="badge-icon">🎯</span><small>Săn Boss</small></div>
+          <div class="side-badge" id="boss-quick-btn" role="button" tabindex="0" aria-label="Triệu hồi Boss"><span class="badge-icon">🎯</span><small>Săn Boss</small></div>
           <div class="side-badge"><span class="badge-icon">📜</span><small>Bảng vàng</small></div>
         </aside>
 
@@ -80,7 +80,7 @@
           </div>
 
           <!-- Quick Action Toggles floating above dock -->
-          <div class="floating-controls">
+          <div class="floating-controls">\n            <button class="speed-toggle" id="speed-btn" type="button" aria-label="Tốc độ trận đấu">x1</button>
             <button class="auto-toggle active" id="auto-btn">
               <span class="auto-spinner">☯</span>
               <small>Auto</small>
@@ -105,7 +105,7 @@
           </div>
 
           <div class="dock-actions">
-            <div class="dock-left-btn" data-panel="Tiên duyên">
+            <div class="dock-left-btn" data-panel="Tiên duyên" role="button" tabindex="0">
               <span class="dock-icon">🌸</span>
               <small>Tiên duyên</small>
             </div>
@@ -142,7 +142,7 @@
               </button>
             </nav>
 
-            <div class="dock-right-btn" data-panel="Tông môn">
+            <div class="dock-right-btn" data-panel="Tông môn" role="button" tabindex="0">
               <span class="dock-icon">🏯</span>
               <small>Tông môn</small>
             </div>
@@ -153,8 +153,8 @@
         <div id="toast" class="toast"></div>
 
         <!-- Xianxia Modal Popup -->
-        <div id="modal" class="modal hidden">
-          <div class="modal-card">
+        <div id="modal" class="modal hidden" role="presentation">
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <button id="modal-close" class="close">✕</button>
             <h2 id="modal-title">Nhân vật</h2>
             <div id="modal-content"></div>
