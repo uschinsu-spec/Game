@@ -1,1 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180" height="160" viewBox="0 0 180 160"><defs><radialGradient id="f"><stop stop-color="#8e254c"/><stop offset=".65" stop-color="#351126"/><stop offset="1" stop-color="#100b1a"/></radialGradient><radialGradient id="eye"><stop stop-color="#fff6a0"/><stop offset=".28" stop-color="#ffb02e"/><stop offset=".65" stop-color="#f32643"/><stop offset="1" stop-color="#500b2b"/></radialGradient></defs><path d="M20 89L5 55L38 67L28 22L62 48L78 4L94 47L130 16L125 61L171 45L145 85L174 119L130 116L117 155L89 128L56 155L52 117L12 132Z" fill="#170d20" stroke="#6c2347" stroke-width="5"/><path d="M34 83Q43 29 91 31Q139 31 148 83Q140 132 90 135Q42 131 34 83Z" fill="url(#f)" stroke="#a43b5a" stroke-width="4"/><path d="M52 78Q90 48 128 78Q90 112 52 78Z" fill="#210a1a" stroke="#e34c65" stroke-width="4"/><ellipse cx="90" cy="78" rx="19" ry="23" fill="url(#eye)"/><ellipse cx="90" cy="78" rx="5" ry="18" fill="#160b16"/><circle cx="83" cy="68" r="5" fill="#fff8ce"/><path d="M49 45L36 30M131 45L145 27M45 111L26 128M137 111L157 128" stroke="#dc496d" stroke-width="5" stroke-linecap="round"/><circle cx="53" cy="91" r="5" fill="#ff5266"/><circle cx="127" cy="91" r="5" fill="#ff5266"/><path d="M62 120Q90 139 118 120" fill="none" stroke="#ff6478" stroke-width="4"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="270" viewBox="0 0 300 270">
+<defs>
+ <radialGradient id="flesh" cx=".48" cy=".36"><stop stop-color="#b94c68"/><stop offset=".38" stop-color="#67213f"/><stop offset=".78" stop-color="#291027"/><stop offset="1" stop-color="#0b0918"/></radialGradient>
+ <linearGradient id="horn" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe4a0"/><stop offset=".35" stop-color="#bd7959"/><stop offset="1" stop-color="#35142c"/></linearGradient>
+ <radialGradient id="iris"><stop stop-color="#fff7c2"/><stop offset=".18" stop-color="#ffc54c"/><stop offset=".46" stop-color="#ff4c50"/><stop offset=".8" stop-color="#a20c48"/><stop offset="1" stop-color="#260b29"/></radialGradient>
+ <radialGradient id="aura"><stop stop-color="#ff345f" stop-opacity=".42"/><stop offset="1" stop-color="#f20b58" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<ellipse cx="150" cy="232" rx="111" ry="25" fill="#e51e56" opacity=".18" filter="url(#blur)"/>
+<ellipse cx="150" cy="136" rx="142" ry="126" fill="url(#aura)"/>
+<!-- spines / silhouette -->
+<path d="M65 93Q10 43 22 8Q77 23 100 68Q119 42 150 31Q181 42 200 68Q226 22 278 8Q290 48 235 98L260 166L221 207L202 255L157 224L117 257L96 210L43 187Z" fill="#120b1c" stroke="#7b244b" stroke-width="8" stroke-linejoin="round"/>
+<path d="M83 77Q44 39 31 20Q40 72 92 111M217 77Q256 39 269 20Q260 72 208 111" fill="none" stroke="url(#horn)" stroke-width="15" stroke-linecap="round"/>
+<path d="M116 52L150 8L184 52" fill="#321126" stroke="url(#horn)" stroke-width="8" stroke-linejoin="round"/>
+<path d="M42 124L8 92L49 101M258 124L292 92L251 101M58 190L18 225L73 213M242 190L282 225L227 213" fill="none" stroke="#a82d53" stroke-width="13" stroke-linecap="round"/>
+<!-- armored shell -->
+<path d="M59 116Q65 51 150 47Q235 51 241 116L222 192Q187 230 150 227Q113 230 78 192Z" fill="url(#flesh)" stroke="#d34c70" stroke-width="6"/>
+<path d="M75 105Q150 51 225 105Q206 132 150 140Q94 132 75 105Z" fill="#260d24" stroke="#8e3153" stroke-width="4"/>
+<!-- eye socket -->
+<path d="M76 129Q150 63 224 129Q203 193 150 193Q97 193 76 129Z" fill="#100817" stroke="#ff5b70" stroke-width="7"/>
+<ellipse cx="150" cy="132" rx="45" ry="54" fill="url(#iris)" stroke="#ffc16a" stroke-width="5"/>
+<ellipse cx="150" cy="132" rx="11" ry="43" fill="#130818"/>
+<ellipse cx="137" cy="110" rx="11" ry="8" fill="#fff7d5" opacity=".92"/>
+<path d="M105 130Q150 75 195 130" fill="none" stroke="#ff9c88" stroke-width="5" opacity=".8"/>
+<!-- cheek plates and fangs -->
+<path d="M66 160L105 174L119 210L81 195ZM234 160L195 174L181 210L219 195Z" fill="#48152f" stroke="#c13b62" stroke-width="4"/>
+<path d="M117 190L130 218L143 193M183 190L170 218L157 193" fill="#e9b8a2" stroke="#7e284a" stroke-width="3"/>
+<path d="M111 211Q150 234 189 211" fill="none" stroke="#ff7a82" stroke-width="5"/>
+<!-- glowing runes -->
+<path d="M150 25V55M43 141L65 150M257 141L235 150M112 227L123 210M188 227L177 210" stroke="#ff9d6a" stroke-width="4" stroke-linecap="round"/>
+<g fill="#ffb65e"><circle cx="51" cy="114" r="5"/><circle cx="249" cy="114" r="5"/><circle cx="150" cy="225" r="5"/></g>
+</svg>
