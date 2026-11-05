@@ -249,7 +249,8 @@ export class WorldScene extends Phaser.Scene {
 
     this.player.kills++;
     this.player.questKills++;
-    this.player.addCultivationExp(monster.config.expReward);
+    this.player.addExp(monster.config.expReward);
+    this.player.addCultivationExp(Math.max(1, Math.floor(monster.config.expReward * 0.03)));
 
 
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
