@@ -44,3 +44,11 @@ Tất cả các thay đổi và cột mốc phát triển của dự án Vạn T
 - Hoàn thiện FSM 8 trạng thái cho Player và AI State Machine cho Monster.
 - Hệ thống tính toán sát thương, bạo kích, 4 auto skills + 1 tuyệt kỹ Vạn Kiếm Quy Tông.
 - Hệ thống rơi đồ và nam châm linh lực tự động hút vật phẩm.
+
+
+## [v0.4] - Cinematic Xianxia Visual Upgrade (05/11/2026)
+- Bổ sung lớp núi tiên nhiều tầng, tiên đảo lơ lửng có tiên điện, mây trôi, ánh sáng khí quyển và linh quang chuyển động bằng vector.
+- Tích hợp môi trường điện ảnh vào vòng đời WorldScene; dựng lại lớp cảnh khi thay đổi kích thước màn hình.
+- Vẽ mới chân dung Bạch Y Kiếm Tiên và bốn icon kỹ năng SVG nguyên bản: Kiếm khí, Phong hành, Hỏa kiếm, Kiếm trận.
+- Nâng cấp HUD với khung chân dung, viền vàng, chất liệu nền, thanh HP/MP và nút kỹ năng đồng bộ mỹ thuật.
+- Giữ nguyên logic chiến đấu, phối cảnh quái vật và hỗ trợ màn hình mobile hiện có.

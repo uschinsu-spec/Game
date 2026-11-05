@@ -105,3 +105,18 @@ Branch feature/visual-gameplay-polish-v0.3 adds:
 - Responsive HUD breakpoints for compact phones, short screens and wider desktop viewports.
 
 See docs/visual-gameplay-polish-v0.3.md for the QA matrix and release checks.
+
+
+## Cinematic Visual Upgrade v0.4
+
+Branch `feature/visual-cinematic-upgrade-v0.4` adds a stronger xianxia art direction while keeping the game as a lightweight Phaser 2.5D mobile prototype:
+
+- `src/game/CinematicEnvironment.ts` draws layered mountain ridges, a floating immortal sanctuary, drifting clouds, atmospheric light and animated spirit motes.
+- The environment is integrated into the world scene lifecycle and rebuilds its vector layers when the viewport changes.
+- New original SVG portrait and four illustrated skill icons replace emoji-only presentation in the hero avatar and combat skill strip.
+- The HUD receives warmer gold framing, richer material gradients, clearer resource meters and premium modal/skill treatments.
+- The existing water perspective, enemy projection, combat rules and responsive layout remain in place.
+
+### v0.4 validation notes
+
+Run `npm ci && npm run build`. Then smoke-test portrait viewports at 320×640, 360×800, 390×844 and 430×932, plus one landscape resize. Confirm the floating sanctuary/clouds animate, skill art loads, enemy depth scaling and combat remain functional, and no SVG requests return 404. Manual device testing is still required before release.
