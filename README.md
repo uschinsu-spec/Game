@@ -1,4 +1,4 @@
-# Vạn Tiên Lục – 2D AFK Xianxia MMORPG
+# Vạn Tiên Lục – Perspective 2.5D AFK Xianxia RPG
 
 Dự án game tiên hiệp 2D AFK RPG mobile-first portrait trên nền tảng web, xây dựng bằng Phaser 3, TypeScript và Vite.
 
@@ -30,7 +30,7 @@ Hệ thống được tái cấu trúc hoàn toàn theo mô hình Module & Clean
 - **`src/ui/`**:
   - `HUDManager.ts`: Đồng bộ giao diện HTML Portrait (HP, MP, Cấp độ, Tu vi, Lực chiến, Nhiệm vụ, Bảng điều khiển Modal).
 - **`src/game/`**:
-  - `WorldScene.ts`: Điều phối cảnh game, cuộn nền Parallax vô tận, camera theo sát nhân vật ở tỷ lệ 25% màn hình.
+  - `WorldScene.ts`: Điều phối cảnh game, cuộn nền Parallax vô tận, nhân vật neo giữa phía dưới màn hình, chiến trường phối cảnh hướng về chân trời; world coordinates được chiếu qua PerspectiveProjector.
 
 ---
 
@@ -72,3 +72,22 @@ npm run preview
   - **Kỹ năng**: Xem 4 thức kiếm pháp và Tuyệt kỹ môn phái.
   - **Trang bị**: Xem trang bị vũ khí, giáp, phù bảo và trang sức.
   - **Túi đồ**: Quản lý ngân lượng, linh thạch và nguyên liệu thu thập.
+
+
+---
+
+## Perspective 2.5D upgrade
+
+The active development branch `feature/perspective-2-5d-upgrade` introduces:
+
+- `src/game/perspective/PerspectiveProjector.ts`: shared normalized-depth projection (world X/Z to portrait screen coordinates).
+- `src/game/perspective/WorldMotion.ts`: forward depth progression while exploring and controlled approach/retreat behavior.
+- `src/game/perspective/DepthSorter.ts`: reusable back-to-front depth ordering helper.
+- Monsters now carry normalized `worldX` / `worldZ` coordinates and are projected each frame.
+- Smart target selection uses world-space distance and a forward combat band; it no longer sorts arbitrary screen-space entities or prioritizes a distant boss unconditionally.
+- Spawn waves include a short clear delay to give loot collection and resume states time to run.
+- Portrait HUD includes four tap-to-toggle auto-skill slots plus the existing ultimate control.
+
+### Current scope and limitations
+
+This is still a 2.5D sprite prototype using temporary generated art, not a full 3D renderer. The prototype includes localStorage-based offline reward calculation capped at 12 hours; authoritative server validation, durable character saves, and production asset animation remain separate implementation tasks. Validate on-device and run `npm run build` before release.

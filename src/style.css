@@ -552,3 +552,44 @@ html, body {
   cursor: pointer;
   font-weight: bold;
 }
+
+
+/* Perspective AFK combat skill strip */
+.skill-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 3vw, 16px);
+  margin-bottom: 2px;
+  pointer-events: auto;
+}
+.skill-slot {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border: 1.5px solid #7897a0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #47788a, #102a38 72%);
+  color: #d8e8e7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.55);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.skill-slot span { font-size: 18px; line-height: 19px; }
+.skill-slot small { font-size: 7px; white-space: nowrap; color: #d8e6df; }
+.skill-slot.active {
+  border-color: #f2cf77;
+  color: #fff0bd;
+  box-shadow: 0 0 12px rgba(232,190,92,.42), inset 0 0 9px rgba(255,224,145,.18);
+}
+.skill-slot:not(.active) { filter: saturate(.45); opacity: .72; }
+@media (max-height: 720px) {
+  .skill-slot { width: 40px; height: 40px; }
+  .skill-slot span { font-size: 16px; }
+  .skill-bar { gap: 8px; }
+}

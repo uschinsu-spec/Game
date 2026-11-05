@@ -9,6 +9,9 @@ import { SpawnSystem } from '../systems/SpawnSystem';
 import { HUDManager } from '../ui/HUDManager';
 import { PlayerStateEnum } from '../core/Types';
 import { EventBus, GameEvents } from '../core/EventBus';
+import { PerspectiveProjector } from './perspective/PerspectiveProjector';
+import { WorldMotion } from './perspective/WorldMotion';
+import { OfflineProgression } from '../services/OfflineProgression';
 
 interface WaterWave {
   line: Phaser.GameObjects.Graphics;
@@ -37,6 +40,8 @@ export class WorldScene extends Phaser.Scene {
   private isAutoCombat = true;
   private speedMultiplier = 1;
   private basicAttackTimer = 0;
+  private readonly worldMotion = new WorldMotion();
+  private readonly depthEntities: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super('WorldScene');
@@ -49,13 +54,15 @@ export class WorldScene extends Phaser.Scene {
     const h = this.scale.height;
 
     this.horizonY = h * 0.28;
-    this.playerY = h * 0.58;
+    this.playerY = h * 0.68;
     this.cauldronY = h * 0.71;
 
     this.createEnvironment(w, h);
     this.createCauldron(w * 0.5, this.cauldronY);
     this.createPlayer(w * 0.5, this.playerY);
     this.initSystems();
+    OfflineProgression.bindLifecycle(this.player);
+    OfflineProgression.claim(this.player);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.handleResize(gameSize.width, gameSize.height);
@@ -205,6 +212,7 @@ export class WorldScene extends Phaser.Scene {
 
     const cauldronSprite = this.add.image(0, 0, 'cauldron').setOrigin(0.5, 0.5);
     this.cauldron.add([runeCircle, cauldronSprite]);
+    this.cauldron.setDepth(y + 1);
 
     // Floating animation
     this.tweens.add({
@@ -219,6 +227,7 @@ export class WorldScene extends Phaser.Scene {
 
   private createPlayer(x: number, y: number): void {
     this.player = new Player(this, x, y);
+    this.player.setDepth(y);
   }
 
   private initSystems(): void {
@@ -301,10 +310,19 @@ export class WorldScene extends Phaser.Scene {
     // 3. Tick Monster Spawning & Waves
     this.spawnSystem.update();
 
-    // 4. Tick Active Monsters
+    // 4. Simulate world-space movement, then project every monster into the portrait viewport.
     const monsters = this.spawnSystem.getMonsters();
+    this.worldMotion.update(this.player, monsters, delta, this.isAutoCombat);
     for (const m of monsters) {
       m.update(time, delta);
+      if (!m.active || !m.alive) continue;
+      const projected = PerspectiveProjector.project(
+        { x: m.worldX, z: m.worldZ, elevation: 0 },
+        w,
+        h,
+        0.28
+      );
+      m.setPerspectivePosition(projected.x, projected.y, projected.scale * m.baseScale);
     }
 
     // 5. Tick Loot System (pulling dropped crystals to hero & cauldron)
@@ -323,7 +341,11 @@ export class WorldScene extends Phaser.Scene {
     const primaryTarget = this.targetSystem.selectPrimaryTarget(monsters);
 
     if (!primaryTarget) {
-      if (currentState === PlayerStateEnum.COMBAT || currentState === PlayerStateEnum.BOSS_COMBAT) {
+      if (monsters.some(m => m.alive && m.active)) {
+        if (currentState === PlayerStateEnum.COMBAT || currentState === PlayerStateEnum.BOSS_COMBAT) {
+          this.player.stateMachine.transitionTo(PlayerStateEnum.LOOTING);
+        }
+      } else if (currentState === PlayerStateEnum.COMBAT || currentState === PlayerStateEnum.BOSS_COMBAT) {
         if (this.lootSystem.hasUncollectedLootNear(this.player.x, 300)) {
           this.player.stateMachine.transitionTo(PlayerStateEnum.LOOTING);
         } else {
@@ -353,11 +375,13 @@ export class WorldScene extends Phaser.Scene {
 
   private handleResize(width: number, height: number): void {
     this.horizonY = height * 0.28;
-    this.playerY = height * 0.58;
+    this.playerY = height * 0.68;
     this.cauldronY = height * 0.71;
 
     this.player.setPosition(width * 0.5, this.playerY);
+    this.player.setDepth(this.playerY);
     this.cauldron.setPosition(width * 0.5, this.cauldronY);
+    this.cauldron.setDepth(this.cauldronY + 1);
     this.spawnSystem.setArenaY(height * 0.32);
 
     this.cameras.main.setViewport(0, 0, width, height);

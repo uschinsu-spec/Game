@@ -63,6 +63,20 @@ export class HUDManager {
       };
     }
 
+    // Four configurable auto-skill slots. Tapping a slot enables/disables its auto-cast.
+    document.querySelectorAll<HTMLButtonElement>('[data-skill-index]').forEach((button) => {
+      const index = Number(button.dataset.skillIndex);
+      const skill = this.skillSystem.skills[index];
+      if (!skill) return;
+      button.classList.toggle('active', skill.autoEnabled);
+      button.onclick = () => {
+        skill.autoEnabled = !skill.autoEnabled;
+        button.classList.toggle('active', skill.autoEnabled);
+        button.setAttribute('aria-pressed', String(skill.autoEnabled));
+        this.showToast(`${skill.name}: ${skill.autoEnabled ? 'Tự động' : 'Tạm tắt'}`);
+      };
+    });
+
     // Ultimate Button
     const skillBtn = document.getElementById('skill-btn');
     if (skillBtn) {

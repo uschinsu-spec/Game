@@ -8,6 +8,10 @@ export class Monster extends Phaser.GameObjects.Container {
   public maxHp: number;
   public alive = true;
   public nextAttackTime = 0;
+  /** Normalized world lane (-1..1) and depth (0 horizon, 1 near camera). */
+  public worldX: number;
+  public worldZ = 0.22;
+  public baseScale: number;
   public stateMachine: StateMachine<Monster>;
 
   private bodySprite: Phaser.GameObjects.Image;
@@ -20,6 +24,8 @@ export class Monster extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, config: MonsterConfig) {
     super(scene, x, y);
     this.config = config;
+    this.worldX = Phaser.Math.Clamp(((x / Math.max(1, scene.scale.width)) - 0.5) * 2, -0.85, 0.85);
+    this.baseScale = config.scale || 1;
     this.hp = config.maxHp;
     this.maxHp = config.maxHp;
 
@@ -138,6 +144,12 @@ export class Monster extends Phaser.GameObjects.Container {
       });
 
     this.stateMachine.transitionTo(MonsterStateEnum.IDLE);
+  }
+
+  public setPerspectivePosition(x: number, y: number, depthScale: number): void {
+    this.setPosition(x, y);
+    this.setScale(depthScale);
+    this.setDepth(Math.round(y));
   }
 
   public takeDamage(amount: number, _isCrit = false): boolean {

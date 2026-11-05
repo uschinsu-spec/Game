@@ -8,6 +8,8 @@ export class SpawnSystem {
   private monsters: Monster[] = [];
   private killCounter = 0;
   private arenaY: number;
+  private emptySince = 0;
+  private readonly waveDelayMs = 1400;
 
   constructor(scene: Phaser.Scene, arenaY: number) {
     this.scene = scene;
@@ -40,6 +42,9 @@ export class SpawnSystem {
 
     // If all monsters defeated, spawn the next wave!
     if (this.monsters.length === 0) {
+      if (this.emptySince === 0) this.emptySince = this.scene.time.now;
+      if (this.scene.time.now - this.emptySince < this.waveDelayMs) return;
+      this.emptySince = 0;
       this.killCounter += 3;
       const w = this.scene.scale.width;
 
@@ -66,6 +71,7 @@ export class SpawnSystem {
   public spawnMonster(x: number, y: number, templateKey: string): Monster {
     const config = MONSTERS_DATA[templateKey] || MONSTERS_DATA.eye_normal;
     const monster = new Monster(this.scene, x, y, config);
+    monster.worldZ = templateKey === 'eye_boss' ? 0.18 : Phaser.Math.FloatBetween(0.12, 0.25);
     this.monsters.push(monster);
     EventBus.emit(GameEvents.MONSTER_SPAWNED, monster);
     return monster;

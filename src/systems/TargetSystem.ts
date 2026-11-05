@@ -8,41 +8,32 @@ export class TargetSystem {
     this.player = player;
   }
 
-  public getMonstersInRange(monsters: Monster[], _maxDistance = 500): Monster[] {
-    return monsters.filter((m) => m.alive && m.active);
+  /** Targets are selected in world-space, not from projected pixel positions. */
+  public getMonstersInRange(monsters: Monster[], maxDistance = 0.62): Monster[] {
+    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.66 && this.worldDistance(m) <= maxDistance);
   }
 
-  public selectPrimaryTarget(monsters: Monster[], _maxRange?: number): Monster | null {
-    const aliveMonsters = monsters.filter(m => m.alive && m.active);
-    if (aliveMonsters.length === 0) return null;
-
-    aliveMonsters.sort((a, b) => {
-      // 1. Boss priority
-      if (a.config.isBoss && !b.config.isBoss) return -1;
-      if (!a.config.isBoss && b.config.isBoss) return 1;
-
-      // 2. Distance to player
-      const distA = Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y);
-      const distB = Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y);
-      return distA - distB;
-    });
-
-    return aliveMonsters[0] || null;
+  public selectPrimaryTarget(monsters: Monster[], maxRange = 0.62): Monster | null {
+    const candidates = this.getMonstersInRange(monsters, maxRange);
+    candidates.sort((a, b) => this.worldDistance(a) - this.worldDistance(b));
+    return candidates[0] ?? null;
   }
 
-  public selectAoeTargets(monsters: Monster[], primaryTarget: Monster, count: number, aoeRadius = 160): Monster[] {
-    const aliveMonsters = monsters.filter(m => m.alive && m.active);
-    const inAoe = aliveMonsters.filter(m => {
-      const dist = Phaser.Math.Distance.Between(primaryTarget.x, primaryTarget.y, m.x, m.y);
-      return dist <= aoeRadius;
-    });
+  private worldDistance(monster: Monster): number {
+    const playerLane = 0;
+    const playerDepth = 0.72;
+    const dx = (monster.worldX - playerLane) * 0.72;
+    const dz = monster.worldZ - playerDepth;
+    return Math.sqrt(dx * dx + dz * dz);
+  }
 
-    inAoe.sort((a, b) => {
-      const distA = Phaser.Math.Distance.Between(primaryTarget.x, primaryTarget.y, a.x, a.y);
-      const distB = Phaser.Math.Distance.Between(primaryTarget.x, primaryTarget.y, b.x, b.y);
-      return distA - distB;
-    });
-
-    return inAoe.slice(0, count);
+  public selectAoeTargets(monsters: Monster[], primaryTarget: Monster, count: number, aoeRadius = 0.28): Monster[] {
+    return monsters
+      .filter(m => m.alive && m.active)
+      .map(m => ({ monster: m, distance: Math.hypot(m.worldX - primaryTarget.worldX, m.worldZ - primaryTarget.worldZ) }))
+      .filter(item => item.distance <= aoeRadius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, count)
+      .map(item => item.monster);
   }
 }
