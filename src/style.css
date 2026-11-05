@@ -776,3 +776,28 @@ html, body {
   .cave-glow { animation: none; }
   * { scroll-behavior: auto !important; }
 }
+
+.speed-toggle {
+  min-width: 42px;
+  height: 42px;
+  padding: 0 8px;
+  border: 1.5px solid #e4c77d;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #315d69, #122a36);
+  color: #fff0bd;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(0,0,0,.55);
+}
+[data-panel], #boss-quick-btn { cursor: pointer; }
+[data-panel]:focus-visible, #boss-quick-btn:focus-visible, button:focus-visible {
+  outline: 2px solid #ffe39a;
+  outline-offset: 2px;
+}
+.modal-card { max-height: min(82dvh, 720px); overflow-y: auto; overscroll-behavior: contain; }
+#modal-content button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.5); }
+#modal-content button:not(:disabled) { cursor: pointer; }
+@media (max-width: 380px) {
+  .speed-toggle { min-width: 36px; height: 38px; font-size: 11px; }
+}
