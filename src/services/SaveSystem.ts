@@ -26,7 +26,17 @@ export class SaveSystem {
   static load(player: Player): number {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return 0;
+      if (!raw) {
+        // Migrate the previous prototype's timestamp-only AFK record once.
+        const legacyRaw = localStorage.getItem('van-tien-luc-offline-v1');
+        if (!legacyRaw) return 0;
+        const legacy = JSON.parse(legacyRaw) as { savedAt?: number };
+        const elapsed = Number.isFinite(legacy.savedAt)
+          ? Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - (legacy.savedAt as number)) / 1000)))
+          : 0;
+        localStorage.removeItem('van-tien-luc-offline-v1');
+        return elapsed;
+      }
       const snapshot = JSON.parse(raw) as SaveSnapshot;
       if (snapshot.version !== 2 || !Number.isFinite(snapshot.savedAt)) return 0;
       player.restoreSnapshot(snapshot);
