@@ -49,7 +49,7 @@ export class LootSystem {
     }
 
     // 3. Rare material or equipment drop
-    const dropRate = monster.config.isBoss ? 0.85 : 0.25;
+    const dropRate = monster.config.isBoss ? 1 : 0.008;
     // Every boss kill guarantees its crafting core; regular monsters retain a chance-based material drop.
     if (monster.config.isBoss || Math.random() < dropRate) {
       const isBossDrop = monster.config.isBoss;
@@ -65,7 +65,7 @@ export class LootSystem {
     }
 
     // Equipment is a meaningful but uncommon reward; Bosses have a much higher chance.
-    const equipmentRate = monster.config.isBoss ? 0.45 : 0.08;
+    const equipmentRate = monster.config.isBoss ? 0.25 : monster.config.id.includes('elite') ? 0.03 : 0.008;
     if (Math.random() < equipmentRate) {
       const slots = ['weapon', 'armor', 'accessory'] as const;
       const slot = slots[Phaser.Math.Between(0, slots.length - 1)];

@@ -113,6 +113,10 @@ export interface CultivationRealm {
   name: string;
   stage: string;
   expRequired: number;
+  levelRequired: number;
+  goldRequired: number;
+  spiritRequired: number;
+  materialRequired: number;
   bonusHp: number;
   bonusAtk: number;
   bonusDef: number;

@@ -12,11 +12,13 @@ export class SpawnSystem {
   private readonly waveDelayMs = 1400;
   private lastManualBossAt = -60000;
   private getPlayerLevel: () => number;
+  private getPlayerRealm: () => number;
 
-  constructor(scene: Phaser.Scene, arenaY: number, getPlayerLevel: () => number = () => 1) {
+  constructor(scene: Phaser.Scene, arenaY: number, getPlayerLevel: () => number = () => 1, getPlayerRealm: () => number = () => 0) {
     this.scene = scene;
     this.arenaY = arenaY;
     this.getPlayerLevel = getPlayerLevel;
+    this.getPlayerRealm = getPlayerRealm;
   }
 
   public setArenaY(y: number): void {
@@ -51,7 +53,7 @@ export class SpawnSystem {
       this.killCounter += 3;
       const w = this.scene.scale.width;
 
-      if (this.killCounter % 15 === 0) {
+      if (this.killCounter % 450 === 0) {
         // Boss Wave!
         this.spawnMonster(w * 0.5, this.arenaY - 10, 'eye_boss');
         this.spawnMonster(w * 0.25, this.arenaY + 15, 'eye_elite');
@@ -105,7 +107,7 @@ export class SpawnSystem {
       maxHp: Math.round(base.maxHp * (1 + levelGap * 0.16)),
       atk: Math.round(base.atk * (1 + levelGap * 0.10)),
       def: Math.round(base.def * (1 + levelGap * 0.08)),
-      expReward: Math.round(base.expReward * (1 + levelGap * 0.10)),
+      expReward: Math.round([49, 59, 70, 84, 102, 119, 140, 168, 210][Math.min(8, Math.max(0, Math.floor(this.getPlayerRealm())))] * (templateKey === 'eye_elite' ? 3 : templateKey === 'eye_boss' ? 8 : 1)),
       goldReward: Math.round(base.goldReward * (1 + levelGap * 0.08)),
       spiritReward: base.spiritReward + Math.floor(levelGap / 5)
     };
