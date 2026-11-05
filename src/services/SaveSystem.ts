@@ -7,7 +7,7 @@ const LEGACY_SAVE_KEY = 'van-tien-luc-save-v2';
 const MAX_OFFLINE_SECONDS = 12 * 60 * 60;
 
 interface SaveSnapshot {
-  version: 3;
+  version: 2 | 3;
   savedAt: number;
   stats: CharacterStats;
   exp: number;
