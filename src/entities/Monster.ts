@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MonsterStateEnum, type MonsterConfig } from '../core/Types';
 import { StateMachine } from '../core/StateMachine';
+import { EventBus, GameEvents } from '../core/EventBus';
 
 export class Monster extends Phaser.GameObjects.Container {
   public config: MonsterConfig;
