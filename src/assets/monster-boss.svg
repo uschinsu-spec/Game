@@ -1,1 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="220" height="200" viewBox="0 0 220 200"><defs><radialGradient id="c"><stop stop-color="#a52a4c"/><stop offset=".58" stop-color="#4a102c"/><stop offset="1" stop-color="#100817"/></radialGradient><linearGradient id="horn"><stop stop-color="#f3c77c"/><stop offset="1" stop-color="#6d253d"/></linearGradient></defs><path d="M42 69Q2 25 18 5Q61 12 77 48Q110 27 143 48Q160 12 202 5Q218 28 178 72L194 130L157 151L139 194L108 169L75 196L60 153L23 133Z" fill="#160a1e" stroke="#7f1c40" stroke-width="7"/><path d="M49 76Q54 30 110 31Q166 30 171 76L162 143Q110 178 58 143Z" fill="url(#c)" stroke="#d34a69" stroke-width="5"/><path d="M65 86Q110 47 155 86Q110 126 65 86Z" fill="#160717" stroke="#ff5269" stroke-width="5"/><ellipse cx="110" cy="86" rx="27" ry="34" fill="#ffb52d"/><ellipse cx="110" cy="86" rx="9" ry="27" fill="#120714"/><circle cx="100" cy="68" r="7" fill="#fff7d1"/><path d="M62 130Q110 166 158 130" fill="none" stroke="#ff7182" stroke-width="7"/><path d="M42 65Q5 31 18 5Q59 12 77 49M178 65Q215 31 202 5Q161 12 143 49" fill="none" stroke="url(#horn)" stroke-width="13" stroke-linecap="round"/><path d="M91 40L110 10L129 40" fill="none" stroke="#e8b86e" stroke-width="6"/><circle cx="47" cy="111" r="7" fill="#ff324e"/><circle cx="173" cy="111" r="7" fill="#ff324e"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="200" viewBox="0 0 340 310">
+<defs>
+ <radialGradient id="core" cx=".45" cy=".3"><stop stop-color="#e36b73"/><stop offset=".35" stop-color="#8f244a"/><stop offset=".72" stop-color="#3b102f"/><stop offset="1" stop-color="#090817"/></radialGradient>
+ <linearGradient id="horn" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b0"/><stop offset=".35" stop-color="#d49b65"/><stop offset=".72" stop-color="#85384d"/><stop offset="1" stop-color="#291026"/></linearGradient>
+ <radialGradient id="eye"><stop stop-color="#fffbd0"/><stop offset=".16" stop-color="#ffd15b"/><stop offset=".42" stop-color="#ff644f"/><stop offset=".76" stop-color="#c81750"/><stop offset="1" stop-color="#3b0b2c"/></radialGradient>
+ <radialGradient id="aura"><stop stop-color="#ff315d" stop-opacity=".48"/><stop offset="1" stop-color="#a50042" stop-opacity="0"/></radialGradient>
+ <filter id="bloom"><feGaussianBlur stdDeviation="11"/></filter>
+</defs>
+<ellipse cx="170" cy="263" rx="142" ry="28" fill="#f31c58" opacity=".22" filter="url(#bloom)"/>
+<ellipse cx="170" cy="145" rx="165" ry="151" fill="url(#aura)"/>
+<!-- crown of infernal horns -->
+<path d="M83 102Q5 55 18 4Q88 20 121 83Q170 37 219 83Q252 20 322 4Q335 55 257 102L294 182L247 230L218 294L171 258L122 294L93 230L46 182Z" fill="#120a1c" stroke="#782143" stroke-width="10" stroke-linejoin="round"/>
+<path d="M96 102Q36 61 31 19Q85 43 125 104M244 102Q304 61 309 19Q255 43 215 104" fill="none" stroke="url(#horn)" stroke-width="20" stroke-linecap="round"/>
+<path d="M128 74L170 9L212 74L193 103L147 103Z" fill="#3a142c" stroke="url(#horn)" stroke-width="8"/>
+<path d="M170 19V74" stroke="#fff0b2" stroke-width="5"/>
+<!-- broad armored face -->
+<path d="M61 128Q67 49 170 48Q273 49 279 128L254 222Q214 267 170 266Q126 267 86 222Z" fill="url(#core)" stroke="#e35b70" stroke-width="8"/>
+<path d="M78 117Q170 47 262 117L239 151Q170 184 101 151Z" fill="#260c25" stroke="#a93258" stroke-width="6"/>
+<!-- central abyssal eye -->
+<path d="M91 151Q170 70 249 151Q226 223 170 226Q114 223 91 151Z" fill="#100715" stroke="#ff6170" stroke-width="8"/>
+<ellipse cx="170" cy="151" rx="51" ry="63" fill="url(#eye)" stroke="#ffd08a" stroke-width="6"/>
+<ellipse cx="170" cy="151" rx="13" ry="50" fill="#170817"/>
+<ellipse cx="153" cy="124" rx="13" ry="9" fill="#fffbdc"/>
+<path d="M121 151Q170 83 219 151" fill="none" stroke="#ffd5a1" stroke-width="5" opacity=".8"/>
+<!-- plated cheeks -->
+<path d="M55 172L107 184L126 245L75 223ZM285 172L233 184L214 245L265 223Z" fill="#48112f" stroke="#c13a61" stroke-width="6"/>
+<path d="M127 221L145 261L161 226M213 221L195 261L179 226" fill="#e8b6a0" stroke="#8e2a4d" stroke-width="5"/>
+<path d="M111 238Q170 273 229 238" fill="none" stroke="#ff7884" stroke-width="7"/>
+<!-- shoulder spikes -->
+<path d="M73 190L17 169L49 223L20 249L100 244M267 190L323 169L291 223L320 249L240 244" fill="#251027" stroke="#a93259" stroke-width="8" stroke-linejoin="round"/>
+<!-- emissive cracks -->
+<path d="M170 49L157 82L174 101L163 120M94 178L116 192L108 211M246 178L224 192L232 211" fill="none" stroke="#ff9a61" stroke-width="5" stroke-linecap="round"/>
+<g fill="#ffc16c"><circle cx="71" cy="135" r="7"/><circle cx="269" cy="135" r="7"/><circle cx="170" cy="250" r="6"/></g>
+</svg>
