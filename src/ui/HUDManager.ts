@@ -8,7 +8,7 @@ export class HUDManager {
   private skillSystem: SkillSystem;
   private onAutoToggle: (running: boolean) => void;
   private onSpeedChange: (speed: number) => void;
-  private onUltimateCast: () => void;
+  private onUltimateCast: () => void;\n  private onBossHunt: () => void;
 
   private isAuto = true;
   private speedMultiplier = 1;
@@ -27,7 +27,7 @@ export class HUDManager {
     this.skillSystem = skillSystem;
     this.onAutoToggle = callbacks.onAutoToggle;
     this.onSpeedChange = callbacks.onSpeedChange;
-    this.onUltimateCast = callbacks.onUltimateCast;
+    this.onUltimateCast = callbacks.onUltimateCast;\n    this.onBossHunt = callbacks.onBossHunt;
 
     this.setupListeners();
     this.bindDOM();
