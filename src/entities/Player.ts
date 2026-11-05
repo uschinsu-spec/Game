@@ -8,8 +8,10 @@ import type { InventoryEntry, EquipmentSlot } from '../core/Types';
 export class Player extends Phaser.GameObjects.Container {
   public stats: CharacterStats;
   public stateMachine: StateMachine<Player>;
+  /** Character EXP controls level; cultivationExp is spent on realm breakthroughs. */
   public exp = 0;
-  public maxExp = 100;
+  public maxExp = 125;
+  public cultivationExp = 0;
   public gold = 120;
   public spirit = 35;
   public kills = 0;
@@ -302,11 +304,19 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   public addExp(amount: number): void {
-    this.exp += amount;
-    while (this.exp >= this.maxExp) {
+    if (!Number.isFinite(amount) || amount <= 0 || this.stats.level >= 100) return;
+    this.exp += Math.floor(amount);
+    while (this.exp >= this.maxExp && this.stats.level < 100) {
       this.exp -= this.maxExp;
       this.levelUp();
     }
+    if (this.stats.level >= 100) { this.exp = 0; this.maxExp = 0; }
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
+  }
+
+  public addCultivationExp(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    this.cultivationExp += Math.floor(amount);
     EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.stats);
   }
 
@@ -395,7 +405,7 @@ export class Player extends Phaser.GameObjects.Container {
     if (this.dailyClaimDate === today) return false;
     this.dailyClaimDate = today;
     this.gainResources(100, 5);
-    this.addExp(50);
+    this.addCultivationExp(50);
     return true;
   }
 
@@ -404,7 +414,7 @@ export class Player extends Phaser.GameObjects.Container {
     if (this.kills < required) return false;
     this.questClaims += 1;
     this.gainResources(120, 8);
-    this.addExp(80);
+    this.addCultivationExp(80);
     EventBus.emit(GameEvents.TOAST_MESSAGE, 'Hoàn thành nhiệm vụ trảm yêu! Nhận 120 bạc, 8 linh thạch và 80 tu vi.');
     return true;
   }
@@ -413,15 +423,28 @@ export class Player extends Phaser.GameObjects.Container {
     if (this.spirit < 5 || this.stats.mp < 5) return false;
     this.spirit -= 5;
     this.spendMp(5);
-    this.addExp(amount);
+    this.addCultivationExp(amount);
     return true;
   }
 
   public breakthrough(): boolean {
     const next = CULTIVATION_REALMS[this.realmIndex + 1];
-    if (!next || this.exp < next.expRequired || this.stats.level < (this.realmIndex + 1) * 5 || this.spirit < next.id * 10) return false;
-    this.spirit -= next.id * 10;
-    this.exp -= next.expRequired;
+    if (!next) return false;
+    const coreName = 'Thiên Mục Ma Hạch';
+    const core = this.inventory.find(item => item.type === 'material' && item.name === coreName);
+    if (this.cultivationExp < next.expRequired || this.stats.level < next.levelRequired ||
+        this.gold < next.goldRequired || this.spirit < next.spiritRequired ||
+        (next.materialRequired > 0 && (!core || core.amount < next.materialRequired))) {
+      EventBus.emit(GameEvents.TOAST_MESSAGE, 'Chưa đủ điều kiện đột phá: kiểm tra tu vi, cấp độ, bạc, linh thạch và Ma Hạch.');
+      return false;
+    }
+    this.cultivationExp -= next.expRequired;
+    this.gold -= next.goldRequired;
+    this.spirit -= next.spiritRequired;
+    if (next.materialRequired > 0 && core) {
+      core.amount -= next.materialRequired;
+      if (core.amount <= 0) this.inventory = this.inventory.filter(item => item !== core);
+    }
     this.realmIndex += 1;
     this.stats.maxHp += next.bonusHp;
     this.stats.hp = this.stats.maxHp;
@@ -434,10 +457,11 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
-  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number; dailyClaimDate: string }>): void {
+  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number; dailyClaimDate: string; cultivationExp?: number }>): void {
     if (snapshot.stats) this.stats = { ...this.stats, ...snapshot.stats };
     this.exp = Math.max(0, snapshot.exp ?? this.exp);
-    this.maxExp = Math.max(1, snapshot.maxExp ?? this.maxExp);
+    this.maxExp = this.stats.level >= 100 ? 0 : Math.round(100 + 25 * Math.pow(this.stats.level, 1.6));
+    this.cultivationExp = Math.max(0, snapshot.cultivationExp ?? 0);
     this.gold = Math.max(0, snapshot.gold ?? this.gold);
     this.spirit = Math.max(0, snapshot.spirit ?? this.spirit);
     this.kills = Math.max(0, snapshot.kills ?? this.kills);
@@ -460,8 +484,8 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private levelUp(): void {
-    this.stats.level++;
-    this.maxExp = Math.round(this.maxExp * 1.35);
+    this.stats.level = Math.min(100, this.stats.level + 1);
+    this.maxExp = this.stats.level >= 100 ? 0 : Math.round(100 + 25 * Math.pow(this.stats.level, 1.6));
     this.stats.maxHp += 30;
     this.stats.hp = this.stats.maxHp;
     this.stats.maxMp += 12;
