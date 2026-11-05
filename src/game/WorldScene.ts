@@ -47,6 +47,13 @@ export class WorldScene extends Phaser.Scene {
     super('WorldScene');
   }
 
+  preload(): void {
+    this.load.image('hero_rear', '/assets/hero-xianxia.svg');
+    this.load.image('monster_eye', '/assets/monster-void-eye.svg');
+    this.load.image('monster_eye_elite', '/assets/monster-elite.svg');
+    this.load.image('monster_eye_boss', '/assets/monster-boss.svg');
+  }
+
   create(): void {
     this.createTextures();
 
@@ -73,24 +80,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createTextures(): void {
-    // 1. Hero Rear Sprite (Bạch Y Kiếm Tiên nhìn từ sau lưng)
-    const g = this.make.graphics({ x: 0, y: 0 });
-    // Flowing hair
-    g.fillStyle(0x132029); g.fillRoundedRect(16, 8, 16, 42, 6);
-    g.fillStyle(0x0e181f); g.fillCircle(24, 14, 9);
-    // Jade hairpin
-    g.fillStyle(0xa3f2dd); g.fillRect(19, 10, 10, 3);
-    // White robes with cyan shading
-    g.fillStyle(0xeff7f8); g.fillTriangle(24, 22, 10, 68, 38, 68);
-    g.fillStyle(0x7dc7d8); g.fillTriangle(14, 30, 2, 60, 22, 54);
-    g.fillStyle(0x7dc7d8); g.fillTriangle(34, 30, 46, 60, 26, 54);
-    // Celestial sash (Dải lụa tiên phong)
-    g.lineStyle(2, 0xaaf5ff, 0.85);
-    g.lineBetween(12, 36, 4, 70);
-    g.lineBetween(36, 36, 44, 70);
-    g.generateTexture('hero_rear', 48, 72);
-    g.destroy();
-
+    // Character and demon artwork is loaded as hand-illustrated SVG texture assets.
     // 2. Flying Spiritual Sword (Phi Kiếm)
     const s = this.make.graphics({ x: 0, y: 0 });
     s.fillStyle(0x95f1ff); s.fillRect(7, 4, 4, 30);
@@ -118,44 +108,6 @@ export class WorldScene extends Phaser.Scene {
     c.generateTexture('cauldron', 70, 70);
     c.destroy();
 
-    // 4. Normal Void Eye Monster (Thiên Mục Yêu - 千目妖)
-    const m = this.make.graphics({ x: 0, y: 0 });
-    // Spikes
-    m.fillStyle(0x1f0b15);
-    for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI) / 4;
-      const x1 = 30 + Math.cos(angle) * 26;
-      const y1 = 30 + Math.sin(angle) * 26;
-      m.fillCircle(x1, y1, 5);
-    }
-    // Main dark orb
-    m.fillStyle(0x351424); m.fillCircle(30, 30, 22);
-    m.fillStyle(0x541c38); m.fillCircle(30, 30, 16);
-    // Demonic golden-red eyes
-    m.fillStyle(0xff2222); m.fillCircle(30, 30, 7);
-    m.fillStyle(0xffe600); m.fillCircle(30, 30, 3.5);
-    m.fillStyle(0xff4444); m.fillCircle(20, 25, 4);
-    m.fillStyle(0xff4444); m.fillCircle(40, 25, 4);
-    m.generateTexture('monster_eye', 60, 60);
-    m.destroy();
-
-    // 5. Elite Monster
-    const me = this.make.graphics({ x: 0, y: 0 });
-    me.fillStyle(0x420c22); me.fillCircle(35, 35, 28);
-    me.fillStyle(0x731a3f); me.fillCircle(35, 35, 20);
-    me.fillStyle(0xff0044); me.fillCircle(35, 35, 9);
-    me.fillStyle(0xffe066); me.fillCircle(35, 35, 4);
-    me.generateTexture('monster_eye_elite', 70, 70);
-    me.destroy();
-
-    // 6. Boss Monster (Thiên Mục Ma Quân)
-    const mb = this.make.graphics({ x: 0, y: 0 });
-    mb.fillStyle(0x520a22); mb.fillCircle(45, 45, 38);
-    mb.fillStyle(0x94163d); mb.fillCircle(45, 45, 28);
-    mb.fillStyle(0xff1133); mb.fillCircle(45, 45, 12);
-    mb.fillStyle(0xfff066); mb.fillCircle(45, 45, 5);
-    mb.generateTexture('monster_eye_boss', 90, 90);
-    mb.destroy();
   }
 
   private createEnvironment(w: number, h: number): void {
@@ -184,6 +136,17 @@ export class WorldScene extends Phaser.Scene {
     this.sunShimmer = this.add.graphics();
     this.sunShimmer.fillStyle(0xfff1aa, 0.18);
     this.sunShimmer.fillTriangle(w * 0.5, this.horizonY, w * 0.32, h, w * 0.68, h);
+    this.sunShimmer.fillStyle(0xfff7d2, 0.10);
+    this.sunShimmer.fillTriangle(w * 0.5, this.horizonY + 5, w * 0.43, h, w * 0.57, h);
+    const depthBands = this.add.graphics();
+    depthBands.fillStyle(0x062d3b, 0.12);
+    depthBands.fillRect(0, this.horizonY + (h - this.horizonY) * 0.28, w, (h - this.horizonY) * 0.72);
+    depthBands.lineStyle(1, 0xb9f4e9, 0.13);
+    for (let i = 0; i < 9; i++) {
+      const y = this.horizonY + (h - this.horizonY) * (0.22 + i * 0.085);
+      const half = w * (0.12 + i * 0.055);
+      depthBands.beginPath(); depthBands.moveTo(w * 0.5 - half, y); depthBands.lineTo(w * 0.5 + half, y); depthBands.strokePath();
+    }
 
     // Dynamic perspective forward water ripples
     const waveCount = 12;
@@ -284,6 +247,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 1. Tick Player
     this.player.update(time, delta);
+    this.hudManager.updateCooldowns(time);
 
     // 2. Animate perspective water waves moving downwards to create forward surfing motion
     const w = this.scale.width;
@@ -296,11 +260,11 @@ export class WorldScene extends Phaser.Scene {
 
       // Exponential perspective scaling
       const y = this.horizonY + Math.pow(wave.progress, 1.8) * waterHeight;
-      const alpha = Math.sin(wave.progress * Math.PI) * 0.45;
+      const alpha = Math.sin(wave.progress * Math.PI) * 0.52;
       const waveWidth = w * (0.35 + wave.progress * 0.7);
 
       wave.line.clear();
-      wave.line.lineStyle(1.5 + wave.progress * 2, 0xd2f8ff, alpha);
+      wave.line.lineStyle(1.2 + wave.progress * 2.4, wave.progress > 0.62 ? 0xffedb4 : 0xd2f8ff, alpha);
       wave.line.beginPath();
       wave.line.moveTo((w - waveWidth) / 2, y);
       wave.line.lineTo((w + waveWidth) / 2, y);
