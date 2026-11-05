@@ -107,7 +107,7 @@ export class SpawnSystem {
       maxHp: Math.round(base.maxHp * (1 + levelGap * 0.16)),
       atk: Math.round(base.atk * (1 + levelGap * 0.10)),
       def: Math.round(base.def * (1 + levelGap * 0.08)),
-      expReward: Math.round([70, 85, 100, 120, 145, 170, 200, 240, 300][Math.min(8, Math.max(0, this.getPlayerRealm()))] * (templateKey === 'eye_elite' ? 3 : templateKey === 'eye_boss' ? 8 : 1)),
+      expReward: Math.round([70, 85, 100, 120, 145, 170, 200, 240, 300][Math.min(8, Math.max(0, Math.floor(this.getPlayerRealm())))] * (templateKey === 'eye_elite' ? 3 : templateKey === 'eye_boss' ? 8 : 1)),
       goldReward: Math.round(base.goldReward * (1 + levelGap * 0.08)),
       spiritReward: base.spiritReward + Math.floor(levelGap / 5)
     };
