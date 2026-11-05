@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="340" height="310" viewBox="0 0 340 310">
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="200" viewBox="0 0 340 310">
 <defs>
  <radialGradient id="core" cx=".45" cy=".3"><stop stop-color="#e36b73"/><stop offset=".35" stop-color="#8f244a"/><stop offset=".72" stop-color="#3b102f"/><stop offset="1" stop-color="#090817"/></radialGradient>
  <linearGradient id="horn" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b0"/><stop offset=".35" stop-color="#d49b65"/><stop offset=".72" stop-color="#85384d"/><stop offset="1" stop-color="#291026"/></linearGradient>
