@@ -109,6 +109,6 @@ export class SaveSystem {
     const spirit = Math.floor(minutes / 8);
     player.addExp(exp);
     player.gainResources(gold, spirit);
-    EventBus.emit(GameEvents.TOAST_MESSAGE, 'AFK ' + Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'p: +' + exp + ' tu vi, +' + gold + ' bạc, +' + spirit + ' linh thạch');
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'AFK ' + Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'p: +' + exp + ' EXP nhân vật, +' + gold + ' bạc, +' + spirit + ' linh thạch');
   }
 }
