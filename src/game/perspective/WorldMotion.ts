@@ -7,9 +7,11 @@ import { Monster } from '../../entities/Monster';
  * z=0 is the horizon and z=1 is closest to the camera/player.
  */
 export class WorldMotion {
-  private static readonly RANGED_STANDOFF_DEPTH = 0.48;
+  // Keep enemies farther back: at this depth the perspective projection leaves
+  // a clear visual gap above the hero at y=68% of the viewport.
+  private static readonly RANGED_STANDOFF_DEPTH = 0.36;
   private static readonly APPROACH_PER_MS = 0.0001;
-  private static readonly RETREAT_PER_MS = 0.00014;
+  private static readonly RETREAT_PER_MS = 0.00018;
 
   public update(player: Player, monsters: Monster[], deltaMs: number, autoEnabled: boolean): void {
     if (!autoEnabled || player.stateMachine.getCurrentStateName() === PlayerStateEnum.DEAD) return;
@@ -18,11 +20,11 @@ export class WorldMotion {
     for (const monster of monsters) {
       if (!monster.active || !monster.alive) continue;
 
-      // Enemies stop in the middle distance instead of closing into melee range.
+      // Enemies approach only to the back edge of the mid-distance lane.
+      // Clamp both sides so old saves/spawns cannot leave enemies crowding the hero.
       if (monster.worldZ < standoff) {
         monster.worldZ = Math.min(standoff, monster.worldZ + deltaMs * WorldMotion.APPROACH_PER_MS);
       } else if (monster.worldZ > standoff) {
-        // Recover gracefully if an enemy was already too close before this update.
         monster.worldZ = Math.max(standoff, monster.worldZ - deltaMs * WorldMotion.RETREAT_PER_MS);
       }
     }
