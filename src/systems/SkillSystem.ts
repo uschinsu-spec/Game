@@ -20,6 +20,36 @@ export class SkillSystem {
 
     this.skills = JSON.parse(JSON.stringify(SKILLS_DATA.filter(s => s.type !== SkillType.ULTIMATE)));
     this.ultimateSkill = JSON.parse(JSON.stringify(SKILLS_DATA.find(s => s.type === SkillType.ULTIMATE)!));
+    this.restoreProgression();
+  }
+
+  public restoreProgression(): void {
+    for (const skill of [...this.skills, this.ultimateSkill]) {
+      const level = Math.max(1, Math.min(5, Math.floor(this.player.skillLevels[skill.id] || 1)));
+      const base = SKILLS_DATA.find(entry => entry.id === skill.id)!;
+      skill.level = level;
+      skill.damageMultiplier = Number((base.damageMultiplier * (1 + (level - 1) * 0.12)).toFixed(2));
+      skill.mpCost = Math.max(1, Math.round(base.mpCost * (1 - (level - 1) * 0.025)));
+    }
+  }
+
+  public upgradeSkill(skillId: string): boolean {
+    const skill = [...this.skills, this.ultimateSkill].find(entry => entry.id === skillId);
+    if (!skill || skill.level >= 5) return false;
+    const nextLevel = skill.level + 1;
+    const goldCost = nextLevel * 180;
+    const spiritCost = nextLevel * 12;
+    if (this.player.gold < goldCost || this.player.spirit < spiritCost) return false;
+    this.player.gold -= goldCost;
+    this.player.spirit -= spiritCost;
+    this.player.skillLevels[skill.id] = nextLevel;
+    const base = SKILLS_DATA.find(entry => entry.id === skill.id)!;
+    skill.level = nextLevel;
+    skill.damageMultiplier = Number((base.damageMultiplier * (1 + (nextLevel - 1) * 0.12)).toFixed(2));
+    skill.mpCost = Math.max(1, Math.round(base.mpCost * (1 - (nextLevel - 1) * 0.025)));
+    EventBus.emit(GameEvents.PLAYER_STATS_CHANGED, this.player.stats);
+    EventBus.emit(GameEvents.TOAST_MESSAGE, `${skill.name} đạt cấp ${nextLevel}!`);
+    return true;
   }
 
   public updateAutoSkills(monsters: Monster[], time: number): boolean {
