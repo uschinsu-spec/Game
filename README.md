@@ -24,9 +24,9 @@ Hệ thống được tái cấu trúc hoàn toàn theo mô hình Module & Clean
 - **`src/systems/`**:
   - `CombatSystem.ts`: Tính toán sát thương chuẩn (Công kích, Phòng ngự, Xuyên thấu, Bạo kích, Dao động), số nhảy sát thương dạng tiên hiệp, chém kiếm khí, tuyệt kỹ chấn động toàn màn hình.
   - `TargetSystem.ts`: Nhận diện quái vật phía trước, thuật toán Smart Target Selection (ưu tiên Boss > Tinh anh > Gần nhất).
-  - `SkillSystem.ts`: Quản lý hồi chiêu, tiêu hao linh lực, tự động xuất chiêu theo độ ưu tiên, quét AOE đa mục tiêu.
-  - `SpawnSystem.ts`: Tự động sinh quái vật theo tiến trình, quản lý vòng đời quái và xuất hiện Boss thế giới.
-  - `LootSystem.ts`: Rơi bạc, linh thạch, thảo dược quý và hút vào túi đồ nhân vật.
+  - `SkillSystem.ts`: Quản lý hồi chiêu, tiêu hao linh lực, tự động xuất chiêu theo độ ưu tiên, quét AOE đa mục tiêu và nâng cấp kỹ năng tối đa 5 cấp.
+  - `SpawnSystem.ts`: Tự động sinh quái vật theo tiến trình, quản lý Boss thế giới và Bí Cảnh solo 5 tầng với Boss cuối.
+  - `LootSystem.ts`: Rơi bạc, linh thạch, thảo dược và trang bị có thuộc tính phụ (bạo kích, bạo thương, xuyên thủng, tốc đánh), sau đó hút về túi đồ.
 - **`src/ui/`**:
   - `HUDManager.ts`: Đồng bộ giao diện HTML Portrait (HP, MP, Cấp độ, Tu vi, Lực chiến, Nhiệm vụ, Bảng điều khiển Modal).
 - **`src/game/`**:
