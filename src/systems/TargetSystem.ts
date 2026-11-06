@@ -10,8 +10,8 @@ export class TargetSystem {
 
   /** Targets are selected in world-space, not from projected pixel positions. */
   public getMonstersInRange(monsters: Monster[], maxDistance = 0.62): Monster[] {
-    // Match the safe mid-distance lane maintained by WorldMotion.
-    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.30 && m.worldZ <= 0.42 && this.worldDistance(m) <= maxDistance);
+    // Match the farther-distance lane maintained by WorldMotion.
+    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.18 && m.worldZ <= 0.30 && this.worldDistance(m) <= maxDistance);
   }
 
   public selectPrimaryTarget(monsters: Monster[], maxRange = 0.62): Monster | null {

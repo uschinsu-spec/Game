@@ -7,8 +7,8 @@ import { Monster } from '../../entities/Monster';
  * z=0 is the horizon and z=1 is closest to the camera/player.
  */
 export class WorldMotion {
-  // At z=0.36, projection leaves a clear visual gap above the hero at y=68%.
-  private static readonly RANGED_STANDOFF_DEPTH = 0.36;
+  // Lower depth moves enemies farther toward the horizon, widening the gap above the hero.
+  private static readonly RANGED_STANDOFF_DEPTH = 0.24;
   private static readonly APPROACH_PER_MS = 0.0001;
   private static readonly RETREAT_PER_MS = 0.00018;
 
@@ -19,7 +19,7 @@ export class WorldMotion {
     for (const monster of monsters) {
       if (!monster.active || !monster.alive) continue;
 
-      // Approach only to the back edge of the mid-distance lane.
+      // Approach only to the back edge of the farther-distance lane.
       // Clamp both sides so older spawns cannot crowd the hero.
       if (monster.worldZ < standoff) {
         monster.worldZ = Math.min(standoff, monster.worldZ + deltaMs * WorldMotion.APPROACH_PER_MS);
