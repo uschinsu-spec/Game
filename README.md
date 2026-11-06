@@ -71,7 +71,10 @@ npm run preview
   - **Tu luyện**: Tụ khí tu luyện, đột phá tầng cảnh giới.
   - **Kỹ năng**: Xem 4 thức kiếm pháp và Tuyệt kỹ môn phái.
   - **Trang bị**: Xem trang bị vũ khí, giáp, phù bảo và trang sức.
-  - **Túi đồ**: Quản lý ngân lượng, linh thạch và nguyên liệu thu thập.
+  - **Túi đồ**: Quản lý ngân lượng, linh thạch, nguyên liệu và trang bị có thuộc tính phụ.
+- **Bí cảnh**: Phụ bản solo 5 tầng, tăng độ khó theo tầng và Boss cuối; tốn 20 linh thạch, có thưởng hoàn thành.
+- **Cường hóa**: Nâng trang bị đang mặc tối đa +10 bằng bạc và linh thạch.
+- **Nâng cấp kỹ năng**: 4 kỹ năng và tuyệt kỹ có thể tăng cấp đến 5; tiến trình được lưu cục bộ.
 
 
 ---
