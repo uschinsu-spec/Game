@@ -110,6 +110,7 @@ export interface LootItemData {
   critDmg?: number;
   penetration?: number;
   attackSpeed?: number;
+  enhanceLevel?: number;
 }
 
 export interface CultivationRealm {
