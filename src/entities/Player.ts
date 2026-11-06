@@ -22,6 +22,10 @@ export class Player extends Phaser.GameObjects.Container {
   public questClaims = 0;
   public dailyClaimDate = '';
   public skillLevels: Record<string, number> = {};
+  public sessionDamageDealt = 0;
+  public sessionDamageTaken = 0;
+  public sessionKills = 0;
+  public readonly sessionStartedAt = Date.now();
   private gearBonuses = { atk: 0, def: 0, hp: 0, mp: 0, critRate: 0, critDmg: 0, penetration: 0, attackSpeed: 0 };
 
   // Visual sub-elements
