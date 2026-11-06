@@ -20,11 +20,16 @@ export class SkillSystem {
 
     this.skills = JSON.parse(JSON.stringify(SKILLS_DATA.filter(s => s.type !== SkillType.ULTIMATE)));
     this.ultimateSkill = JSON.parse(JSON.stringify(SKILLS_DATA.find(s => s.type === SkillType.ULTIMATE)!));
+    this.restoreProgression();
+  }
+
+  public restoreProgression(): void {
     for (const skill of [...this.skills, this.ultimateSkill]) {
       const level = Math.max(1, Math.min(5, Math.floor(this.player.skillLevels[skill.id] || 1)));
+      const base = SKILLS_DATA.find(entry => entry.id === skill.id)!;
       skill.level = level;
-      skill.damageMultiplier = Number((skill.damageMultiplier * (1 + (level - 1) * 0.12)).toFixed(2));
-      skill.mpCost = Math.max(1, Math.round(skill.mpCost * (1 - (level - 1) * 0.025)));
+      skill.damageMultiplier = Number((base.damageMultiplier * (1 + (level - 1) * 0.12)).toFixed(2));
+      skill.mpCost = Math.max(1, Math.round(base.mpCost * (1 - (level - 1) * 0.025)));
     }
   }
 
