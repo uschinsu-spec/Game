@@ -73,6 +73,8 @@ npm run preview
   - **Trang bị**: Xem trang bị vũ khí, giáp, phù bảo và trang sức.
   - **Túi đồ**: Quản lý ngân lượng, linh thạch, nguyên liệu và trang bị có thuộc tính phụ.
 - **Bí cảnh**: Phụ bản solo 5 tầng, tăng độ khó theo tầng và Boss cuối; tốn 20 linh thạch, có thưởng hoàn thành.
+- **Chiến báo**: Thống kê phiên hiện tại gồm sát thương gây ra/nhận vào, số quái tiêu diệt và thời lượng.
+- **Boss nhiều giai đoạn**: Boss chuyển từ đơn kích sang song kích và tam liên kích với cảnh báo trực quan.
 - **Cường hóa**: Nâng trang bị đang mặc tối đa +10 bằng bạc và linh thạch.
 - **Nâng cấp kỹ năng**: 4 kỹ năng và tuyệt kỹ có thể tăng cấp đến 5; tiến trình được lưu cục bộ.
 
