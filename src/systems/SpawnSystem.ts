@@ -13,6 +13,9 @@ export class SpawnSystem {
   private lastManualBossAt = -60000;
   private getPlayerLevel: () => number;
   private getPlayerRealm: () => number;
+  private dungeonActive = false;
+  private dungeonWave = 0;
+  private readonly dungeonWaveCount = 5;
 
   constructor(scene: Phaser.Scene, arenaY: number, getPlayerLevel: () => number = () => 1, getPlayerRealm: () => number = () => 0) {
     this.scene = scene;
@@ -36,6 +39,39 @@ export class SpawnSystem {
     this.spawnMonster(w * 0.72, this.arenaY + Phaser.Math.Between(-15, 15), 'eye_normal');
   }
 
+  public isDungeonActive(): boolean { return this.dungeonActive; }
+
+  public startDungeon(): boolean {
+    if (this.dungeonActive) return false;
+    this.dungeonActive = true;
+    this.dungeonWave = 1;
+    this.emptySince = 0;
+    if (this.monsters.length === 0) this.spawnDungeonWave();
+    EventBus.emit(GameEvents.BATTLE_LOG, '🏯 Bí cảnh mở cửa — vượt qua 5 tầng thử thách!');
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'Bắt đầu Bí Cảnh Trảm Yêu!');
+    return true;
+  }
+
+  private spawnDungeonWave(): void {
+    const w = this.scene.scale.width;
+    const scale = 1 + (this.dungeonWave - 1) * 0.18;
+    const spawn = (x: number, key: string) => {
+      const monster = this.spawnMonster(x, this.arenaY + Phaser.Math.Between(-12, 12), key);
+      monster.applyDifficultyMultiplier(scale);
+      monster.drawHpBar();
+    };
+    if (this.dungeonWave === this.dungeonWaveCount) {
+      spawn(w * 0.5, 'eye_boss');
+      spawn(w * 0.28, 'eye_elite');
+      spawn(w * 0.72, 'eye_elite');
+    } else {
+      spawn(w * 0.28, 'eye_normal');
+      spawn(w * 0.5, this.dungeonWave >= 3 ? 'eye_elite' : 'eye_normal');
+      spawn(w * 0.72, 'eye_normal');
+    }
+    EventBus.emit(GameEvents.TOAST_MESSAGE, `Bí cảnh: Tầng ${this.dungeonWave}/${this.dungeonWaveCount}`);
+  }
+
   public update(): void {
     // Clean up dead/destroyed monsters from active list
     for (let i = this.monsters.length - 1; i >= 0; i--) {
@@ -50,6 +86,17 @@ export class SpawnSystem {
       if (this.emptySince === 0) this.emptySince = this.scene.time.now;
       if (this.scene.time.now - this.emptySince < this.waveDelayMs) return;
       this.emptySince = 0;
+      if (this.dungeonActive) {
+        if (this.dungeonWave >= this.dungeonWaveCount) {
+          this.dungeonActive = false;
+          EventBus.emit(GameEvents.DUNGEON_COMPLETED);
+          EventBus.emit(GameEvents.BATTLE_LOG, '🏆 Bí cảnh hoàn thành!');
+        } else {
+          this.dungeonWave += 1;
+          this.spawnDungeonWave();
+        }
+        return;
+      }
       this.killCounter += 3;
       const w = this.scene.scale.width;
 

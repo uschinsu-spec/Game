@@ -277,40 +277,53 @@ export class CombatSystem {
     monster.nextAttackTime = time + monster.config.attackInterval;
     monster.stateMachine.transitionTo(MonsterStateEnum.ATTACK);
 
-    // Telegraph the targeted lane before the projectile launches. Boss phases shorten
-    // the warning slightly through their faster attack cadence, but never remove it.
     const targetX = this.player.x;
     const targetY = this.player.y - 15;
-    const warning = this.scene.add.circle(targetX, this.player.y + 8, 28, 0xff3333, 0.16)
-      .setStrokeStyle(2, 0xff5555, 0.9)
+    const phase = monster.config.isBoss ? monster.bossPhase : 1;
+    const strikes = phase === 3 ? 3 : phase === 2 ? 2 : 1;
+    const totalMultiplier = phase === 3 ? 1.35 : phase === 2 ? 1.15 : 1;
+    const strikeDamage = Math.max(1, Math.ceil(monster.config.atk * totalMultiplier / strikes));
+    const warningRadius = phase === 3 ? 48 : phase === 2 ? 38 : 28;
+    const warningColor = phase === 3 ? 0xff2222 : 0xff5555;
+    const warning = this.scene.add.circle(targetX, this.player.y + 8, warningRadius, warningColor, 0.16)
+      .setStrokeStyle(phase === 3 ? 3 : 2, warningColor, 0.9)
       .setDepth(9500);
+    if (monster.config.isBoss && phase > 1) {
+      EventBus.emit(GameEvents.BATTLE_LOG, phase === 2
+        ? '⚠ Thiên Mục Ma Quân vận Song Kích!'
+        : '☠ Thiên Mục Ma Quân thi triển Diệt Thế Tam Liên!');
+    }
     this.scene.tweens.add({
       targets: warning,
-      scale: 1.35,
+      scale: phase === 3 ? 1.55 : 1.35,
       alpha: 0.04,
-      duration: 320,
+      duration: phase === 3 ? 420 : 320,
       ease: 'Sine.easeIn',
       onComplete: () => {
         warning.destroy();
         if (!monster.alive || !this.player.active || this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
-        const orb = this.scene.add.circle(monster.x, monster.y + 15, 7, 0xff334f, 0.95).setDepth(9501);
-        this.scene.tweens.add({
-          targets: orb,
-          x: targetX,
-          y: targetY,
-          duration: 250,
-          onComplete: () => {
-            orb.destroy();
-            // Ignore late impacts after death and show the mitigated HP loss.
+        for (let index = 0; index < strikes; index++) {
+          this.scene.time.delayedCall(index * 115, () => {
             if (!monster.alive || this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
-            const damageDealt = this.player.calculateIncomingDamage(monster.config.atk);
-            const isPlayerDead = this.player.takeDamage(monster.config.atk);
-            this.showDamageNumber(this.player.x, this.player.y - 45, damageDealt, false);
-            if (isPlayerDead) {
-              EventBus.emit(GameEvents.BATTLE_LOG, `☠ Bạn bị ${monster.config.name} trọng thương! Chờ hồi sinh...`);
-            }
-          }
-        });
+            const orb = this.scene.add.circle(monster.x + (index - (strikes - 1) / 2) * 9, monster.y + 15, 7, warningColor, 0.95).setDepth(9501);
+            this.scene.tweens.add({
+              targets: orb,
+              x: targetX,
+              y: targetY,
+              duration: 230,
+              onComplete: () => {
+                orb.destroy();
+                if (!monster.alive || this.player.stateMachine.getCurrentStateName() === 'DEAD') return;
+                const damageDealt = this.player.calculateIncomingDamage(strikeDamage);
+                const isPlayerDead = this.player.takeDamage(strikeDamage);
+                this.showDamageNumber(this.player.x, this.player.y - 45, damageDealt, false);
+                if (isPlayerDead) {
+                  EventBus.emit(GameEvents.BATTLE_LOG, `☠ Bạn bị ${monster.config.name} trọng thương! Chờ hồi sinh...`);
+                }
+              }
+            });
+          });
+        }
       }
     });
   }

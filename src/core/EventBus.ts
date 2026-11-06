@@ -23,7 +23,8 @@ export const GameEvents = {
   TOAST_MESSAGE: 'ui:toast',
   BATTLE_LOG: 'ui:battle_log',
   QUEST_UPDATED: 'ui:quest_updated',
-  LEVEL_UP: 'player:level_up'
+  LEVEL_UP: 'player:level_up',
+  DUNGEON_COMPLETED: 'dungeon:completed'
 } as const;
 
 export type GameEventType = typeof GameEvents[keyof typeof GameEvents];

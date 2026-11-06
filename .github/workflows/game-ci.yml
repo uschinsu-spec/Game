@@ -1,0 +1,33 @@
+name: Game CI
+
+on:
+  push:
+    branches:
+      - "improve/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: TypeScript and production build
+        run: npm run build
+      - name: Progression sensitivity model
+        run: |
+          npm run balance:simulate -- 5
+          npm run balance:simulate -- 10
+          npm run balance:simulate -- 20

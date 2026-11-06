@@ -12,6 +12,7 @@ export class HUDManager {
   private onSpeedChange: (speed: number) => void;
   private onUltimateCast: () => void;
   private onBossHunt: () => void;
+  private onDungeonStart: () => boolean;
 
   private isAuto = true;
   private speedMultiplier = 1;
@@ -25,6 +26,7 @@ export class HUDManager {
       onSpeedChange: (speed: number) => void;
       onUltimateCast: () => void;
       onBossHunt: () => void;
+      onDungeonStart: () => boolean;
     }
   ) {
     this.player = player;
@@ -33,6 +35,7 @@ export class HUDManager {
     this.onSpeedChange = callbacks.onSpeedChange;
     this.onUltimateCast = callbacks.onUltimateCast;
     this.onBossHunt = callbacks.onBossHunt;
+    this.onDungeonStart = callbacks.onDungeonStart;
 
     this.setupListeners();
     this.bindDOM();
@@ -247,7 +250,7 @@ export class HUDManager {
         html = '<div style="line-height:1.8"><b>Trang bị đang mặc</b>';
         for (const slot of slots) {
           const item = p.equipment[slot.key as 'weapon'|'armor'|'accessory'];
-          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
+          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · Cường hóa +' + (item.enhanceLevel || 0) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + (item.critRate ? ' / +' + Math.round(item.critRate * 100) + '% Bạo kích' : '') + (item.critDmg ? ' / +' + item.critDmg + 'x Bạo thương' : '') + (item.penetration ? ' / +' + item.penetration + ' Xuyên thủng' : '') + (item.attackSpeed ? ' / +' + item.attackSpeed + ' Tốc đánh' : '') + actionButton('Cường hóa · ' + ((item.enhanceLevel || 0) + 1) * 250 + ' bạc · ' + ((item.enhanceLevel || 0) + 1) * 8 + ' linh thạch', 'enhance', 'data-slot="' + slot.key + '"') + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
         }
         html += '<p>Trang bị mới được nhận từ quái tinh anh và Boss. Mở Túi đồ để trang bị.</p></div>';
         break;
@@ -256,7 +259,7 @@ export class HUDManager {
         html = '<div style="line-height:1.6"><b>Kho vật phẩm · ' + p.inventory.length + ' loại</b>';
         if (!p.inventory.length) html += '<p>Túi đồ đang trống. Hãy đánh quái để thu thập bạc, linh thạch, thảo dược và trang bị.</p>';
         for (const item of p.inventory) {
-          const details = item.type === 'equipment' ? ' · ' + (item.atk ? '+' + item.atk + ' ATK ' : '') + (item.def ? '+' + item.def + ' DEF ' : '') + (item.hp ? '+' + item.hp + ' HP ' : '') + (item.mp ? '+' + item.mp + ' MP' : '') : ' · x' + item.amount;
+          const details = item.type === 'equipment' ? ' · ' + (item.atk ? '+' + item.atk + ' ATK ' : '') + (item.def ? '+' + item.def + ' DEF ' : '') + (item.hp ? '+' + item.hp + ' HP ' : '') + (item.mp ? '+' + item.mp + ' MP ' : '') + (item.critRate ? '+' + Math.round(item.critRate * 100) + '% Bạo kích ' : '') + (item.critDmg ? '+' + item.critDmg + 'x ST bạo kích ' : '') + (item.penetration ? '+' + item.penetration + ' Xuyên thủng ' : '') + (item.attackSpeed ? '+' + item.attackSpeed + ' Tốc đánh' : '') : ' · x' + item.amount;
           html += '<div style="display:flex;align-items:center;gap:6px;padding:7px;margin:5px 0;background:rgba(0,0,0,.25);border-radius:8px"><span>' + item.iconText + '</span><span style="flex:1">' + safe(item.name) + '<small style="display:block;color:#b8d3cc">' + item.quality + details + '</small></span>';
           if (item.type === 'equipment') html += '<button type="button" data-action="equip" data-item-id="' + safe(item.id) + '">Trang bị</button>';
           if (item.type === 'potion') html += '<button type="button" data-action="use" data-item-id="' + safe(item.id) + '">Dùng</button>';
@@ -273,8 +276,25 @@ export class HUDManager {
         break;
       }
       case 'Tiên thuật': {
-        const skillList = this.skillSystem.skills.map((skill, index) => '<div style="padding:8px;margin:6px 0;background:rgba(0,0,0,.25);border-radius:8px"><b>' + (index + 1) + '. ' + safe(skill.name) + '</b><br><small>' + safe(skill.description) + '</small><br><small>ST: ' + skill.damageMultiplier + 'x · Hồi: ' + skill.cooldown / 1000 + 's · MP: ' + skill.mpCost + '</small></div>').join('');
-        html = skillList + '<p>Tắt/bật tự động từng kỹ năng bằng 4 nút phía trên chiến trường.</p>';
+        const allSkills = [...this.skillSystem.skills, this.skillSystem.ultimateSkill];
+        const skillList = allSkills.map((skill, index) => {
+          const nextLevel = skill.level + 1;
+          const cost = nextLevel * 180;
+          const spiritCost = nextLevel * 12;
+          const upgrade = skill.level < 5 ? actionButton('Nâng cấp · ' + cost + ' bạc · ' + spiritCost + ' linh thạch', 'upgrade-skill', 'data-skill-id="' + safe(skill.id) + '"') : '<small style="color:#e8cf83">Đã đạt cấp tối đa</small>';
+          return '<div style="padding:8px;margin:6px 0;background:rgba(0,0,0,.25);border-radius:8px"><b>' + (index + 1) + '. ' + safe(skill.name) + ' · Lv.' + skill.level + '</b><br><small>' + safe(skill.description) + '</small><br><small>ST: ' + skill.damageMultiplier + 'x · Hồi: ' + skill.cooldown / 1000 + 's · MP: ' + skill.mpCost + '</small>' + upgrade + '</div>';
+        }).join('');
+        html = skillList + '<p>Nâng cấp tăng sát thương 12% mỗi cấp và giảm nhẹ MP tiêu hao. Kỹ năng được lưu theo nhân vật.</p>';
+        break;
+      }
+      case 'Phụ bản':
+      case 'Bí cảnh':
+        html = '<div style="line-height:1.8"><b>Bí Cảnh Trảm Yêu · 5 tầng</b><p>Vượt 4 tầng quái và tinh anh, sau đó quyết chiến Boss. Có thể tham gia ngay, quái đang có sẽ được tính là tầng đầu tiên.</p><p>Thưởng hoàn thành: EXP nhân vật, bạc, linh thạch và tu vi.</p>' + actionButton('🏯 Vào Bí Cảnh (-20 Linh thạch)', 'dungeon', p.spirit >= 20 ? '' : 'disabled') + '</div>';
+        break;
+      case 'Chiến báo': {
+        const seconds = Math.floor((Date.now() - p.sessionStartedAt) / 1000);
+        const duration = Math.floor(seconds / 60) + ' phút ' + (seconds % 60) + ' giây';
+        html = '<div style="line-height:1.9"><b>Thống kê phiên chơi hiện tại</b><br>Thời gian: ' + duration + '<br>Yêu ma tiêu diệt: ' + p.sessionKills + '<br>Tổng sát thương gây ra: ' + p.sessionDamageDealt.toLocaleString() + '<br>Tổng sát thương nhận: ' + p.sessionDamageTaken.toLocaleString() + '<br><small style="color:#b8d3cc">Số liệu bắt đầu tính từ khi mở phiên chơi này, không phải thống kê toàn bộ tài khoản.</small></div>';
         break;
       }
       case 'Phúc lợi':
@@ -309,8 +329,17 @@ export class HUDManager {
       if (action === 'quest') success = p.claimKillQuest();
       if (action === 'equip') success = p.equipItem(button.dataset.itemId || '');
       if (action === 'unequip') success = p.unequipItem((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
+      if (action === 'enhance') success = p.enhanceEquipment((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
       if (action === 'use') success = p.usePotion(button.dataset.itemId || '');
       if (action === 'daily') success = p.claimDailyWelfare();
+      if (action === 'upgrade-skill') success = this.skillSystem.upgradeSkill(button.dataset.skillId || '');
+      if (action === 'dungeon') {
+        if (p.spirit >= 20) {
+          p.spirit -= 20;
+          success = this.onDungeonStart();
+          if (!success) p.spirit += 20;
+        }
+      }
       if (success) {
         SaveSystem.save(p);
         this.showToast('Đạo hữu đã hoàn tất thao tác!');
