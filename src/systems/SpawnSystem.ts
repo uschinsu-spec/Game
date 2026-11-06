@@ -45,6 +45,7 @@ export class SpawnSystem {
     if (this.dungeonActive) return false;
     this.dungeonActive = true;
     this.dungeonWave = 1;
+    this.emptySince = 0;
     if (this.monsters.length === 0) this.spawnDungeonWave();
     EventBus.emit(GameEvents.BATTLE_LOG, '🏯 Bí cảnh mở cửa — vượt qua 5 tầng thử thách!');
     EventBus.emit(GameEvents.TOAST_MESSAGE, 'Bắt đầu Bí Cảnh Trảm Yêu!');
