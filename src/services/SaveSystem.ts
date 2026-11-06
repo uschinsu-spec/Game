@@ -23,6 +23,7 @@ interface SaveSnapshot {
   equipment: Partial<Record<EquipmentSlot, InventoryEntry>>;
   questClaims: number;
   dailyClaimDate: string;
+  skillLevels?: Record<string, number>;
 }
 
 export class SaveSystem {
@@ -70,7 +71,8 @@ export class SaveSystem {
         inventory: player.inventory.map(item => ({ ...item })),
         equipment: Object.fromEntries(Object.entries(player.equipment).map(([slot, item]) => [slot, item ? { ...item } : undefined])),
         questClaims: player.questClaims,
-        dailyClaimDate: player.dailyClaimDate
+        dailyClaimDate: player.dailyClaimDate,
+        skillLevels: { ...player.skillLevels }
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
     } catch {
