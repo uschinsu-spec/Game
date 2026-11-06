@@ -80,7 +80,11 @@ export class LootSystem {
         slot, atk: slot === 'weapon' ? 8 * tier : 0,
         def: slot === 'armor' ? 5 * tier : 0,
         hp: slot === 'armor' ? 35 * tier : slot === 'accessory' ? 15 * tier : 0,
-        mp: slot === 'accessory' ? 12 * tier : 0
+        mp: slot === 'accessory' ? 12 * tier : 0,
+        critRate: slot === 'accessory' ? Number((0.02 * tier).toFixed(2)) : 0,
+        critDmg: slot === 'weapon' ? Number((0.08 * tier).toFixed(2)) : 0,
+        penetration: slot === 'weapon' ? 2 * tier : 0,
+        attackSpeed: slot === 'accessory' ? Number((0.04 * tier).toFixed(2)) : 0
       });
     }
     EventBus.emit(GameEvents.LOOT_DROPPED, { x, y });
@@ -131,7 +135,7 @@ export class LootSystem {
         EventBus.emit(GameEvents.TOAST_MESSAGE, `Thu được [${item.name}]!`);
         break;
       case 'equip':
-        this.player.addInventoryItem({ id: item.id, name: item.name, type: 'equipment', amount: 1, quality: item.quality, iconText: item.iconText, slot: item.slot, atk: item.atk, def: item.def, hp: item.hp, mp: item.mp });
+        this.player.addInventoryItem({ id: item.id, name: item.name, type: 'equipment', amount: 1, quality: item.quality, iconText: item.iconText, slot: item.slot, atk: item.atk, def: item.def, hp: item.hp, mp: item.mp, critRate: item.critRate, critDmg: item.critDmg, penetration: item.penetration, attackSpeed: item.attackSpeed });
         EventBus.emit(GameEvents.TOAST_MESSAGE, 'Nhận trang bị: ' + item.name + '!');
         break;
     }
