@@ -291,6 +291,12 @@ export class HUDManager {
       case 'Bí cảnh':
         html = '<div style="line-height:1.8"><b>Bí Cảnh Trảm Yêu · 5 tầng</b><p>Vượt 4 tầng quái và tinh anh, sau đó quyết chiến Boss. Có thể tham gia ngay, quái đang có sẽ được tính là tầng đầu tiên.</p><p>Thưởng hoàn thành: EXP nhân vật, bạc, linh thạch và tu vi.</p>' + actionButton('🏯 Vào Bí Cảnh (-20 Linh thạch)', 'dungeon', p.spirit >= 20 ? '' : 'disabled') + '</div>';
         break;
+      case 'Chiến báo': {
+        const seconds = Math.floor((Date.now() - p.sessionStartedAt) / 1000);
+        const duration = Math.floor(seconds / 60) + ' phút ' + (seconds % 60) + ' giây';
+        html = '<div style="line-height:1.9"><b>Thống kê phiên chơi hiện tại</b><br>Thời gian: ' + duration + '<br>Yêu ma tiêu diệt: ' + p.sessionKills + '<br>Tổng sát thương gây ra: ' + p.sessionDamageDealt.toLocaleString() + '<br>Tổng sát thương nhận: ' + p.sessionDamageTaken.toLocaleString() + '<br><small style="color:#b8d3cc">Số liệu bắt đầu tính từ khi mở phiên chơi này, không phải thống kê toàn bộ tài khoản.</small></div>';
+        break;
+      }
       case 'Phúc lợi':
       case 'Tài thần': {
         const now = new Date();
