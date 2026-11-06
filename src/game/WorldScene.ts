@@ -227,6 +227,7 @@ export class WorldScene extends Phaser.Scene {
       onUltimateCast: () => {
         this.skillSystem.castUltimate(this.spawnSystem.getMonsters(), this.combatClock);
       },
+      onDungeonStart: () => this.spawnSystem.startDungeon(),
       onBossHunt: () => {
         if (!this.spawnSystem.canSpawnBossWave()) return;
         if (this.player.spirit < 50) {
@@ -241,6 +242,15 @@ export class WorldScene extends Phaser.Scene {
 
     EventBus.on(GameEvents.MONSTER_DIED, (monster: Monster) => {
       this.handleMonsterDied(monster);
+    });
+    EventBus.on(GameEvents.DUNGEON_COMPLETED, () => {
+      const exp = Math.max(250, this.player.stats.level * 25);
+      const gold = Math.max(300, this.player.stats.level * 20);
+      this.player.addExp(exp);
+      this.player.gainResources(gold, 15);
+      this.player.addCultivationExp(35);
+      EventBus.emit(GameEvents.TOAST_MESSAGE, `Bí cảnh hoàn thành: +${exp} EXP, +${gold} bạc, +15 linh thạch, +35 tu vi!`);
+      SaveSystem.save(this.player);
     });
   }
 
