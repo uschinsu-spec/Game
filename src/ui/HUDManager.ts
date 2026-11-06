@@ -250,7 +250,7 @@ export class HUDManager {
         html = '<div style="line-height:1.8"><b>Trang bị đang mặc</b>';
         for (const slot of slots) {
           const item = p.equipment[slot.key as 'weapon'|'armor'|'accessory'];
-          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + (item.critRate ? ' / +' + Math.round(item.critRate * 100) + '% Bạo kích' : '') + (item.critDmg ? ' / +' + item.critDmg + 'x Bạo thương' : '') + (item.penetration ? ' / +' + item.penetration + ' Xuyên thủng' : '') + (item.attackSpeed ? ' / +' + item.attackSpeed + ' Tốc đánh' : '') + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
+          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · Cường hóa +' + (item.enhanceLevel || 0) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + (item.critRate ? ' / +' + Math.round(item.critRate * 100) + '% Bạo kích' : '') + (item.critDmg ? ' / +' + item.critDmg + 'x Bạo thương' : '') + (item.penetration ? ' / +' + item.penetration + ' Xuyên thủng' : '') + (item.attackSpeed ? ' / +' + item.attackSpeed + ' Tốc đánh' : '') + actionButton('Cường hóa · ' + ((item.enhanceLevel || 0) + 1) * 250 + ' bạc · ' + ((item.enhanceLevel || 0) + 1) * 8 + ' linh thạch', 'enhance', 'data-slot="' + slot.key + '"') + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
         }
         html += '<p>Trang bị mới được nhận từ quái tinh anh và Boss. Mở Túi đồ để trang bị.</p></div>';
         break;
@@ -323,6 +323,7 @@ export class HUDManager {
       if (action === 'quest') success = p.claimKillQuest();
       if (action === 'equip') success = p.equipItem(button.dataset.itemId || '');
       if (action === 'unequip') success = p.unequipItem((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
+      if (action === 'enhance') success = p.enhanceEquipment((button.dataset.slot || 'weapon') as 'weapon'|'armor'|'accessory');
       if (action === 'use') success = p.usePotion(button.dataset.itemId || '');
       if (action === 'daily') success = p.claimDailyWelfare();
       if (action === 'upgrade-skill') success = this.skillSystem.upgradeSkill(button.dataset.skillId || '');
