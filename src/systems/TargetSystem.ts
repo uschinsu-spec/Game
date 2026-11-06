@@ -10,8 +10,8 @@ export class TargetSystem {
 
   /** Targets are selected in world-space, not from projected pixel positions. */
   public getMonstersInRange(monsters: Monster[], maxDistance = 0.62): Monster[] {
-    // Keep valid targets in a mid-range lane; enemies closer than this are repositioned outward.
-    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.38 && m.worldZ <= 0.56 && this.worldDistance(m) <= maxDistance);
+    // Match the safe mid-distance lane maintained by WorldMotion.
+    return monsters.filter((m) => m.alive && m.active && m.worldZ >= 0.30 && m.worldZ <= 0.42 && this.worldDistance(m) <= maxDistance);
   }
 
   public selectPrimaryTarget(monsters: Monster[], maxRange = 0.62): Monster | null {
@@ -22,7 +22,8 @@ export class TargetSystem {
 
   private worldDistance(monster: Monster): number {
     const playerLane = 0;
-    const playerDepth = 0.72; // The hero stays in the foreground; targets remain safely behind.
+    // The hero is screen-anchored at y=68%; this depth is only a range reference.
+    const playerDepth = 0.68;
     const dx = (monster.worldX - playerLane) * 0.72;
     const dz = monster.worldZ - playerDepth;
     return Math.sqrt(dx * dx + dz * dz);
