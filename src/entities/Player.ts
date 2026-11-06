@@ -359,6 +359,32 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
+  public enhanceEquipment(slot: EquipmentSlot): boolean {
+    const item = this.equipment[slot];
+    if (!item) return false;
+    const currentLevel = Math.max(0, item.enhanceLevel || 0);
+    if (currentLevel >= 10) return false;
+    const nextLevel = currentLevel + 1;
+    const goldCost = nextLevel * 250;
+    const spiritCost = nextLevel * 8;
+    if (this.gold < goldCost || this.spirit < spiritCost) return false;
+    this.gold -= goldCost;
+    this.spirit -= spiritCost;
+    const grow = (value?: number) => value ? Math.max(1, Math.round(value * 0.08)) : 0;
+    item.atk = (item.atk || 0) + grow(item.atk);
+    item.def = (item.def || 0) + grow(item.def);
+    item.hp = (item.hp || 0) + grow(item.hp);
+    item.mp = (item.mp || 0) + grow(item.mp);
+    item.critRate = Number(((item.critRate || 0) + (slot === 'accessory' ? 0.005 : 0)).toFixed(3));
+    item.critDmg = Number(((item.critDmg || 0) + (slot === 'weapon' ? 0.02 : 0)).toFixed(2));
+    item.penetration = (item.penetration || 0) + (slot === 'weapon' ? 1 : 0);
+    item.attackSpeed = Number(((item.attackSpeed || 0) + (slot === 'accessory' ? 0.01 : 0)).toFixed(2));
+    item.enhanceLevel = nextLevel;
+    this.recalculateEquipmentStats();
+    EventBus.emit(GameEvents.TOAST_MESSAGE, `${item.name} cường hóa +${nextLevel}!`);
+    return true;
+  }
+
   public unequipItem(slot: EquipmentSlot): boolean {
     const item = this.equipment[slot];
     if (!item) return false;
