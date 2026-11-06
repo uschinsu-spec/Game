@@ -21,6 +21,8 @@ export class Player extends Phaser.GameObjects.Container {
   public equipment: Partial<Record<EquipmentSlot, InventoryEntry>> = {};
   public questClaims = 0;
   public dailyClaimDate = '';
+  public skillLevels: Record<string, number> = {};
+  private gearBonuses = { atk: 0, def: 0, hp: 0, mp: 0, critRate: 0, critDmg: 0, penetration: 0, attackSpeed: 0 };
 
   // Visual sub-elements
   private heroSprite: Phaser.GameObjects.Image;
@@ -372,14 +374,22 @@ export class Player extends Phaser.GameObjects.Container {
     const def = gear.reduce((sum, item) => sum + (item?.def || 0), 0);
     const hp = gear.reduce((sum, item) => sum + (item?.hp || 0), 0);
     const mp = gear.reduce((sum, item) => sum + (item?.mp || 0), 0);
-    const old = (this as unknown as { gear?: { atk: number; def: number; hp: number; mp: number } }).gear || { atk: 0, def: 0, hp: 0, mp: 0 };
+    const old = this.gearBonuses;
     const oldMaxHp = this.stats.maxHp;
     const oldMaxMp = this.stats.maxMp;
+    const critRate = gear.reduce((sum, item) => sum + (item?.critRate || 0), 0);
+    const critDmg = gear.reduce((sum, item) => sum + (item?.critDmg || 0), 0);
+    const penetration = gear.reduce((sum, item) => sum + (item?.penetration || 0), 0);
+    const attackSpeed = gear.reduce((sum, item) => sum + (item?.attackSpeed || 0), 0);
     this.stats.atk = Math.max(1, this.stats.atk - old.atk + atk);
     this.stats.def = Math.max(0, this.stats.def - old.def + def);
     this.stats.maxHp = Math.max(1, this.stats.maxHp - old.hp + hp);
     this.stats.maxMp = Math.max(1, this.stats.maxMp - old.mp + mp);
-    (this as unknown as { gear: { atk: number; def: number; hp: number; mp: number } }).gear = { atk, def, hp, mp };
+    this.stats.critRate = Phaser.Math.Clamp(this.stats.critRate - old.critRate + critRate, 0, 0.75);
+    this.stats.critDmg = Phaser.Math.Clamp(this.stats.critDmg - old.critDmg + critDmg, 1.2, 3.5);
+    this.stats.penetration = Math.max(0, this.stats.penetration - old.penetration + penetration);
+    this.stats.attackSpeed = Phaser.Math.Clamp(this.stats.attackSpeed - old.attackSpeed + attackSpeed, 0.5, 3.0);
+    this.gearBonuses = { atk, def, hp, mp, critRate, critDmg, penetration, attackSpeed };
     this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + Math.max(0, this.stats.maxHp - oldMaxHp));
     this.stats.mp = Math.min(this.stats.maxMp, this.stats.mp + Math.max(0, this.stats.maxMp - oldMaxMp));
     this.stats.combatPower = Math.round(this.stats.atk * 12 + this.stats.def * 8 + this.stats.maxHp * 0.4 + this.stats.maxMp * 0.25 + this.stats.level * 100);
@@ -457,7 +467,7 @@ export class Player extends Phaser.GameObjects.Container {
     return true;
   }
 
-  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number; dailyClaimDate: string; cultivationExp?: number }>): void {
+  public restoreSnapshot(snapshot: Partial<{ stats: CharacterStats; exp: number; maxExp: number; gold: number; spirit: number; kills: number; questKills: number; realmIndex: number; inventory: InventoryEntry[]; equipment: Partial<Record<EquipmentSlot, InventoryEntry>>; questClaims: number; dailyClaimDate: string; cultivationExp?: number; skillLevels?: Record<string, number> }>): void {
     if (snapshot.stats) this.stats = { ...this.stats, ...snapshot.stats };
     this.exp = Math.max(0, snapshot.exp ?? this.exp);
     this.maxExp = this.stats.level >= 100 ? 0 : Math.round(100 + 25 * Math.pow(this.stats.level, 1.6));
@@ -474,9 +484,15 @@ export class Player extends Phaser.GameObjects.Container {
       atk: equipped.reduce((sum, item) => sum + (item?.atk || 0), 0),
       def: equipped.reduce((sum, item) => sum + (item?.def || 0), 0),
       hp: equipped.reduce((sum, item) => sum + (item?.hp || 0), 0),
-      mp: equipped.reduce((sum, item) => sum + (item?.mp || 0), 0)
+      mp: equipped.reduce((sum, item) => sum + (item?.mp || 0), 0),
+      critRate: equipped.reduce((sum, item) => sum + (item?.critRate || 0), 0),
+      critDmg: equipped.reduce((sum, item) => sum + (item?.critDmg || 0), 0),
+      penetration: equipped.reduce((sum, item) => sum + (item?.penetration || 0), 0),
+      attackSpeed: equipped.reduce((sum, item) => sum + (item?.attackSpeed || 0), 0)
     };
+    this.gearBonuses = { ...this.gearBonuses, ...this.gearBonuses };
     this.questClaims = Math.max(0, snapshot.questClaims ?? 0);
+    this.skillLevels = snapshot.skillLevels && typeof snapshot.skillLevels === 'object' ? { ...snapshot.skillLevels } : {};
     this.dailyClaimDate = snapshot.dailyClaimDate || '';
     const realm = CULTIVATION_REALMS[this.realmIndex];
     this.realmLabel.setText(realm.name + ' · ' + realm.stage);
