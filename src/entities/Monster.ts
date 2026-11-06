@@ -156,6 +156,17 @@ export class Monster extends Phaser.GameObjects.Container {
     this.stateMachine.transitionTo(MonsterStateEnum.IDLE);
   }
 
+  public applyDifficultyMultiplier(multiplier: number): void {
+    const scale = Number.isFinite(multiplier) ? Phaser.Math.Clamp(multiplier, 1, 5) : 1;
+    this.maxHp = Math.max(1, Math.round(this.maxHp * scale));
+    this.hp = this.maxHp;
+    this.config.maxHp = this.maxHp;
+    this.config.atk = Math.max(1, Math.round(this.config.atk * scale));
+    this.baseBossAtk = this.config.atk;
+    this.config.expReward = Math.max(0, Math.round(this.config.expReward * scale));
+    this.config.goldReward = Math.max(0, Math.round(this.config.goldReward * scale));
+  }
+
   public setPerspectivePosition(x: number, y: number, depthScale: number): void {
     this.setPosition(x, y);
     this.setScale(depthScale);
