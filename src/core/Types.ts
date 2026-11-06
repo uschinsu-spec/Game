@@ -144,5 +144,6 @@ export interface InventoryEntry {
   critRate?: number;
   critDmg?: number;
   penetration?: number;
-  attackSpeed?: number;  enhanceLevel?: number;
+  attackSpeed?: number;
+  enhanceLevel?: number;
 }
