@@ -480,7 +480,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.inventory = Array.isArray(snapshot.inventory) ? snapshot.inventory : [];
     this.equipment = snapshot.equipment || {};
     const equipped = Object.values(this.equipment);
-    (this as unknown as { gear: { atk: number; def: number; hp: number; mp: number } }).gear = {
+    this.gearBonuses = {
       atk: equipped.reduce((sum, item) => sum + (item?.atk || 0), 0),
       def: equipped.reduce((sum, item) => sum + (item?.def || 0), 0),
       hp: equipped.reduce((sum, item) => sum + (item?.hp || 0), 0),
@@ -490,7 +490,6 @@ export class Player extends Phaser.GameObjects.Container {
       penetration: equipped.reduce((sum, item) => sum + (item?.penetration || 0), 0),
       attackSpeed: equipped.reduce((sum, item) => sum + (item?.attackSpeed || 0), 0)
     };
-    this.gearBonuses = { ...this.gearBonuses, ...this.gearBonuses };
     this.questClaims = Math.max(0, snapshot.questClaims ?? 0);
     this.skillLevels = snapshot.skillLevels && typeof snapshot.skillLevels === 'object' ? { ...snapshot.skillLevels } : {};
     this.dailyClaimDate = snapshot.dailyClaimDate || '';
