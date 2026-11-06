@@ -5,6 +5,7 @@ import type { CharacterStats, InventoryEntry, EquipmentSlot } from '../core/Type
 const SAVE_KEY = 'van-tien-luc-save-v3';
 const LEGACY_SAVE_KEY = 'van-tien-luc-save-v2';
 const MAX_OFFLINE_SECONDS = 12 * 60 * 60;
+const OFFLINE_EXP_PER_MINUTE = 5;
 
 interface SaveSnapshot {
   version: 2 | 3;
@@ -98,13 +99,16 @@ export class SaveSystem {
   }
 
   static grantOfflineRewards(player: Player, elapsedSeconds: number): void {
-    const minutes = Math.floor(elapsedSeconds / 60);
+    const safeElapsedSeconds = Number.isFinite(elapsedSeconds)
+      ? Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor(elapsedSeconds)))
+      : 0;
+    const minutes = Math.floor(safeElapsedSeconds / 60);
     if (minutes < 1) return;
-    const exp = Math.floor(minutes * 700 / 60);
+    const exp = minutes * OFFLINE_EXP_PER_MINUTE;
     const gold = minutes * 4;
     const spirit = Math.floor(minutes / 8);
     player.addExp(exp);
     player.gainResources(gold, spirit);
-    EventBus.emit(GameEvents.TOAST_MESSAGE, 'AFK ' + Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'p: +' + exp + ' tu vi, +' + gold + ' bạc, +' + spirit + ' linh thạch');
+    EventBus.emit(GameEvents.TOAST_MESSAGE, 'AFK ' + Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'p: +' + exp + ' EXP nhân vật, +' + gold + ' bạc, +' + spirit + ' linh thạch');
   }
 }
