@@ -57,12 +57,7 @@ export class SpawnSystem {
     const scale = 1 + (this.dungeonWave - 1) * 0.18;
     const spawn = (x: number, key: string) => {
       const monster = this.spawnMonster(x, this.arenaY + Phaser.Math.Between(-12, 12), key);
-      monster.config.maxHp = Math.round(monster.config.maxHp * scale);
-      monster.maxHp = monster.config.maxHp;
-      monster.hp = monster.maxHp;
-      monster.config.atk = Math.round(monster.config.atk * scale);
-      monster.config.expReward = Math.round(monster.config.expReward * scale);
-      monster.config.goldReward = Math.round(monster.config.goldReward * scale);
+      monster.applyDifficultyMultiplier(scale);
       monster.drawHpBar();
     };
     if (this.dungeonWave === this.dungeonWaveCount) {
