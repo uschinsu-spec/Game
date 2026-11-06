@@ -106,6 +106,10 @@ export interface LootItemData {
   def?: number;
   hp?: number;
   mp?: number;
+  critRate?: number;
+  critDmg?: number;
+  penetration?: number;
+  attackSpeed?: number;
 }
 
 export interface CultivationRealm {
