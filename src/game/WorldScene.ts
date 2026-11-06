@@ -76,6 +76,7 @@ export class WorldScene extends Phaser.Scene {
     this.createPlayer(w * 0.5, this.playerY);
     this.initSystems();
     const offlineSeconds = SaveSystem.load(this.player);
+    this.skillSystem.restoreProgression();
     SaveSystem.bind(this.player);
     SaveSystem.grantOfflineRewards(this.player, offlineSeconds);
     SaveSystem.save(this.player);
