@@ -250,7 +250,7 @@ export class HUDManager {
         html = '<div style="line-height:1.8"><b>Trang bị đang mặc</b>';
         for (const slot of slots) {
           const item = p.equipment[slot.key as 'weapon'|'armor'|'accessory'];
-          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
+          html += '<div style="padding:8px;margin:6px 0;background:#102b36;border-radius:8px">' + slot.label + ': ' + (item ? safe(item.name) + ' · +' + (item.atk || 0) + ' ATK / +' + (item.def || 0) + ' DEF / +' + (item.hp || 0) + ' HP' + (item.critRate ? ' / +' + Math.round(item.critRate * 100) + '% Bạo kích' : '') + (item.critDmg ? ' / +' + item.critDmg + 'x Bạo thương' : '') + (item.penetration ? ' / +' + item.penetration + ' Xuyên thủng' : '') + (item.attackSpeed ? ' / +' + item.attackSpeed + ' Tốc đánh' : '') + actionButton('Tháo trang bị', 'unequip', 'data-slot="' + slot.key + '"') : 'Chưa trang bị') + '</div>';
         }
         html += '<p>Trang bị mới được nhận từ quái tinh anh và Boss. Mở Túi đồ để trang bị.</p></div>';
         break;
@@ -259,7 +259,7 @@ export class HUDManager {
         html = '<div style="line-height:1.6"><b>Kho vật phẩm · ' + p.inventory.length + ' loại</b>';
         if (!p.inventory.length) html += '<p>Túi đồ đang trống. Hãy đánh quái để thu thập bạc, linh thạch, thảo dược và trang bị.</p>';
         for (const item of p.inventory) {
-          const details = item.type === 'equipment' ? ' · ' + (item.atk ? '+' + item.atk + ' ATK ' : '') + (item.def ? '+' + item.def + ' DEF ' : '') + (item.hp ? '+' + item.hp + ' HP ' : '') + (item.mp ? '+' + item.mp + ' MP' : '') : ' · x' + item.amount;
+          const details = item.type === 'equipment' ? ' · ' + (item.atk ? '+' + item.atk + ' ATK ' : '') + (item.def ? '+' + item.def + ' DEF ' : '') + (item.hp ? '+' + item.hp + ' HP ' : '') + (item.mp ? '+' + item.mp + ' MP ' : '') + (item.critRate ? '+' + Math.round(item.critRate * 100) + '% Bạo kích ' : '') + (item.critDmg ? '+' + item.critDmg + 'x ST bạo kích ' : '') + (item.penetration ? '+' + item.penetration + ' Xuyên thủng ' : '') + (item.attackSpeed ? '+' + item.attackSpeed + ' Tốc đánh' : '') : ' · x' + item.amount;
           html += '<div style="display:flex;align-items:center;gap:6px;padding:7px;margin:5px 0;background:rgba(0,0,0,.25);border-radius:8px"><span>' + item.iconText + '</span><span style="flex:1">' + safe(item.name) + '<small style="display:block;color:#b8d3cc">' + item.quality + details + '</small></span>';
           if (item.type === 'equipment') html += '<button type="button" data-action="equip" data-item-id="' + safe(item.id) + '">Trang bị</button>';
           if (item.type === 'potion') html += '<button type="button" data-action="use" data-item-id="' + safe(item.id) + '">Dùng</button>';
