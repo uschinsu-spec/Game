@@ -244,6 +244,12 @@ export class WorldScene extends Phaser.Scene {
     EventBus.on(GameEvents.MONSTER_DIED, (monster: Monster) => {
       this.handleMonsterDied(monster);
     });
+    EventBus.on(GameEvents.MONSTER_DAMAGED, (payload: { damage: number }) => {
+      this.player.sessionDamageDealt += Math.max(0, Number.isFinite(payload.damage) ? payload.damage : 0);
+    });
+    EventBus.on(GameEvents.PLAYER_DAMAGE_TAKEN, (damage: number) => {
+      this.player.sessionDamageTaken += Math.max(0, Number.isFinite(damage) ? damage : 0);
+    });
     EventBus.on(GameEvents.DUNGEON_COMPLETED, () => {
       const exp = Math.max(250, this.player.stats.level * 25);
       const gold = Math.max(300, this.player.stats.level * 20);
@@ -259,6 +265,7 @@ export class WorldScene extends Phaser.Scene {
     this.lootSystem.dropLootForMonster(monster);
 
     this.player.kills++;
+    this.player.sessionKills++;
     this.player.questKills++;
     this.player.addExp(monster.config.expReward);
     this.player.addCultivationExp(Math.max(1, Math.floor(monster.config.expReward * 0.03)));
