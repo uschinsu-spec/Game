@@ -5,7 +5,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { Pool, type PoolClient } from 'pg';
+import { Pool, types, type PoolClient } from 'pg';
+types.setTypeParser(20, value => Number(value));
 import { z } from 'zod';
 
 const PORT = Number(process.env.API_PORT || 8787);
@@ -119,7 +120,7 @@ app.post('/api/afk/claim', requireAuth, async (req: AuthedRequest, res, next) =>
     );
     if (!result.rowCount) { await client.query('ROLLBACK'); res.status(404).json({ error: 'PLAYER_NOT_FOUND' }); return; }
     const row = result.rows[0];
-    const elapsedSeconds = Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((Date.now() - new Date(row.last_afk_claim_at).getTime()) / 1000)));
+    const elapsedSeconds = Math.max(0, Math.min(MAX_OFFLINE_SECONDS, Math.floor((new Date(row.server_now).getTime() - new Date(row.last_afk_claim_at).getTime()) / 1000)));
     const minutes = Math.floor(elapsedSeconds / 60);
     const rewards = { exp: minutes * 5, gold: minutes * 4, spirit: Math.floor(minutes / 8) };
     await client.query(
