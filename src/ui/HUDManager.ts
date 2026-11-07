@@ -4,6 +4,7 @@ import { Player } from '../entities/Player';
 import { SkillSystem } from '../systems/SkillSystem';
 import { SaveSystem } from '../services/SaveSystem';
 import { CULTIVATION_REALMS } from '../data/realms.data';
+import { CloudAccount, type CloudPlayer } from '../services/CloudAccount';
 
 export class HUDManager {
   private player: Player;
@@ -17,6 +18,7 @@ export class HUDManager {
   private isAuto = true;
   private speedMultiplier = 1;
   private currentModalTab = 'Động phủ';
+  private cloudProfile?: CloudPlayer;
 
   constructor(
     player: Player,
@@ -305,6 +307,15 @@ export class HUDManager {
         html = '<div style="line-height:1.8"><b>Phúc lợi đăng nhập</b><br>Thưởng mỗi ngày: 100 bạc · 5 linh thạch · 50 tu vi.' + actionButton(claimed ? 'Đã nhận phúc lợi hôm nay' : '🎁 Nhận phúc lợi hôm nay', 'daily', claimed ? 'disabled' : '') + '</div>';
         break;
       }
+      case 'Tài khoản': {
+        if (!CloudAccount.isSignedIn) {
+          html = '<div style="line-height:1.8"><b>Tài khoản máy chủ</b><p>Đăng ký hoặc đăng nhập để tạo ví AFK lưu trên PostgreSQL. Tài khoản máy chủ hiện độc lập với tiến trình nhân vật đang lưu trên thiết bị.</p><label for="account-username">Tên tài khoản</label><input id="account-username" autocomplete="username" maxlength="24" style="box-sizing:border-box;width:100%;padding:10px;margin:5px 0 10px;border-radius:8px;border:1px solid #8bafad;background:#102b36;color:white"><label for="account-password">Mật khẩu (ít nhất 10 ký tự)</label><input id="account-password" type="password" autocomplete="current-password" minlength="10" maxlength="72" style="box-sizing:border-box;width:100%;padding:10px;margin:5px 0 10px;border-radius:8px;border:1px solid #8bafad;background:#102b36;color:white">' + actionButton('Đăng nhập', 'account-login') + actionButton('Tạo tài khoản', 'account-register') + '<small>Yêu cầu máy chủ API đã được cấu hình và đang chạy.</small></div>';
+        } else {
+          const profile = this.cloudProfile;
+          html = '<div style="line-height:1.8"><b>Đã đăng nhập</b><br>Tài khoản: ' + safe(profile?.username || 'Đã xác thực') + '<br><b>Ví máy chủ</b><br>EXP: ' + (profile?.exp ?? '—') + '<br>Bạc: ' + (profile?.gold ?? '—') + '<br>Linh thạch: ' + (profile?.spirit ?? '—') + '<p style="color:#e8cf83">Ví này được lưu trên máy chủ và chưa đồng bộ với túi đồ nhân vật cục bộ.</p>' + actionButton('Làm mới số dư', 'account-refresh') + actionButton('Nhận thưởng AFK máy chủ', 'account-afk') + actionButton('Đăng xuất', 'account-logout') + '</div>';
+        }
+        break;
+      }
       case 'Linh bảo':
       case 'Tiên hoàn':
       case 'Tiên duyên':
@@ -317,11 +328,39 @@ export class HUDManager {
         html = '<p>Chức năng chưa được triển khai.</p>';
     }
     content.innerHTML = html;
-    content.onclick = (event) => {
+    content.onclick = async (event) => {
       const target = event.target as HTMLElement;
       const button = target.closest<HTMLButtonElement>('button[data-action]');
       if (!button || button.disabled) return;
       const action = button.dataset.action || '';
+      if (action.startsWith('account-')) {
+        try {
+          if (action === 'account-login' || action === 'account-register') {
+            const username = content.querySelector<HTMLInputElement>('#account-username')?.value.trim() || '';
+            const password = content.querySelector<HTMLInputElement>('#account-password')?.value || '';
+            if (!username || !password) throw new Error('Vui lòng nhập tên tài khoản và mật khẩu.');
+            this.cloudProfile = action === 'account-login'
+              ? await CloudAccount.login(username, password)
+              : await CloudAccount.register(username, password);
+            this.showToast('Đăng nhập máy chủ thành công.');
+          } else if (action === 'account-refresh') {
+            this.cloudProfile = await CloudAccount.me();
+            this.showToast('Đã cập nhật ví máy chủ.');
+          } else if (action === 'account-afk') {
+            const claim = await CloudAccount.claimAfk();
+            this.cloudProfile = claim.player;
+            this.showToast('AFK máy chủ: +' + claim.rewards.exp + ' EXP, +' + claim.rewards.gold + ' bạc, +' + claim.rewards.spirit + ' linh thạch.');
+          } else if (action === 'account-logout') {
+            CloudAccount.logout();
+            this.cloudProfile = undefined;
+            this.showToast('Đã đăng xuất tài khoản máy chủ.');
+          }
+        } catch (error) {
+          this.showToast(error instanceof Error ? error.message : 'Không thể kết nối máy chủ.');
+        }
+        this.renderModalContent(this.currentModalTab);
+        return;
+      }
       let success = false;
       if (action === 'cultivate') success = p.cultivate(15);
       if (action === 'breakthrough') success = p.breakthrough();
