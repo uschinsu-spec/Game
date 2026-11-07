@@ -1,5 +1,5 @@
 {
-  "name": "van-tien-luc-prototype",
+  "name": "van-tien-luc",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,15 +8,33 @@
     "build": "tsc -b && vite build",
     "balance:simulate": "node scripts/simulate-progression.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "prebuild": "node scripts/export-character-webp.mjs"
+    "prebuild": "node scripts/export-character-webp.mjs",
+    "server:dev": "tsx watch server/index.ts",
+    "server:start": "tsx server/index.ts",
+    "server:typecheck": "tsc -p server/tsconfig.json --noEmit"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/pg": "^8.11.11",
+    "tsx": "^4.19.3"
   }
 }
