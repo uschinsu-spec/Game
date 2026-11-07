@@ -27,7 +27,7 @@ app.use(express.json({ limit: '32kb' }));
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 90, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false }));
 
-type AuthedRequest = Request & { userId?: string };
+declare global { namespace Express { interface Request { userId?: string } } }
 const registerSchema = z.object({ username: z.string().trim().min(3).max(24).regex(/^[a-zA-Z0-9_-]+$/), password: z.string().min(10).max(72) });
 const loginSchema = z.object({ username: z.string().trim().min(3).max(24), password: z.string().min(1).max(72) });
 const MAX_OFFLINE_SECONDS = 12 * 60 * 60;
@@ -52,7 +52,7 @@ function issueToken(id: string): string {
   return jwt.sign({ sub: id }, JWT_SECRET!, { expiresIn: '7d', issuer: 'van-tien-luc-api', audience: 'van-tien-luc-client' });
 }
 
-function requireAuth(req: AuthedRequest, res: Response, next: NextFunction): void {
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = req.header('authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) { res.status(401).json({ error: 'AUTH_REQUIRED' }); return; }
   try {
@@ -100,7 +100,7 @@ app.post('/api/auth/login', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get('/api/player/me', requireAuth, async (req: AuthedRequest, res, next) => {
+app.get('/api/player/me', requireAuth, async (req: Request, res, next) => {
   try {
     const result = await pool.query('SELECT id, username, exp, gold, spirit, last_afk_claim_at FROM players WHERE id = $1', [req.userId]);
     if (!result.rowCount) { res.status(404).json({ error: 'PLAYER_NOT_FOUND' }); return; }
